@@ -565,6 +565,44 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
 .skill-name{ font-family:'Cinzel',serif; font-weight:700; font-size:13px; color:var(--gold-bright); margin-bottom:2px; }
 .skill-desc{ font-size:13px; line-height:1.5; color:var(--text-dim); }
 .skill-empty{ font-size:13px; color:var(--text-dim); font-style:italic; padding:0 20px 20px; }
+
+/* ---------- mobile battle layout: board becomes the hero, hands become
+   horizontal strips above/below it instead of squeezed side columns ---------- */
+@media (max-width:640px){
+  .wrap{ padding:12px 8px 20px; }
+
+  .battle-row{
+    flex-direction:column;
+    align-items:stretch;
+    gap:8px;
+  }
+
+  .side-hand.hand-row{
+    width:100%;
+    flex-direction:row;
+    gap:6px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:1px 1px 4px;
+  }
+  .side-hand.hand-row .card{
+    width:56px;
+    flex:0 0 auto;
+  }
+  .hand-label.side{
+    text-align:left;
+    margin:0 0 4px 2px;
+  }
+
+  .arena-frame{
+    max-width:none;
+    width:100%;
+  }
+  .board{
+    max-width:none;
+    gap:6px;
+  }
+}
 </style>
 </head>
 <body>
