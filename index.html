@@ -620,9 +620,30 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
 
   .log{ margin:4px 0; font-size:12px; }
   button.ghost{ padding:7px; margin-top:4px; }
+}
 
-  .log{ margin:6px 0; font-size:12px; }
-  button.ghost{ padding:8px; margin-top:6px; }
+/* ---------- large desktop: same left / center / right layout, just
+   scaled up to use the available screen space ---------- */
+@media (min-width:900px){
+  .stage{ max-width:1260px; }
+  .wrap{ padding:26px 30px 34px; }
+
+  .battle-row{ gap:20px; }
+
+  .hand-row{ width:132px; gap:12px; }
+  .hand-label.side{ font-size:13px; margin-bottom:8px; }
+
+  .board{ gap:16px; max-width:960px; }
+  .arena-frame{
+    max-width:960px;
+    padding:38px 30px;
+    border-width:66px 48px 78px 48px;
+    border-image-width:66px 48px 78px 48px;
+  }
+
+  .scoreboard{ padding:14px 22px; margin-bottom:20px; }
+  .score-num{ font-size:26px; }
+  .turn-indicator{ font-size:14px; }
 }
 </style>
 </head>
