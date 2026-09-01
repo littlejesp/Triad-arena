@@ -693,6 +693,11 @@ const CARD_IMAGES = {
   medusa: 'cards/card-medusa.jpg',
   lyrith: 'cards/card-lyrith.jpg',
   aurelia: 'cards/card-aurelia.jpg',
+  twistedgipsy: 'cards/card-twistedgipsy.jpg',
+  maximus: 'cards/card-maximus.jpg',
+  darum: 'cards/card-darum.jpg',
+  daron: 'cards/card-daron.jpg',
+  ferea: 'cards/card-ferea.jpg',
 };
 
 const FULL_CARD_IMAGES = {
@@ -732,6 +737,11 @@ const FULL_CARD_IMAGES = {
   medusa: '8EE51EB2-0D49-4D5F-BF6B-08741371D2A1.png',
   lyrith: 'C3CBECC2-FAC3-41A0-9ADE-EACEB2E18EFD.png',
   aurelia: '116F7CAB-4465-4BC6-95D4-CE69FA6B4D7F.png',
+  twistedgipsy: '703ACBDF-6CD3-47A5-91BD-C3464F5E50EF.png',
+  maximus: 'BE85BB3D-DEB8-4AF8-A1B3-AC7139FE4F12.png',
+  darum: 'B6C9A05C-CB4F-4F0A-A443-ECAFE12787EA.png',
+  daron: '908B5C26-B2BC-40B7-9DBB-54797A8BF9E7.png',
+  ferea: 'E2433547-CFE6-4011-B094-D7DC0D772DEE.png',
 };
 
 const CARD_BACK_IMAGE = 'card-back-blue.png';
@@ -879,6 +889,46 @@ const HEROES = [
     {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
     {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
   ] },
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', skills: [
+    {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
+    {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
+    {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
+    {name:'Loaded Deck', desc:'Once per match, choose a side — Twisted Gipsy gets +3 Power on that side during the battle.'},
+    {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
+    {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
+  ] },
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', skills: [
+    {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
+    {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
+    {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
+    {name:'Blood for Glory', desc:'If Maximus has lower total Power than his opponent in a battle, he gets +3 Power on the attacking side during that battle.'},
+    {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
+    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
+  ] },
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', skills: [
+    {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
+    {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
+    {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
+    {name:'Crushing Counter', desc:'When Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
+    {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
+    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
+  ] },
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', skills: [
+    {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
+    {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
+    {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
+    {name:'Twisted Royalty', desc:'Once per match, choose a side — Daron gets +3 Power on that side and the enemy card gets -2 Power on all sides this round.'},
+    {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
+    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
+  ] },
+  { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:9, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', skills: [
+    {name:'Touched by Grace (Passive)', desc:"When Ferea wins a battle, she gets +1 Power on all sides for the rest of the match. If she defends a side and wins, she places a Frostmark on the enemy card (-1 Power on all sides, max 2 stacks). (Flavor only — Frostmark stacking is not currently wired into the battle engine.)"},
+    {name:'Ice Embrace', desc:'Ferea places a Frostmark on an enemy card — it gets -2 Power on the chosen side this round.'},
+    {name:"Queen's Blessing", desc:'Ferea gets +2 Power on all sides for every Frostmark on enemy cards (max +6) for the rest of the round.'},
+    {name:'Glacial Barrier', desc:"Choose a side — the next time Ferea defends it, she takes no damage and the attacker gets -2 Power on that side for the rest of the round."},
+    {name:'Empathy of the North', desc:'When Ferea wins a battle, all your cards get +1 Power on all sides for the rest of the round.'},
+    {name:"Special Attack: Memory of Her Stolen Scepter", desc:"Costs 2 wins. Look at 1-3 cards from the enemy's deck and reorder them as you choose. Usable once per match. (Flavor only — deck manipulation is not currently wired into the battle engine.)"},
+  ] },
 ];
 
 
@@ -1009,6 +1059,46 @@ const FOREST_FOES = [
     {name:'Divine Shield', desc:'If Aurelia defends and loses a round, all your sides get +2 defense next round.'},
     {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
     {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
+  ] },
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', skills: [
+    {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
+    {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
+    {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
+    {name:'Loaded Deck', desc:'Once per match, choose a side — Twisted Gipsy gets +3 Power on that side during the battle.'},
+    {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
+    {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
+  ] },
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', skills: [
+    {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
+    {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
+    {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
+    {name:'Blood for Glory', desc:'If Maximus has lower total Power than his opponent in a battle, he gets +3 Power on the attacking side during that battle.'},
+    {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
+    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
+  ] },
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', skills: [
+    {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
+    {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
+    {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
+    {name:'Crushing Counter', desc:'When Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
+    {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
+    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
+  ] },
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', skills: [
+    {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
+    {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
+    {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
+    {name:'Twisted Royalty', desc:'Once per match, choose a side — Daron gets +3 Power on that side and the enemy card gets -2 Power on all sides this round.'},
+    {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
+    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
+  ] },
+  { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:9, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', skills: [
+    {name:'Touched by Grace (Passive)', desc:"When Ferea wins a battle, she gets +1 Power on all sides for the rest of the match. If she defends a side and wins, she places a Frostmark on the enemy card (-1 Power on all sides, max 2 stacks). (Flavor only — Frostmark stacking is not currently wired into the battle engine.)"},
+    {name:'Ice Embrace', desc:'Ferea places a Frostmark on an enemy card — it gets -2 Power on the chosen side this round.'},
+    {name:"Queen's Blessing", desc:'Ferea gets +2 Power on all sides for every Frostmark on enemy cards (max +6) for the rest of the round.'},
+    {name:'Glacial Barrier', desc:"Choose a side — the next time Ferea defends it, she takes no damage and the attacker gets -2 Power on that side for the rest of the round."},
+    {name:'Empathy of the North', desc:'When Ferea wins a battle, all your cards get +1 Power on all sides for the rest of the round.'},
+    {name:"Special Attack: Memory of Her Stolen Scepter", desc:"Costs 2 wins. Look at 1-3 cards from the enemy's deck and reorder them as you choose. Usable once per match. (Flavor only — deck manipulation is not currently wired into the battle engine.)"},
   ] },
 ];
 
