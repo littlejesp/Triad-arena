@@ -2113,9 +2113,9 @@ const SPECIAL_HANDLERS = {
 };
 
 function executeSpecial(sourceIndex){
-  if(state.turn !== 'blue' || state.phase !== 'battle') return;
+  if(state.phase !== 'battle') return;
   const srcEntry = state.board[sourceIndex];
-  if(!srcEntry || srcEntry.owner !== 'blue') return;
+  if(!srcEntry || srcEntry.owner !== state.turn) return;
   const special = srcEntry.card.special;
   if(!special) return;
   const key = srcEntry.owner + ':' + srcEntry.card.id;
@@ -2302,8 +2302,54 @@ function boardFull(){
   return state.board.every(c => c !== null);
 }
 
+// Lets the Forest AI spend a turn on an affordable, unused special attack
+// instead of placing a card, whenever it can identify a target it would
+// actually win against (or, for AoE specials, whenever there's any enemy
+// on the board to hit). Mirrors the human flow (executeSpecial then
+// resolveSpecialTarget) so it goes through the exact same resolution and
+// turn-advance code — no separate AI-only path. Returns true if it acted.
+function enemyTryUseSpecial(){
+  const candidates = [];
+  state.board.forEach((entry, i) => {
+    if(!entry || entry.owner !== 'red') return;
+    const special = entry.card.special;
+    if(!special) return;
+    const key = 'red:' + entry.card.id;
+    if(special.once && state.specialUsed[key]) return;
+    if(state.wins.red < special.cost) return;
+    candidates.push({ sourceIndex:i, entry, special });
+  });
+
+  for(const c of candidates){
+    if(c.special.targets === 'aoe'){
+      const hasEnemy = state.board.some(e => e && e.owner === 'blue');
+      if(!hasEnemy) continue;
+      executeSpecial(c.sourceIndex);
+      return true;
+    }
+
+    let bestTarget = null, bestPower = -1;
+    state.board.forEach((target, ti) => {
+      if(!target || target.owner !== 'blue') return;
+      if(isShielded(target, ti)) return; // don't waste a once-per-match special on a known block
+      if(totalPower(c.entry) > totalPower(target) && totalPower(target) > bestPower){
+        bestPower = totalPower(target);
+        bestTarget = ti;
+      }
+    });
+    if(bestTarget != null){
+      executeSpecial(c.sourceIndex);
+      resolveSpecialTarget(bestTarget);
+      return true;
+    }
+  }
+  return false;
+}
+
 function enemyTurn(){
   if(state.phase !== 'battle') return;
+  if(enemyTryUseSpecial()) return;
+
   const hand = state.enemyHand;
   const emptyCells = state.board.map((c,i)=>c?null:i).filter(i=>i!==null);
   if(hand.length===0 || emptyCells.length===0) return;
