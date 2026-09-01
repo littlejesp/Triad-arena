@@ -21,6 +21,7 @@
   --text-dim:    #9c93b8;
   --blue-side:   #3f6fd1;
   --red-side:    #b8452e;
+  --earth:       #6fae4a;
 }
 
 *{ box-sizing:border-box; }
@@ -42,8 +43,10 @@ body{
   min-height:100vh; min-height:100dvh;
   margin:0 auto;
   background:
-    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(139,110,242,0.16), transparent 60%),
-    radial-gradient(ellipse 700px 500px at 100% 100%, rgba(217,98,43,0.10), transparent 60%),
+    radial-gradient(ellipse 480px 420px at 0% 0%, rgba(217,98,43,0.16), transparent 60%),
+    radial-gradient(ellipse 480px 420px at 100% 0%, rgba(139,110,242,0.14), transparent 60%),
+    radial-gradient(ellipse 480px 420px at 0% 100%, rgba(111,174,74,0.14), transparent 60%),
+    radial-gradient(ellipse 480px 420px at 100% 100%, rgba(94,200,242,0.16), transparent 60%),
     var(--void);
   border-radius:16px;
   box-shadow:0 24px 70px rgba(0,0,0,0.75), 0 0 0 1px var(--line);
@@ -302,11 +305,22 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
 .hand-label{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim); margin:0 0 8px 2px; }
 .hand-label.side{ text-align:center; margin:0 0 4px; }
 
+.hand-row.bottom{
+  flex-direction:row; width:100%; flex:0 0 auto;
+  gap:8px; margin-top:10px; padding:2px 2px 6px;
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
+}
+.hand-row.bottom .card{ width:68px; flex:0 0 auto; }
+.hand-row.bottom .hand-label{ display:none; }
+
 .board{
   display:grid; grid-template-columns:repeat(3,1fr); gap:7px;
   background:radial-gradient(circle at 50% 50%, rgba(139,110,242,0.08), transparent 70%);
   border:1px solid var(--line); border-radius:12px; padding:9px;
   flex:1 1 auto; max-width:520px;
+  box-shadow:
+    -18px 0 30px -14px rgba(184,69,46,0.4),
+    18px 0 30px -14px rgba(63,111,209,0.4);
 }
 .cell{
   position:relative; aspect-ratio:5/7; border-radius:8px;
