@@ -379,10 +379,10 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
   background:var(--panel); border:1px solid var(--line); border-radius:10px;
   padding:10px 16px; margin-bottom:14px;
 }
-.score-side{ display:flex; align-items:center; gap:8px; }
-.score-dot{ width:10px; height:10px; border-radius:50%; }
-.score-dot.blue{ background:var(--blue-side); box-shadow:0 0 8px var(--blue-side); }
-.score-dot.red{ background:var(--red-side); box-shadow:0 0 8px var(--red-side); }
+.score-side{ display:flex; align-items:center; gap:6px; }
+.score-flame{ width:30px; height:30px; object-fit:contain; display:block; animation:flameFlicker 2.6s ease-in-out infinite; }
+.score-flame.blue{ filter:drop-shadow(0 0 6px var(--blue-side)) drop-shadow(0 0 12px rgba(63,111,209,0.5)); }
+.score-flame.red{ filter:drop-shadow(0 0 6px var(--red-side)) drop-shadow(0 0 12px rgba(184,69,46,0.5)); }
 .score-num{ font-family:'Cinzel',serif; font-size:20px; font-weight:700; }
 .score-num.blue{ color:var(--blue-side); text-shadow:0 0 10px rgba(63,111,209,0.6); }
 .score-num.red{ color:var(--red-side); text-shadow:0 0 10px rgba(184,69,46,0.6); }
@@ -656,6 +656,7 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
   .scoreboard{ padding:5px 12px; margin-bottom:5px; }
   .score-num{ font-size:15px; }
   .turn-indicator{ font-size:10px; }
+  .score-flame{ width:22px; height:22px; }
 
   .battle-row{
     flex-direction:column;
@@ -715,6 +716,7 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
   .scoreboard{ padding:11px 20px; margin-bottom:16px; }
   .score-num{ font-size:21px; }
   .turn-indicator{ font-size:13px; }
+  .score-flame{ width:44px; height:44px; }
 }
 </style>
 </head>
@@ -1615,13 +1617,13 @@ function renderBattle(){
     ${masthead(true)}
     <div class="scoreboard">
       <div class="score-side">
-        <div class="score-dot red"></div>
+        <img class="score-flame red" src="flame-red.png" alt="">
         <div><div class="score-num red">${redCount}</div><div class="score-label">Forest</div></div>
       </div>
       <div class="turn-indicator">${turnText}</div>
       <div class="score-side">
         <div><div class="score-num blue" style="text-align:right">${blueCount}</div><div class="score-label">Your Banner</div></div>
-        <div class="score-dot blue"></div>
+        <img class="score-flame blue" src="flame-blue.png" alt="">
       </div>
     </div>
     <div class="wins-row">
