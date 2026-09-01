@@ -100,6 +100,14 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   text-shadow:0 0 30px rgba(201,162,39,0.25);
 }
 .masthead .sub{ font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:var(--text-dim); margin-top:6px; }
+.tester-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  margin-top:12px; padding:5px 13px; border-radius:999px;
+  border:1px solid var(--line); background:var(--panel);
+  color:var(--text-dim); font-size:11px; letter-spacing:0.03em;
+}
+.tester-badge .tester-icon{ font-size:12px; }
+.tester-badge b{ color:var(--gold-bright); font-weight:700; }
 
 /* ---------- rules ---------- */
 .rules{
@@ -1113,6 +1121,18 @@ let soundOn = true;
 let musicOn = true;
 let isFullscreen = false;
 
+/* ---------------- tester counter ---------------- */
+let testerCount = null;
+function loadTesterCount(){
+  fetch('https://abacus.jasoncameron.dev/hit/triadarena.littlejesp/plays', { cache:'no-store' })
+    .then(res => res.ok ? res.json() : Promise.reject(res.status))
+    .then(data => {
+      if(typeof data.value === 'number') testerCount = data.value;
+      render();
+    })
+    .catch(() => { /* counter unreachable — badge just stays hidden */ });
+}
+
 function toggleFullscreen(){
   const el = document.documentElement;
   if(!document.fullscreenElement && !document.webkitFullscreenElement){
@@ -1232,6 +1252,10 @@ function masthead(compact){
       <div class="rune">✦</div>
       <h1>TRIAD ARENA</h1>
       <div class="sub">A Realm of Aetherion Tale</div>
+      ${compact || testerCount === null ? '' : `
+      <div class="tester-badge" title="Total times the arena has been opened">
+        <span class="tester-icon">👥</span> <b>${testerCount.toLocaleString()}</b> have entered the arena
+      </div>`}
     </div>`;
 }
 
@@ -2050,6 +2074,7 @@ function resetGame(){
 }
 
 render();
+loadTesterCount();
 
 document.addEventListener('click', tryStartMusic, { once: true });
 document.addEventListener('touchstart', tryStartMusic, { once: true });
