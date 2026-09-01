@@ -1588,18 +1588,18 @@ function renderBattle(){
     ${masthead(true)}
     <div class="scoreboard">
       <div class="score-side">
-        <div class="score-dot blue"></div>
-        <div><div class="score-num blue">${blueCount}</div><div class="score-label">Your Banner</div></div>
+        <div class="score-dot red"></div>
+        <div><div class="score-num red">${redCount}</div><div class="score-label">Forest</div></div>
       </div>
       <div class="turn-indicator">${turnText}</div>
       <div class="score-side">
-        <div><div class="score-num red" style="text-align:right">${redCount}</div><div class="score-label">Forest</div></div>
-        <div class="score-dot red"></div>
+        <div><div class="score-num blue" style="text-align:right">${blueCount}</div><div class="score-label">Your Banner</div></div>
+        <div class="score-dot blue"></div>
       </div>
     </div>
     <div class="wins-row">
-      <span class="wins-chip blue">⚡ <b>${state.wins.blue}</b> wins</span>
       <span class="wins-chip red">⚡ <b>${state.wins.red}</b> wins</span>
+      <span class="wins-chip blue">⚡ <b>${state.wins.blue}</b> wins</span>
     </div>
 
     <div class="battle-row">
