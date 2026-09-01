@@ -371,6 +371,37 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
   pointer-events:none;
 }
 .arena-rosette{ position:absolute; inset:12%; z-index:0; pointer-events:none; opacity:0.85; }
+
+.coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
+.coinflip-frame{
+  position:relative; width:180px; height:180px; border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(139,110,242,0.12), transparent 65%),
+    radial-gradient(circle, var(--stone-2), var(--stone) 75%);
+  border:1px solid rgba(139,110,242,0.35);
+  box-shadow:
+    inset 0 0 0 1px rgba(201,162,39,0.2),
+    inset 0 2px 14px rgba(0,0,0,0.6),
+    0 0 40px rgba(139,110,242,0.15);
+  display:flex; align-items:center; justify-content:center;
+}
+.coinflip-frame .arena-rosette{ inset:8%; }
+.coin-arrow{
+  position:relative; z-index:1; width:64%; height:64%;
+  animation: spinArrow 1.9s cubic-bezier(.17,.67,.16,1) forwards;
+  filter:drop-shadow(0 0 8px rgba(240,216,121,0.5));
+}
+@keyframes spinArrow{ 0%{ transform:rotate(0deg); } 100%{ transform:rotate(var(--final-rot)); } }
+.coinflip-label-stack{ position:relative; height:16px; margin-top:18px; width:220px; }
+.coinflip-label{
+  position:absolute; inset:0; font-family:'Cinzel',serif; font-size:12px; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--gold); text-align:center;
+}
+.label-rolling{ animation: rollingFade 1.9s ease forwards; }
+@keyframes rollingFade{ 0%{ opacity:1; } 75%{ opacity:1; } 100%{ opacity:0; } }
+.label-result{ opacity:0; color:var(--gold-bright); animation: resultFade 1.9s ease forwards; }
+@keyframes resultFade{ 0%{ opacity:0; } 78%{ opacity:0; } 100%{ opacity:1; } }
+@keyframes coinFadeOut{ to{ opacity:0; transform:scale(0.94); } }
 .cell{
   position:relative; aspect-ratio:5/7; border-radius:9px; overflow:hidden;
   background:
@@ -1006,7 +1037,7 @@ function closeCardModal(){
 /* ---------------- rendering ---------------- */
 function render(){
   const app = document.getElementById('app');
-  let html = state.phase === 'draft' ? renderDraft() : renderBattle();
+  let html = state.phase === 'draft' ? renderDraft() : (state.phase === 'coinflip' ? renderCoinflip() : renderBattle());
   html += renderModal();
   app.innerHTML = html;
   attachHandlers();
@@ -1177,6 +1208,35 @@ function renderDraft(){
       <button class="cta" id="begin-btn-manual" ${chosen === 5 ? '' : 'disabled'}>Begin the Duel</button>
       <div class="footer-note">The forest sends five foes to test your banner — some far more dangerous than others.</div>
     `}
+  `;
+}
+
+function renderCoinflip(){
+  const spins = 3 * 360;
+  const target = state.coinTurn === 'blue' ? 90 : -90;
+  const finalRot = spins + target;
+  return `
+    ${masthead(true)}
+    <div class="coinflip-wrap">
+      <div class="coinflip-frame">
+        <div class="arena-rosette" aria-hidden="true">
+          <svg viewBox="0 0 200 200" width="100%" height="100%">
+            <polygon points="100,8 118,84 192,100 118,116 100,192 82,116 8,100 82,84" fill="none" stroke="rgba(139,110,242,0.3)" stroke-width="2"/>
+            <polygon points="100,42 108,92 158,100 108,108 100,158 92,108 42,100 92,92" fill="none" stroke="rgba(201,162,39,0.32)" stroke-width="1.5"/>
+            <circle cx="100" cy="100" r="72" fill="none" stroke="rgba(201,162,39,0.16)" stroke-width="1"/>
+          </svg>
+        </div>
+        <svg class="coin-arrow" viewBox="0 0 100 100" style="--final-rot:${finalRot}deg">
+          <rect x="46" y="46" width="8" height="42" rx="2" fill="#c9a227"/>
+          <polygon points="50,6 64,38 36,38" fill="#f0d879"/>
+          <circle cx="50" cy="50" r="8" fill="#8b6ef2"/>
+        </svg>
+      </div>
+      <div class="coinflip-label-stack">
+        <div class="coinflip-label label-rolling">Rolling for first move&hellip;</div>
+        <div class="coinflip-label label-result">${state.coinTurn === 'blue' ? 'You strike first!' : 'The Forest strikes first!'}</div>
+      </div>
+    </div>
   `;
 }
 
@@ -1385,11 +1445,20 @@ function startBattle(){
   state.playerHand = shuffle(chosenHeroes.slice());
   state.enemyHand = drawEnemyHand();
   state.board = Array(9).fill(null);
-  state.turn = 'blue';
-  state.phase = 'battle';
   state.pendingCard = null;
   state.log = 'Place a champion to claim the first square.';
+
+  const startingTurn = Math.random() < 0.5 ? 'blue' : 'red';
+  state.turn = startingTurn;
+  state.coinTurn = startingTurn;
+  state.phase = 'coinflip';
   render();
+
+  setTimeout(()=>{
+    state.phase = 'battle';
+    render();
+    if(state.turn === 'red'){ setTimeout(enemyTurn, 700); }
+  }, 2700);
 }
 
 function shuffle(arr){
