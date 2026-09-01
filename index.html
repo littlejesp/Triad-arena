@@ -71,6 +71,14 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .masthead.compact .sound-toggle{ width:24px; height:24px; font-size:11px; }
 .sound-toggle.on{ color:var(--gold); border-color:var(--gold); }
 
+.fullscreen-toggle{
+  position:absolute; top:0; right:40px; width:34px; height:34px; border-radius:50%;
+  border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;
+}
+.masthead.compact .fullscreen-toggle{ width:24px; height:24px; font-size:10px; right:28px; }
+.fullscreen-toggle.on{ color:var(--gold); border-color:var(--gold); }
+
 .music-toggle{
   position:absolute; top:0; left:0; width:34px; height:34px; border-radius:50%;
   border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
@@ -954,6 +962,25 @@ const num = n => n === 10 ? 'A' : n;
 /* ---------------- sound engine ---------------- */
 let soundOn = true;
 let musicOn = true;
+let isFullscreen = false;
+
+function toggleFullscreen(){
+  const el = document.documentElement;
+  if(!document.fullscreenElement && !document.webkitFullscreenElement){
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if(req) req.call(el);
+  } else {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+    if(exit) exit.call(document);
+  }
+}
+
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(evt=>{
+  document.addEventListener(evt, ()=>{
+    isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    render();
+  });
+});
 let musicStarted = false;
 let actx = null;
 
@@ -1051,6 +1078,7 @@ function masthead(compact){
   return `
     <div class="masthead ${compact ? 'compact' : ''}">
       <button class="music-toggle ${musicOn ? 'on':''}" id="music-toggle" title="${musicOn ? 'Mute music' : 'Unmute music'}">${musicOn ? '\u266B' : '\u266B\u0338'}</button>
+      <button class="fullscreen-toggle ${isFullscreen ? 'on':''}" id="fullscreen-toggle" title="${isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}">⛶</button>
       <button class="sound-toggle ${soundOn ? 'on':''}" id="sound-toggle" title="${soundOn ? 'Mute' : 'Unmute'}">${soundOn ? '♪' : '✕'}</button>
       <div class="rune">✦</div>
       <h1>TRIAD ARENA</h1>
@@ -1377,6 +1405,8 @@ function attachHandlers(){
   if(soundBtn) soundBtn.addEventListener('click', toggleSound);
   const musicBtn = document.getElementById('music-toggle');
   if(musicBtn) musicBtn.addEventListener('click', toggleMusic);
+  const fsBtn = document.getElementById('fullscreen-toggle');
+  if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
 
   document.querySelectorAll('.info-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
