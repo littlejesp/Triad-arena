@@ -63,6 +63,31 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .masthead.compact .rune{ width:26px; height:26px; margin:0 auto 5px; font-size:12px; }
 .masthead.compact h1{ font-size:22px; }
 .masthead.compact .sub{ font-size:10px; }
+.corner-flame{
+  position:absolute; top:-6px; width:46px; height:46px; pointer-events:none;
+  display:flex; align-items:center; justify-content:center;
+}
+.corner-flame.left{ left:-10px; }
+.corner-flame.right{ right:-10px; }
+.corner-flame .flame-icon{
+  font-size:38px; line-height:1; display:block;
+  animation:flameFlicker 2.6s ease-in-out infinite;
+}
+.corner-flame.left .flame-icon{
+  filter:saturate(1.3) drop-shadow(0 0 12px var(--red-side)) drop-shadow(0 0 22px rgba(184,69,46,0.55));
+}
+.corner-flame.right .flame-icon{
+  filter:hue-rotate(190deg) saturate(1.5) drop-shadow(0 0 12px var(--blue-side)) drop-shadow(0 0 22px rgba(63,111,209,0.55));
+}
+.masthead.compact .corner-flame{ width:30px; height:30px; top:-3px; }
+.masthead.compact .corner-flame.left{ left:-4px; }
+.masthead.compact .corner-flame.right{ right:-4px; }
+.masthead.compact .corner-flame .flame-icon{ font-size:24px; }
+@keyframes flameFlicker{
+  0%,100%{ transform:scale(1) rotate(-1deg); opacity:0.92; }
+  35%{ transform:scale(1.08) rotate(1deg); opacity:1; }
+  60%{ transform:scale(0.97) rotate(-2deg); opacity:0.88; }
+}
 .sound-toggle{
   position:absolute; top:0; right:0; width:34px; height:34px; border-radius:50%;
   border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
@@ -1285,6 +1310,8 @@ function toggleSound(){
 function masthead(compact){
   return `
     <div class="masthead ${compact ? 'compact' : ''}">
+      <div class="corner-flame left" aria-hidden="true"><span class="flame-icon">\uD83D\uDD25</span></div>
+      <div class="corner-flame right" aria-hidden="true"><span class="flame-icon">\uD83D\uDD25</span></div>
       <button class="music-toggle ${musicOn ? 'on':''}" id="music-toggle" title="${musicOn ? 'Mute music' : 'Unmute music'}">${musicOn ? '\u266B' : '\u266B\u0338'}</button>
       <button class="fullscreen-toggle ${isFullscreen ? 'on':''}" id="fullscreen-toggle" title="${isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}">⛶</button>
       <button class="sound-toggle ${soundOn ? 'on':''}" id="sound-toggle" title="${soundOn ? 'Mute' : 'Unmute'}">${soundOn ? '♪' : '✕'}</button>
