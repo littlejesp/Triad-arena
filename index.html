@@ -241,6 +241,45 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .info-btn:hover{ border-color:var(--gold); color:var(--gold-bright); }
 
+.special-btn{
+  position:absolute; bottom:4px; right:4px; z-index:6;
+  width:clamp(18px,22cqw,24px); height:clamp(18px,22cqw,24px);
+  border-radius:50%; background:rgba(4,3,9,0.78); border:1px solid var(--arcane);
+  color:var(--arcane); font-size:clamp(9px,12cqw,13px); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; line-height:1; padding:0; touch-action:manipulation;
+  box-shadow:0 0 8px rgba(139,110,242,0.4);
+}
+.special-btn.locked{ opacity:0.35; border-color:rgba(255,255,255,0.3); color:var(--text-dim); box-shadow:none; cursor:default; }
+.special-btn.ready:hover{ border-color:var(--gold-bright); color:var(--gold-bright); }
+.card.special-active{
+  border-color:var(--arcane) !important;
+  box-shadow:0 0 0 2px rgba(139,110,242,0.35), 0 0 18px rgba(139,110,242,0.55) !important;
+}
+.cell.special-target{
+  cursor:pointer; border-color:rgba(196,72,46,0.65);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,0.08),
+    inset 0 -4px 8px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(196,72,46,0.6),
+    0 0 20px rgba(196,72,46,0.55);
+}
+.cell.special-target::before{
+  background:radial-gradient(circle at 50% 50%, rgba(196,72,46,0.45), transparent 65%);
+  animation:cellPulseGold 1.2s ease-in-out infinite;
+}
+
+.wins-row{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  margin:2px 0 10px; font-size:11px; color:var(--text-dim); letter-spacing:0.03em;
+}
+.wins-chip{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 10px; border-radius:999px; border:1px solid var(--line); background:var(--panel);
+}
+.wins-chip.blue{ color:var(--blue-side); border-color:rgba(63,111,209,0.5); }
+.wins-chip.red{ color:var(--red-side); border-color:rgba(184,69,46,0.5); }
+.wins-chip b{ color:inherit; }
+
 .stat-cluster{
   position:absolute; z-index:4; bottom:5px; left:50%; transform:translateX(-50%);
   width:clamp(38px, 50cqw, 62px); height:clamp(38px, 50cqw, 62px);
@@ -865,7 +904,7 @@ const HEROES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yin Resonance', desc:'Costs 3 wins. Unites with Yang — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, skills: [
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
     {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
     {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
     {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
@@ -873,7 +912,7 @@ const HEROES = [
     {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
     {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
   ] },
-  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', skills: [
+  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', special:{ name:'Gaze of Medusa', cost:2, once:true, targets:'aoe' }, skills: [
     {name:'Stone Gaze (Passive)', desc:"Every time Medusa takes control of an enemy card, that card is petrified for 1 round and can't be used to flip other cards. (Flavor only — not currently wired into the battle engine; see notes.)"},
     {name:'Petrify', desc:'When Medusa flips a card with this skill, that card is petrified for 1 round.'},
     {name:'Venomous Beauty', desc:'Medusa gets +1 Power on every side for each petrified card on the board.'},
@@ -881,7 +920,7 @@ const HEROES = [
     {name:'Queen of Stone', desc:'When Medusa flips a card with this skill, she gets an extra turn after this round.'},
     {name:'Special Attack: Gaze of Medusa', desc:'Costs 2 wins. Petrifies all enemy cards for 1 round. Medusa gets +3 Power on all sides this round. If the enemy has fewer cards in play than you, Medusa gets an additional extra turn. Usable once per match.'},
   ] },
-  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', skills: [
+  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
     {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
     {name:'Poisoned Edge', desc:'When Lyrith attacks, the enemy is poisoned and gets -2 defense for 2 rounds. If the enemy is already poisoned, Lyrith gets +2 attack instead.'},
@@ -889,7 +928,7 @@ const HEROES = [
     {name:'Veil of Shadows', desc:"All enemies on Lyrith's side of the arena get -1 attack for 1 round when she flips a card."},
     {name:"Special Attack: Serpent's Wrath", desc:"Costs 3 wins. Lyrith attacks this card with both weapons. If the attack wins, flip the card and gain +4 Power on all sides for the rest of this round. If the attack crits, destroy the enemy card instead of flipping it (can only happen once per match). Ignores the enemy's defensive skills. Usable once per match."},
   ] },
-  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', skills: [
+  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
     {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
     {name:'Luminous Strike', desc:'When Aurelia attacks and wins, she gets +2 Power on the side she attacked with for the rest of the match.'},
     {name:'Holy Barrage', desc:'If Aurelia wins a round on at least 2 sides, all your sides get +1 Power for the rest of the match.'},
@@ -905,7 +944,7 @@ const HEROES = [
     {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
     {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', skills: [
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
     {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
     {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
@@ -1036,7 +1075,7 @@ const FOREST_FOES = [
     {name:"Fenrir's Curse", desc:"If Fenrir loses a battle, the opponent can't take the card if Fenrir has 8 or more on any other side."},
     {name:'Eternal Loyalty', desc:"Fenrir can never be flipped by the opponent's card skills or special attacks."},
   ] },
-  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, skills: [
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
     {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
     {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
     {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
@@ -1044,7 +1083,7 @@ const FOREST_FOES = [
     {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
     {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
   ] },
-  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', skills: [
+  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', special:{ name:'Gaze of Medusa', cost:2, once:true, targets:'aoe' }, skills: [
     {name:'Stone Gaze (Passive)', desc:"Every time Medusa takes control of an enemy card, that card is petrified for 1 round and can't be used to flip other cards. (Flavor only — not currently wired into the battle engine; see notes.)"},
     {name:'Petrify', desc:'When Medusa flips a card with this skill, that card is petrified for 1 round.'},
     {name:'Venomous Beauty', desc:'Medusa gets +1 Power on every side for each petrified card on the board.'},
@@ -1052,7 +1091,7 @@ const FOREST_FOES = [
     {name:'Queen of Stone', desc:'When Medusa flips a card with this skill, she gets an extra turn after this round.'},
     {name:'Special Attack: Gaze of Medusa', desc:'Costs 2 wins. Petrifies all enemy cards for 1 round. Medusa gets +3 Power on all sides this round. If the enemy has fewer cards in play than you, Medusa gets an additional extra turn. Usable once per match.'},
   ] },
-  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', skills: [
+  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
     {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
     {name:'Poisoned Edge', desc:'When Lyrith attacks, the enemy is poisoned and gets -2 defense for 2 rounds. If the enemy is already poisoned, Lyrith gets +2 attack instead.'},
@@ -1060,7 +1099,7 @@ const FOREST_FOES = [
     {name:'Veil of Shadows', desc:"All enemies on Lyrith's side of the arena get -1 attack for 1 round when she flips a card."},
     {name:"Special Attack: Serpent's Wrath", desc:"Costs 3 wins. Lyrith attacks this card with both weapons. If the attack wins, flip the card and gain +4 Power on all sides for the rest of this round. If the attack crits, destroy the enemy card instead of flipping it (can only happen once per match). Ignores the enemy's defensive skills. Usable once per match."},
   ] },
-  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', skills: [
+  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
     {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
     {name:'Luminous Strike', desc:'When Aurelia attacks and wins, she gets +2 Power on the side she attacked with for the rest of the match.'},
     {name:'Holy Barrage', desc:'If Aurelia wins a round on at least 2 sides, all your sides get +1 Power for the rest of the match.'},
@@ -1076,7 +1115,7 @@ const FOREST_FOES = [
     {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
     {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', skills: [
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
     {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
     {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
@@ -1274,6 +1313,10 @@ let state = {
   rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
+  wins: { blue: 0, red: 0 },   // accumulated captures — spent to activate special attacks
+  specialUsed: {},        // `${owner}:${cardId}` -> true, once a once-per-match special has fired
+  specialMode: null,      // { sourceIndex, special } while awaiting a target click for a special attack
+  extraTurnPending: null, // owner who gets to act again instead of passing the turn
 };
 
 function uid(card, owner){ return owner + ':' + card.id; }
@@ -1363,8 +1406,9 @@ function cardFace(card, opts={}){
   const clickable = opts.clickable ? 'selectable' : '';
   const shieldClass = opts.shieldFlash ? 'shield-flash' : '';
   const bonusClass = opts.bonusFlash ? 'bonus-flash' : '';
+  const specialActiveClass = opts.specialActive ? 'special-active' : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass}" data-cardid="${card.id}" ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass}" data-cardid="${card.id}" ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -1372,6 +1416,7 @@ function cardFace(card, opts={}){
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
       ${card.element ? `<div class="element-badge" title="${card.element}">${ELEMENT_ICONS[card.element]}</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
+      ${opts.specialInfo ? `<button class="special-btn ${opts.specialInfo.ready ? 'ready' : 'locked'}" data-special-cell="${opts.specialInfo.cellIndex}" title="${opts.specialInfo.title}">⚡</button>` : ''}
       ${opts.shieldFlash ? `<div class="skill-pop shield">🛡 Shield!</div>` : ''}
       ${opts.bonusFlash ? `<div class="skill-pop bonus">+${opts.bonusAmount||1} Power</div>` : ''}
       <div class="card-inner">
@@ -1490,6 +1535,29 @@ function renderCoinflip(){
   `;
 }
 
+function boardCellHtml(cell, i){
+  let specialInfo = null;
+  if(cell && cell.owner === 'blue' && cell.card.special){
+    const key = 'blue:' + cell.card.id;
+    if(!(cell.card.special.once && state.specialUsed[key])){
+      const ready = state.turn === 'blue' && state.phase === 'battle' && state.wins.blue >= cell.card.special.cost;
+      specialInfo = { cellIndex:i, ready, title: `${cell.card.special.name} — costs ${cell.card.special.cost} wins` };
+    }
+  }
+  const placeTargetable = !cell && state.pendingCard && state.turn==='blue' && state.phase==='battle';
+  const specialTargetable = state.specialMode && cell && cell.owner === 'red';
+  const cellClass = `${placeTargetable ? 'targetable':''} ${specialTargetable ? 'special-target':''}`;
+  return `
+    <div class="cell ${cellClass}" data-cell="${i}">
+      ${cell ? cardFace(cell.card, {
+          owner:cell.owner, flipping:cell.justFlipped, placing:cell.justPlaced,
+          shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
+          specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
+        }) : ''}
+    </div>
+  `;
+}
+
 function renderBattle(){
   const blueCount = state.board.filter(c => c && c.owner === 'blue').length;
   const redCount = state.board.filter(c => c && c.owner === 'red').length;
@@ -1529,6 +1597,10 @@ function renderBattle(){
         <div class="score-dot red"></div>
       </div>
     </div>
+    <div class="wins-row">
+      <span class="wins-chip blue">⚡ <b>${state.wins.blue}</b> wins</span>
+      <span class="wins-chip red">⚡ <b>${state.wins.red}</b> wins</span>
+    </div>
 
     <div class="battle-row">
       <div class="side-hand hand-row enemy">
@@ -1546,11 +1618,7 @@ function renderBattle(){
         </svg>
       </div>
       <div class="board">
-        ${state.board.map((cell,i) => `
-          <div class="cell ${(!cell && state.pendingCard && state.turn==='blue' && state.phase==='battle') ? 'targetable':''}" data-cell="${i}">
-            ${cell ? cardFace(cell.card, { owner:cell.owner, flipping:cell.justFlipped, placing:cell.justPlaced, shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount }) : ''}
-          </div>
-        `).join('')}
+        ${state.board.map(boardCellHtml).join('')}
       </div>
       </div>
 
@@ -1585,6 +1653,18 @@ function attachHandlers(){
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       openCardModal(btn.dataset.info);
+    });
+  });
+
+  document.querySelectorAll('.special-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const cellIndex = parseInt(btn.dataset.specialCell, 10);
+      if(state.specialMode && state.specialMode.sourceIndex === cellIndex){
+        cancelSpecial();
+      } else if(btn.classList.contains('ready')){
+        executeSpecial(cellIndex);
+      }
     });
   });
 
@@ -1666,14 +1746,19 @@ function attachHandlers(){
         const id = el.dataset.cardid;
         const opening = state.pendingCard !== id;
         state.pendingCard = opening ? id : null;
+        state.specialMode = null;
         opening ? SFX.select() : SFX.deselect();
         render();
       });
     });
     document.querySelectorAll('.cell').forEach(el=>{
       el.addEventListener('click', ()=>{
-        if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard) return;
         const i = parseInt(el.dataset.cell,10);
+        if(state.specialMode){
+          resolveSpecialTarget(i);
+          return;
+        }
+        if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard) return;
         if(state.board[i]) return;
         placeCard(i, state.pendingCard, 'blue');
       });
@@ -1797,6 +1882,7 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
 }
 
 function isShielded(targetEntry, targetIndex){
+  if(targetEntry.grantedShield && !targetEntry.shieldUsed) return true;
   const a = targetEntry.card.active;
   if(!a) return false;
   if(a.shield && !targetEntry.shieldUsed) return true;
@@ -1821,7 +1907,7 @@ function placeCard(cellIndex, cardId, owner){
   if(cardIdx === -1) return;
   const card = hand[cardIdx];
 
-  state.board[cellIndex] = { card, owner, shieldUsed:false, captureBonus:0, justPlaced:true };
+  state.board[cellIndex] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:0, justPlaced:true };
   hand.splice(cardIdx,1);
   state.pendingCard = null;
 
@@ -1829,6 +1915,7 @@ function placeCard(cellIndex, cardId, owner){
   const result = resolveFlips(cellIndex, owner);
   const flips = result.flips, shielded = result.shielded, bonusTriggered = result.bonusTriggered;
   const sameOrPlus = result.sameOrPlus, combo = result.combo;
+  if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) setTimeout(()=> SFX.flip(flips), 120);
   if(shielded > 0) setTimeout(()=> SFX.shield(), 90);
   if(bonusTriggered) setTimeout(()=> SFX.bonus(), shielded > 0 ? 260 : 90);
@@ -1863,17 +1950,195 @@ function placeCard(cellIndex, cardId, owner){
     }, 950);
   }
 
-  if(boardFull()){
+  advanceTurn(owner);
+}
+
+// Passes the turn to the other side — unless a special attack just granted
+// an extra turn to `owner`, in which case they act again instead.
+function advanceTurn(owner){
+  // Normally the board fills up exactly when both hands are spent. But
+  // Lyrith's crit can destroy a card and re-open a cell — if that leaves a
+  // hole neither side can fill any more (both hands empty), end the match
+  // instead of passing an unplayable turn back and forth forever.
+  if(boardFull() || (state.playerHand.length === 0 && state.enemyHand.length === 0)){
     setTimeout(finishGame, 500);
     return;
   }
-
+  if(state.extraTurnPending === owner){
+    state.extraTurnPending = null;
+    render();
+    if(owner === 'red'){ setTimeout(enemyTurn, 700); }
+    return;
+  }
   state.turn = owner === 'blue' ? 'red' : 'blue';
   render();
 
   if(state.turn === 'red'){
     setTimeout(enemyTurn, 700);
   }
+}
+
+/* ---------------- special attacks (additive layer) ----------------
+   Deliberately kept separate from the base flip engine above: activating
+   a special never runs through placeCard/resolveFlips/battleNeighbors,
+   it only reads/writes a handful of extra state fields (wins, captureBonus,
+   grantedShield, board occupancy) that the base engine already understands.
+   Most future ultimates should fit the small verb library below; only a
+   signature few need a fully bespoke handler. */
+const SpecialVerbs = {
+  attackBoost(entry, amount){ entry.captureBonus += amount; },
+  grantShield(entry){ entry.grantedShield = true; },
+  stealPower(sourceEntry, targetEntry, amount){
+    targetEntry.captureBonus -= amount;
+    sourceEntry.captureBonus += amount;
+  },
+  extraTurn(owner){ state.extraTurnPending = owner; },
+};
+
+function totalPower(entry){
+  const c = entry.card;
+  return c.top + c.right + c.bottom + c.left + (entry.captureBonus || 0) * 4;
+}
+
+function rollCrit(chance){ return Math.random() < chance; }
+
+// One handler per signature ultimate, keyed by card id. Each returns the
+// battle-log line to show. Handlers receive { srcEntry, sourceIndex,
+// targetEntry, targetIndex, owner } — targetEntry/targetIndex are null
+// for area-effect specials (targets:'aoe').
+// Shared shield check for specials that DON'T explicitly pierce defenses:
+// blocks the flip and consumes the shield, same as a normal battle would.
+function specialBlockedByShield(targetEntry, targetIndex){
+  if(!isShielded(targetEntry, targetIndex)) return false;
+  targetEntry.shieldUsed = true;
+  targetEntry.shieldFlash = true;
+  return true;
+}
+
+const SPECIAL_HANDLERS = {
+  graff({ srcEntry, targetEntry, targetIndex, owner }){
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${srcEntry.card.name}'s Shadow Assault is repelled!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Shadow Assault!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 3);
+    return `${srcEntry.card.name}'s Shadow Assault flips ${targetEntry.card.name} and surges with power!`;
+  },
+  lyrith({ srcEntry, targetEntry, targetIndex, owner }){
+    // Serpent's Wrath explicitly ignores the enemy's defensive skills — no shield check here.
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${srcEntry.card.name}'s Serpent's Wrath fails to pierce the enemy's guard!`;
+    }
+    if(rollCrit(0.25)){
+      state.board[targetIndex] = null;
+      return `${srcEntry.card.name} lands a critical strike — ${targetEntry.card.name} is destroyed!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 4);
+    return `${srcEntry.card.name}'s Serpent's Wrath flips ${targetEntry.card.name}, ignoring its defenses!`;
+  },
+  aurelia({ srcEntry, targetEntry, targetIndex, owner }){
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${srcEntry.card.name}'s Dawn's Reckoning is turned aside!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Dawn's Reckoning!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    if(rollCrit(0.25)){
+      targetEntry.captureBonus -= 20; // wipes the card's sides to effectively nothing
+      return `${srcEntry.card.name} lands a critical strike — ${targetEntry.card.name}'s power is wiped out!`;
+    }
+    SpecialVerbs.attackBoost(srcEntry, 4);
+    return `${srcEntry.card.name}'s Dawn's Reckoning flips ${targetEntry.card.name}!`;
+  },
+  medusa({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.stealPower(srcEntry, e, 1));
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    if(mine > enemies.length) SpecialVerbs.extraTurn(owner);
+    return `${srcEntry.card.name}'s Gaze of Medusa withers every foe on the board!`;
+  },
+  maximus({ srcEntry, targetEntry, targetIndex, owner }){
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 4 <= targetPower){
+      return `${srcEntry.card.name}'s Axe of Dominion is blocked!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Axe of Dominion!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    if(targetPower > basePower) SpecialVerbs.extraTurn(owner);
+    return `${srcEntry.card.name}'s Axe of Dominion crushes ${targetEntry.card.name}!`;
+  },
+};
+
+function executeSpecial(sourceIndex){
+  if(state.turn !== 'blue' || state.phase !== 'battle') return;
+  const srcEntry = state.board[sourceIndex];
+  if(!srcEntry || srcEntry.owner !== 'blue') return;
+  const special = srcEntry.card.special;
+  if(!special) return;
+  const key = srcEntry.owner + ':' + srcEntry.card.id;
+  if(special.once && state.specialUsed[key]) return;
+  if(state.wins[srcEntry.owner] < special.cost) return;
+
+  state.pendingCard = null;
+
+  if(special.targets === 'aoe'){
+    runSpecialResolution(sourceIndex, null);
+  } else {
+    state.specialMode = { sourceIndex };
+    SFX.select();
+    render();
+  }
+}
+
+function resolveSpecialTarget(targetIndex){
+  const mode = state.specialMode;
+  if(!mode) return;
+  const srcEntry = state.board[mode.sourceIndex];
+  const targetEntry = state.board[targetIndex];
+  if(!srcEntry || !targetEntry || targetEntry.owner === srcEntry.owner){
+    cancelSpecial();
+    return;
+  }
+  runSpecialResolution(mode.sourceIndex, targetIndex);
+}
+
+function cancelSpecial(){
+  state.specialMode = null;
+  render();
+}
+
+function runSpecialResolution(sourceIndex, targetIndex){
+  const srcEntry = state.board[sourceIndex];
+  const special = srcEntry.card.special;
+  const owner = srcEntry.owner;
+  const handler = SPECIAL_HANDLERS[srcEntry.card.id];
+  if(!handler) return;
+
+  state.wins[owner] -= special.cost;
+  if(special.once) state.specialUsed[owner + ':' + srcEntry.card.id] = true;
+  state.specialMode = null;
+
+  const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
+  state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner });
+
+  SFX.bonus();
+  render();
+
+  advanceTurn(owner);
 }
 
 const NEIGHBOR_DIRS = [
@@ -2069,6 +2334,7 @@ function resetGame(){
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
     viewingCard:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null,
   };
   render();
 }
