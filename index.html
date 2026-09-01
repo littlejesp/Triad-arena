@@ -724,6 +724,8 @@ const FULL_CARD_IMAGES = {
   twinsisters: 'A2B1A2CA-0D9C-46E9-B3C5-07C0283C4407.png',
   eviltwistyang: '3978FBE9-47C9-4E71-9348-6D2F4B1E0EDC.png',
   eviltwistyin: '6F6FDF5D-77C4-4C60-A6C9-C3AA29906068.png',
+  graff: '29F82ABB-FC19-446B-8983-FEC6D85AA298.png',
+  medusa: '8EE51EB2-0D49-4D5F-BF6B-08741371D2A1.png',
 };
 
 const CARD_BACK_IMAGE = 'card-back-blue.png';
@@ -839,7 +841,24 @@ const HEROES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yin Resonance', desc:'Costs 3 wins. Unites with Yang — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, skills: [
+    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
+    {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
+    {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
+    {name:'Tiger Strike', desc:'When Graff attacks and wins, he gets +2 attack on the opposite side this round.'},
+    {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
+    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
+  ] },
+  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', skills: [
+    {name:'Stone Gaze (Passive)', desc:"Every time Medusa takes control of an enemy card, that card is petrified for 1 round and can't be used to flip other cards. (Flavor only — not currently wired into the battle engine; see notes.)"},
+    {name:'Petrify', desc:'When Medusa flips a card with this skill, that card is petrified for 1 round.'},
+    {name:'Venomous Beauty', desc:'Medusa gets +1 Power on every side for each petrified card on the board.'},
+    {name:"Serpent's Crown", desc:'If Medusa controls 2 or more adjacent cards, all her sides get +1 this round.'},
+    {name:'Queen of Stone', desc:'When Medusa flips a card with this skill, she gets an extra turn after this round.'},
+    {name:'Special Attack: Gaze of Medusa', desc:'Costs 2 wins. Petrifies all enemy cards for 1 round. Medusa gets +3 Power on all sides this round. If the enemy has fewer cards in play than you, Medusa gets an additional extra turn. Usable once per match.'},
+  ] },
 ];
+
 
 const FOREST_FOES = [
   { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}}, skills: [
@@ -936,6 +955,22 @@ const FOREST_FOES = [
     {name:"Moon's Shadow", desc:'After Fenrir wins a battle on a side, draw 1 card from your deck.'},
     {name:"Fenrir's Curse", desc:"If Fenrir loses a battle, the opponent can't take the card if Fenrir has 8 or more on any other side."},
     {name:'Eternal Loyalty', desc:"Fenrir can never be flipped by the opponent's card skills or special attacks."},
+  ] },
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, skills: [
+    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
+    {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
+    {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
+    {name:'Tiger Strike', desc:'When Graff attacks and wins, he gets +2 attack on the opposite side this round.'},
+    {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
+    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
+  ] },
+  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', skills: [
+    {name:'Stone Gaze (Passive)', desc:"Every time Medusa takes control of an enemy card, that card is petrified for 1 round and can't be used to flip other cards. (Flavor only — not currently wired into the battle engine; see notes.)"},
+    {name:'Petrify', desc:'When Medusa flips a card with this skill, that card is petrified for 1 round.'},
+    {name:'Venomous Beauty', desc:'Medusa gets +1 Power on every side for each petrified card on the board.'},
+    {name:"Serpent's Crown", desc:'If Medusa controls 2 or more adjacent cards, all her sides get +1 this round.'},
+    {name:'Queen of Stone', desc:'When Medusa flips a card with this skill, she gets an extra turn after this round.'},
+    {name:'Special Attack: Gaze of Medusa', desc:'Costs 2 wins. Petrifies all enemy cards for 1 round. Medusa gets +3 Power on all sides this round. If the enemy has fewer cards in play than you, Medusa gets an additional extra turn. Usable once per match.'},
   ] },
 ];
 
