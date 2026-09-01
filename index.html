@@ -261,6 +261,25 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .card.owner-blue .stat-cluster::before{ background:radial-gradient(circle, rgba(20,32,64,0.75) 50%, transparent 78%); }
 .card.owner-red .stat-cluster::before{ background:radial-gradient(circle, rgba(64,24,16,0.75) 50%, transparent 78%); }
+
+.card-back-mini{
+  position:relative; width:100%; aspect-ratio:5/7; border-radius:9px; cursor:default;
+  background:radial-gradient(circle at 50% 38%, #241f2e, #0c0a12 78%);
+  border:1.5px solid rgba(201,162,39,0.45);
+  box-shadow:inset 0 0 0 1px rgba(139,110,242,0.25), inset 0 2px 6px rgba(0,0,0,0.6);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.card-back-mini::before{
+  content:''; position:absolute; inset:4px; border-radius:7px;
+  border:1px solid rgba(201,162,39,0.3);
+  background:
+    radial-gradient(circle 2px at 5px 5px, rgba(139,110,242,0.85), transparent 70%),
+    radial-gradient(circle 2px at calc(100% - 5px) 5px, rgba(139,110,242,0.85), transparent 70%),
+    radial-gradient(circle 2px at 5px calc(100% - 5px), rgba(139,110,242,0.85), transparent 70%),
+    radial-gradient(circle 2px at calc(100% - 5px) calc(100% - 5px), rgba(139,110,242,0.85), transparent 70%);
+  pointer-events:none;
+}
+.card-back-mini .rune-diamond{ width:44%; height:44%; filter:drop-shadow(0 0 4px rgba(201,162,39,0.5)); }
 .owner-tint{ position:absolute; inset:0; pointer-events:none; mix-blend-mode:normal; }
 .owner-tint.tint-blue{ background:rgba(58,104,204,0.22); }
 .owner-tint.tint-red{ background:rgba(196,72,46,0.22); }
@@ -325,12 +344,12 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
   position:relative; flex:1 1 auto; max-width:520px;
   padding:16px 12px; border-radius:20px;
   background:
-    radial-gradient(ellipse 90% 55% at 50% 10%, rgba(240,216,121,0.07), transparent 60%),
+    radial-gradient(ellipse 90% 55% at 50% 10%, rgba(139,110,242,0.1), transparent 60%),
     radial-gradient(ellipse 75% 85% at 50% 50%, rgba(0,0,0,0.35), transparent 78%),
     linear-gradient(160deg, var(--stone-2), var(--stone) 70%);
-  border:1px solid rgba(0,0,0,0.6);
+  border:1px solid rgba(139,110,242,0.3);
   box-shadow:
-    inset 0 0 0 1px rgba(185,181,194,0.06),
+    inset 0 0 0 1px rgba(201,162,39,0.15),
     inset 0 2px 12px rgba(0,0,0,0.65),
     -20px 0 36px -16px rgba(184,69,46,0.4),
     20px 0 36px -16px rgba(63,111,209,0.4),
@@ -338,18 +357,20 @@ button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
 }
 .arena-frame::before{
   content:''; position:absolute; inset:7px; border-radius:14px;
-  border:1px solid rgba(201,162,39,0.2);
+  border:1px solid rgba(201,162,39,0.28);
+  box-shadow:inset 0 0 0 3px rgba(139,110,242,0.06);
   pointer-events:none;
 }
 .arena-frame::after{
   content:''; position:absolute; inset:7px; border-radius:14px;
   background:
-    radial-gradient(circle 3px at 6px 6px, rgba(240,216,121,0.65), transparent 72%),
-    radial-gradient(circle 3px at calc(100% - 6px) 6px, rgba(240,216,121,0.65), transparent 72%),
-    radial-gradient(circle 3px at 6px calc(100% - 6px), rgba(240,216,121,0.65), transparent 72%),
-    radial-gradient(circle 3px at calc(100% - 6px) calc(100% - 6px), rgba(240,216,121,0.65), transparent 72%);
+    radial-gradient(circle 3px at 6px 6px, rgba(139,110,242,0.75), transparent 72%),
+    radial-gradient(circle 3px at calc(100% - 6px) 6px, rgba(139,110,242,0.75), transparent 72%),
+    radial-gradient(circle 3px at 6px calc(100% - 6px), rgba(139,110,242,0.75), transparent 72%),
+    radial-gradient(circle 3px at calc(100% - 6px) calc(100% - 6px), rgba(139,110,242,0.75), transparent 72%);
   pointer-events:none;
 }
+.arena-rosette{ position:absolute; inset:12%; z-index:0; pointer-events:none; opacity:0.85; }
 .cell{
   position:relative; aspect-ratio:5/7; border-radius:9px; overflow:hidden;
   background:
@@ -1081,6 +1102,18 @@ function cardFace(card, opts={}){
     </div>`;
 }
 
+function mysteryCard(){
+  return `
+    <div class="card card-back-mini">
+      <div class="rune-diamond">
+        <svg viewBox="0 0 100 100" width="100%" height="100%">
+          <polygon points="50,4 60,42 96,50 60,58 50,96 40,58 4,50 40,42" fill="#c9a227" opacity="0.88"/>
+          <circle cx="50" cy="50" r="8" fill="#8b6ef2"/>
+        </svg>
+      </div>
+    </div>`;
+}
+
 function cardLevel(card){
   const sum = card.top + card.right + card.bottom + card.left;
   return Math.min(5, Math.max(1, Math.round(sum / 8)));
@@ -1190,10 +1223,18 @@ function renderBattle(){
     <div class="battle-row">
       <div class="side-hand hand-row enemy">
         <div class="hand-label side">Forest</div>
-        ${state.enemyHand.map(c => cardFace(c, { owner:'red', inplay:true })).join('')}
+        ${state.enemyHand.map(() => mysteryCard()).join('')}
       </div>
 
       <div class="arena-frame">
+      <div class="arena-rosette" aria-hidden="true">
+        <svg viewBox="0 0 200 200" width="100%" height="100%">
+          <polygon points="100,8 118,84 192,100 118,116 100,192 82,116 8,100 82,84" fill="none" stroke="rgba(139,110,242,0.3)" stroke-width="2"/>
+          <polygon points="100,42 108,92 158,100 108,108 100,158 92,108 42,100 92,92" fill="none" stroke="rgba(201,162,39,0.32)" stroke-width="1.5"/>
+          <circle cx="100" cy="100" r="72" fill="none" stroke="rgba(201,162,39,0.16)" stroke-width="1"/>
+          <circle cx="100" cy="100" r="6" fill="rgba(139,110,242,0.5)"/>
+        </svg>
+      </div>
       <div class="board">
         ${state.board.map((cell,i) => `
           <div class="cell ${(!cell && state.pendingCard && state.turn==='blue' && state.phase==='battle') ? 'targetable':''}" data-cell="${i}">
