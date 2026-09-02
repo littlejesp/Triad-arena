@@ -266,39 +266,47 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .info-btn:hover{ border-color:var(--gold); color:var(--gold-bright); }
 
-/* Diamond badge: shown on every card that has an unused ultimate. Blinks
-   gently while locked (can't afford it yet) and blinks hard once it's
-   affordable — the stronger blink is the "go" signal, echoing the diamond
-   win-cost icon already used in the card art itself. Purely a visual
-   indicator (no click handler) — the whole card is the tap target once
-   ready, handled by the .cell click logic. */
+/* Special badge: shown on every card that has an unused ultimate, using the
+   Triad Arena crest artwork. Pulses gently (dim, desaturated) while locked
+   (can't afford it yet) and pulses hard through blue/violet/gold once it's
+   affordable — the stronger, colorful pulse is the "go" signal. Purely a
+   visual indicator (no click handler) — the whole card is the tap target
+   once ready, handled by the .cell click logic. */
 .special-diamond{
   position:absolute; bottom:4px; right:4px; z-index:6;
-  width:clamp(14px,18cqw,20px); height:clamp(14px,18cqw,20px);
-  clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  background:#0b0910; border:2px solid var(--arcane);
+  width:clamp(18px,22cqw,26px); height:clamp(18px,22cqw,26px);
+  background-image:url('special-badge.png');
+  background-size:contain; background-repeat:no-repeat; background-position:center;
   pointer-events:none;
 }
 .special-diamond.locked{
-  animation:diamondBlinkLocked 3.2s ease-in-out infinite;
+  animation:badgePulseLocked 3.2s ease-in-out infinite;
 }
 .special-diamond.ready{
-  animation:diamondBlinkReady 0.9s ease-in-out infinite;
+  animation:badgePulseReady 1.4s ease-in-out infinite;
 }
-@keyframes diamondBlinkLocked{
-  0%, 100%{ opacity:0.3; border-color:rgba(139,110,242,0.4); box-shadow:none; }
-  50%{ opacity:0.65; border-color:var(--arcane); box-shadow:0 0 6px rgba(139,110,242,0.4); }
-}
-@keyframes diamondBlinkReady{
+@keyframes badgePulseLocked{
   0%, 100%{
-    opacity:0.5; transform:scale(0.88);
-    border-color:var(--arcane);
-    box-shadow:0 0 6px rgba(139,110,242,0.5);
+    opacity:0.4; transform:scale(0.9);
+    filter:saturate(0.35) brightness(0.8) drop-shadow(0 0 2px rgba(139,110,242,0.3));
   }
   50%{
-    opacity:1; transform:scale(1.25);
-    border-color:var(--gold-bright);
-    box-shadow:0 0 16px rgba(139,110,242,0.95), 0 0 30px rgba(240,216,121,0.7);
+    opacity:0.7; transform:scale(1);
+    filter:saturate(0.6) brightness(1) drop-shadow(0 0 5px rgba(139,110,242,0.5));
+  }
+}
+@keyframes badgePulseReady{
+  0%, 100%{
+    transform:scale(0.9);
+    filter:saturate(1) brightness(1) drop-shadow(0 0 4px rgba(74,158,255,0.75)) drop-shadow(0 0 9px rgba(74,158,255,0.5));
+  }
+  33%{
+    transform:scale(1.15);
+    filter:saturate(1.2) brightness(1.15) drop-shadow(0 0 8px rgba(139,110,242,0.95)) drop-shadow(0 0 17px rgba(139,110,242,0.7));
+  }
+  66%{
+    transform:scale(1.2);
+    filter:saturate(1.2) brightness(1.2) drop-shadow(0 0 9px rgba(196,72,220,0.95)) drop-shadow(0 0 18px rgba(240,216,121,0.65));
   }
 }
 .card.special-active{
