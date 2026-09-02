@@ -794,6 +794,8 @@ const CARD_IMAGES = {
   darum: 'cards/card-darum.jpg',
   daron: 'cards/card-daron.jpg',
   ferea: 'cards/card-ferea.jpg',
+  aurelian: 'cards/card-aurelian.jpg',
+  vorlix: 'cards/card-vorlix.jpg',
 };
 
 const FULL_CARD_IMAGES = {
@@ -838,6 +840,8 @@ const FULL_CARD_IMAGES = {
   darum: 'B6C9A05C-CB4F-4F0A-A443-ECAFE12787EA.png',
   daron: '908B5C26-B2BC-40B7-9DBB-54797A8BF9E7.png',
   ferea: 'E2433547-CFE6-4011-B094-D7DC0D772DEE.png',
+  aurelian: 'card-aurelian-full.png',
+  vorlix: 'card-vorlix-full.png',
 };
 
 const CARD_BACK_IMAGE = 'card-back-blue.png';
@@ -1025,6 +1029,14 @@ const HEROES = [
     {name:'Empathy of the North', desc:'When Ferea wins a battle, all your cards get +1 Power on all sides for the rest of the round.'},
     {name:"Special Attack: Memory of Her Stolen Scepter", desc:"Costs 2 wins. Look at 1-3 cards from the enemy's deck and reorder them as you choose. Usable once per match. (Flavor only — deck manipulation is not currently wired into the battle engine.)"},
   ] },
+  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+    {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
+  ] },
+  { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+    {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
+  ] },
 ];
 
 
@@ -1195,6 +1207,14 @@ const FOREST_FOES = [
     {name:'Glacial Barrier', desc:"Choose a side — the next time Ferea defends it, she takes no damage and the attacker gets -2 Power on that side for the rest of the round."},
     {name:'Empathy of the North', desc:'When Ferea wins a battle, all your cards get +1 Power on all sides for the rest of the round.'},
     {name:"Special Attack: Memory of Her Stolen Scepter", desc:"Costs 2 wins. Look at 1-3 cards from the enemy's deck and reorder them as you choose. Usable once per match. (Flavor only — deck manipulation is not currently wired into the battle engine.)"},
+  ] },
+  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+    {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
+  ] },
+  { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+    {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
 ];
 
@@ -1933,6 +1953,7 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   v += lastStandBonus(owner);
   const entry = state.board[cellIndex];
   if(entry && entry.captureBonus) v += entry.captureBonus;
+  if(entry && entry.sideBonus && entry.sideBonus[edgeKey]) v += entry.sideBonus[edgeKey];
   if(card.active && card.active.pairPresence){
     const pp = card.active.pairPresence;
     const present = state.board.some(e => e && e.owner === owner && e.card.id === pp.partner);
@@ -2096,11 +2117,20 @@ const SpecialVerbs = {
     sourceEntry.captureBonus += amount;
   },
   extraTurn(owner){ state.extraTurnPending = owner; },
+  // Boosts only the listed sides (e.g. ['top','bottom']) instead of all four —
+  // for ultimates like Skybreaker/WorldCleaver that favor one axis of the card.
+  directionalBoost(entry, sides, amount){
+    if(!entry.sideBonus) entry.sideBonus = { top:0, right:0, bottom:0, left:0 };
+    sides.forEach(s => { entry.sideBonus[s] = (entry.sideBonus[s] || 0) + amount; });
+  },
 };
 
 function totalPower(entry){
   const c = entry.card;
-  return c.top + c.right + c.bottom + c.left + (entry.captureBonus || 0) * 4;
+  const sb = entry.sideBonus || {};
+  return c.top + c.right + c.bottom + c.left
+    + (entry.captureBonus || 0) * 4
+    + (sb.top||0) + (sb.right||0) + (sb.bottom||0) + (sb.left||0);
 }
 
 function rollCrit(chance){ return Math.random() < chance; }
@@ -2252,6 +2282,36 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s Megaflare overwhelms ${targetEntry.card.name}, defenses and all!`;
+  },
+  aurelian({ srcEntry, targetEntry, targetIndex, owner }){
+    const sides = ['top', 'bottom']; // Up / Down
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 4*sides.length <= targetPower){
+      return `${srcEntry.card.name}'s Skybreaker crashes down without effect!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Skybreaker!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.directionalBoost(srcEntry, sides, 1);
+    return `${srcEntry.card.name}'s Skybreaker splits the sky over ${targetEntry.card.name}!`;
+  },
+  vorlix({ srcEntry, targetEntry, targetIndex, owner }){
+    const sides = ['left', 'right'];
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 4*sides.length <= targetPower){
+      return `${srcEntry.card.name}'s WorldCleaver finds nothing to cleave!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against WorldCleaver!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.directionalBoost(srcEntry, sides, 1);
+    return `${srcEntry.card.name}'s WorldCleaver carves through ${targetEntry.card.name}!`;
   },
 };
 
