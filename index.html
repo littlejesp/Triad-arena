@@ -104,6 +104,14 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .masthead.compact .fullscreen-toggle{ width:24px; height:24px; font-size:10px; right:28px; }
 .fullscreen-toggle.on{ color:var(--gold); border-color:var(--gold); }
 
+.book-toggle{
+  position:absolute; top:0; left:40px; width:34px; height:34px; border-radius:50%;
+  border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer;
+}
+.masthead.compact .book-toggle{ width:24px; height:24px; font-size:11px; left:28px; }
+.book-toggle:hover{ color:var(--gold); border-color:var(--gold); }
+
 .music-toggle{
   position:absolute; top:0; left:0; width:34px; height:34px; border-radius:50%;
   border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
@@ -715,6 +723,20 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .skill-desc{ font-size:13px; line-height:1.5; color:var(--text-dim); }
 .skill-empty{ font-size:13px; color:var(--text-dim); font-style:italic; padding:0 20px 20px; }
 
+/* ---------- rulebook modal ---------- */
+.rulebook-cover{ width:100%; border-radius:16px 16px 0 0; overflow:hidden; line-height:0; }
+.rulebook-cover img{ width:100%; display:block; }
+.rulebook-body{ padding:22px 20px 24px; }
+.rulebook-section{ margin-bottom:20px; }
+.rulebook-section:last-child{ margin-bottom:0; }
+.rulebook-section h3{
+  font-family:'Cinzel',serif; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--gold); margin:0 0 10px;
+}
+.rulebook-section p{ font-size:13px; line-height:1.6; color:var(--text-dim); margin:0 0 8px; }
+.rulebook-section p:last-child{ margin-bottom:0; }
+.rulebook-section b{ color:var(--text); }
+
 /* ---------- mobile battle layout: board becomes the hero, hands become
    horizontal strips above/below it instead of squeezed side columns ---------- */
 @media (max-width:640px){
@@ -965,7 +987,41 @@ const FULL_CARD_IMAGES = {
 };
 
 const CARD_BACK_IMAGE = 'card-back-purple.png';
+const RULEBOOK_COVER = 'rulebook-cover.png';
 
+// The in-game rulebook (📖 button in the masthead, on both the draft screen
+// and the arena). Each entry is one section in the modal, rendered in
+// order — add a new {title, body} entry here whenever a new rule or
+// mechanic is added to the game so the book stays the single source of
+// truth for "how does this work". `body` is a list of paragraphs (HTML
+// allowed, e.g. <b>) rendered top to bottom within the section.
+const RULEBOOK = [
+  {
+    title: 'How to Play',
+    body: [
+      `Draw your five champions, then place them on any open square — wherever your card's edge number beats the <b>facing</b> edge of an enemy card beside it, that card flips to your banner.`,
+      `When the board of nine is full, <b>whoever holds the most squares wins the duel.</b>`,
+    ],
+  },
+  {
+    title: 'Optional Rules',
+    body: [
+      `<b>Same</b> — if 2 or more touching sides exactly match the facing enemy sides, all matched cards flip at once.`,
+      `<b>Plus</b> — if two touching-side sums are equal, both matched enemy cards flip at once.`,
+      `<b>Combo</b> — cards flipped by Same or Plus immediately battle their own neighbors, chaining further flips. Requires Same or Plus.`,
+      `<b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup.`,
+      `Toggle any of these on or off before the draft begins.`,
+    ],
+  },
+  {
+    title: 'Wins & Ultimates',
+    body: [
+      `Capturing a square earns your side 1 <b>Win</b>, tallied for the whole match — spend them to unleash a champion's ultimate.`,
+      `A card with an unused ultimate shows a small pulsing crest in its corner: dim while you can't afford it yet, bright and colorful once it's ready to use.`,
+      `An ultimate costs 2–3 Wins and can only be used once per card, per match. On your turn you may place a card, use any ready ultimates, or both, in whichever order you like.`,
+    ],
+  },
+];
 
 
 
@@ -1477,6 +1533,7 @@ function masthead(compact){
       <div class="corner-flame left" aria-hidden="true"><span class="flame-icon">\uD83D\uDD25</span></div>
       <div class="corner-flame right" aria-hidden="true"><span class="flame-icon">\uD83D\uDD25</span></div>
       <button class="music-toggle ${musicOn ? 'on':''}" id="music-toggle" title="${musicOn ? 'Mute music' : 'Unmute music'}">${musicOn ? '\u266B' : '\u266B\u0338'}</button>
+      <button class="book-toggle" id="book-toggle" title="Rulebook">📖</button>
       <button class="fullscreen-toggle ${isFullscreen ? 'on':''}" id="fullscreen-toggle" title="${isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}">⛶</button>
       <button class="sound-toggle ${soundOn ? 'on':''}" id="sound-toggle" title="${soundOn ? 'Mute' : 'Unmute'}">${soundOn ? '♪' : '✕'}</button>
       <div class="rune">✦</div>
@@ -1501,6 +1558,7 @@ let state = {
   log: 'Choose the five champions who will carry your banner.',
   winner: null,
   viewingCard: null,      // card object currently shown in the detail modal
+  showRulebook: false,    // true while the 📖 rulebook modal is open
   rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
@@ -1519,11 +1577,22 @@ function findCardById(id){
 
 function openCardModal(id){
   const card = findCardById(id);
-  if(card){ state.viewingCard = card; render(); }
+  if(card){ state.viewingCard = card; state.showRulebook = false; render(); }
 }
 
 function closeCardModal(){
   state.viewingCard = null;
+  render();
+}
+
+function openRulebook(){
+  state.showRulebook = true;
+  state.viewingCard = null;
+  render();
+}
+
+function closeRulebook(){
+  state.showRulebook = false;
   render();
 }
 
@@ -1532,8 +1601,28 @@ function render(){
   const app = document.getElementById('app');
   let html = state.phase === 'draft' ? renderDraft() : (state.phase === 'coinflip' ? renderCoinflip() : renderBattle());
   html += renderModal();
+  html += renderRulebookModal();
   app.innerHTML = html;
   attachHandlers();
+}
+
+function renderRulebookModal(){
+  if(!state.showRulebook) return '';
+  const sectionsHtml = RULEBOOK.map(section => `
+    <div class="rulebook-section">
+      <h3>${section.title}</h3>
+      ${section.body.map(p => `<p>${p}</p>`).join('')}
+    </div>`).join('');
+  return `
+    <div class="modal-overlay" id="rulebook-overlay">
+      <div class="modal-poster">
+        <button class="modal-close" id="rulebook-close">✕</button>
+        <div class="rulebook-cover"><img src="${RULEBOOK_COVER}" alt="Triad Arena Rulebook"></div>
+        <div class="rulebook-body">
+          ${sectionsHtml}
+        </div>
+      </div>
+    </div>`;
 }
 
 function renderModal(){
@@ -1844,6 +1933,8 @@ function attachHandlers(){
   if(musicBtn) musicBtn.addEventListener('click', toggleMusic);
   const fsBtn = document.getElementById('fullscreen-toggle');
   if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+  const bookBtn = document.getElementById('book-toggle');
+  if(bookBtn) bookBtn.addEventListener('click', openRulebook);
 
   document.querySelectorAll('.info-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
@@ -1865,6 +1956,15 @@ function attachHandlers(){
   }
   const modalClose = document.getElementById('modal-close');
   if(modalClose) modalClose.addEventListener('click', closeCardModal);
+
+  const rulebookOverlay = document.getElementById('rulebook-overlay');
+  if(rulebookOverlay){
+    rulebookOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'rulebook-overlay') closeRulebook();
+    });
+  }
+  const rulebookClose = document.getElementById('rulebook-close');
+  if(rulebookClose) rulebookClose.addEventListener('click', closeRulebook);
 
   if(state.phase === 'draft'){
     const modeRandom = document.getElementById('mode-random');
@@ -2818,7 +2918,7 @@ function resetGame(){
     phase:'draft', selected:[], board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
   };
   render();
