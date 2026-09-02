@@ -373,6 +373,14 @@ button.ghost{
 }
 button.ghost:hover{ border-color:var(--text-dim); color:var(--text); }
 
+button.end-turn{
+  width:100%; padding:11px; margin-top:10px; border-radius:9px; border:1px solid var(--arcane);
+  background:linear-gradient(180deg, rgba(139,110,242,0.18), rgba(139,110,242,0.05));
+  color:var(--arcane); font-family:'Cinzel',serif; font-weight:700; font-size:12px;
+  letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all .15s ease;
+}
+button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3), rgba(139,110,242,0.1)); color:#c3b3ff; }
+
 /* ---------- battle screen ---------- */
 .scoreboard{
   display:flex; align-items:center; justify-content:space-between;
@@ -1346,6 +1354,7 @@ let state = {
   specialUsed: {},        // `${owner}:${cardId}` -> true, once a once-per-match special has fired
   specialMode: null,      // { sourceIndex, special } while awaiting a target click for a special attack
   extraTurnPending: null, // owner who gets to act again instead of passing the turn
+  placedThisTurn: false,  // true once the active side has placed their one card for this turn
 };
 
 function uid(card, owner){ return owner + ':' + card.id; }
@@ -1573,7 +1582,7 @@ function boardCellHtml(cell, i){
       specialInfo = { cellIndex:i, ready, title: `${cell.card.special.name} — costs ${cell.card.special.cost} wins` };
     }
   }
-  const placeTargetable = !cell && state.pendingCard && state.turn==='blue' && state.phase==='battle';
+  const placeTargetable = !cell && state.pendingCard && state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn;
   const specialTargetable = state.specialMode && cell && cell.owner === 'red';
   const cellClass = `${placeTargetable ? 'targetable':''} ${specialTargetable ? 'special-target':''}`;
   return `
@@ -1656,13 +1665,15 @@ function renderBattle(){
         ${state.playerHand.map(c => cardFace(c, {
             owner:'blue',
             selected: state.pendingCard === c.id,
-            clickable: state.turn==='blue' && state.phase==='battle',
-            disabled: state.turn!=='blue' || state.phase!=='battle'
+            clickable: state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn,
+            disabled: state.turn!=='blue' || state.phase!=='battle' || state.placedThisTurn
           })).join('')}
       </div>
     </div>
 
     <div class="log">${state.log}</div>
+
+    ${state.turn==='blue' && state.phase==='battle' ? `<button class="end-turn" id="end-turn-btn">End Turn</button>` : ''}
 
     ${resultHtml}
     ${state.phase!=='result' ? `<button class="ghost" id="concede-btn">Forfeit &amp; Redraft</button>` : ''}
@@ -1771,7 +1782,7 @@ function attachHandlers(){
   } else {
     document.querySelectorAll('.hand-row:not(.enemy) .card').forEach(el=>{
       el.addEventListener('click', ()=>{
-        if(state.turn!=='blue' || state.phase!=='battle') return;
+        if(state.turn!=='blue' || state.phase!=='battle' || state.placedThisTurn) return;
         const id = el.dataset.cardid;
         const opening = state.pendingCard !== id;
         state.pendingCard = opening ? id : null;
@@ -1787,11 +1798,13 @@ function attachHandlers(){
           resolveSpecialTarget(i);
           return;
         }
-        if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard) return;
+        if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard || state.placedThisTurn) return;
         if(state.board[i]) return;
         placeCard(i, state.pendingCard, 'blue');
       });
     });
+    const endTurnBtn = document.getElementById('end-turn-btn');
+    if(endTurnBtn) endTurnBtn.addEventListener('click', endPlayerTurn);
     const rematch = document.getElementById('rematch-btn');
     if(rematch) rematch.addEventListener('click', resetGame);
     const concede = document.getElementById('concede-btn');
@@ -1817,6 +1830,7 @@ function startBattle(){
   const startingTurn = Math.random() < 0.5 ? 'blue' : 'red';
   state.turn = startingTurn;
   state.coinTurn = startingTurn;
+  state.placedThisTurn = false;
   state.phase = 'coinflip';
   render();
 
@@ -1979,11 +1993,13 @@ function placeCard(cellIndex, cardId, owner){
     }, 950);
   }
 
-  advanceTurn(owner);
+  state.placedThisTurn = true;
+  maybeEndTurn(owner);
 }
 
 // Passes the turn to the other side — unless a special attack just granted
-// an extra turn to `owner`, in which case they act again instead.
+// an extra turn to `owner`, in which case they act again (with a fresh
+// placement too) instead.
 function advanceTurn(owner){
   // Normally the board fills up exactly when both hands are spent. But
   // Lyrith's crit can destroy a card and re-open a cell — if that leaves a
@@ -1995,16 +2011,53 @@ function advanceTurn(owner){
   }
   if(state.extraTurnPending === owner){
     state.extraTurnPending = null;
+    state.placedThisTurn = false;
     render();
     if(owner === 'red'){ setTimeout(enemyTurn, 700); }
     return;
   }
+  state.placedThisTurn = false;
   state.turn = owner === 'blue' ? 'red' : 'blue';
   render();
 
   if(state.turn === 'red'){
     setTimeout(enemyTurn, 700);
   }
+}
+
+// A side's turn only truly ends once they have nothing left they could still
+// do: they've already placed (or have no hand card to place) AND none of
+// their in-play cards has an affordable, unused special ready. This is what
+// lets a special be used before OR after that turn's placement — e.g. place
+// Graff, then immediately fire Shadow Assault, all in the same turn — while
+// still auto-advancing the turn the instant there's truly nothing left,
+// exactly like before, for the common case where no special is in play.
+function hasFurtherAction(owner){
+  const hand = owner === 'blue' ? state.playerHand : state.enemyHand;
+  if(!state.placedThisTurn && hand.length > 0) return true;
+  return state.board.some(e => {
+    if(!e || e.owner !== owner || !e.card.special) return false;
+    const key = owner + ':' + e.card.id;
+    if(e.card.special.once && state.specialUsed[key]) return false;
+    return state.wins[owner] >= e.card.special.cost;
+  });
+}
+
+function maybeEndTurn(owner){
+  if(hasFurtherAction(owner)){
+    render();
+    return;
+  }
+  advanceTurn(owner);
+}
+
+// Explicit escape hatch for the human player: pass even though a special
+// is still ready (they'd rather save it) or even before placing at all.
+function endPlayerTurn(){
+  if(state.turn !== 'blue' || state.phase !== 'battle') return;
+  state.specialMode = null;
+  state.pendingCard = null;
+  advanceTurn('blue');
 }
 
 /* ---------------- special attacks (additive layer) ----------------
@@ -2167,7 +2220,7 @@ function runSpecialResolution(sourceIndex, targetIndex){
   SFX.bonus();
   render();
 
-  advanceTurn(owner);
+  maybeEndTurn(owner);
 }
 
 const NEIGHBOR_DIRS = [
@@ -2309,6 +2362,7 @@ function boardFull(){
 // resolveSpecialTarget) so it goes through the exact same resolution and
 // turn-advance code — no separate AI-only path. Returns true if it acted.
 function enemyTryUseSpecial(){
+  if(state.turn !== 'red' || state.phase !== 'battle') return false;
   const candidates = [];
   state.board.forEach((entry, i) => {
     if(!entry || entry.owner !== 'red') return;
@@ -2347,23 +2401,37 @@ function enemyTryUseSpecial(){
 }
 
 function enemyTurn(){
-  if(state.phase !== 'battle') return;
-  if(enemyTryUseSpecial()) return;
+  if(state.phase !== 'battle' || state.turn !== 'red') return;
 
-  const hand = state.enemyHand;
-  const emptyCells = state.board.map((c,i)=>c?null:i).filter(i=>i!==null);
-  if(hand.length===0 || emptyCells.length===0) return;
+  // Fire off anything it can before placing (mirrors a human choosing to
+  // special first), then place its best card, then mop up anything that
+  // just became affordable/available (e.g. the newly-placed card's own
+  // special). Every enemyTryUseSpecial() call already runs the placement
+  // through the same maybeEndTurn() logic as the player, so this loop
+  // naturally stops the moment red's turn actually ends.
+  while(enemyTryUseSpecial()){}
 
-  let best = { score:-1, cellIndex: emptyCells[0], cardIdx:0 };
-  hand.forEach((card, ci)=>{
-    emptyCells.forEach(cellIndex=>{
-      const score = simulateFlips(cellIndex, card, 'red');
-      if(score > best.score) best = { score, cellIndex, cardIdx: ci };
-    });
-  });
+  if(state.turn === 'red' && !state.placedThisTurn){
+    const hand = state.enemyHand;
+    const emptyCells = state.board.map((c,i)=>c?null:i).filter(i=>i!==null);
+    if(hand.length > 0 && emptyCells.length > 0){
+      let best = { score:-1, cellIndex: emptyCells[0], cardIdx:0 };
+      hand.forEach((card, ci)=>{
+        emptyCells.forEach(cellIndex=>{
+          const score = simulateFlips(cellIndex, card, 'red');
+          if(score > best.score) best = { score, cellIndex, cardIdx: ci };
+        });
+      });
+      const card = hand[best.cardIdx];
+      placeCard(best.cellIndex, card.id, 'red');
+      while(enemyTryUseSpecial()){}
+    }
+  }
 
-  const card = hand[best.cardIdx];
-  placeCard(best.cellIndex, card.id, 'red');
+  // Safety net: if the AI has genuinely run out of anything to do (or chose
+  // not to place), make sure its turn actually concludes rather than
+  // leaving state.turn stuck on 'red' with nothing left to trigger it.
+  if(state.turn === 'red') advanceTurn('red');
 }
 
 function simulateFlips(index, card, owner){
@@ -2409,7 +2477,7 @@ function resetGame(){
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
     viewingCard:null, rules: keepRules, draftMode: keepMode, revealing: false,
-    wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null,
+    wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
   };
   render();
 }
