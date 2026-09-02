@@ -860,14 +860,14 @@ const HEROES = [
   ] },
   { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', active:{shield:true}, skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
   { id:'shadowking', name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
     {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle."},
     {name:'Rage of the Beast', desc:'When Ifrit loses control of a card, he gets +2 on all sides next round.'},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, special:{ name:'Megaflare', cost:2, once:true, targets:'single' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
     {name:'Exaflare', desc:'Once per match, choose an adjacent enemy card - it gets -2 Power on the side facing Bahamut this round.'},
     {name:'Astral Aegis', desc:'The first time Bahamut would lose a battle in the match, the loss is ignored.'},
     {name:"Dragon King's Wrath", desc:'When Bahamut takes an enemy card, choose a side on him - it gets +2 this round.'},
@@ -971,7 +971,7 @@ const HEROES = [
     {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
     {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
   ] },
-  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', skills: [
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
     {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
     {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
     {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
@@ -987,7 +987,7 @@ const HEROES = [
     {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
     {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
   ] },
-  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', skills: [
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
     {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
     {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
@@ -995,7 +995,7 @@ const HEROES = [
     {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
     {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
   ] },
-  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', skills: [
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
     {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
     {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
     {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
@@ -1064,14 +1064,14 @@ const FOREST_FOES = [
     {name:'Eternal Rebirth', desc:'When Three Head Dragon loses, it returns to the center of the board with +2 Power on all sides.'},
     {name:'Special Attack: Trinity Apocalypse', desc:'Costs 3 wins. Takes control of every card on the board. All opponent cards drop to 0 Power next round. Three Head Dragon gets +5 Power on all sides for the rest of the match. Only usable if all three heads survived the round.'},
   ] },
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
     {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle."},
     {name:'Rage of the Beast', desc:'When Ifrit loses control of a card, he gets +2 on all sides next round.'},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, special:{ name:'Megaflare', cost:2, once:true, targets:'single' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
     {name:'Exaflare', desc:'Once per match, choose an adjacent enemy card - it gets -2 Power on the side facing Bahamut this round.'},
     {name:'Astral Aegis', desc:'The first time Bahamut would lose a battle in the match, the loss is ignored.'},
     {name:"Dragon King's Wrath", desc:'When Bahamut takes an enemy card, choose a side on him - it gets +2 this round.'},
@@ -1142,7 +1142,7 @@ const FOREST_FOES = [
     {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
     {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
   ] },
-  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', skills: [
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
     {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
     {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
     {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
@@ -1158,7 +1158,7 @@ const FOREST_FOES = [
     {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
     {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
   ] },
-  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', skills: [
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
     {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
     {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
@@ -1166,7 +1166,7 @@ const FOREST_FOES = [
     {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
     {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
   ] },
-  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', skills: [
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
     {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
     {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
     {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
@@ -2162,6 +2162,75 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 2);
     if(targetPower > basePower) SpecialVerbs.extraTurn(owner);
     return `${srcEntry.card.name}'s Axe of Dominion crushes ${targetEntry.card.name}!`;
+  },
+  twistedgipsy({ srcEntry, targetEntry, targetIndex, owner }){
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 3 <= targetPower){
+      return `${srcEntry.card.name}'s House of Shadows finds no opening!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against House of Shadows!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${srcEntry.card.name}'s House of Shadows steals ${targetEntry.card.name}'s fortune!`;
+  },
+  darum({ srcEntry, targetEntry, targetIndex, owner }){
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 4 <= targetPower){
+      return `${srcEntry.card.name}'s Gate of Dominion is thrown back!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Gate of Dominion!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${srcEntry.card.name}'s Gate of Dominion crushes ${targetEntry.card.name}!`;
+  },
+  daron({ srcEntry, targetEntry, targetIndex, owner }){
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 4 <= targetPower){
+      return `${srcEntry.card.name}'s Shattered Crown fails to break through!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Shattered Crown!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
+    return `${srcEntry.card.name}'s Shattered Crown steals ${targetEntry.card.name}'s power!`;
+  },
+  ifrit({ srcEntry, targetEntry, targetIndex, owner }){
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 3 <= targetPower){
+      return `${srcEntry.card.name}'s Hellfire fizzles out!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Hellfire!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${srcEntry.card.name}'s Hellfire engulfs ${targetEntry.card.name}!`;
+  },
+  bahamut({ srcEntry, targetEntry, owner }){
+    // Megaflare explicitly overrides the enemy's defensive skills — no shield check.
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 3 <= targetPower){
+      return `${srcEntry.card.name}'s Megaflare dissipates harmlessly!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${srcEntry.card.name}'s Megaflare overwhelms ${targetEntry.card.name}, defenses and all!`;
   },
 };
 
