@@ -740,6 +740,58 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   .turn-indicator{ font-size:13px; }
   .score-flame{ width:44px; height:44px; }
 }
+
+/* ---------- true browser fullscreen (the ⛶ button): the game fills the
+   whole physical screen, so stop capping it at desktop's 1000px and let it
+   use the extra width — bigger board, bigger hands, more breathing room.
+   Only kicks in alongside the desktop breakpoint so a phone in fullscreen
+   keeps its normal narrow layout. ---------- */
+@media (min-width:900px){
+  html:fullscreen .stage,
+  html:-webkit-full-screen .stage{
+    max-width:1700px;
+  }
+  html:fullscreen .wrap,
+  html:-webkit-full-screen .wrap{
+    padding:28px 40px 36px;
+  }
+  html:fullscreen .battle-row,
+  html:-webkit-full-screen .battle-row{
+    gap:30px;
+  }
+  html:fullscreen .hand-row,
+  html:-webkit-full-screen .hand-row{
+    width:140px; gap:14px;
+  }
+  html:fullscreen .hand-label.side,
+  html:-webkit-full-screen .hand-label.side{
+    font-size:14px;
+  }
+  html:fullscreen .board,
+  html:-webkit-full-screen .board{
+    gap:16px; max-width:860px;
+  }
+  html:fullscreen .arena-frame,
+  html:-webkit-full-screen .arena-frame{
+    max-width:860px;
+  }
+  html:fullscreen .scoreboard,
+  html:-webkit-full-screen .scoreboard{
+    max-width:860px; margin-left:auto; margin-right:auto;
+  }
+  html:fullscreen .wins-row,
+  html:-webkit-full-screen .wins-row{
+    max-width:860px; margin-left:auto; margin-right:auto;
+  }
+  html:fullscreen .score-num,
+  html:-webkit-full-screen .score-num{
+    font-size:26px;
+  }
+  html:fullscreen .turn-indicator,
+  html:-webkit-full-screen .turn-indicator{
+    font-size:15px;
+  }
+}
 </style>
 </head>
 <body>
