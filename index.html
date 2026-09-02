@@ -468,11 +468,22 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    resolved size, so at wide layouts .battle-row is far wider than
    .arena-frame's capped max-width and the padding used to balloon far
    past what the artwork's frame actually needs, crushing the board down
-   to a sliver). This is the same technique .arena-rosette already uses. */
+   to a sliver). This is the same technique .arena-rosette already uses.
+   Deliberately no `bottom` inset: the frame artwork's inner area is
+   roughly square, but a 3x3 grid of 5:7 cards is much taller than wide,
+   so pinning both top AND bottom would force a height shorter than the
+   grid actually needs — grid's default align-content (stretch, for grid
+   containers "normal" computes to stretch) would then compress the row
+   tracks to fit, while each .cell still renders at its full aspect-ratio
+   height regardless, making rows visually overlap. Giving .board its own
+   aspect-ratio (matching a single 5:7 cell, which a 3x3 grid of them
+   also has) lets height derive correctly from the definite width instead. */
 .board{
   display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
   position:absolute; z-index:1;
-  inset:26.7% 17% 24%;
+  top:26.7%; left:17%; right:17%;
+  aspect-ratio:5/7;
+  align-content:start;
 }
 .arena-frame{
   position:relative; flex:1 1 auto; max-width:520px;
@@ -751,7 +762,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     aspect-ratio:1086/1180;
   }
   .board{
-    inset:9% 14% 11%;
+    top:9%; left:14%; right:14%; bottom:auto;
     gap:3px;
   }
 
