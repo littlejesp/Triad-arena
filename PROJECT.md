@@ -85,10 +85,61 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**22 av 43 HEROES-kort har en fungerande ultimate just nu:**
+**24 av 43 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
-Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline.
+Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
+Vorathos.
+
+**Deathblade** och **Vorathos** var redan befintliga placeholder-kort (fanns
+i `HEROES` sen tidigare, utan ultimate) — den här sessionen fick båda ny
+konst (helbild + beskuren thumbnail, samma namngivningskonvention som
+Naline/Astrael: `card-<id>-full.jpg` + `cards/card-<id>.jpg`) och en
+fungerande ultimate för första gången, plus (Vorathos) korrigerade stats
+för att matcha den nya konsten (gamla `bottom:12` var uppenbarligen ett
+datafel — ingen befintlig stjärnformel tillåter så höga tal rimligt).
+
+**Deathblade** — `targets:'single'`, men ENDA kortet hittills med en
+positionsbytes-effekt: `SPECIAL_HANDLERS.deathblade` byter plats på
+angripare/mål i `state.board` direkt (`state.board[sourceIndex] =
+targetEntry; state.board[targetIndex] = srcEntry;`) och ger målet
+permanent -2 (`SpecialVerbs.debuff`), oblockerbart, ovillkorligt (ingen
+styrkejämförelse — det är inte ett erövringsförsök). Källtextens "win
+against 3 cards with 27+ power"-olåsvillkor kräver ny historik-tracking
+per kort och är bortlämnat (samma typ av förenkling som Naline).
+
+Ny geometrisk begränsning: Shadow Assault kräver att målet delar rad eller
+kolumn med Deathblade ("i en rak linje"). Ny delad helper `sharesLine(a,b)`
+(två brädindex, `0-8`) används på TVÅ ställen: `resolveSpecialTarget`
+(en ogiltig klick ignoreras tyst — `specialMode` förblir aktivt för ett
+nytt försök, avbryter INTE som vid fel ägare) och `boardCellHtml`s
+`specialTargetable`-beräkning (så ogiltiga rutor inte ens highlightas).
+
+**VIKTIG BUGG hittad och fixad SAMTIDIGT (inte bara ett Naline-problem):**
+`enemyTryUseSpecial`s generiska fallback-loop antog ett enkelt brädmål utan
+extra val — för `targets:'element'` (Pallis) och `targets:'direction'`
+(Naline) KRASCHADE den (löste ut med `element`/`direction` = `undefined`).
+Detta fanns redan för Pallis sedan tidigare i sessionen, exponerades bara
+nu. Fixat med en guard: `if(c.special.targets === 'element' ||
+c.special.targets === 'direction') continue;` — AI:t använder alltså INTE
+Pallis eller Naline ultimates, men kraschar inte längre.
+
+**Vorathos** — `targets:'single'`, standardmönstret (temp +4 vid jämförelse,
+permanent +1 på VALD riktning om attacken vinner — se Astrael), men med ett
+EXTRA tvåstegs-val precis som Tiamat: efter brädmålet öppnas
+`DIRECTION_CHOICES`-choice-pickern (samma lista som Naline) för att välja
+VILKEN riktning som får den permanenta bonusen. `resolveSpecialTarget`
+special-casar `card.id==='vorathos'` (håller `targetIndex`, byter till
+choice-läge) precis som för Tiamat — se den funktionen om ett tredje kort
+någonsin behöver samma tvåstegsflöde. AI:t bypassar choice-pickern och
+väljer alltid riktning `'up'` (godtyckligt, matchar Tiamats fasta
+`'dominance'`-val).
+
+**Deathblade och Vorathos AI-status:** Deathblade har en EGEN dedikerad
+AI-gren (linje-begränsad måls sökning, ingen styrkejämförelse eftersom
+effekten är ovillkorlig) — fungerar. Vorathos har också en egen gren
+(bypassar choice-pickern som Tiamat) — fungerar. Båda floden är alltså
+FULLT AI-användbara, till skillnad från Pallis/Naline.
 
 **Astrael** (`astrael`) är ett helt nytt kort, inte en tidigare oanvänd
 signatur — lagt till komplett: full-art (`card-astrael-full.jpg`, beskuren
@@ -267,8 +318,10 @@ nytt kort (Astrael — se avsnitt 5), gjorde om **Naline** helt (ny konst,
 roll, skills och en ny ultimate "Thunderstorm Assault" med
 `targets:'direction'` — se avsnitt 5) på användarens begäran, och hittade +
 fixade en krasch-bugg i AI:ts fallback-loop som drabbade både Pallis och
-Naline (se avsnitt 5/7). Inget av nedan är bekräftat av
-användaren, bara idéer:
+Naline (se avsnitt 5/7), och gav **Deathblade** och **Vorathos** (två
+befintliga placeholder-kort utan ultimate) ny konst, korrigerade
+stats (Vorathos) och en fungerande ultimate var (se avsnitt 5). Inget av
+nedan är bekräftat av användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**

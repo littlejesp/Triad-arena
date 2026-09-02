@@ -1009,13 +1009,13 @@ const FULL_CARD_IMAGES = {
   elara: 'EC09E3E8-C86F-46FA-B849-488F8A8AD728.jpg',
   vayra: '97C7F462-C539-42E8-898A-B9403BE8390D.jpg',
   ysara: '5BEB477D-D970-4F1C-B2E7-9D5F678E85C6.jpg',
-  vorathos: '3069A934-FBE1-43FB-BB55-2E891A11FA8D.jpg',
+  vorathos: 'card-vorathos-full.jpg',
   templaren: '27D992DB-122B-4BB7-917C-1734ACDFEFA8.jpg',
   dariensv: 'DECC6B8D-FAFC-4131-9BFA-BF21573B2682.jpg',
   sylvarion: '26598756-C398-4D79-9B30-1EC3CE14EE1C.jpg',
   ragnar: '1978CAB7-874C-433E-B657-0B9B508BB1AB.jpg',
   naline: 'card-naline-full.jpg',
-  deathblade: '392912C4-99A1-456C-876B-066DD6FEF9F9.jpg',
+  deathblade: 'card-deathblade-full.jpg',
   tilda: '2EB4B914-42A1-4340-843C-D4213EA510E4.jpg',
   littlejesp: '3DAA432E-BF55-4ABC-A0BA-0AC39AB2FAD3.jpg',
   pallispell: '61EE0465-C021-4F70-9B30-62EEDA2E3DAD.jpg',
@@ -1079,7 +1079,13 @@ const HEROES = [
   { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', skills:[{name:"Frostbloom", desc:"Heals allies with the pure light of ice, restoring body, mind and spirit."}, {name:"Crystal Sanctuary", desc:"Creates a sanctuary that protects and cleanses all who stand within."}, {name:"Souls' Embrace", desc:"A wave of light that heals the wounded and purifies curses and poisons."}, {name:"Requiem of Light", desc:"Calls upon an ancient melody that soothes souls and restores hope."}, {name:"Returned by Light", desc:"Even death is not the end — Elara can call a soul back from the veil between worlds."}], active: {shield:true}},
   { id:'vayra', name:"Vayra", role:"The Shadowblade", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', skills:[{name:"Shadow Step", desc:"When Vayra loses a battle, you may move her to an empty square on the board."}, {name:"Dagger Strike", desc:"Once per match, attack a non-adjacent enemy card if the path between is clear."}, {name:"Shadow Counter", desc:"When Vayra loses a battle, she immediately counterattacks in the same direction."}, {name:"Smoke Veil", desc:"If Vayra would be defeated, ignore the loss and leave her on the board (once per match)."}], active: {shield:true}},
   { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{shield:true}, skills:[{name:"Time Halt", desc:"Stops time for one round — opponents cannot attack."}, {name:"Foresight", desc:"Draw one card and see the opponent's chosen card for next round."}, {name:"Fate Weave", desc:"Makes an enemy card unusable next round and lowers its power by 4."}, {name:"Astral Shield", desc:"Grants +3 Defense next turn to all of your cards."}]},
-  { id:'vorathos', name:"Vorathos", role:"The Timelancer", top:7, right:10, bottom:12, left:11, element:'wind', hue:'linear-gradient(160deg,#1a1440,#0d0b18 60%)', accent:'#8b6ef2', skills:[{name:"Time Barrier", desc:"When Vorathos wins a battle, you may prevent the defeated card from changing control this round (once per round)."}, {name:"Standstill", desc:"When an enemy card tries to flip Vorathos, the battle counts as a draw instead (once per round)."}, {name:"Reversed Shield", desc:"When Vorathos loses a battle, you take control of the attacking enemy card instead (once per round)."}, {name:"Eternal Bound", desc:"Vorathos cannot be affected by card skills or effects that lower his stats."}], active: {shield:true}},
+  { id:'vorathos', name:"Vorathos", role:"The Timelancer — Order of the Timekeepers", top:7, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#1a1440,#0d0b18 60%)', accent:'#8b6ef2', active: {shield:true}, special:{ name:'Time Collapse', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Time Barrier (Passive)', desc:'When Vorathos wins a battle, he gains +1 Power on the direction that battle was fought, for the rest of the round.'},
+    {name:'Standstill', desc:"When an enemy card attacks Vorathos, it gets -1 Power on its attacking direction for that battle."},
+    {name:'Reversed Shield', desc:'When Vorathos loses a battle, he gains +2 Power on that direction the next time he attacks.'},
+    {name:'Eternal Boundary', desc:'Once per match: choose a direction on Vorathos — it gains +2 Power for the rest of the round.'},
+    {name:'Special Attack: Time Collapse', desc:"Costs 2 wins. Choose an enemy card, then a direction — Vorathos gains +4 Power for this attack only. If the attack wins, that direction keeps +1 Power permanently."},
+  ]},
   { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Shield Wall", desc:"If Templaren wins against a dark or monster-type card, you take control regardless of the numbers."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2'}},
   { id:'dariensv', name:"Darien", role:"The Shadowarden", top:10, right:8, bottom:8, left:9, element:'fire', hue:'linear-gradient(160deg,#3a0f10,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Shadow Counter", desc:"When Darien wins a battle and takes control of an enemy card, he gains +1 Power in a chosen direction on that card."}, {name:"Empty Step", desc:"Once per round, after winning an attack, Darien can immediately attack another adjacent enemy card."}, {name:"Dark Aegis", desc:"The first time each round Darien would lose a battle, the loss is ignored and he keeps control."}, {name:"Last Stand", desc:"If Darien controls 3 or more enemy cards, he gets +1 Power on all his directions."}], active: {shield:true}},
   { id:'sylvarion', name:"Sylvarion", role:"The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', skills:[{name:"WindStep", desc:"Move this card to any empty position. Usable once per match."}, {name:"Piercing Shot", desc:"Choose an enemy card — it gets +2 Power when attacking that card."}, {name:"Hunter's Focus", desc:"As long as this card hasn't moved this round, it gets +1 Power."}, {name:"Everwind Blessing", desc:"When this card defeats an enemy, choose: +1 Power, or draw 1 card (max hand size 5)."}], active: {bonus:{dir:'top',amount:1}}},
@@ -1092,7 +1098,14 @@ const HEROES = [
     {name:'Radiant Strike', desc:"Channels the Order of the Radiance's light through her blade for a devastating final blow."},
     {name:'Special Attack: Thunderstorm Assault', desc:"Costs 2 wins. Choose a direction — every enemy card in that line from Naline is struck by lightning, permanently losing 3 Power. Unblockable. (Simplified from the card's full text: the LIGHT-affinity threshold and the follow-up chain into Ambush aren't implemented — see PROJECT.md.)"},
   ]},
-  { id:'deathblade', name:"Deathblade", role:"Shadow Assassin", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', skills:[{name:"Shadow Step", desc:"Move Deathblade to any empty position. Usable once per match."}, {name:"Night Strike", desc:"Choose an adjacent enemy card — Deathblade gets +2 Power in that direction this battle."}, {name:"Void Mark", desc:"Choose an enemy card — it gets -1 Power until the end of the next round."}, {name:"Soul Harvest", desc:"When Deathblade defeats a card, she gains +1 Power permanently."}], active: {shield:true}},
+  { id:'deathblade', name:"Deathblade", role:"Shadow Assassin — Order of the Radiance", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', active: {shield:true}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Night’s Veil (Passive)', desc:"The first time this card would lose a battle, the enemy's bonuses on that battle are ignored."},
+    {name:'Silent Hunter', desc:'When Deathblade attacks a card that already lost a battle this round, she gets +1 Power on all directions.'},
+    {name:'Shadow Mastery', desc:'When Deathblade wins a battle, she gets +1 Power on a chosen direction on this card, permanently.'},
+    {name:'Executioner', desc:"If an enemy card's total power is 6 or lower after Deathblade wins a battle against it, it's removed from the game entirely (no card gained)."},
+    {name:'Nightstalker', desc:'When Deathblade moves on the board, she gets +1 Power on a chosen direction this round.'},
+    {name:'Special Attack: Shadow Assault', desc:"Costs 2 wins. Choose an enemy card sharing Deathblade's row or column — swap places with it, and it permanently loses 2 Power on all directions. (Simplified from the card's full text: the \"win against 3 cards with 27+ power\" unlock condition isn't tracked by the engine — see PROJECT.md.)"},
+  ]},
   { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
   { id:'littlejesp', name:"Little Jesp", role:"Champion of Balance", top:10, right:10, bottom:9, left:9, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Balance Break", desc:"When this card wins a battle by exactly 1 point, it gets +1 Power in a chosen direction."}, {name:"Twin Strike", desc:"Once per round, after winning an attack, immediately attack an adjacent enemy card."}, {name:"Guardian's Resolve", desc:"The first time this card would lose a battle each round, the loss is ignored."}, {name:"Champion's Command", desc:"When this card takes control of an enemy, choose an adjacent ally — it gets +1 Power facing the enemy."}], active: {shield:true}},
   { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}]},
@@ -1917,7 +1930,9 @@ function boardCellHtml(cell, i){
     }
   }
   const placeTargetable = !cell && state.pendingCard && state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn;
-  const specialTargetable = state.specialMode && !state.specialMode.choices && cell && cell.owner === 'red';
+  const specialSrcEntry = state.specialMode && state.board[state.specialMode.sourceIndex];
+  const specialTargetable = state.specialMode && !state.specialMode.choices && cell && cell.owner === 'red'
+    && !(specialSrcEntry && specialSrcEntry.card.id === 'deathblade' && !sharesLine(state.specialMode.sourceIndex, i));
   const cellClass = `${placeTargetable ? 'targetable':''} ${specialTargetable ? 'special-target':''}`;
   return `
     <div class="cell ${cellClass}" data-cell="${i}">
@@ -2851,6 +2866,39 @@ const SPECIAL_HANDLERS = {
       ? `${name}'s Thunderstorm Assault crashes ${dirLabel} — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} struck down!`
       : `${name}'s Thunderstorm Assault crashes ${dirLabel} but finds no enemies in its path!`;
   },
+  // "Shadow Assault"'s "win against 3 cards with 27+ power" clause is an
+  // unlock condition the engine has no state for (would need a new per-card
+  // history tracker) — dropped, same call as Naline's LIGHT threshold. The
+  // swap-and-debuff itself is unconditional and unblockable (no shield
+  // check), consistent with the engine's other straight debuffs.
+  deathblade({ srcEntry, sourceIndex, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    const foeName = targetEntry.card.name;
+    state.board[sourceIndex] = targetEntry;
+    state.board[targetIndex] = srcEntry;
+    SpecialVerbs.debuff(state.board[sourceIndex], 2);
+    return `${name} vanishes and reappears where ${foeName} stood — Shadow Assault leaves them reeling!`;
+  },
+  // Standard temp-boost-then-permanent-on-win pattern (see Astrael), plus a
+  // direction choice for where the permanent +1 lands on a win — the
+  // "this round"/"next attack" wording elsewhere on the card is simplified
+  // to permanent, per the engine's existing convention.
+  vorathos({ srcEntry, targetEntry, targetIndex, owner, direction }){
+    const name = srcEntry.card.name;
+    const dirMap = { up:'top', right:'right', down:'bottom', left:'left' };
+    const side = dirMap[direction] || 'top';
+    if(totalPower(srcEntry) + 4 <= totalPower(targetEntry)){
+      return `${name}'s Time Collapse warps the battle, but ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against the Time Collapse!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.directionalBoost(srcEntry, [side], 1);
+    const dirLabel = direction[0].toUpperCase() + direction.slice(1);
+    return `${name}'s Time Collapse claims ${targetEntry.card.name} — power surges on ${dirLabel}!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -2879,6 +2927,12 @@ function executeSpecial(sourceIndex){
   }
 }
 
+// Shared by Deathblade's targeting restriction (both the click-resolution
+// guard and the UI highlight) — true if two board indices share a row or column.
+function sharesLine(a, b){
+  return Math.floor(a / 3) === Math.floor(b / 3) || a % 3 === b % 3;
+}
+
 function resolveSpecialTarget(targetIndex){
   const mode = state.specialMode;
   if(!mode) return;
@@ -2888,11 +2942,24 @@ function resolveSpecialTarget(targetIndex){
     cancelSpecial();
     return;
   }
+  // Shadow Assault only works on a target sharing Deathblade's row or
+  // column — an invalid click is just ignored (mode stays active) rather
+  // than cancelling, so a mis-tap doesn't waste the targeting attempt.
+  if(srcEntry.card.id === 'deathblade' && !sharesLine(mode.sourceIndex, targetIndex)){
+    return;
+  }
   // Tiamat needs a second choice (which of her five powers to unleash)
   // before resolving — hold the target and swap into the power picker
   // instead of resolving immediately, like every other single-target special.
   if(srcEntry.card.id === 'tiamat'){
     state.specialMode = { sourceIndex: mode.sourceIndex, targetIndex, choices: TIAMAT_POWER_CHOICES, choiceTitle: 'Choose a Power' };
+    render();
+    return;
+  }
+  // Vorathos needs a direction choice (which side gets the permanent +1 on
+  // a win) after picking a target — same two-step shape as Tiamat above.
+  if(srcEntry.card.id === 'vorathos'){
+    state.specialMode = { sourceIndex: mode.sourceIndex, targetIndex, choices: DIRECTION_CHOICES, choiceTitle: 'Choose a Direction' };
     render();
     return;
   }
@@ -2913,6 +2980,8 @@ function resolveSpecialChoice(value){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { power: value });
   } else if(srcEntry.card.id === 'naline'){
     runSpecialResolution(mode.sourceIndex, null, { direction: value });
+  } else if(srcEntry.card.id === 'vorathos'){
+    runSpecialResolution(mode.sourceIndex, mode.targetIndex, { direction: value });
   }
 }
 
@@ -3145,6 +3214,26 @@ function enemyTryUseSpecial(){
       continue;
     }
 
+    // Vorathos needs a direction choice after picking a target (see
+    // resolveSpecialTarget) — the AI bypasses the picker like Tiamat and
+    // always reinforces 'top' (arbitrary, matches Tiamat's fixed 'dominance').
+    if(c.entry.card.id === 'vorathos'){
+      let bestTarget = null, bestPower = -1;
+      state.board.forEach((target, ti) => {
+        if(!target || target.owner !== 'blue') return;
+        if(isShielded(target, ti)) return;
+        if(totalPower(c.entry) + 4 > totalPower(target) && totalPower(target) > bestPower){
+          bestPower = totalPower(target);
+          bestTarget = ti;
+        }
+      });
+      if(bestTarget != null){
+        runSpecialResolution(c.sourceIndex, bestTarget, { direction: 'up' });
+        return true;
+      }
+      continue;
+    }
+
     // The generic loop below assumes a plain single-board-target special
     // (executeSpecial → resolveSpecialTarget → runSpecialResolution with no
     // extra choice). 'element' (Pallis) and 'direction' (Naline) specials
@@ -3153,6 +3242,25 @@ function enemyTryUseSpecial(){
     // (SPECIAL_HANDLERS.pallis/naline read `element`/`direction` as
     // undefined). Skip them until they get a dedicated branch.
     if(c.special.targets === 'element' || c.special.targets === 'direction') continue;
+
+    // Shadow Assault isn't a power-comparison capture — it's an unconditional
+    // swap+debuff restricted to a target sharing Deathblade's row/column, so
+    // it needs its own target search (line-restricted, no "would I win"
+    // check, no shield check — matches SPECIAL_HANDLERS.deathblade).
+    if(c.entry.card.id === 'deathblade'){
+      let bestTarget = null, bestPower = -1;
+      state.board.forEach((target, ti) => {
+        if(!target || target.owner !== 'blue') return;
+        if(!sharesLine(c.sourceIndex, ti)) return;
+        if(totalPower(target) > bestPower){ bestPower = totalPower(target); bestTarget = ti; }
+      });
+      if(bestTarget != null){
+        executeSpecial(c.sourceIndex);
+        resolveSpecialTarget(bestTarget);
+        return true;
+      }
+      continue;
+    }
 
     let bestTarget = null, bestPower = -1;
     state.board.forEach((target, ti) => {
