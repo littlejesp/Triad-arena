@@ -266,15 +266,41 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .info-btn:hover{ border-color:var(--gold); color:var(--gold-bright); }
 
-.special-btn{
+/* Diamond badge: shown on every card that has an unused ultimate. Blinks
+   gently while locked (can't afford it yet) and blinks hard once it's
+   affordable — the stronger blink is the "go" signal, echoing the diamond
+   win-cost icon already used in the card art itself. Purely a visual
+   indicator (no click handler) — the whole card is the tap target once
+   ready, handled by the .cell click logic. */
+.special-diamond{
   position:absolute; bottom:4px; right:4px; z-index:6;
-  width:clamp(18px,22cqw,24px); height:clamp(18px,22cqw,24px);
-  border-radius:50%; background:rgba(4,3,9,0.78); border:1px solid var(--arcane);
-  color:var(--arcane); font-size:clamp(9px,12cqw,13px); display:flex; align-items:center; justify-content:center;
-  cursor:pointer; line-height:1; padding:0; touch-action:manipulation;
-  box-shadow:0 0 8px rgba(139,110,242,0.4);
+  width:clamp(14px,18cqw,20px); height:clamp(14px,18cqw,20px);
+  clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background:#0b0910; border:2px solid var(--arcane);
+  pointer-events:none;
 }
-.special-btn.locked{ opacity:0.35; border-color:rgba(255,255,255,0.3); color:var(--text-dim); box-shadow:none; cursor:default; }
+.special-diamond.locked{
+  animation:diamondBlinkLocked 3.2s ease-in-out infinite;
+}
+.special-diamond.ready{
+  animation:diamondBlinkReady 0.9s ease-in-out infinite;
+}
+@keyframes diamondBlinkLocked{
+  0%, 100%{ opacity:0.3; border-color:rgba(139,110,242,0.4); box-shadow:none; }
+  50%{ opacity:0.65; border-color:var(--arcane); box-shadow:0 0 6px rgba(139,110,242,0.4); }
+}
+@keyframes diamondBlinkReady{
+  0%, 100%{
+    opacity:0.5; transform:scale(0.88);
+    border-color:var(--arcane);
+    box-shadow:0 0 6px rgba(139,110,242,0.5);
+  }
+  50%{
+    opacity:1; transform:scale(1.25);
+    border-color:var(--gold-bright);
+    box-shadow:0 0 16px rgba(139,110,242,0.95), 0 0 30px rgba(240,216,121,0.7);
+  }
+}
 .card.special-active{
   border-color:var(--arcane) !important;
   box-shadow:0 0 0 2px rgba(139,110,242,0.35), 0 0 18px rgba(139,110,242,0.55) !important;
@@ -921,7 +947,7 @@ const HEROES = [
   { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
   { id:'littlejesp', name:"Little Jesp", role:"Champion of Balance", top:10, right:10, bottom:9, left:9, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Balance Break", desc:"When this card wins a battle by exactly 1 point, it gets +1 Power in a chosen direction."}, {name:"Twin Strike", desc:"Once per round, after winning an attack, immediately attack an adjacent enemy card."}, {name:"Guardian's Resolve", desc:"The first time this card would lose a battle each round, the loss is ignored."}, {name:"Champion's Command", desc:"When this card takes control of an enemy, choose an adjacent ally — it gets +1 Power facing the enemy."}], active: {shield:true}},
   { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}]},
-  { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
+  { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
     {name:'Veil of Emptiness', desc:"When attacked by a stronger card, the attacker's facing side is lowered by -2 this round."},
     {name:'Dominance', desc:'If she controls at least 2 cards, she gets +2 on a chosen side until the end of the round.'},
@@ -951,7 +977,7 @@ const HEROES = [
     {name:'Five Heads, One Will', desc:'If Tiamat is surrounded by at least 3 cards, choose a direction - she gets +2 Power there this round.'},
     {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Attack (+2), Defense (enemy -1 all sides), Breakthrough (ignore 1 enemy defensive skill), Weakening (enemy -1 all sides this round), or Dominance (+1 all sides on win).'},
   ] },
-  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
+  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
     {name:"Dragonfire's Fury", desc:'Once per match, Tahabata gets +2 Power on a chosen side during an attack.'},
     {name:'Soul Petrification', desc:"When Tahabata takes a card, that card can't be won back during the next battle."},
@@ -983,21 +1009,21 @@ const HEROES = [
     {name:'Loyal Instinct', desc:'Once per round, after Pallis loses control of a card, immediately try to take it back.'},
     {name:'Special Attack: Wave of Loyalty', desc:'Costs 2 wins. Choose an element — all your cards of that element get +2 on all sides this round and are protected from being lost until the end of your next round.'},
   ] },
-  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
     {name:'Brotherly Might', desc:'When Twin Brothers wins a battle, he gets +1 on all sides this round.'},
     {name:'Shared Resolve', desc:'The first time Twin Brothers would lose a battle, the loss is ignored.'},
     {name:'Dual Strike', desc:'When Twin Brothers takes control of a card, choose a side — it gets +2 this round.'},
     {name:'Unbreakable Link', desc:'If Twin Brothers and Twin Sisters are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Solar Tempest', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Brothers gets +3 Power on that side and the enemy's defensive skills can't activate. If he wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}}, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
     {name:'Synergy of Souls', desc:'When Twin Sisters wins a battle, she gets +1 on all sides this round.'},
     {name:'Protective Bond', desc:'The first time Twin Sisters would lose a battle, the loss is ignored.'},
     {name:'Echoing Power', desc:'When Twin Sisters takes control of a card, choose a side — it gets +2 this round.'},
     {name:'Graceful Unity', desc:'If Twin Sisters and Twin Brothers are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Lunar Eclipse', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Sisters gets +3 Power on that side and the enemy's defensive skills can't activate. If she wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}}, skills: [
+  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}}, special:{ name:'Yang Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyin' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
@@ -1093,7 +1119,7 @@ const HEROES = [
 
 
 const FOREST_FOES = [
-  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}}, skills: [
+  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}}, special:{ name:'Yang Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyin' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
@@ -1105,14 +1131,14 @@ const FOREST_FOES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yin Resonance', desc:'Costs 3 wins. Unites with Yang — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
     {name:'Brotherly Might', desc:'When Twin Brothers wins a battle, he gets +1 on all sides this round.'},
     {name:'Shared Resolve', desc:'The first time Twin Brothers would lose a battle, the loss is ignored.'},
     {name:'Dual Strike', desc:'When Twin Brothers takes control of a card, choose a side — it gets +2 this round.'},
     {name:'Unbreakable Link', desc:'If Twin Brothers and Twin Sisters are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Solar Tempest', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Brothers gets +3 Power on that side and the enemy's defensive skills can't activate. If he wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}}, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
     {name:'Synergy of Souls', desc:'When Twin Sisters wins a battle, she gets +1 on all sides this round.'},
     {name:'Protective Bond', desc:'The first time Twin Sisters would lose a battle, the loss is ignored.'},
     {name:'Echoing Power', desc:'When Twin Sisters takes control of a card, choose a side — it gets +2 this round.'},
@@ -1128,7 +1154,7 @@ const FOREST_FOES = [
   { id:'wendigo',   name:'Wendigo',          role:'Starved Horror', top:7, right:9, bottom:8, left:5, element:'water', hue:'linear-gradient(160deg,#181818,#0d0b18 60%)', accent:'#9c93b8', active:{underdogBonus:2}, icon:'🦴', skills: [{name:'Starved Fury', desc:'Gets +2 Power in any battle where its total value is lower than the opposing card.'}]},
   { id:'dragon',    name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', active:{shield:true}, icon:'🐉', skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
   { id:'shadowking',name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, icon:'👑', skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
-  { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, icon:'🌌', skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
+  { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, icon:'🌌', special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
     {name:'Veil of Emptiness', desc:"When attacked by a stronger card, the attacker's facing side is lowered by -2 this round."},
     {name:'Dominance', desc:'If she controls at least 2 cards, she gets +2 on a chosen side until the end of the round.'},
@@ -1163,7 +1189,7 @@ const FOREST_FOES = [
     {name:'Five Heads, One Will', desc:'If Tiamat is surrounded by at least 3 cards, choose a direction - she gets +2 Power there this round.'},
     {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Attack (+2), Defense (enemy -1 all sides), Breakthrough (ignore 1 enemy defensive skill), Weakening (enemy -1 all sides this round), or Dominance (+1 all sides on win).'},
   ] },
-  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
+  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
     {name:"Dragonfire's Fury", desc:'Once per match, Tahabata gets +2 Power on a chosen side during an attack.'},
     {name:'Soul Petrification', desc:"When Tahabata takes a card, that card can't be won back during the next battle."},
@@ -1542,7 +1568,7 @@ function cardFace(card, opts={}){
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
       ${card.element ? `<div class="element-badge" title="${card.element}">${ELEMENT_ICONS[card.element]}</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
-      ${opts.specialInfo && !opts.specialInfo.ready ? `<button class="special-btn locked" data-special-cell="${opts.specialInfo.cellIndex}" title="${opts.specialInfo.title} (not enough wins yet)">⚡</button>` : ''}
+      ${opts.specialInfo ? `<div class="special-diamond ${opts.specialInfo.ready ? 'ready' : 'locked'}" title="${opts.specialInfo.title}${opts.specialInfo.ready ? ' — tap to unleash' : ' (not enough wins yet)'}"></div>` : ''}
       ${opts.shieldFlash ? `<div class="skill-pop shield">🛡 Shield!</div>` : ''}
       ${opts.bonusFlash ? `<div class="skill-pop bonus">+${opts.bonusAmount||1} Power</div>` : ''}
       <div class="card-inner">
@@ -1666,7 +1692,7 @@ function boardCellHtml(cell, i){
   if(cell && cell.owner === 'blue' && cell.card.special){
     const key = 'blue:' + cell.card.id;
     if(!(cell.card.special.once && state.specialUsed[key])){
-      const ready = state.turn === 'blue' && state.phase === 'battle' && state.wins.blue >= cell.card.special.cost;
+      const ready = state.turn === 'blue' && state.phase === 'battle' && specialUsable(cell.card, 'blue');
       specialInfo = { cellIndex:i, ready, title: `${cell.card.special.name} — costs ${cell.card.special.cost} wins` };
     }
   }
@@ -1784,13 +1810,10 @@ function attachHandlers(){
     });
   });
 
-  // The ⚡ badge only ever renders locked (not enough wins yet) — once a
-  // special is affordable, the whole card pulses and becomes the tap
-  // target instead (see the .cell handler below), so this is just a
-  // non-interactive tooltip anchor.
-  document.querySelectorAll('.special-btn').forEach(btn=>{
-    btn.addEventListener('click', (e)=> e.stopPropagation());
-  });
+  // The diamond badge (.special-diamond) has pointer-events:none and no
+  // listener of its own — it's a pure indicator. Clicks pass straight
+  // through to the .cell handler below, which activates the special once
+  // it's ready (see boardCellHtml's specialInfo / the .cell click handler).
 
   const overlay = document.getElementById('modal-overlay');
   if(overlay){
@@ -1886,9 +1909,7 @@ function attachHandlers(){
         // tap it to activate, tap it again to cancel while targeting.
         const entry = state.board[i];
         if(entry && entry.owner==='blue' && entry.card.special){
-          const key = 'blue:' + entry.card.id;
-          const used = entry.card.special.once && state.specialUsed[key];
-          const ready = !used && state.turn==='blue' && state.phase==='battle' && state.wins.blue >= entry.card.special.cost;
+          const ready = state.turn==='blue' && state.phase==='battle' && specialUsable(entry.card, 'blue');
           if(ready){ executeSpecial(i); return; }
         }
         if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard || state.placedThisTurn) return;
@@ -2129,12 +2150,7 @@ function advanceTurn(owner){
 function hasFurtherAction(owner){
   const hand = owner === 'blue' ? state.playerHand : state.enemyHand;
   if(!state.placedThisTurn && hand.length > 0) return true;
-  return state.board.some(e => {
-    if(!e || e.owner !== owner || !e.card.special) return false;
-    const key = owner + ':' + e.card.id;
-    if(e.card.special.once && state.specialUsed[key]) return false;
-    return state.wins[owner] >= e.card.special.cost;
-  });
+  return state.board.some(e => e && e.owner === owner && specialUsable(e.card, owner));
 }
 
 function maybeEndTurn(owner){
@@ -2169,6 +2185,9 @@ const SpecialVerbs = {
     sourceEntry.captureBonus += amount;
   },
   extraTurn(owner){ state.extraTurnPending = owner; },
+  // Weakens a card with nothing gained in return — for area effects like
+  // Oblivion's Call / Yang Resonance that punish without capturing anyone.
+  debuff(entry, amount){ entry.captureBonus -= amount; },
   // Boosts only the listed sides (e.g. ['top','bottom']) instead of all four —
   // for ultimates like Skybreaker/WorldCleaver that favor one axis of the card.
   directionalBoost(entry, sides, amount){
@@ -2186,6 +2205,25 @@ function totalPower(entry){
 }
 
 function rollCrit(chance){ return Math.random() < chance; }
+
+// Shared "can this card's special actually be activated right now" check —
+// used by the UI (diamond badge/ready state), executeSpecial, and the AI.
+// A once-per-match special that's already fired is never usable again;
+// `requiresPartner` (e.g. Evil Twist Yang needs Yin on the board) gates a
+// few bonded-pair ultimates the same way pairPresence already gates
+// passive bonuses.
+function specialUsable(card, owner){
+  const special = card.special;
+  if(!special) return false;
+  const key = owner + ':' + card.id;
+  if(special.once && state.specialUsed[key]) return false;
+  if(state.wins[owner] < special.cost) return false;
+  if(special.requiresPartner){
+    const present = state.board.some(e => e && e.owner === owner && e.card.id === special.requiresPartner);
+    if(!present) return false;
+  }
+  return true;
+}
 
 // One handler per signature ultimate, keyed by card id. Each returns the
 // battle-log line to show. Handlers receive { srcEntry, sourceIndex,
@@ -2365,6 +2403,74 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.directionalBoost(srcEntry, sides, 1);
     return `${srcEntry.card.name}'s WorldCleaver carves through ${targetEntry.card.name}!`;
   },
+  // Oblivion's Call doesn't attack the chosen card at all — it withers
+  // whatever enemy cards stand next to it. No contest, no shield check,
+  // no capture; just a targeted area debuff.
+  voidqueen({ srcEntry, targetEntry, targetIndex, owner }){
+    const row = Math.floor(targetIndex/3), col = targetIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    let count = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner){
+        SpecialVerbs.debuff(n, 2);
+        count++;
+      }
+    });
+    return count > 0
+      ? `${srcEntry.card.name}'s Oblivion's Call withers ${count} card${count>1?'s':''} around ${targetEntry.card.name}!`
+      : `${srcEntry.card.name}'s Oblivion's Call finds no one nearby to wither!`;
+  },
+  tahabata({ srcEntry, targetEntry, targetIndex, owner }){
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 2 <= targetPower){
+      return `${srcEntry.card.name}'s Inferno Dominion is smothered!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Inferno Dominion!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    return `${srcEntry.card.name}'s Inferno Dominion claims ${targetEntry.card.name}!`;
+  },
+  twinbrothers({ srcEntry, targetEntry, owner }){
+    // Solar Tempest explicitly disables the enemy's defensive skills — no shield check.
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 3 <= targetPower){
+      return `${srcEntry.card.name}'s Solar Tempest burns out!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    const sister = state.board.find(e => e && e.owner === owner && e.card.id === 'twinsisters');
+    if(sister) SpecialVerbs.attackBoost(sister, 1);
+    return `${srcEntry.card.name}'s Solar Tempest scorches ${targetEntry.card.name}!`;
+  },
+  twinsisters({ srcEntry, targetEntry, owner }){
+    // Lunar Eclipse explicitly disables the enemy's defensive skills — no shield check.
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower + 3 <= targetPower){
+      return `${srcEntry.card.name}'s Lunar Eclipse fades without effect!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    const brother = state.board.find(e => e && e.owner === owner && e.card.id === 'twinbrothers');
+    if(brother) SpecialVerbs.attackBoost(brother, 1);
+    return `${srcEntry.card.name}'s Lunar Eclipse pierces ${targetEntry.card.name}!`;
+  },
+  // requiresPartner (checked by specialUsable) already guarantees Yin is on
+  // the board whenever this actually fires.
+  eviltwistyang({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuff(e, 2));
+    return `${srcEntry.card.name} unites with Yin — Yang Resonance withers the enemy ranks!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -2372,10 +2478,7 @@ function executeSpecial(sourceIndex){
   const srcEntry = state.board[sourceIndex];
   if(!srcEntry || srcEntry.owner !== state.turn) return;
   const special = srcEntry.card.special;
-  if(!special) return;
-  const key = srcEntry.owner + ':' + srcEntry.card.id;
-  if(special.once && state.specialUsed[key]) return;
-  if(state.wins[srcEntry.owner] < special.cost) return;
+  if(!special || !specialUsable(srcEntry.card, srcEntry.owner)) return;
 
   state.pendingCard = null;
 
@@ -2567,13 +2670,8 @@ function enemyTryUseSpecial(){
   if(state.turn !== 'red' || state.phase !== 'battle') return false;
   const candidates = [];
   state.board.forEach((entry, i) => {
-    if(!entry || entry.owner !== 'red') return;
-    const special = entry.card.special;
-    if(!special) return;
-    const key = 'red:' + entry.card.id;
-    if(special.once && state.specialUsed[key]) return;
-    if(state.wins.red < special.cost) return;
-    candidates.push({ sourceIndex:i, entry, special });
+    if(!entry || entry.owner !== 'red' || !specialUsable(entry.card, 'red')) return;
+    candidates.push({ sourceIndex:i, entry, special: entry.card.special });
   });
 
   for(const c of candidates){
