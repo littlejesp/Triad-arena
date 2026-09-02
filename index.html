@@ -1112,7 +1112,7 @@ const HEROES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yang Resonance', desc:'Costs 3 wins. Unites with Yin — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}}, skills: [
+  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}}, special:{ name:'Yin Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyang' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
@@ -1208,7 +1208,7 @@ const FOREST_FOES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yang Resonance', desc:'Costs 3 wins. Unites with Yin — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}}, skills: [
+  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}}, special:{ name:'Yin Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyang' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
@@ -2610,6 +2610,13 @@ const SPECIAL_HANDLERS = {
     const enemies = state.board.filter(e => e && e.owner !== owner);
     enemies.forEach(e => SpecialVerbs.debuff(e, 2));
     return `${srcEntry.card.name} unites with Yin — Yang Resonance withers the enemy ranks!`;
+  },
+  // requiresPartner (checked by specialUsable) already guarantees Yang is on
+  // the board whenever this actually fires.
+  eviltwistyin({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuff(e, 2));
+    return `${srcEntry.card.name} unites with Yang — Yin Resonance withers the enemy ranks!`;
   },
 };
 

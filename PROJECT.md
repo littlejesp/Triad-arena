@@ -33,15 +33,24 @@ fil (t.ex. GitHub Pages).
 index.html          Hela spelet (HTML+CSS+JS). Se avsnitt 5 för arkitektur.
 cards/               45 beskurna JPG-thumbnails, "card-<id>.jpg", 640×418.
                      Används i handkort/bräde.
-*.png (repo-root)    ~59 st. Helbildskonst för korten (941×1672), oftast med
+*.jpg (repo-root)    ~50 st. Helbildskonst för korten (941×1672), oftast med
                      GitHub-genererade UUID-filnamn. Mappas i FULL_CARD_IMAGES
-                     (visas i kortmodalen när man klickar (i)).
-card-back*.png       Kortrygg (draghög).
-arena-*.png          Bakgrundsdekor för arenan.
-flame-*.png          Blå/röd flamikon vid poängtavlan (score-flame).
+                     (visas i kortmodalen när man klickar (i)). Sparas som JPEG
+                     (kvalitet 90) — allt är ogenomskinlig konst, ingen alfa
+                     behövs, och det sparar ~110MB jämfört med PNG.
+card-back-purple.jpg Kortrygg (draghög). card-back.jpg är en äldre röd
+                     variant som fortfarande används för motståndarens dolda
+                     handkort (.card-back-mini, hårdkodad i CSS).
+arena-bg.jpg         Bakgrundsdekor för arenan.
+flame-*.png          Blå/röd flamikon vid poängtavlan (score-flame) — PNG
+                     eftersom den faktiskt behöver alfa-transparens.
+special-badge.png    Ultimate-märket (.special-diamond) — PNG, samma skäl.
+rulebook-cover.jpg,   Regelbokens sidor (📖-knapp i mastheaden). En bild per
+rulebook-page-*.jpg  sida, listade i JS-arrayen RULEBOOK_PAGES i den ordning
+                     de bläddras. Lägg till en ny sida genom att generera en
+                     matchande bild och lägga till filnamnet i den arrayen.
 battle-theme.mp3     Bakgrundsmusik (loopar), spelas via <audio id="bgm">.
 README.md            Minimal, oanvänd för kontext — använd det här dokumentet.
-cards.zip, "Cards"   Skräp, se avsnitt 7 (Kända problem).
 ```
 
 ## 4. Kortdata — hur ett kort ser ut
@@ -73,10 +82,10 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**17 av 42 HEROES-kort har en fungerande ultimate just nu:**
+**18 av 42 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
-Evil Twist Yang.
+Evil Twist Yang, Evil Twist Yin.
 
 **Kärnbegrepp:**
 
@@ -143,12 +152,6 @@ AOE alltid om en fiende finns. Inte skräddarsytt per kort — se Kända problem
 
 ## 7. Kända problem
 
-- **Skräp i repo-roten**: en 1-byte-fil `Cards`, en `cards.zip`, minst 11
-  oanvända PNG (bl.a. två "Codex-bild ...”-skärmdumpar och några UUID-filer
-  som inte refereras i `index.html`). Rör inte utan att fråga — kan vara
-  användarens pågående jobb. Två filer har krockande namn med suffix, t.ex.
-  `29F82ABB-....png (Graff)` — sannolikt en råkad dubbeluppladdning; filen
-  UTAN suffix är den som faktiskt används i `FULL_CARD_IMAGES`.
 - **AI:ts special-targeting** är en generisk "vinn styrkejämförelsen"-
   heuristik — fungerar men är inte optimerad för icke-strid-effekter som
   Voidqueens adjacency-debuff (AI:t kan välja ett tekniskt "vinnbart" mål som
@@ -164,19 +167,20 @@ AOE alltid om en fiende finns. Inte skräddarsytt per kort — se Kända problem
 
 ## 8. Att göra / naturliga nästa steg
 
-Inget pågående/avbrutet arbete — senaste committen (`ca33baf`, "Diamond
-ready-indicator + 5 more special attacks") är klar, testad och pushad till
-`main`. Inget av nedan är bekräftat av användaren, bara idéer:
+Inget pågående/avbrutet arbete. Senaste sessionen städade repo-roten
+(tog bort ~38MB skräp/dubblettfiler), konverterade alla ogenomskinliga
+helbilds-PNG:er till JPEG (~110MB besparing, ingen synlig kvalitetsskillnad),
+lade till en illustrerad regelbok (📖-knapp i mastheaden, se avsnitt 3) och
+kopplade in `eviltwistyin`s ultimate. Inget av nedan är bekräftat av
+användaren, bara idéer:
 
-- **Fler ultimates.** 25 HEROES-kort saknar fortfarande `special`. Kort som
+- **Fler ultimates.** 24 HEROES-kort saknar fortfarande `special`. Kort som
   redan HAR en "Special Attack:"-textrad i `skills` men inte är inkopplade:
-  `eviltwistyin` (trivial — spegelbild av Yang, samma `requiresPartner`-
-  mönster), `tiamat` (komplex, 5 valbara effekter), `pallis` (buffar ett helt
+  `tiamat` (komplex, 5 valbara effekter), `pallis` (buffar ett helt
   element — kräver en ny "välj element"-UI, inte bara ett brädmål),
   `threeheaddragon`/`dragon` (tar kontroll över hela brädet — stor effekt),
   `celestialjudgment`, `infiniteseraph`.
 - **Bättre AI-targeting** för icke-strid-specialattacker (se Kända problem).
-- **Städa skräpfiler** i repo-roten (fråga användaren först).
 - **Wins-popup/toast** vid intjänad win — nämndes tidigt som möjlig "quick
   win", aldrig byggd (bara wins-raden i scoreboard uppdateras just nu).
 
@@ -186,12 +190,13 @@ ready-indicator + 5 more special attacks") är klar, testad och pushad till
   fil. Typsnitt (Cinzel + Spectral) laddas via `@import` från Google Fonts.
   Ljudeffekter genereras med Web Audio API (ingen extern SFX-fil);
   bakgrundsmusik är `battle-theme.mp3`.
-- **Repo**: GitHub `littlejesp/Triad-arena`. Arbetsbranch:
-  `claude/integrate-previous-game-zbnp7y`. Arbetsflöde hittills: committa på
-  arbetsbranchen, `git fetch origin main && git checkout -B main origin/main
-  && git merge --no-edit <arbetsbranch> && git push origin main`, sen
-  `git checkout claude/integrate-previous-game-zbnp7y` igen. Fråga användaren
-  om detta fortfarande är rätt flöde om lång tid gått.
+- **Repo**: GitHub `littlejesp/Triad-arena`. Varje session får en egen,
+  automatiskt tilldelad arbetsbranch (namnet skiftar per session — kolla
+  `git branch --show-current`). Arbetsflöde hittills: committa på den
+  branchen, `git fetch origin main && git checkout -B main origin/main &&
+  git merge --no-edit <arbetsbranch> && git push origin main`, sen
+  `git checkout <arbetsbranch>` igen. Fråga användaren om detta fortfarande
+  är rätt flöde om lång tid gått.
 - **Testverktyg** (bara för utveckling, inte del av produkten): Python
   (`http.server`) för att servera filen lokalt + Playwright/Chromium
   (`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`, flagga
