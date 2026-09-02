@@ -2829,6 +2829,33 @@ function enemyTryUseSpecial(){
       return true;
     }
 
+    // Oblivion's Call doesn't attack or compare power at all — it debuffs
+    // whichever blue cards are adjacent to the chosen target, so the
+    // generic "pick a target I'd win against" heuristic below is the wrong
+    // fit and can waste the once-per-match special on an isolated card
+    // with nothing nearby to wither. Target whichever blue card has the
+    // most blue neighbors instead.
+    if(c.entry.card.id === 'voidqueen'){
+      let bestTarget = null, bestNeighbors = 0;
+      state.board.forEach((target, ti) => {
+        if(!target || target.owner !== 'blue') return;
+        const row = Math.floor(ti/3), col = ti%3;
+        const neighborCount = [[-1,0],[1,0],[0,-1],[0,1]].filter(([dr,dc])=>{
+          const r = row+dr, cc = col+dc;
+          if(r<0||r>2||cc<0||cc>2) return false;
+          const n = state.board[r*3+cc];
+          return n && n.owner === 'blue';
+        }).length;
+        if(neighborCount > bestNeighbors){ bestNeighbors = neighborCount; bestTarget = ti; }
+      });
+      if(bestTarget != null){
+        executeSpecial(c.sourceIndex);
+        resolveSpecialTarget(bestTarget);
+        return true;
+      }
+      continue;
+    }
+
     let bestTarget = null, bestPower = -1;
     state.board.forEach((target, ti) => {
       if(!target || target.owner !== 'blue') return;
