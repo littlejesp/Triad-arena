@@ -74,8 +74,10 @@ glöm inte att uppdatera på båda ställena.
   äldre kort): `shield`, `bonus:{dir,amount}`, `underdogBonus`, `onCaptureBonus`,
   `pairPresence:{partner,...}`. Läses av `fullEffectiveValue`/`isShielded`.
 - `special` = **ultimate-metadata** (se avsnitt 5). `targets` är `'single'`
-  (välj ett fiendekort), `'aoe'` (löser ut direkt, inget mål) eller `'element'`
-  (öppnar ett elementväljar-popup istället för ett brädmål — se Pallis).
+  (välj ett fiendekort), `'aoe'` (löser ut direkt, inget mål), `'element'`
+  (öppnar ett elementväljar-popup istället för ett brädmål — se Pallis) eller
+  `'direction'` (öppnar en riktningsväljar-popup upp/höger/ner/vänster
+  istället för ett brädmål — se Naline).
 - `skills` = ren text som visas i kortmodalen. De flesta korten har EN rad som
   börjar med `"Special Attack: <Namn>"` — det är källtexten för `special`.
   Många passiv-/skill-rader är märkta "(Flavor only — not currently wired
@@ -83,10 +85,10 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**21 av 43 HEROES-kort har en fungerande ultimate just nu:**
+**22 av 43 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
-Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael.
+Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline.
 
 **Astrael** (`astrael`) är ett helt nytt kort, inte en tidigare oanvänd
 signatur — lagt till komplett: full-art (`card-astrael-full.jpg`, beskuren
@@ -99,6 +101,46 @@ slumpad sida i samma ögonblick kortet läggs, INNAN den placeringens egna
 flip-jämförelser räknas ut. Ultimate "Falling Stars" är standardmönstret
 (se nedan) med en tillfällig +5 som bara räknas med i just den attackens
 jämförelse (aldrig sparad på kortet om den missar).
+
+**Naline** (`naline`) är EN OMGJORD signatur — hela kortet (konst, roll,
+stats, skills, ultimate) byttes ut på användarens begäran samma session som
+Astrael lades till. Gamla helbildsfilen (en GitHub-UUID-fil) togs bort helt
+(grep bekräftade att inget annat kort refererade den) och ersattes av
+`card-naline-full.jpg` + beskuren `cards/card-naline.jpg`. Stats gick från
+10/9/8/8 (oförändrat) men rollen fick tillägget "— Order of the Radiance"
+och `skills` skrevs om helt på engelska för att matcha det nya kortets
+egen text (Lightning Blades/Blink/Ambush/Radiant Strike). `active`
+(`bonus:{dir:'top',amount:1}`) och `element:'wind'` behölls oförändrade —
+båda stämmer fortfarande med både gamla och nya korttexten.
+
+Ny ultimate **"Thunderstorm Assault"** introducerar `targets:'direction'`:
+en fjärde variant av choice-picker-mönstret (se Kärnbegrepp nedan), separat
+från Pallis element-väljare. Källtexten hade ett "LIGHT-affinitet"-tröskel-
+villkor och en klausul om att kedja in en uppföljande Ambush-attack — inget
+av det går att koppla in utan att hitta på nya system, så det är medvetet
+bortlämnat (dokumenterat i kortets egen skill-text också). Implementationen:
+välj en riktning (upp/höger/ner/vänster) → alla fiendekort i den riktningens
+rad/kolumn räknat från Naline (INTE hela raden/kolumnen — bara cellerna
+strikt i den valda riktningen) får permanent -3 (`SpecialVerbs.debuff`),
+oblockerbart (samma stil som `eviltwistyin`s Yin Resonance — ingen
+sköld-koll för rena debuffs, bara för erövringsförsök).
+
+**Bugg hittad och fixad under samma jobb:** `enemyTryUseSpecial`s generiska
+fallback-loop (`targets` annat än `'aoe'` och ingen egen `if(c.entry.card.id
+=== ...)`-gren) antog implicit ett enkelt brädmål utan extra val — den
+anropade `executeSpecial` + `resolveSpecialTarget` rakt av, vilket för
+`targets:'element'`/`'direction'`-kort öppnar en choice-picker men sedan
+löser ut med `element`/`direction` = `undefined`, vilket KRASCHAR
+(`SPECIAL_HANDLERS.pallis`/`.naline` läser `element[0]`/`direction[0]` på
+`undefined`). Detta var redan trasigt för **Pallis** (fanns sedan tidigare
+i sessionen, ingen tidigare AI-branch), inte bara ett nytt Naline-problem —
+upptäcktes bara nu eftersom Naline introducerade `'direction'` och triggade
+ett test som råkade hitta ett vinnbart mål. Fixat med en enkel guard i
+loopen: `if(c.special.targets === 'element' || c.special.targets ===
+'direction') continue;` — AI:t använder alltså (fortfarande, som tidigare)
+INTE Pallis eller Naline ultimates alls, men kraschar inte längre. Om AI:t
+ska kunna använda dem krävs en egen dedikerad gren per kort (som
+Voidqueen/Tiamat) som också väljer rätt element/riktning — inte gjort än.
 
 **Kärnbegrepp:**
 
@@ -198,7 +240,9 @@ per-kort-bonustabell i förfiltreringen om det ska fixas ordentligt.
   styrkejämförelsen"-heuristik — Voidqueen och Tiamat har egna undantag (se
   avsnitt 5) eftersom deras mekanik inte passar den heuristiken, men nya
   kort med en icke-strid-effekt behöver samma sorts specialfall om AI:t ska
-  använda dem meningsfullt.
+  använda dem meningsfullt. **Pallis och Naline aktiveras aldrig av AI:t**
+  just nu (guardad bort för att inte krascha — se avsnitt 5) tills de får
+  en egen dedikerad gren.
 - **Ingen rond-räkning** finns i motorn. Alla "X denna runda"-effekter i
   originaltexterna är förenklade till "resten av matchen" (permanent). Flera
   passiva förmågor är rena "(Flavor only)"-texter, inte kopplade alls
@@ -218,8 +262,12 @@ Inget pågående/avbrutet arbete. Senaste sessionen städade repo-roten
 helbilds-PNG:er till JPEG (~110MB besparing, ingen synlig kvalitetsskillnad),
 lade till en illustrerad regelbok (📖-knapp i mastheaden, se avsnitt 3),
 kopplade in `eviltwistyin`s, Pallis och Tiamats ultimates, fixade Voidqueens
-AI-targeting, lade till en "+N Win!"-toast vid erövring, och lade till ett
-helt nytt kort (Astrael — se avsnitt 5). Inget av nedan är bekräftat av
+AI-targeting, lade till en "+N Win!"-toast vid erövring, lade till ett helt
+nytt kort (Astrael — se avsnitt 5), gjorde om **Naline** helt (ny konst,
+roll, skills och en ny ultimate "Thunderstorm Assault" med
+`targets:'direction'` — se avsnitt 5) på användarens begäran, och hittade +
+fixade en krasch-bugg i AI:ts fallback-loop som drabbade både Pallis och
+Naline (se avsnitt 5/7). Inget av nedan är bekräftat av
 användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara

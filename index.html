@@ -1014,7 +1014,7 @@ const FULL_CARD_IMAGES = {
   dariensv: 'DECC6B8D-FAFC-4131-9BFA-BF21573B2682.jpg',
   sylvarion: '26598756-C398-4D79-9B30-1EC3CE14EE1C.jpg',
   ragnar: '1978CAB7-874C-433E-B657-0B9B508BB1AB.jpg',
-  naline: '07EEC467-593D-4AB0-8F84-9B90D43473EC.jpg',
+  naline: 'card-naline-full.jpg',
   deathblade: '392912C4-99A1-456C-876B-066DD6FEF9F9.jpg',
   tilda: '2EB4B914-42A1-4340-843C-D4213EA510E4.jpg',
   littlejesp: '3DAA432E-BF55-4ABC-A0BA-0AC39AB2FAD3.jpg',
@@ -1084,7 +1084,14 @@ const HEROES = [
   { id:'dariensv', name:"Darien", role:"The Shadowarden", top:10, right:8, bottom:8, left:9, element:'fire', hue:'linear-gradient(160deg,#3a0f10,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Shadow Counter", desc:"When Darien wins a battle and takes control of an enemy card, he gains +1 Power in a chosen direction on that card."}, {name:"Empty Step", desc:"Once per round, after winning an attack, Darien can immediately attack another adjacent enemy card."}, {name:"Dark Aegis", desc:"The first time each round Darien would lose a battle, the loss is ignored and he keeps control."}, {name:"Last Stand", desc:"If Darien controls 3 or more enemy cards, he gets +1 Power on all his directions."}], active: {shield:true}},
   { id:'sylvarion', name:"Sylvarion", role:"The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', skills:[{name:"WindStep", desc:"Move this card to any empty position. Usable once per match."}, {name:"Piercing Shot", desc:"Choose an enemy card — it gets +2 Power when attacking that card."}, {name:"Hunter's Focus", desc:"As long as this card hasn't moved this round, it gets +1 Power."}, {name:"Everwind Blessing", desc:"When this card defeats an enemy, choose: +1 Power, or draw 1 card (max hand size 5)."}], active: {bonus:{dir:'top',amount:1}}},
   { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:5, bottom:6, left:9, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Double Strike", desc:"When Ragnar wins a battle, he may attack again this round (once per round)."}, {name:"War Breaker", desc:"Choose an enemy card — Ragnar gets +2 Power when attacking it."}, {name:"Blood Rush", desc:"When Ragnar defeats an enemy card, he gets +1 Power for his next battle."}, {name:"Last Fury", desc:"If Ragnar is your only card left on the board, he gets +3 Power until the round ends."}], active: {bonus:{dir:'top',amount:1}}},
-  { id:'naline', name:"Naline", role:"The Storm's Shadow", top:10, right:9, bottom:8, left:8, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Storm Blades", desc:"+1 Power on all of Naline's UPPER-facing battles."}, {name:"Exact Strike", desc:"When you win a battle with an exact +1 margin, draw 1 card."}, {name:"Thunder's Edge", desc:"Enemy cards get -1 on their LOWER direction when attacking Naline."}, {name:"Lockdown", desc:"Once per round, choose an enemy card and lock one of its directions — it can't be changed."}, {name:"Storm Surge", desc:"If you win 2 battles in a row, all your cards get +1 on a chosen direction this round."}], active: {bonus:{dir:'top',amount:1}}},
+  { id:'naline', name:"Naline", role:"The Storm's Shadow — Order of the Radiance", top:10, right:9, bottom:8, left:8, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#d9622b', active: {bonus:{dir:'top',amount:1}}, special:{ name:'Thunderstorm Assault', cost:2, once:true, targets:'direction' }, skills: [
+    {name:'Storm Blades (Passive)', desc:"+1 Power on all of Naline's UPPER-facing battles."},
+    {name:'Lightning Blades', desc:'Her twin blades crackle with stormlight, striking twice as fast as the eye can follow.'},
+    {name:'Blink', desc:'Vanishes into shadow and reappears behind her foe before they can react.'},
+    {name:'Ambush', desc:'Strikes from concealment — the first blow always lands true.'},
+    {name:'Radiant Strike', desc:"Channels the Order of the Radiance's light through her blade for a devastating final blow."},
+    {name:'Special Attack: Thunderstorm Assault', desc:"Costs 2 wins. Choose a direction — every enemy card in that line from Naline is struck by lightning, permanently losing 3 Power. Unblockable. (Simplified from the card's full text: the LIGHT-affinity threshold and the follow-up chain into Ambush aren't implemented — see PROJECT.md.)"},
+  ]},
   { id:'deathblade', name:"Deathblade", role:"Shadow Assassin", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', skills:[{name:"Shadow Step", desc:"Move Deathblade to any empty position. Usable once per match."}, {name:"Night Strike", desc:"Choose an adjacent enemy card — Deathblade gets +2 Power in that direction this battle."}, {name:"Void Mark", desc:"Choose an enemy card — it gets -1 Power until the end of the next round."}, {name:"Soul Harvest", desc:"When Deathblade defeats a card, she gains +1 Power permanently."}], active: {shield:true}},
   { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
   { id:'littlejesp', name:"Little Jesp", role:"Champion of Balance", top:10, right:10, bottom:9, left:9, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Balance Break", desc:"When this card wins a battle by exactly 1 point, it gets +1 Power in a chosen direction."}, {name:"Twin Strike", desc:"Once per round, after winning an attack, immediately attack an adjacent enemy card."}, {name:"Guardian's Resolve", desc:"The first time this card would lose a battle each round, the loss is ignored."}, {name:"Champion's Command", desc:"When this card takes control of an enemy, choose an adjacent ally — it gets +1 Power facing the enemy."}], active: {shield:true}},
@@ -2219,6 +2226,12 @@ const TIAMAT_POWER_CHOICES = [
   { value:'weakening', icon:'🌀', label:'Weakening' },
   { value:'dominance', icon:'👑', label:'Dominance' },
 ];
+const DIRECTION_CHOICES = [
+  { value:'up', icon:'⬆️', label:'Up' },
+  { value:'right', icon:'➡️', label:'Right' },
+  { value:'down', icon:'⬇️', label:'Down' },
+  { value:'left', icon:'⬅️', label:'Left' },
+];
 
 function effectiveValue(card, edgeKey, opponentCard){
   let v = card[edgeKey];
@@ -2812,6 +2825,32 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Falling Stars — the strongest bolt lands on ${starSide} — claims ${targetEntry.card.name}!`;
   },
+  // "Thunderstorm Assault" in the source text has a LIGHT-affinity threshold
+  // and a clause that chains into a follow-up Ambush attack — neither fits
+  // the engine's existing mechanics without inventing new systems, so this
+  // is simplified to a direct directional strike: a permanent -3 debuff to
+  // every enemy card in the chosen direction's line from Naline, unblockable
+  // (consistent with eviltwistyin's Yin Resonance, the engine's other
+  // straight-debuff special).
+  naline({ srcEntry, sourceIndex, owner, direction }){
+    const name = srcEntry.card.name;
+    const row = Math.floor(sourceIndex / 3);
+    const col = sourceIndex % 3;
+    const targets = [];
+    for(let i = 0; i < 9; i++){
+      const r = Math.floor(i / 3), c = i % 3;
+      if(direction === 'up' && c === col && r < row) targets.push(i);
+      else if(direction === 'down' && c === col && r > row) targets.push(i);
+      else if(direction === 'left' && r === row && c < col) targets.push(i);
+      else if(direction === 'right' && r === row && c > col) targets.push(i);
+    }
+    const enemies = targets.map(i => state.board[i]).filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuff(e, 3));
+    const dirLabel = direction[0].toUpperCase() + direction.slice(1);
+    return enemies.length > 0
+      ? `${name}'s Thunderstorm Assault crashes ${dirLabel} — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} struck down!`
+      : `${name}'s Thunderstorm Assault crashes ${dirLabel} but finds no enemies in its path!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -2827,6 +2866,10 @@ function executeSpecial(sourceIndex){
     runSpecialResolution(sourceIndex, null);
   } else if(special.targets === 'element'){
     state.specialMode = { sourceIndex, choices: ELEMENT_CHOICES, choiceTitle: 'Choose an Element' };
+    SFX.select();
+    render();
+  } else if(special.targets === 'direction'){
+    state.specialMode = { sourceIndex, choices: DIRECTION_CHOICES, choiceTitle: 'Choose a Direction' };
     SFX.select();
     render();
   } else {
@@ -2868,6 +2911,8 @@ function resolveSpecialChoice(value){
     runSpecialResolution(mode.sourceIndex, null, { element: value });
   } else if(srcEntry.card.id === 'tiamat'){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { power: value });
+  } else if(srcEntry.card.id === 'naline'){
+    runSpecialResolution(mode.sourceIndex, null, { direction: value });
   }
 }
 
@@ -3099,6 +3144,15 @@ function enemyTryUseSpecial(){
       }
       continue;
     }
+
+    // The generic loop below assumes a plain single-board-target special
+    // (executeSpecial → resolveSpecialTarget → runSpecialResolution with no
+    // extra choice). 'element' (Pallis) and 'direction' (Naline) specials
+    // need an extra choice-picker answer the AI can't drive without its own
+    // branch (like Voidqueen/Tiamat above) — falling through here crashes
+    // (SPECIAL_HANDLERS.pallis/naline read `element`/`direction` as
+    // undefined). Skip them until they get a dedicated branch.
+    if(c.special.targets === 'element' || c.special.targets === 'direction') continue;
 
     let bestTarget = null, bestPower = -1;
     state.board.forEach((target, ti) => {
