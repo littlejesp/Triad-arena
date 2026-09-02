@@ -723,19 +723,23 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .skill-desc{ font-size:13px; line-height:1.5; color:var(--text-dim); }
 .skill-empty{ font-size:13px; color:var(--text-dim); font-style:italic; padding:0 20px 20px; }
 
-/* ---------- rulebook modal ---------- */
-.rulebook-cover{ width:100%; border-radius:16px 16px 0 0; overflow:hidden; line-height:0; }
-.rulebook-cover img{ width:100%; display:block; }
-.rulebook-body{ padding:22px 20px 24px; }
-.rulebook-section{ margin-bottom:20px; }
-.rulebook-section:last-child{ margin-bottom:0; }
-.rulebook-section h3{
-  font-family:'Cinzel',serif; font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
-  color:var(--gold); margin:0 0 10px;
+/* ---------- rulebook modal: a paged image viewer, one illustrated page
+   per rule topic (art generated to match the real rules — see RULEBOOK_PAGES) ---------- */
+.rulebook-pager-img{ width:100%; display:block; border-radius:16px 16px 0 0; }
+.rulebook-nav{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; gap:12px;
 }
-.rulebook-section p{ font-size:13px; line-height:1.6; color:var(--text-dim); margin:0 0 8px; }
-.rulebook-section p:last-child{ margin-bottom:0; }
-.rulebook-section b{ color:var(--text); }
+.rulebook-nav-btn{
+  background:var(--panel); border:1px solid var(--line); color:var(--text);
+  border-radius:8px; padding:8px 16px; font-family:'Cinzel',serif; font-size:12px;
+  letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;
+}
+.rulebook-nav-btn:hover{ border-color:var(--gold); color:var(--gold-bright); }
+.rulebook-nav-btn:disabled{ opacity:0.35; cursor:default; }
+.rulebook-dots{ display:flex; gap:6px; }
+.rulebook-dot{ width:7px; height:7px; border-radius:50%; background:var(--line); }
+.rulebook-dot.active{ background:var(--gold); }
 
 /* ---------- mobile battle layout: board becomes the hero, hands become
    horizontal strips above/below it instead of squeezed side columns ---------- */
@@ -987,40 +991,21 @@ const FULL_CARD_IMAGES = {
 };
 
 const CARD_BACK_IMAGE = 'card-back-purple.png';
-const RULEBOOK_COVER = 'rulebook-cover.png';
 
 // The in-game rulebook (📖 button in the masthead, on both the draft screen
-// and the arena). Each entry is one section in the modal, rendered in
-// order — add a new {title, body} entry here whenever a new rule or
-// mechanic is added to the game so the book stays the single source of
-// truth for "how does this work". `body` is a list of paragraphs (HTML
-// allowed, e.g. <b>) rendered top to bottom within the section.
-const RULEBOOK = [
-  {
-    title: 'How to Play',
-    body: [
-      `Draw your five champions, then place them on any open square — wherever your card's edge number beats the <b>facing</b> edge of an enemy card beside it, that card flips to your banner.`,
-      `When the board of nine is full, <b>whoever holds the most squares wins the duel.</b>`,
-    ],
-  },
-  {
-    title: 'Optional Rules',
-    body: [
-      `<b>Same</b> — if 2 or more touching sides exactly match the facing enemy sides, all matched cards flip at once.`,
-      `<b>Plus</b> — if two touching-side sums are equal, both matched enemy cards flip at once.`,
-      `<b>Combo</b> — cards flipped by Same or Plus immediately battle their own neighbors, chaining further flips. Requires Same or Plus.`,
-      `<b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup.`,
-      `Toggle any of these on or off before the draft begins.`,
-    ],
-  },
-  {
-    title: 'Wins & Ultimates',
-    body: [
-      `Capturing a square earns your side 1 <b>Win</b>, tallied for the whole match — spend them to unleash a champion's ultimate.`,
-      `A card with an unused ultimate shows a small pulsing crest in its corner: dim while you can't afford it yet, bright and colorful once it's ready to use.`,
-      `An ultimate costs 2–3 Wins and can only be used once per card, per match. On your turn you may place a card, use any ready ultimates, or both, in whichever order you like.`,
-    ],
-  },
+// and the arena): a paged image viewer. Each page is a full illustrated
+// artwork generated to match the real rules — add a new filename here
+// whenever a new rule or mechanic needs a page, in the order they should
+// appear. Keep the art itself in sync with the actual game logic when
+// rules change (regenerate the page, don't just patch text over it).
+const RULEBOOK_PAGES = [
+  'rulebook-cover.png',
+  'rulebook-page-overview.png',
+  'rulebook-page-anatomy.png',
+  'rulebook-page-draft.png',
+  'rulebook-page-basics.png',
+  'rulebook-page-optional.png',
+  'rulebook-page-wins.png',
 ];
 
 
@@ -1559,6 +1544,7 @@ let state = {
   winner: null,
   viewingCard: null,      // card object currently shown in the detail modal
   showRulebook: false,    // true while the 📖 rulebook modal is open
+  rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
@@ -1588,11 +1574,19 @@ function closeCardModal(){
 function openRulebook(){
   state.showRulebook = true;
   state.viewingCard = null;
+  state.rulebookPage = 0;
   render();
 }
 
 function closeRulebook(){
   state.showRulebook = false;
+  render();
+}
+
+function rulebookGo(delta){
+  const next = state.rulebookPage + delta;
+  if(next < 0 || next >= RULEBOOK_PAGES.length) return;
+  state.rulebookPage = next;
   render();
 }
 
@@ -1608,18 +1602,18 @@ function render(){
 
 function renderRulebookModal(){
   if(!state.showRulebook) return '';
-  const sectionsHtml = RULEBOOK.map(section => `
-    <div class="rulebook-section">
-      <h3>${section.title}</h3>
-      ${section.body.map(p => `<p>${p}</p>`).join('')}
-    </div>`).join('');
+  const total = RULEBOOK_PAGES.length;
+  const i = state.rulebookPage;
+  const dots = RULEBOOK_PAGES.map((_, idx) => `<span class="rulebook-dot ${idx===i ? 'active':''}"></span>`).join('');
   return `
     <div class="modal-overlay" id="rulebook-overlay">
       <div class="modal-poster">
         <button class="modal-close" id="rulebook-close">✕</button>
-        <div class="rulebook-cover"><img src="${RULEBOOK_COVER}" alt="Triad Arena Rulebook"></div>
-        <div class="rulebook-body">
-          ${sectionsHtml}
+        <img class="rulebook-pager-img" src="${RULEBOOK_PAGES[i]}" alt="Rulebook page ${i+1} of ${total}">
+        <div class="rulebook-nav">
+          <button class="rulebook-nav-btn" id="rulebook-prev" ${i===0 ? 'disabled':''}>‹ Prev</button>
+          <div class="rulebook-dots">${dots}</div>
+          <button class="rulebook-nav-btn" id="rulebook-next" ${i===total-1 ? 'disabled':''}>Next ›</button>
         </div>
       </div>
     </div>`;
@@ -1965,6 +1959,10 @@ function attachHandlers(){
   }
   const rulebookClose = document.getElementById('rulebook-close');
   if(rulebookClose) rulebookClose.addEventListener('click', closeRulebook);
+  const rulebookPrev = document.getElementById('rulebook-prev');
+  if(rulebookPrev) rulebookPrev.addEventListener('click', ()=> rulebookGo(-1));
+  const rulebookNext = document.getElementById('rulebook-next');
+  if(rulebookNext) rulebookNext.addEventListener('click', ()=> rulebookGo(1));
 
   if(state.phase === 'draft'){
     const modeRandom = document.getElementById('mode-random');
@@ -2918,7 +2916,7 @@ function resetGame(){
     phase:'draft', selected:[], board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
   };
   render();
