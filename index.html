@@ -962,6 +962,7 @@ const CARD_IMAGES = {
   elara: 'cards/card-elara.jpg',
   vayra: 'cards/card-vayra.jpg',
   ysara: 'cards/card-ysara.jpg',
+  torn: 'cards/card-torn.jpg',
   vorathos: 'cards/card-vorathos.jpg',
   templaren: 'cards/card-templaren.jpg',
   dariensv: 'cards/card-dariensv.jpg',
@@ -1003,12 +1004,13 @@ const CARD_IMAGES = {
 };
 
 const FULL_CARD_IMAGES = {
-  darien: '21ACE9AF-DE80-423A-9B7F-BE06C127DD2E.jpg',
+  darien: 'card-darien-full.jpg',
   zaevir: 'BB675F60-3B59-4D78-915B-68013383EACA.jpg',
   sarah: 'D934C648-804F-455D-B4ED-8C56DEB2EAC5.jpg',
   elara: 'EC09E3E8-C86F-46FA-B849-488F8A8AD728.jpg',
-  vayra: '97C7F462-C539-42E8-898A-B9403BE8390D.jpg',
-  ysara: '5BEB477D-D970-4F1C-B2E7-9D5F678E85C6.jpg',
+  vayra: 'card-vayra-full.jpg',
+  ysara: 'card-ysara-full.jpg',
+  torn: 'card-torn-full.jpg',
   vorathos: 'card-vorathos-full.jpg',
   templaren: '27D992DB-122B-4BB7-917C-1734ACDFEFA8.jpg',
   dariensv: 'DECC6B8D-FAFC-4131-9BFA-BF21573B2682.jpg',
@@ -1073,12 +1075,44 @@ const RULEBOOK_PAGES = [
 /* ---------------- Character data ---------------- */
 // stat mapping: top = Strength, right = Speed, bottom = Magic, left = Defense
 const HEROES = [
-  { id:'darien', name:"Darien", role:"The Shadowarden", top:10, right:10, bottom:9, left:9, element:'water', hue:'linear-gradient(160deg,#0f2440,#0d0b18 60%)', accent:'#5ec8f2', skills:[{name:"Shadow Counter", desc:"When Darien loses a battle, he immediately counterattacks in the same direction."}, {name:"Void Step", desc:"Melts into the shadows, reappearing behind the enemy in an instant."}, {name:"Dark Aegis", desc:"Summons a barrier of darkness that absorbs damage and reflects fear."}, {name:"Soul Reaver", desc:"Drains strength from foes with each strike, healing Darien's own wounds."}, {name:"Final Stand", desc:"When all seems lost, Darien taps a hidden reserve of will, becoming unbreakable for a time."}], active: {shield:true}},
+  { id:'darien', name:"Darien", role:"The Shadowarden", top:10, right:10, bottom:9, left:9, element:'water', hue:'linear-gradient(160deg,#0f2440,#0d0b18 60%)', accent:'#5ec8f2', active: {shield:true}, skills: [
+    {name:'Shadow Slash', desc:'A swift, abyssal strike that cuts through defense and spirit alike.'},
+    {name:'Void Step', desc:'Melts into the shadows, reappearing behind his enemy in the blink of an eye.'},
+    {name:'Dark Aegis', desc:'Summons a barrier of darkness that absorbs damage and reflects fear.'},
+    {name:'Soul Reaver', desc:"Drains strength from foes with each strike, healing his own wounds."},
+    {name:'Final Stand', desc:'When all seems lost, Darien taps into a hidden reserve of will, becoming unbreakable for a time.'},
+  ]},
   { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{bonus:{dir:'right',amount:1}}, skills:[{name:"Eternal Aim", desc:"On placement, choose a direction — Zaevir's attack there gets +2 for the next battle."}, {name:"Forest's Path", desc:"Once per match, Zaevir may attack a card one space away in a straight line, if the path is clear."}, {name:"Focus", desc:"If Zaevir hasn't lost a battle yet, he gets +1 on his next attack."}, {name:"Eternal Arrow", desc:"When Zaevir defeats a card, he may keep attacking in the same direction if another card borders it."}]},
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', skills:[{name:"Shadow Step", desc:"When Sarah loses a battle, you may swap her with a card in an adjacent empty square."}, {name:"Direction Focus", desc:"Once per match, change Sarah's direction on her next attack before the battle resolves."}, {name:"Light Shield", desc:"The first time Sarah would lose a battle, the loss is ignored and the battle counts as a draw."}, {name:"Last Arrow", desc:"If Sarah is your last card on the board, she gets +1 to all her directions."}], active: {shield:true}},
   { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', skills:[{name:"Frostbloom", desc:"Heals allies with the pure light of ice, restoring body, mind and spirit."}, {name:"Crystal Sanctuary", desc:"Creates a sanctuary that protects and cleanses all who stand within."}, {name:"Souls' Embrace", desc:"A wave of light that heals the wounded and purifies curses and poisons."}, {name:"Requiem of Light", desc:"Calls upon an ancient melody that soothes souls and restores hope."}, {name:"Returned by Light", desc:"Even death is not the end — Elara can call a soul back from the veil between worlds."}], active: {shield:true}},
-  { id:'vayra', name:"Vayra", role:"The Shadowblade", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', skills:[{name:"Shadow Step", desc:"When Vayra loses a battle, you may move her to an empty square on the board."}, {name:"Dagger Strike", desc:"Once per match, attack a non-adjacent enemy card if the path between is clear."}, {name:"Shadow Counter", desc:"When Vayra loses a battle, she immediately counterattacks in the same direction."}, {name:"Smoke Veil", desc:"If Vayra would be defeated, ignore the loss and leave her on the board (once per match)."}], active: {shield:true}},
-  { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{shield:true}, skills:[{name:"Time Halt", desc:"Stops time for one round — opponents cannot attack."}, {name:"Foresight", desc:"Draw one card and see the opponent's chosen card for next round."}, {name:"Fate Weave", desc:"Makes an enemy card unusable next round and lowers its power by 4."}, {name:"Astral Shield", desc:"Grants +3 Defense next turn to all of your cards."}]},
+  { id:'vayra', name:"Vayra", role:"The Shadowblade — The Wardens of Time", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', active: {shield:true}, special:{ name:'Eclipse', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Shadow Step (Passive)', desc:'Moves through shadows, where least expected.'},
+    {name:'Silent Strike', desc:'One strike. No sound. Only death remains.'},
+    {name:'Shadow Shell', desc:'High defense that makes her nearly impossible to break through.'},
+    {name:'Dagger Dance', desc:'A deadly dance of speed and precision. She always defends herself.'},
+    {name:'Special Attack: Eclipse', desc:"Costs 2 wins. Choose an enemy card — Vayra gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently. (Invented numbers: the source text describes the effect with no concrete values — see PROJECT.md.)"},
+  ]},
+  { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{shield:true}, special:{ name:'Eternal Eclipse', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Time Stop (Passive)', desc:'Stops time in an instant, freezing all enemies while she moves freely. Duration depends on her focus.'},
+    {name:'Future Sight', desc:'Sees multiple futures, revealing enemy moves, weaknesses, and outcomes before they happen.'},
+    {name:'Temporal Shift', desc:'Rewinds time for herself or an ally, undoing damage and resetting their state.'},
+    {name:'Void Crush', desc:'Compresses a burst of void energy, crushing everything in the area.'},
+    {name:'Paradox Veil', desc:'Creates an illusion of multiple Ysaras, confusing enemies and misguiding attacks.'},
+    {name:'Starborn Core', desc:'Channels the power of stars, increasing her magic to its absolute limit for a short time.'},
+    {name:'Special Attack: Eternal Eclipse', desc:"Costs 2 wins. Choose an enemy card — Ysara gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently. (Invented numbers: the source text describes the effect with no concrete values — see PROJECT.md.)"},
+  ]},
+  // Torn is a brand-new card — her source art has no stat diamonds, no
+  // element icon, and no faction/rarity/alignment footer at all (unlike
+  // Naline/Deathblade/Vorathos/Vayra), so top/right/bottom/left below are
+  // an invented, Legendary-tier estimate, not a transcription — see PROJECT.md.
+  { id:'torn', name:"Torn", role:"Shadowhuntress — Ranger. Assassin. Ghost in the Night.", top:9, right:8, bottom:7, left:9, hue:'linear-gradient(160deg,#182410,#0d0b18 60%)', accent:'#9fd15a', special:{ name:'Lethal Volley', cost:2, once:true, targets:'aoe' }, skills: [
+    {name:'Shadow Blink', desc:'Disappears in a swirl of leaves and shadows, reappearing where none expect.'},
+    {name:'Windstep', desc:'Moves like the wind — unseen, unheard, untraceable.'},
+    {name:'Silent Arrow', desc:'A single arrow. No sound. Ignores armor. Finds the weakness.'},
+    {name:'Poisoned Edge', desc:'Coats her arrows and blades with deadly venom — slow death, certain death.'},
+    {name:"Predator's Mark", desc:'Marks the target, increasing all damage dealt. The mark cannot be hidden.'},
+    {name:'Special Attack: Lethal Volley', desc:"Costs 2 wins. Unleashes a storm of arrows across the whole board — every enemy card permanently loses 2 Power, unblockable. (Invented numbers: the source text has no concrete values — see PROJECT.md.)"},
+  ]},
   { id:'vorathos', name:"Vorathos", role:"The Timelancer — Order of the Timekeepers", top:7, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#1a1440,#0d0b18 60%)', accent:'#8b6ef2', active: {shield:true}, special:{ name:'Time Collapse', cost:2, once:true, targets:'single' }, skills: [
     {name:'Time Barrier (Passive)', desc:'When Vorathos wins a battle, he gains +1 Power on the direction that battle was fought, for the rest of the round.'},
     {name:'Standstill', desc:"When an enemy card attacks Vorathos, it gets -1 Power on its attacking direction for that battle."},
@@ -2898,6 +2932,48 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.directionalBoost(srcEntry, [side], 1);
     const dirLabel = direction[0].toUpperCase() + direction.slice(1);
     return `${name}'s Time Collapse claims ${targetEntry.card.name} — power surges on ${dirLabel}!`;
+  },
+  // "Eclipse" (Vayra) and "Eternal Eclipse" (Ysara) both describe a vague
+  // reality-bending capture with no concrete numbers at all — invented a
+  // standard temp-boost-then-permanent-on-win value (same shape as
+  // Astrael's Falling Stars) for each, documented on the cards themselves.
+  vayra({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Eclipse tries to rewrite fate, but ${targetEntry.card.name} refuses to change!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against the Eclipse!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name} stops time and rewrites the only ending left — Eclipse claims ${targetEntry.card.name}!`;
+  },
+  ysara({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Eternal Eclipse finds every future blocked — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against the Eternal Eclipse!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name} chooses the only ending where she remains — Eternal Eclipse claims ${targetEntry.card.name}!`;
+  },
+  // "Lethal Volley" is explicitly board-wide ("devastating against
+  // groups") — a natural fit for the existing targets:'aoe' shape (same
+  // as eviltwistyin's Yin Resonance), no new architecture needed. Invented
+  // the -2 debuff amount since the source gives no numbers.
+  torn({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuff(e, 2));
+    return enemies.length > 0
+      ? `${name}'s Lethal Volley rains down — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} struck!`
+      : `${name}'s Lethal Volley finds no enemies to strike!`;
   },
 };
 

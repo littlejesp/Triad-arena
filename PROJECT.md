@@ -55,7 +55,7 @@ README.md            Minimal, oanvänd för kontext — använd det här dokumen
 
 ## 4. Kortdata — hur ett kort ser ut
 
-Varje kort är ett objekt i arrayen `HEROES` (43 kort — spelarens dragbara pool)
+Varje kort är ett objekt i arrayen `HEROES` (44 kort — spelarens dragbara pool)
 eller `FOREST_FOES` (34 kort — fiendens pool, en delmängd av HEROES + monster).
 **Signaturkort med `special` finns identiskt duplicerade i båda arrayerna** —
 glöm inte att uppdatera på båda ställena.
@@ -85,11 +85,55 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**24 av 43 HEROES-kort har en fungerande ultimate just nu:**
+**27 av 44 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
 Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
-Vorathos.
+Vorathos, Vayra, Ysara, Torn.
+
+**Samma "gör om befintligt placeholder-kort"-mönster fortsatte med fem till
+kort i en efterföljande batch (5 uppladdade bilder samtidigt: 2× Vayra
+[samma karaktär, två alternativa exportformat], Ysara, Torn, Darien):**
+
+- **Vayra** (befintlig) — stats råkade redan matcha den nya konsten EXAKT
+  (`top:10, right:8, bottom:8, left:9`), ingen ändring behövdes där. Ny
+  ultimate "Eclipse", `targets:'single'`, standardmönstret (temp +3 vid
+  jämförelse, permanent +1 alla riktningar om attacken vinner — samma form
+  som Astrael, men UTAN någon riktningsval-picker eftersom källtexten inte
+  nämner en specifik riktning). Källtexten ("She sees every future... writes
+  the only ending that remains") ger INGA konkreta siffror alls — +3/+1 är
+  påhittat och dokumenterat både i kortets egen skill-text och här.
+- **Ysara** (befintlig) — käll-bilden är ett rent "lore poster"-format
+  (inga Upp/Höger/Ner/Vänster-diamanter, ingen Faktion/Raritet/Typ/
+  Alignment-footer alls, till skillnad från Naline/Deathblade/Vorathos/
+  Vayra) — DÄRFÖR behölls hennes BEFINTLIGA stats oförändrade
+  (`top:9, right:7, bottom:10, left:8`), ingen ny siffra fanns att hämta.
+  Ny ultimate "Eternal Eclipse", exakt samma påhittade temp+3/perm+1-mönster
+  som Vayra (källtexten är lika sifferlös).
+- **Torn** — HELT NYTT kort, inget existerande placeholder-id matchade.
+  Käll-bilden saknar ÄVEN stat-diamanter/element-ikon/faktion-footer (samma
+  "lore poster"-format som Ysara) — så `top:9, right:8, bottom:7, left:9`
+  är en påhittad Legendary-nivå-uppskattning, inte en avskrift, dokumenterat
+  i kortets kommentar. Ultimate "Lethal Volley" är `targets:'aoe'` (samma
+  arkitektur som `eviltwistyin`s Yin Resonance, inget nytt behövdes) eftersom
+  källtexten explicit säger "devastating against groups" — permanent -2 på
+  ALLA fiendekort, siffran påhittad (källan ger ingen).
+- **Darien** (befintlig `darien`, INTE `dariensv` — se nedan) — käll-bilden
+  är också ett rent lore-poster (RPG-attributstaplar för Strength/Speed/
+  Defense/Magic/Willpower/Loyalty, INTE Triad Arena-diamanterna) med EN
+  Abilities-lista som nästan exakt matchar hans befintliga skills redan
+  (Shadow Slash≈Shadow Counter, Void Step, Dark Aegis, Soul Reaver=ny,
+  Final Stand). INGEN Special/Ultimate-sektion finns alls i källan — så
+  INGEN ultimate lades till (samma typ av medvetet-hoppat-över som
+  celestialjudgment/infiniteseraph/dragon i avsnitt 8 — det är ett
+  designbeslut att hitta på en effekt från grunden, inte gjort). Bara
+  konst + lätt textrefresh av de 5 befintliga skills.
+- **VIKTIGT: det finns TVÅ "Darien"-kort i `HEROES`** — `darien` (water,
+  10/10/9/9, refererad av `RIVALRY_PAIRS`) och `dariensv` (fire, 10/8/8/9,
+  INTE refererad någon annanstans). Den nya konsten uppdaterades bara på
+  `darien` (den som andra system faktiskt pekar på). `dariensv` är
+  oanvänd/trolig kvarleva från en tidigare session — rör inte den utan att
+  fråga användaren om den ska tas bort eller slås ihop.
 
 **Deathblade** och **Vorathos** var redan befintliga placeholder-kort (fanns
 i `HEROES` sen tidigare, utan ultimate) — den här sessionen fick båda ny
@@ -318,10 +362,14 @@ nytt kort (Astrael — se avsnitt 5), gjorde om **Naline** helt (ny konst,
 roll, skills och en ny ultimate "Thunderstorm Assault" med
 `targets:'direction'` — se avsnitt 5) på användarens begäran, och hittade +
 fixade en krasch-bugg i AI:ts fallback-loop som drabbade både Pallis och
-Naline (se avsnitt 5/7), och gav **Deathblade** och **Vorathos** (två
+Naline (se avsnitt 5/7), gav **Deathblade** och **Vorathos** (två
 befintliga placeholder-kort utan ultimate) ny konst, korrigerade
-stats (Vorathos) och en fungerande ultimate var (se avsnitt 5). Inget av
-nedan är bekräftat av användaren, bara idéer:
+stats (Vorathos) och en fungerande ultimate var, och gjorde samma sak för
+**Vayra**, **Ysara** och **Darien** (befintliga) plus **Torn** (helt nytt
+kort) i en efterföljande batch — se avsnitt 5 för alla detaljer, särskilt
+vilka stats som är påhittade (Torn, delvis) vs. avskrivna vs. oförändrade
+(Ysara) eftersom källbilderna varierade mycket i hur mycket speldata de
+faktiskt innehöll. Inget av nedan är bekräftat av användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**
