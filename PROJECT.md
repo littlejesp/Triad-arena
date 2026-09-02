@@ -74,7 +74,8 @@ glöm inte att uppdatera på båda ställena.
   äldre kort): `shield`, `bonus:{dir,amount}`, `underdogBonus`, `onCaptureBonus`,
   `pairPresence:{partner,...}`. Läses av `fullEffectiveValue`/`isShielded`.
 - `special` = **ultimate-metadata** (se avsnitt 5). `targets` är `'single'`
-  (välj ett fiendekort) eller `'aoe'` (löser ut direkt, inget mål).
+  (välj ett fiendekort), `'aoe'` (löser ut direkt, inget mål) eller `'element'`
+  (öppnar ett elementväljar-popup istället för ett brädmål — se Pallis).
 - `skills` = ren text som visas i kortmodalen. De flesta korten har EN rad som
   börjar med `"Special Attack: <Namn>"` — det är källtexten för `special`.
   Många passiv-/skill-rader är märkta "(Flavor only — not currently wired
@@ -82,10 +83,10 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**18 av 42 HEROES-kort har en fungerande ultimate just nu:**
+**20 av 42 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
-Evil Twist Yang, Evil Twist Yin.
+Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat.
 
 **Kärnbegrepp:**
 
@@ -107,6 +108,19 @@ Evil Twist Yang, Evil Twist Yin.
 fiendruta → `resolveSpecialTarget(targetIndex)` → `runSpecialResolution(...)`
 → slår upp `SPECIAL_HANDLERS[card.id]`, drar wins, markerar `specialUsed`,
 kör handlern, anropar `maybeEndTurn`.
+
+Kort som behöver EN EXTRA fråga utöver (eller istället för) ett brädmål —
+Pallis (`targets:'element'`, inget brädmål alls) och Tiamat (brädmål OCH ett
+av fem "powers") — går via `state.specialMode.choices` (en lista
+`{value,icon,label}`) som `renderChoicePicker()` ritar upp som en popup, och
+`resolveSpecialChoice(value)` som slutför anropet till
+`runSpecialResolution(sourceIndex, targetIndex, extra)` (tredje argumentet
+sprids in i handler-objektet, t.ex. `{element}` eller `{power}`). Tiamat är
+specialfallet: `resolveSpecialTarget` kollar `card.id==='tiamat'` och byter
+till choice-läge istället för att lösa ut direkt efter ett brädmål — se den
+funktionen om ett till kort någonsin behöver samma tvåstegsflöde. AI:t kan
+inte rita/klicka en popup, så `enemyTryUseSpecial` special-casar Tiamat och
+anropar `runSpecialResolution` direkt med `{power:'dominance'}`.
 
 **Delat verb-bibliotek** (`SpecialVerbs`) — de flesta korten byggs av dessa:
 - `attackBoost(entry, amount)` — +N på alla fyra sidor, permanent.
@@ -132,15 +146,21 @@ else → target.owner = attacker; target.justFlipped = true;
        SpecialVerbs.xxx(...) för permanent belöning
 ```
 
-**`requiresPartner`** i `special`-metadata (bara Evil Twist Yang just nu,
-kräver `eviltwistyin` på brädet) gör kortet olåsbart förrän partnern finns på
-brädet — kollas centralt av `specialUsable(card, owner)`, som är EN funktion
-som styr allt: diamant-läge, `executeSpecial`, AI:t, `hasFurtherAction`. Ändra
-bara här om reglerna för "kan aktiveras" ska ändras.
+**`requiresPartner`** i `special`-metadata (Evil Twist Yang ↔ Yin, kräver
+varandra på brädet) gör kortet olåsbart förrän partnern finns på brädet —
+kollas centralt av `specialUsable(card, owner)`, som är EN funktion som styr
+allt: diamant-läge, `executeSpecial`, AI:t, `hasFurtherAction`. Ändra bara här
+om reglerna för "kan aktiveras" ska ändras.
 
-**AI:t** (`enemyTryUseSpecial`, anropas från `enemyTurn`) använder en generisk
-girig heuristik: leta upp ett vinnbart mål (styrkejämförelse) eller aktivera
-AOE alltid om en fiende finns. Inte skräddarsytt per kort — se Kända problem.
+**AI:t** (`enemyTryUseSpecial`, anropas från `enemyTurn`) använder som grund
+en generisk girig heuristik: leta upp ett vinnbart mål (styrkejämförelse)
+eller aktivera AOE alltid om en fiende finns. Kort vars mekanik inte passar
+den heuristiken (den bryr sig bara om styrkejämförelse) får sin egen
+`if(c.entry.card.id === '<id>')`-gren FÖRE den generiska loopen: Voidqueen
+(målar den blå-ägda rutan med flest blå grannar, inte den "vinnbaraste"),
+Tiamat (bypassar choice-pickern helt, går rakt på Dominance). Lägg nya
+undantag här om ett framtida kort inte är en ren "vinn styrkejämförelsen,
+flippa"-attack.
 
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 
@@ -152,15 +172,19 @@ AOE alltid om en fiende finns. Inte skräddarsytt per kort — se Kända problem
 
 ## 7. Kända problem
 
-- **AI:ts special-targeting** är en generisk "vinn styrkejämförelsen"-
-  heuristik — fungerar men är inte optimerad för icke-strid-effekter som
-  Voidqueens adjacency-debuff (AI:t kan välja ett tekniskt "vinnbart" mål som
-  råkar sakna angränsande fiender, och då göra ingenting den turen).
+- **AI:ts special-targeting** är i grunden en generisk "vinn
+  styrkejämförelsen"-heuristik — Voidqueen och Tiamat har egna undantag (se
+  avsnitt 5) eftersom deras mekanik inte passar den heuristiken, men nya
+  kort med en icke-strid-effekt behöver samma sorts specialfall om AI:t ska
+  använda dem meningsfullt.
 - **Ingen rond-räkning** finns i motorn. Alla "X denna runda"-effekter i
   originaltexterna är förenklade till "resten av matchen" (permanent). Flera
   passiva förmågor är rena "(Flavor only)"-texter, inte kopplade alls
   (Frostmark-stapling på Ferea, kortstöld-från-hand på Twisted Gipsy,
-  däckmanipulation på Ferea, m.fl.).
+  däckmanipulation på Ferea, m.fl.). Konkret exempel på hur detta urvattnar
+  korddesign: Tiamats "Defense" och "Weakening"-val i Fivefold Apocalypse var
+  i originaltexten skilda (en permanent, en "this round") men blir samma
+  kod-effekt (`SpecialVerbs.debuff`) här — se `SPECIAL_HANDLERS.tiamat`.
 - **Ingen automatiserad testsvit i repot.** All verifiering görs manuellt per
   session: en tillfällig `python3 -m http.server` + Playwright-skript i
   `/tmp` (kastas vid sessionsslut). Se avsnitt 9 om ni vill återskapa flödet.
@@ -170,19 +194,29 @@ AOE alltid om en fiende finns. Inte skräddarsytt per kort — se Kända problem
 Inget pågående/avbrutet arbete. Senaste sessionen städade repo-roten
 (tog bort ~38MB skräp/dubblettfiler), konverterade alla ogenomskinliga
 helbilds-PNG:er till JPEG (~110MB besparing, ingen synlig kvalitetsskillnad),
-lade till en illustrerad regelbok (📖-knapp i mastheaden, se avsnitt 3) och
-kopplade in `eviltwistyin`s ultimate. Inget av nedan är bekräftat av
-användaren, bara idéer:
+lade till en illustrerad regelbok (📖-knapp i mastheaden, se avsnitt 3),
+kopplade in `eviltwistyin`s, Pallis och Tiamats ultimates, fixade Voidqueens
+AI-targeting, och lade till en "+N Win!"-toast vid erövring. Inget av nedan
+är bekräftat av användaren, bara idéer:
 
-- **Fler ultimates.** 24 HEROES-kort saknar fortfarande `special`. Kort som
-  redan HAR en "Special Attack:"-textrad i `skills` men inte är inkopplade:
-  `tiamat` (komplex, 5 valbara effekter), `pallis` (buffar ett helt
-  element — kräver en ny "välj element"-UI, inte bara ett brädmål),
-  `threeheaddragon`/`dragon` (tar kontroll över hela brädet — stor effekt),
-  `celestialjudgment`, `infiniteseraph`.
-- **Bättre AI-targeting** för icke-strid-specialattacker (se Kända problem).
-- **Wins-popup/toast** vid intjänad win — nämndes tidigt som möjlig "quick
-  win", aldrig byggd (bara wins-raden i scoreboard uppdateras just nu).
+- **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
+  oprioriterade:**
+  - `celestialjudgment` och `infiniteseraph` har **ingen** "Special Attack:"
+    -textrad i `skills` alls (till skillnad från vad ett tidigare utkast av
+    det här dokumentet påstod) — att koppla in en ultimate här betyder att
+    HITTA PÅ en ny effekt från grunden, inte "koppla in befintlig text". Det
+    är ett designbeslut, inte ett implementationsjobb — fråga användaren
+    vad de ska göra innan ni skriver kod.
+  - `threeheaddragon`s "Trinity Apocalypse" (`skills`-texten finns) säger
+    ordagrant "Takes control of every card on the board" — en bokstavlig
+    implementation är nära ett ögonblicksvinst-knapp för 3 wins och
+    riskerar att göra spelet meningslöst. Kräver ett balansbeslut från
+    användaren om hur kraftig effekten faktiskt ska vara innan den kodas.
+  - `dragon` (Ancient Wyrmking) har ingen special-textrad alls, bara en
+    passiv `Ancient Shield` — samma läge som celestialjudgment/infiniteseraph.
+- **Bättre AI-targeting** för framtida icke-strid-specialattacker (se
+  avsnitt 5/Kända problem för mönstret — Voidqueen och Tiamat har redan
+  egna undantag).
 
 ## 9. Beroenden och arbetsflöde
 

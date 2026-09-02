@@ -766,6 +766,38 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .rulebook-dot{ width:7px; height:7px; border-radius:50%; background:var(--line); }
 .rulebook-dot.active{ background:var(--gold); }
 
+/* ---------- special-attack choice picker: for ultimates that need an
+   extra choice beyond (or instead of) a board target — e.g. Pallis picks
+   an element, Tiamat picks a power after picking her target. ---------- */
+.choice-picker-overlay{
+  position:fixed; inset:0; z-index:55;
+  background:rgba(4,3,9,0.86); backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center; padding:24px 16px;
+}
+.choice-picker{
+  width:100%; max-width:340px; background:var(--void-2); border:1px solid var(--gold);
+  border-radius:16px; box-shadow:0 20px 70px rgba(0,0,0,0.85); padding:22px 20px;
+  text-align:center;
+}
+.choice-picker h3{
+  font-family:'Cinzel',serif; font-size:13px; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--gold); margin:0 0 16px;
+}
+.choice-picker-grid{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-bottom:16px; }
+.choice-picker-btn{
+  flex:1 1 auto; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:12px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel);
+  color:var(--text-dim); font-family:'Spectral',serif; font-size:11px; font-weight:600; cursor:pointer;
+  transition:all .15s ease;
+}
+.choice-picker-icon{ font-size:22px; line-height:1; }
+.choice-picker-btn:hover{
+  border-color:var(--gold); color:var(--gold-bright);
+  background:linear-gradient(180deg, rgba(201,162,39,0.16), rgba(201,162,39,0.04));
+  box-shadow:0 0 14px rgba(201,162,39,0.25);
+}
+.choice-picker-cancel{ width:100%; }
+
 /* ---------- mobile battle layout: board becomes the hero, hands become
    horizontal strips above/below it instead of squeezed side columns ---------- */
 @media (max-width:640px){
@@ -1078,7 +1110,7 @@ const HEROES = [
     {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
     {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
   ] },
-  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', skills: [    {name:'Ancient Sovereignty (Passive)', desc:"The first time Tiamat would lose a battle, her strength can't be lowered by skills during that battle."},
+  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Ancient Sovereignty (Passive)', desc:"The first time Tiamat would lose a battle, her strength can't be lowered by skills during that battle."},
     {name:'Fivefold Catastrophe', desc:'Once per match, when Tiamat wins a card, she gets +1 on all sides this round.'},
     {name:'Queen of Dragons', desc:'If Tiamat stands next to another Dragon-type card, both cards get +1 on the sides facing each other.'},
     {name:'Apocalyptic Retribution', desc:'The first time Tiamat loses control of a card, she gets +2 Power on that side the next time she defends from that direction.'},
@@ -1110,7 +1142,7 @@ const HEROES = [
     {name:"Fenrir's Curse", desc:"If Fenrir loses a battle, the opponent can't take the card if Fenrir has 8 or more on any other side."},
     {name:'Eternal Loyalty', desc:"Fenrir can never be flipped by the opponent's card skills or special attacks."},
   ] },
-  { id:'pallis', name:'Pallis', role:'Legendary Card — The Faithful Protector', element:'earth', top:4, right:10, bottom:10, left:8, hue:'linear-gradient(160deg,#1c2010,#0d0b18 60%)', accent:'#c9a227', active:{shield:true}, skills: [    {name:'Loyal Heart (Passive)', desc:'The first time Pallis would lose control this round, the attack is fully ignored (simplified from also granting +1 all sides).'},
+  { id:'pallis', name:'Pallis', role:'Legendary Card — The Faithful Protector', element:'earth', top:4, right:10, bottom:10, left:8, hue:'linear-gradient(160deg,#1c2010,#0d0b18 60%)', accent:'#c9a227', active:{shield:true}, special:{ name:'Wave of Loyalty', cost:2, once:true, targets:'element' }, skills: [    {name:'Loyal Heart (Passive)', desc:'The first time Pallis would lose control this round, the attack is fully ignored (simplified from also granting +1 all sides).'},
     {name:'Protective Aura', desc:"Choose an adjacent allied card — it can't be lost this round."},
     {name:'Chain of Loyalty', desc:'When Pallis wins a card, choose an adjacent enemy card. If Pallis has higher strength facing it, take control of it directly.'},
     {name:"Wolf Paw's Grip", desc:'Choose a side — all enemy cards adjacent to Pallis on that side get -2 on the side facing her this round.'},
@@ -1290,7 +1322,7 @@ const FOREST_FOES = [
     {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
     {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
   ] },
-  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', skills: [    {name:'Ancient Sovereignty (Passive)', desc:"The first time Tiamat would lose a battle, her strength can't be lowered by skills during that battle."},
+  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Ancient Sovereignty (Passive)', desc:"The first time Tiamat would lose a battle, her strength can't be lowered by skills during that battle."},
     {name:'Fivefold Catastrophe', desc:'Once per match, when Tiamat wins a card, she gets +1 on all sides this round.'},
     {name:'Queen of Dragons', desc:'If Tiamat stands next to another Dragon-type card, both cards get +1 on the sides facing each other.'},
     {name:'Apocalyptic Retribution', desc:'The first time Tiamat loses control of a card, she gets +2 Power on that side the next time she defends from that direction.'},
@@ -1622,8 +1654,28 @@ function render(){
   let html = state.phase === 'draft' ? renderDraft() : (state.phase === 'coinflip' ? renderCoinflip() : renderBattle());
   html += renderModal();
   html += renderRulebookModal();
+  html += renderChoicePicker();
   app.innerHTML = html;
   attachHandlers();
+}
+
+function renderChoicePicker(){
+  const mode = state.specialMode;
+  if(!mode || !mode.choices) return '';
+  return `
+    <div class="choice-picker-overlay" id="choice-picker-overlay">
+      <div class="choice-picker">
+        <h3>${mode.choiceTitle}</h3>
+        <div class="choice-picker-grid">
+          ${mode.choices.map(c => `
+            <button class="choice-picker-btn" data-choice="${c.value}">
+              <span class="choice-picker-icon">${c.icon}</span>
+              <span>${c.label}</span>
+            </button>`).join('')}
+        </div>
+        <button class="ghost choice-picker-cancel" id="choice-picker-cancel">Cancel</button>
+      </div>
+    </div>`;
 }
 
 function renderRulebookModal(){
@@ -1848,7 +1900,7 @@ function boardCellHtml(cell, i){
     }
   }
   const placeTargetable = !cell && state.pendingCard && state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn;
-  const specialTargetable = state.specialMode && cell && cell.owner === 'red';
+  const specialTargetable = state.specialMode && !state.specialMode.choices && cell && cell.owner === 'red';
   const cellClass = `${placeTargetable ? 'targetable':''} ${specialTargetable ? 'special-target':''}`;
   return `
     <div class="cell ${cellClass}" data-cell="${i}">
@@ -1991,6 +2043,18 @@ function attachHandlers(){
   const rulebookNext = document.getElementById('rulebook-next');
   if(rulebookNext) rulebookNext.addEventListener('click', ()=> rulebookGo(1));
 
+  const choicePickerOverlay = document.getElementById('choice-picker-overlay');
+  if(choicePickerOverlay){
+    choicePickerOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'choice-picker-overlay') cancelSpecial();
+    });
+  }
+  const choicePickerCancel = document.getElementById('choice-picker-cancel');
+  if(choicePickerCancel) choicePickerCancel.addEventListener('click', cancelSpecial);
+  document.querySelectorAll('.choice-picker-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> resolveSpecialChoice(btn.dataset.choice));
+  });
+
   if(state.phase === 'draft'){
     const modeRandom = document.getElementById('mode-random');
     if(modeRandom) modeRandom.addEventListener('click', ()=>{
@@ -2068,7 +2132,7 @@ function attachHandlers(){
     document.querySelectorAll('.cell').forEach(el=>{
       el.addEventListener('click', ()=>{
         const i = parseInt(el.dataset.cell,10);
-        if(state.specialMode){
+        if(state.specialMode && !state.specialMode.choices){
           resolveSpecialTarget(i);
           return;
         }
@@ -2133,6 +2197,18 @@ function shuffle(arr){
 const ELEMENT_BEATS = { fire:'wind', wind:'earth', earth:'water', water:'fire' };
 const ELEMENT_ICONS = { fire:'🔥', wind:'🌪️', earth:'🌍', water:'💧' };
 function elementBeats(a, b){ return a && b && ELEMENT_BEATS[a] === b; }
+
+// Choice sets for specials whose targets:'element' or two-step flow needs
+// an extra pick beyond (or instead of) a board target — rendered by
+// renderChoicePicker(), resolved by resolveSpecialChoice().
+const ELEMENT_CHOICES = ['fire','wind','earth','water'].map(el => ({ value: el, icon: ELEMENT_ICONS[el], label: el[0].toUpperCase()+el.slice(1) }));
+const TIAMAT_POWER_CHOICES = [
+  { value:'attack', icon:'⚔️', label:'Attack' },
+  { value:'defense', icon:'🛡️', label:'Defense' },
+  { value:'breakthrough', icon:'💥', label:'Breakthrough' },
+  { value:'weakening', icon:'🌀', label:'Weakening' },
+  { value:'dominance', icon:'👑', label:'Dominance' },
+];
 
 function effectiveValue(card, edgeKey, opponentCard){
   let v = card[edgeKey];
@@ -2653,6 +2729,56 @@ const SPECIAL_HANDLERS = {
     enemies.forEach(e => SpecialVerbs.debuff(e, 2));
     return `${srcEntry.card.name} unites with Yang — Yin Resonance withers the enemy ranks!`;
   },
+  pallis({ srcEntry, owner, element }){
+    const matches = state.board.filter(e => e && e.owner === owner && e.card.element === element);
+    matches.forEach(e => {
+      SpecialVerbs.attackBoost(e, 2);
+      SpecialVerbs.grantShield(e);
+    });
+    const elName = element[0].toUpperCase() + element.slice(1);
+    return matches.length > 0
+      ? `${srcEntry.card.name}'s Wave of Loyalty blesses ${matches.length} ${elName} ${matches.length===1 ? 'ally' : 'allies'}!`
+      : `${srcEntry.card.name}'s Wave of Loyalty finds no ${elName} allies to bless!`;
+  },
+  // Tiamat's five powers don't all fit the same shape (a self-buff, a flat
+  // debuff, a shield-break, and an actual win/flip attempt are mechanically
+  // different things) — this is a simplified reading of "The Fivefold
+  // Apocalypse", picked to be reasonable rather than a literal transcription:
+  // Defense and Weakening collapse into the same effect once "this round"
+  // effects are simplified to permanent (per the engine's existing
+  // convention — see PROJECT.md's Known Problems), so those two choices
+  // are mechanically identical here.
+  tiamat({ srcEntry, targetEntry, targetIndex, owner, power }){
+    const name = srcEntry.card.name;
+    switch(power){
+      case 'attack':
+        SpecialVerbs.attackBoost(srcEntry, 2);
+        return `${name} channels the Fivefold Apocalypse — Attack surges within her!`;
+      case 'defense':
+      case 'weakening':
+        SpecialVerbs.debuff(targetEntry, 1);
+        return `${name}'s Fivefold Apocalypse saps ${targetEntry.card.name}!`;
+      case 'breakthrough': {
+        const hadShield = isShielded(targetEntry, targetIndex);
+        if(hadShield){ targetEntry.shieldUsed = true; targetEntry.shieldFlash = true; }
+        return hadShield
+          ? `${name}'s Fivefold Apocalypse shatters ${targetEntry.card.name}'s defenses!`
+          : `${name}'s Fivefold Apocalypse finds no defenses to break through!`;
+      }
+      case 'dominance':
+      default:
+        if(totalPower(srcEntry) <= totalPower(targetEntry)){
+          return `${name}'s Fivefold Apocalypse (Dominance) is repelled by ${targetEntry.card.name}!`;
+        }
+        if(specialBlockedByShield(targetEntry, targetIndex)){
+          return `${targetEntry.card.name}'s shield holds against the Fivefold Apocalypse!`;
+        }
+        targetEntry.owner = owner;
+        targetEntry.justFlipped = true;
+        SpecialVerbs.attackBoost(srcEntry, 1);
+        return `${name}'s Fivefold Apocalypse (Dominance) claims ${targetEntry.card.name}!`;
+    }
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -2666,6 +2792,10 @@ function executeSpecial(sourceIndex){
 
   if(special.targets === 'aoe'){
     runSpecialResolution(sourceIndex, null);
+  } else if(special.targets === 'element'){
+    state.specialMode = { sourceIndex, choices: ELEMENT_CHOICES, choiceTitle: 'Choose an Element' };
+    SFX.select();
+    render();
   } else {
     state.specialMode = { sourceIndex };
     SFX.select();
@@ -2682,7 +2812,30 @@ function resolveSpecialTarget(targetIndex){
     cancelSpecial();
     return;
   }
+  // Tiamat needs a second choice (which of her five powers to unleash)
+  // before resolving — hold the target and swap into the power picker
+  // instead of resolving immediately, like every other single-target special.
+  if(srcEntry.card.id === 'tiamat'){
+    state.specialMode = { sourceIndex: mode.sourceIndex, targetIndex, choices: TIAMAT_POWER_CHOICES, choiceTitle: 'Choose a Power' };
+    render();
+    return;
+  }
   runSpecialResolution(mode.sourceIndex, targetIndex);
+}
+
+// For specials whose targets:'element' (no board target at all, e.g. Pallis)
+// or that need an extra choice after their board target (e.g. Tiamat, via
+// resolveSpecialTarget above).
+function resolveSpecialChoice(value){
+  const mode = state.specialMode;
+  if(!mode) return;
+  const srcEntry = state.board[mode.sourceIndex];
+  if(!srcEntry) return;
+  if(srcEntry.card.id === 'pallis'){
+    runSpecialResolution(mode.sourceIndex, null, { element: value });
+  } else if(srcEntry.card.id === 'tiamat'){
+    runSpecialResolution(mode.sourceIndex, mode.targetIndex, { power: value });
+  }
 }
 
 function cancelSpecial(){
@@ -2690,7 +2843,7 @@ function cancelSpecial(){
   render();
 }
 
-function runSpecialResolution(sourceIndex, targetIndex){
+function runSpecialResolution(sourceIndex, targetIndex, extra){
   const srcEntry = state.board[sourceIndex];
   const special = srcEntry.card.special;
   const owner = srcEntry.owner;
@@ -2702,7 +2855,7 @@ function runSpecialResolution(sourceIndex, targetIndex){
   state.specialMode = null;
 
   const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
-  state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner });
+  state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
 
   SFX.bonus();
   render();
@@ -2886,6 +3039,29 @@ function enemyTryUseSpecial(){
       if(bestTarget != null){
         executeSpecial(c.sourceIndex);
         resolveSpecialTarget(bestTarget);
+        return true;
+      }
+      continue;
+    }
+
+    // Tiamat's five powers need an extra choice beyond a target (see
+    // resolveSpecialTarget/SPECIAL_HANDLERS.tiamat) — the AI has no picker
+    // UI to drive, so it bypasses that flow and always goes straight for
+    // Dominance (the one power that actually wins the card), using the
+    // same "would I win this fight" heuristic as every other attack-and-flip
+    // special below.
+    if(c.entry.card.id === 'tiamat'){
+      let bestTarget = null, bestPower = -1;
+      state.board.forEach((target, ti) => {
+        if(!target || target.owner !== 'blue') return;
+        if(isShielded(target, ti)) return;
+        if(totalPower(c.entry) > totalPower(target) && totalPower(target) > bestPower){
+          bestPower = totalPower(target);
+          bestTarget = ti;
+        }
+      });
+      if(bestTarget != null){
+        runSpecialResolution(c.sourceIndex, bestTarget, { power: 'dominance' });
         return true;
       }
       continue;
