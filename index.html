@@ -461,15 +461,23 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .hand-row.bottom .card{ width:68px; flex:0 0 auto; }
 .hand-row.bottom .hand-label{ display:none; }
 
+/* Positioned with inset percentages (against .arena-frame's own box, the
+   nearest positioned ancestor) rather than padding percentages (which
+   would resolve against .battle-row's width instead — a flex item's
+   padding always resolves against its containing block, not its own
+   resolved size, so at wide layouts .battle-row is far wider than
+   .arena-frame's capped max-width and the padding used to balloon far
+   past what the artwork's frame actually needs, crushing the board down
+   to a sliver). This is the same technique .arena-rosette already uses. */
 .board{
   display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
-  position:relative; z-index:1;
-  flex:1 1 auto; max-width:520px;
+  position:absolute; z-index:1;
+  inset:26.7% 17% 24%;
+  place-content:center;
 }
 .arena-frame{
   position:relative; flex:1 1 auto; max-width:520px;
   aspect-ratio:1086/1448;
-  padding:26.7% 17% 24%;
   border-radius:4px;
   background-image:url('arena-bg.png');
   background-size:cover;
@@ -742,10 +750,9 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     max-width:none;
     width:100%;
     aspect-ratio:1086/1180;
-    padding:9% 14% 11%;
   }
   .board{
-    max-width:none;
+    inset:9% 14% 11%;
     gap:3px;
   }
 
@@ -764,7 +771,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   .hand-row{ width:100px; gap:10px; }
   .hand-label.side{ font-size:12px; margin-bottom:6px; }
 
-  .board{ gap:11px; max-width:700px; }
+  .board{ gap:11px; }
   .arena-frame{
     max-width:700px;
   }
@@ -781,21 +788,35 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    Only kicks in alongside the desktop breakpoint so a phone in fullscreen
    keeps its normal narrow layout. ---------- */
 @media (min-width:900px){
+  /* .stage is capped to the viewport's own height here (instead of just a
+     min-height like normal), and .wrap becomes the scroll container that
+     fills it — so .battle-row can flex to fill whatever's left after the
+     masthead/scoreboard/log/buttons and the arena can size itself to that,
+     instead of the whole page growing taller than the screen and forcing
+     a scrollbar under the fold. Any screen too short for everything still
+     scrolls, just inside the framed panel instead of the whole page. */
   html:fullscreen .stage,
   html:-webkit-full-screen .stage{
     max-width:1700px;
+    height:100dvh;
+    overflow:hidden;
   }
   html:fullscreen .wrap,
   html:-webkit-full-screen .wrap{
     padding:28px 40px 36px;
+    height:100%;
+    display:flex; flex-direction:column;
+    overflow-y:auto;
   }
   html:fullscreen .battle-row,
   html:-webkit-full-screen .battle-row{
     gap:30px;
+    flex:1 1 auto; min-height:0;
   }
   html:fullscreen .hand-row,
   html:-webkit-full-screen .hand-row{
     width:140px; gap:14px;
+    height:100%; overflow-y:auto;
   }
   html:fullscreen .hand-label.side,
   html:-webkit-full-screen .hand-label.side{
@@ -803,11 +824,13 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   }
   html:fullscreen .board,
   html:-webkit-full-screen .board{
-    gap:16px; max-width:860px;
+    gap:16px;
   }
   html:fullscreen .arena-frame,
   html:-webkit-full-screen .arena-frame{
     max-width:860px;
+    height:100%; width:auto;
+    flex:0 1 auto;
   }
   html:fullscreen .scoreboard,
   html:-webkit-full-screen .scoreboard{
