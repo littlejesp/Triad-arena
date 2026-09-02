@@ -350,6 +350,7 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 
 .wins-row{
+  position:relative;
   display:flex; align-items:center; justify-content:center; gap:10px;
   margin:2px 0 10px; font-size:11px; color:var(--text-dim); letter-spacing:0.03em;
 }
@@ -360,6 +361,30 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .wins-chip.blue{ color:var(--blue-side); border-color:rgba(63,111,209,0.5); }
 .wins-chip.red{ color:var(--red-side); border-color:rgba(184,69,46,0.5); }
 .wins-chip b{ color:inherit; }
+
+.wins-toast{
+  position:absolute; top:100%; left:50%; z-index:9;
+  transform:translate(-50%,4px);
+  font-family:'Cinzel',serif; font-weight:700; font-size:13px;
+  letter-spacing:0.04em; white-space:nowrap; padding:6px 14px; border-radius:8px;
+  pointer-events:none; opacity:0;
+  animation: winsToastFade 1.6s ease forwards;
+}
+.wins-toast.blue{
+  background:rgba(8,10,18,0.92); border:1px solid var(--blue-side); color:#bcd4ff;
+  box-shadow:0 0 18px rgba(63,111,209,0.5);
+}
+.wins-toast.red{
+  background:rgba(18,8,8,0.92); border:1px solid var(--red-side); color:#ffd0c0;
+  box-shadow:0 0 18px rgba(184,69,46,0.5);
+}
+@keyframes winsToastFade{
+  0%{ opacity:0; transform:translate(-50%,-4px) scale(0.85); }
+  15%{ opacity:1; transform:translate(-50%,8px) scale(1.05); }
+  25%{ transform:translate(-50%,8px) scale(1); }
+  75%{ opacity:1; }
+  100%{ opacity:0; transform:translate(-50%,-6px) scale(0.92); }
+}
 
 .stat-cluster{
   position:absolute; z-index:4; bottom:5px; left:50%; transform:translateX(-50%);
@@ -1545,6 +1570,7 @@ let state = {
   viewingCard: null,      // card object currently shown in the detail modal
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
+  winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
@@ -1877,6 +1903,7 @@ function renderBattle(){
     <div class="wins-row">
       <span class="wins-chip red">⚡ <b>${state.wins.red}</b> wins</span>
       <span class="wins-chip blue">⚡ <b>${state.wins.blue}</b> wins</span>
+      ${state.winsPopup ? `<div class="wins-toast ${state.winsPopup.owner}">+${state.winsPopup.amount} Win${state.winsPopup.amount>1?'s':''}!</div>` : ''}
     </div>
 
     <div class="battle-row">
@@ -2214,6 +2241,7 @@ function placeCard(cellIndex, cardId, owner){
   const flips = result.flips, shielded = result.shielded, bonusTriggered = result.bonusTriggered;
   const sameOrPlus = result.sameOrPlus, combo = result.combo;
   if(flips > 0) state.wins[owner] += flips;
+  if(flips > 0) state.winsPopup = { owner, amount: flips };
   if(flips > 0) setTimeout(()=> SFX.flip(flips), 120);
   if(shielded > 0) setTimeout(()=> SFX.shield(), 90);
   if(bonusTriggered) setTimeout(()=> SFX.bonus(), shielded > 0 ? 260 : 90);
@@ -2246,6 +2274,13 @@ function placeCard(cellIndex, cardId, owner){
       });
       render();
     }, 950);
+  }
+
+  if(flips > 0){
+    setTimeout(()=>{
+      state.winsPopup = null;
+      render();
+    }, 1600);
   }
 
   state.placedThisTurn = true;
@@ -2950,7 +2985,7 @@ function resetGame(){
     phase:'draft', selected:[], board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, winsPopup:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
   };
   render();
