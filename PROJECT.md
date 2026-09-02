@@ -55,8 +55,8 @@ README.md            Minimal, oanvänd för kontext — använd det här dokumen
 
 ## 4. Kortdata — hur ett kort ser ut
 
-Varje kort är ett objekt i arrayen `HEROES` (42 kort — spelarens dragbara pool)
-eller `FOREST_FOES` (33 kort — fiendens pool, en delmängd av HEROES + monster).
+Varje kort är ett objekt i arrayen `HEROES` (43 kort — spelarens dragbara pool)
+eller `FOREST_FOES` (34 kort — fiendens pool, en delmängd av HEROES + monster).
 **Signaturkort med `special` finns identiskt duplicerade i båda arrayerna** —
 glöm inte att uppdatera på båda ställena.
 
@@ -83,10 +83,22 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**20 av 42 HEROES-kort har en fungerande ultimate just nu:**
+**21 av 43 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
-Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat.
+Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael.
+
+**Astrael** (`astrael`) är ett helt nytt kort, inte en tidigare oanvänd
+signatur — lagt till komplett: full-art (`card-astrael-full.jpg`, beskuren
+thumbnail `cards/card-astrael.jpg`), 8/8/8/8-stats (ger automatiskt 4
+stjärnor via `cardLevel`s summeringsformel, ingen manuell inställning),
+inget element, i BÅDA `HEROES` och `FOREST_FOES`. Passiv "Starborn" är en
+ny `active`-nyckel, `onPlaceBoost:N` — kollas direkt i `placeCard` (inte via
+`fullEffectiveValue` som de äldre passiv-typerna) och ger +N permanent på en
+slumpad sida i samma ögonblick kortet läggs, INNAN den placeringens egna
+flip-jämförelser räknas ut. Ultimate "Falling Stars" är standardmönstret
+(se nedan) med en tillfällig +5 som bara räknas med i just den attackens
+jämförelse (aldrig sparad på kortet om den missar).
 
 **Kärnbegrepp:**
 
@@ -162,6 +174,16 @@ Tiamat (bypassar choice-pickern helt, går rakt på Dominance). Lägg nya
 undantag här om ett framtida kort inte är en ren "vinn styrkejämförelsen,
 flippa"-attack.
 
+**Känd — inte ny — svaghet i samma heuristik:** förfiltreringen jämför
+`totalPower(attacker)` RÅTT, utan att räkna in kortets egen tillfälliga
+attack-bonus (Ifrit/Bahamut/Twins +3, Darum/Daron/Maximus +4,
+Aurelian/Vorlix/**Astrael** +4/+4/+5). AI:t missar därför mål där bonusen
+hade avgjort matchen (t.ex. Astrael mot ett mål med råstyrka 33-36 — hon
+klarar det med sin +5 men filtreringen ser bara hennes 32 och hoppar över
+det). Fungerar fint mot allt den redan slår utan bonusen. Detta fanns redan
+innan Astrael — hon exponerar det bara igen. Skulle behöva en
+per-kort-bonustabell i förfiltreringen om det ska fixas ordentligt.
+
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 
 `placeCard` → `resolveFlips` → `battleNeighbors`/`computeSamePlusCaptures`
@@ -196,8 +218,9 @@ Inget pågående/avbrutet arbete. Senaste sessionen städade repo-roten
 helbilds-PNG:er till JPEG (~110MB besparing, ingen synlig kvalitetsskillnad),
 lade till en illustrerad regelbok (📖-knapp i mastheaden, se avsnitt 3),
 kopplade in `eviltwistyin`s, Pallis och Tiamats ultimates, fixade Voidqueens
-AI-targeting, och lade till en "+N Win!"-toast vid erövring. Inget av nedan
-är bekräftat av användaren, bara idéer:
+AI-targeting, lade till en "+N Win!"-toast vid erövring, och lade till ett
+helt nytt kort (Astrael — se avsnitt 5). Inget av nedan är bekräftat av
+användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**

@@ -999,6 +999,7 @@ const CARD_IMAGES = {
   ferea: 'cards/card-ferea.jpg',
   aurelian: 'cards/card-aurelian.jpg',
   vorlix: 'cards/card-vorlix.jpg',
+  astrael: 'cards/card-astrael.jpg',
 };
 
 const FULL_CARD_IMAGES = {
@@ -1045,6 +1046,7 @@ const FULL_CARD_IMAGES = {
   ferea: 'E2433547-CFE6-4011-B094-D7DC0D772DEE.jpg',
   aurelian: 'card-aurelian-full.jpg',
   vorlix: 'card-vorlix-full.jpg',
+  astrael: 'card-astrael-full.jpg',
 };
 
 const CARD_BACK_IMAGE = 'card-back-purple.jpg';
@@ -1255,6 +1257,10 @@ const HEROES = [
     {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
+  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Starborn (Passive)', desc:'When Astrael is placed on the field, a random direction gains +2 Power (applies for the rest of the match).'},
+    {name:'Special Attack: Falling Stars', desc:'Costs 2 wins. Choose an enemy card — three stars strike at random, and the strongest bolt gives Astrael +5 Power on a random side during this attack. If the attack wins, Astrael gains +1 Power on all sides for the rest of the match.'},
+  ] },
 ];
 
 
@@ -1433,6 +1439,10 @@ const FOREST_FOES = [
   { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
     {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
+  ] },
+  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Starborn (Passive)', desc:'When Astrael is placed on the field, a random direction gains +2 Power (applies for the rest of the match).'},
+    {name:'Special Attack: Falling Stars', desc:'Costs 2 wins. Choose an enemy card — three stars strike at random, and the strongest bolt gives Astrael +5 Power on a random side during this attack. If the attack wins, Astrael gains +1 Power on all sides for the rest of the match.'},
   ] },
 ];
 
@@ -2309,6 +2319,14 @@ function placeCard(cellIndex, cardId, owner){
   const card = hand[cardIdx];
 
   state.board[cellIndex] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:0, justPlaced:true };
+  // Starborn (Astrael): a random side gets a permanent boost the moment
+  // she lands, before flips are resolved — so it counts toward this very
+  // placement's battles, not just future ones.
+  if(card.active && card.active.onPlaceBoost){
+    const sides = ['top','right','bottom','left'];
+    const side = sides[Math.floor(Math.random()*sides.length)];
+    SpecialVerbs.directionalBoost(state.board[cellIndex], [side], card.active.onPlaceBoost);
+  }
   hand.splice(cardIdx,1);
   state.pendingCard = null;
 
@@ -2778,6 +2796,21 @@ const SPECIAL_HANDLERS = {
         SpecialVerbs.attackBoost(srcEntry, 1);
         return `${name}'s Fivefold Apocalypse (Dominance) claims ${targetEntry.card.name}!`;
     }
+  },
+  astrael({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    const sides = ['top','right','bottom','left'];
+    const starSide = sides[Math.floor(Math.random()*sides.length)];
+    if(totalPower(srcEntry) + 5 <= totalPower(targetEntry)){
+      return `${name}'s Falling Stars streak across the sky, but ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield deflects the falling stars!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Falling Stars — the strongest bolt lands on ${starSide} — claims ${targetEntry.card.name}!`;
   },
 };
 
