@@ -275,10 +275,24 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   box-shadow:0 0 8px rgba(139,110,242,0.4);
 }
 .special-btn.locked{ opacity:0.35; border-color:rgba(255,255,255,0.3); color:var(--text-dim); box-shadow:none; cursor:default; }
-.special-btn.ready:hover{ border-color:var(--gold-bright); color:var(--gold-bright); }
 .card.special-active{
   border-color:var(--arcane) !important;
   box-shadow:0 0 0 2px rgba(139,110,242,0.35), 0 0 18px rgba(139,110,242,0.55) !important;
+}
+.card.special-ready{
+  animation:specialReadyPulse 2.6s ease-in-out infinite;
+}
+@keyframes specialReadyPulse{
+  0%, 100%{
+    border-color:rgba(139,110,242,0.55);
+    box-shadow:0 0 0 1px rgba(139,110,242,0.22), 0 0 10px rgba(139,110,242,0.24);
+    filter:brightness(1);
+  }
+  50%{
+    border-color:var(--arcane);
+    box-shadow:0 0 0 2px rgba(139,110,242,0.7), 0 0 26px rgba(139,110,242,0.7), 0 0 46px rgba(240,216,121,0.3);
+    filter:brightness(1.14);
+  }
 }
 .cell.special-target{
   cursor:pointer; border-color:rgba(196,72,46,0.65);
@@ -1445,8 +1459,10 @@ function cardFace(card, opts={}){
   const shieldClass = opts.shieldFlash ? 'shield-flash' : '';
   const bonusClass = opts.bonusFlash ? 'bonus-flash' : '';
   const specialActiveClass = opts.specialActive ? 'special-active' : '';
+  const specialReadyClass = (opts.specialInfo && opts.specialInfo.ready) ? 'special-ready' : '';
+  const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass}" data-cardid="${card.id}" ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass}" data-cardid="${card.id}"${cardTitle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -1454,7 +1470,7 @@ function cardFace(card, opts={}){
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
       ${card.element ? `<div class="element-badge" title="${card.element}">${ELEMENT_ICONS[card.element]}</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
-      ${opts.specialInfo ? `<button class="special-btn ${opts.specialInfo.ready ? 'ready' : 'locked'}" data-special-cell="${opts.specialInfo.cellIndex}" title="${opts.specialInfo.title}">⚡</button>` : ''}
+      ${opts.specialInfo && !opts.specialInfo.ready ? `<button class="special-btn locked" data-special-cell="${opts.specialInfo.cellIndex}" title="${opts.specialInfo.title} (not enough wins yet)">⚡</button>` : ''}
       ${opts.shieldFlash ? `<div class="skill-pop shield">🛡 Shield!</div>` : ''}
       ${opts.bonusFlash ? `<div class="skill-pop bonus">+${opts.bonusAmount||1} Power</div>` : ''}
       <div class="card-inner">
@@ -1696,16 +1712,12 @@ function attachHandlers(){
     });
   });
 
+  // The ⚡ badge only ever renders locked (not enough wins yet) — once a
+  // special is affordable, the whole card pulses and becomes the tap
+  // target instead (see the .cell handler below), so this is just a
+  // non-interactive tooltip anchor.
   document.querySelectorAll('.special-btn').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const cellIndex = parseInt(btn.dataset.specialCell, 10);
-      if(state.specialMode && state.specialMode.sourceIndex === cellIndex){
-        cancelSpecial();
-      } else if(btn.classList.contains('ready')){
-        executeSpecial(cellIndex);
-      }
-    });
+    btn.addEventListener('click', (e)=> e.stopPropagation());
   });
 
   const overlay = document.getElementById('modal-overlay');
@@ -1797,6 +1809,15 @@ function attachHandlers(){
         if(state.specialMode){
           resolveSpecialTarget(i);
           return;
+        }
+        // A pulsing (ready-special) card is a tap target in its own right —
+        // tap it to activate, tap it again to cancel while targeting.
+        const entry = state.board[i];
+        if(entry && entry.owner==='blue' && entry.card.special){
+          const key = 'blue:' + entry.card.id;
+          const used = entry.card.special.once && state.specialUsed[key];
+          const ready = !used && state.turn==='blue' && state.phase==='battle' && state.wins.blue >= entry.card.special.cost;
+          if(ready){ executeSpecial(i); return; }
         }
         if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard || state.placedThisTurn) return;
         if(state.board[i]) return;
