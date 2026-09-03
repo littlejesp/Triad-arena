@@ -90,11 +90,11 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**30 av 44 HEROES-kort har en fungerande ultimate just nu:**
+**31 av 44 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
 Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
-Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell, Darien.
+Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell, Darien, Sylvarion.
 
 **VIKTIGT — den gamla `dariensv`-dubbletten är BORTTAGEN** (kortobjekt,
 `CARD_IMAGES`/`FULL_CARD_IMAGES`-rader och bildfilerna själva). Fanns bara i
@@ -625,7 +625,40 @@ fall (5 steg × 130ms + .55s flip ≈ 1.2s) med marginal. Testat med
 Playwright: en tre-korts samtidig-flip visar synligt att korten flippar i
 sekvens (inte samtidigt), och AI:ts drag mättes faktiskt vänta till
 ~1.6s efter en spelar-erövring men fortfarande köra på ~700ms-vägen när
-placeringen inte erövrade något. Inget av nedan är bekräftat av
+placeringen inte erövrade något.
+
+**Sylvarion** (befintligt kort, `id:'sylvarion'`) fick ny konst
+(`card-sylvarion-full.jpg` + omklippt `cards/card-sylvarion.jpg`, ersatte
+en gammal GitHub-UUID-fil) och sin FÖRSTA ultimate, "Tempest Volley".
+Ovanligt fall: användaren skickade den nya kortbilden MITT I en pågående
+tur — hann redan fråga användaren vilket av de 13 ultimate-lösa korten som
+skulle prioriteras (svar: Sylvarion, eftersom hennes GAMLA flavor-text
+redan lät som en ultimate som väntade på att hända) INNAN den nya bilden
+dök upp med en riktig "Special Attack"-sektion, vilket gjorde hela den
+plan-syntes-från-flavor-text-idén överflödig — byggde ultimaten direkt
+från källtexten istället, som med alla andra kort. Stats (10/8/10/9)
+matchade redan exakt, ingen ändring. Källtexten: "Sylvarion skjuter upp en
+storm av 5 pilar mot fienden... Varje pil väljer slumpmässigt ett
+fiendekort och träffar med SANN SKADA. Ingen kan undgå stormens vrede."
+— `targets:'aoe'` (ingen spelarvalsmöjlighet, precis som Torn/Pallis &
+Pell), handler slumpar EN fiende per pil (5 oberoende slumpdrag, `Math.random`),
+`SpecialVerbs.debuff(mål, 1)` per träff — helt ovillkorligt, INGEN
+`specialBlockedByShield`-koll (matchar "sann skada"/"ignorerar försvar"-
+temat som går igen i flera av hennes ANDRA skills). Samma kort kan träffas
+av flera pilar (testat: 5 pilar mot 2 fiender gav t.ex. en 4/1-fördelning),
+vilket är en medveten tolkning av "varje pil väljer slumpmässigt" — inte
+uttryckligen sagt i källan men den mest bokstavliga läsningen. Skadan per
+pil (-1) är påhittad (källan ger bara "sann skada", ingen siffra).
+Kostnaden "5 Energi" i källtexten mappades rakt av till `cost:5` i
+motorns enda delade resurs (Wins) — spelet har inget separat
+energi-system, så "Energi" här läses som samma sak som "Wins" överallt
+annars, bara ett annat ord i just den här bild-genereringen. Källkortet
+har OVANLIGT MÅNGA extra skills (5 "Triad Arena Skills" + 4 "Passiva
+Förmågor", 9 totalt) som refererar system som inte finns — ett separat
+energi/runda/attack-räknare-system, korthandsvisning av fiendens hand,
+kortdragning — alla bevarade som flavor-only-text i `skills`-arrayen
+(ingen struken, matchar principen att spara ALL källtext även när inget
+går att koppla in). Inget av nedan är bekräftat av
 användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
