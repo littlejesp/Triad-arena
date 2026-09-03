@@ -45,9 +45,11 @@ arena-bg.jpg         Bakgrundsdekor för arenan.
 flame-*.png          Blå/röd flamikon vid poängtavlan (score-flame) — PNG
                      eftersom den faktiskt behöver alfa-transparens.
 special-badge.png    Ultimate-märket (.special-diamond) — PNG, samma skäl.
-conquered-badge.png  "ERÖVRAD"-bannern (.conquest-banner) som blinkar till
-                     över brädet vid en spelar-erövring — PNG, samma skäl
-                     (verklig alfa-transparens runt konstverket).
+conquered-badge.png,  "ERÖVRAD"-bannern (.conquest-banner) som blinkar till
+conquered-badge-red.png över brädet vid en erövring — blå version för spelaren,
+                     röd för AI:t (state.conquestPopup håller vilken sida,
+                     'blue'/'red', och väljer rätt fil). PNG, samma skäl som
+                     ovan (verklig alfa-transparens runt konstverket).
 rulebook-cover.jpg,   Regelbokens sidor (📖-knapp i mastheaden). En bild per
 rulebook-page-*.jpg  sida, listade i JS-arrayen RULEBOOK_PAGES i den ordning
                      de bläddras. Lägg till en ny sida genom att generera en
@@ -555,19 +557,22 @@ att det var svårt att se/tolka vilken siffra som hörde till vilken sida;
 (3) lade till en "slash"-svepeffekt (`attackFlash`, se avsnitt 6) som
 blinkar på VARJE anfallet kort — vinst, förlust eller sköldad — inte bara
 på lyckade erövringar. Direkt efter det: en bonus-effekt ovanpå slashen,
-en stor "ERÖVRAD"-banner (`conquered-badge.png`, `.conquest-banner`,
-`showConquestPopup()`) som blinkar till centrerad över hela brädet i ~1s
-varje gång SPELAREN (inte AI:t) erövrar ett kort — via vanlig placering
-(`placeCard`, `flips>0 && owner==='blue'`) eller en enkelmåls-special
-(`runSpecialResolution`). Medveten begränsning: bara enkelmåls-fall
+en stor "ERÖVRAD"-banner (`.conquest-banner`, `showConquestPopup(owner)`)
+som blinkar till centrerad över hela brädet i ~1s varje gång NÅGON
+erövrar ett kort — via vanlig placering (`placeCard`, `flips>0`) eller en
+enkelmåls-special (`runSpecialResolution`). Fanns först bara som en blå,
+spelar-vänd version (`conquered-badge.png`) eftersom bara den konsten
+fanns — "Fiendekortet har erövrats" läses ur spelarens perspektiv, så den
+visades bara för `owner==='blue'`. Användaren gjorde strax därefter en röd
+motsvarighet (`conquered-badge-red.png`, samma text/komposition men i röd
+palett), så nu triggas bannern för BÅDA sidor: `state.conquestPopup`
+håller vilken sida ('blue'/'red') som erövrade, och `<img>`-taggens `src`
+väljer rätt fil därefter (se `.conquest-banner`-CSS-kommentaren för
+detaljer). Medveten begränsning, KVARSTÅR fortfarande: bara enkelmåls-fall
 täcks — AOE-specialer (Pallis & Pell, Torn, Evil Twist Yin) har ingen
 `targetEntry` att kolla mot i den generiska wrappern, så de triggar den
 inte; skulle kräva att varje handler själv rapporterade vilka index som
-flippades. Bannern är avsiktligt EN-SIDIG (bara blå/spelar-erövringar) —
-själva konstverket är skrivet ur spelarens perspektiv ("Fiendekortet har
-erövrats"), så att visa den vid AI:ts erövringar hade sett fel ut; AI:ts
-egna erövringar har ändå redan flip-animationen, erövringsringen (röd) och
-slash-effekten. Inget av nedan är bekräftat av användaren, bara idéer:
+flippades. Inget av nedan är bekräftat av användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**

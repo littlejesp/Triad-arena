@@ -536,12 +536,13 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .arena-rosette{ position:absolute; inset:12%; z-index:0; pointer-events:none; opacity:0.85; }
 
 /* "Conquered!" banner — a bigger, one-off flourish on top of the routine
-   attack slash, reserved for the PLAYER'S OWN captures (placeCard and
-   single-target specials both call showConquestPopup() only when
-   owner==='blue' — the artwork itself reads as a player-facing "you got
-   it" message, so it would read wrong shown for the AI's captures too).
-   Centered on .arena-frame rather than anchored to the captured cell:
-   Same/Plus/Combo can flip several cells in one placement, so a single
+   attack slash. state.conquestPopup holds the owner ('blue'/'red') whose
+   capture triggered it, and the <img>'s src picks the matching artwork —
+   conquered-badge.png for the player, conquered-badge-red.png for the AI
+   (see showConquestPopup()) — since each piece is written from that
+   side's own perspective, not a generic "someone won" graphic. Centered
+   on .arena-frame rather than anchored to the captured cell: Same/Plus/
+   Combo can flip several cells in one placement, so a single
    card-anchored popup wouldn't have one obvious home anyway. */
 .conquest-banner{
   position:absolute; z-index:20; top:50%; left:50%;
@@ -1729,7 +1730,7 @@ let state = {
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
-  conquestPopup: false,   // true while the "Conquered!" banner is showing (player captures only)
+  conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
@@ -2107,7 +2108,7 @@ function renderBattle(){
       <div class="board">
         ${state.board.map(boardCellHtml).join('')}
       </div>
-      ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge.png" alt="Conquered!">` : ''}
+      ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       </div>
 
       <div class="side-hand hand-row">
@@ -2440,16 +2441,17 @@ function isShielded(targetEntry, targetIndex){
   return false;
 }
 
-// "Conquered!" banner — player captures only (the artwork itself reads as
-// a player-facing "you conquered this" message, so it's not shown for the
-// AI's own captures). Uses a token instead of a bare setTimeout so that a
-// second capture landing while the first banner is still up (e.g. a
-// placement capture immediately followed by a special) restarts the ~1s
-// window instead of the earlier timer clearing it out from under the newer one.
+// "Conquered!" banner — one piece of art per side (conquered-badge.png for
+// the player, conquered-badge-red.png for the AI), each written from that
+// side's own perspective, so both captures get the flourish now. Uses a
+// token instead of a bare setTimeout so that a second capture landing
+// while the first banner is still up (e.g. a placement capture immediately
+// followed by a special) restarts the ~1s window instead of the earlier
+// timer clearing it out from under the newer one.
 let conquestPopupToken = 0;
-function showConquestPopup(){
+function showConquestPopup(owner){
   const token = ++conquestPopupToken;
-  state.conquestPopup = true;
+  state.conquestPopup = owner;
   setTimeout(()=>{
     if(conquestPopupToken === token){
       state.conquestPopup = false;
@@ -2482,7 +2484,7 @@ function placeCard(cellIndex, cardId, owner){
   const sameOrPlus = result.sameOrPlus, combo = result.combo;
   if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) state.winsPopup = { owner, amount: flips };
-  if(flips > 0 && owner === 'blue') showConquestPopup();
+  if(flips > 0) showConquestPopup(owner);
   if(flips > 0) setTimeout(()=> SFX.flip(flips), 120);
   if(shielded > 0) setTimeout(()=> SFX.shield(), 90);
   if(bonusTriggered) setTimeout(()=> SFX.bonus(), shielded > 0 ? 260 : 90);
@@ -3241,8 +3243,8 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
   const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
   if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
   state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
-  if(targetEntry && targetEntry.owner === owner && targetEntry.justFlipped && owner === 'blue'){
-    showConquestPopup();
+  if(targetEntry && targetEntry.owner === owner && targetEntry.justFlipped){
+    showConquestPopup(owner);
   }
 
   SFX.bonus();
