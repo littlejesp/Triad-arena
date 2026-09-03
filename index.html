@@ -241,11 +241,10 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   background:linear-gradient(180deg, rgba(6,5,12,0.75) 0%, rgba(6,5,12,0.05) 30%, rgba(6,5,12,0.05) 55%, rgba(6,5,12,0.85) 100%);
 }
 .card-inner{ position:absolute; inset:0; display:flex; flex-direction:column; }
-.card-top{ flex:1; display:flex; align-items:flex-start; padding:clamp(8px,18cqw,16px) 7px 3px; }
+.card-top{ flex:1; display:flex; align-items:flex-start; padding:clamp(24px,32cqw,38px) 7px 3px; }
 .card-name{ font-family:'Cinzel',serif; font-weight:700; font-size:clamp(9px,13cqw,12px); line-height:1.2; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7); }
 .card-role{ font-size:clamp(7px,9cqw,8.5px); color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; margin-top:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
 .hand-row.enemy .card-role{ display:none; }
-.hand-row.enemy .stat-cluster{ width:clamp(32px,50cqw,52px); height:clamp(32px,50cqw,52px); }
 
 .card{ container-type: inline-size; }
 
@@ -386,25 +385,30 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   100%{ opacity:0; transform:translate(-50%,-6px) scale(0.92); }
 }
 
-.stat-cluster{
-  position:absolute; z-index:4; bottom:5px; left:50%; transform:translateX(-50%);
-  width:clamp(38px, 50cqw, 62px); height:clamp(38px, 50cqw, 62px);
-}
-.stat-cluster::before{
-  content:''; position:absolute; inset:-6%;
-  background:radial-gradient(circle, rgba(4,3,9,0.72) 50%, transparent 78%);
-}
+/* Stat numbers sit right on the edge of the card they belong to — top
+   number at the top edge, right number at the right edge, etc. — instead
+   of a central cluster, so you can read "which side is strong" at the
+   spot that actually matters without having to parse a cramped 4-in-one
+   plus-shape first. .stat-cluster is just a full-card, click-through
+   positioning layer; each .stat-n is its own small badge (same visual
+   language as .info-btn/.element-badge) for contrast against the art. */
+.stat-cluster{ position:absolute; inset:0; z-index:4; pointer-events:none; }
 .stat-n{
-  position:absolute; width:34%; height:34%;
+  position:absolute;
+  width:clamp(17px, 22cqw, 27px); height:clamp(17px, 22cqw, 27px);
+  border-radius:50%;
+  background:rgba(4,3,9,0.82); border:1px solid rgba(255,255,255,0.4);
   display:flex; align-items:center; justify-content:center;
   font-family:'Cinzel',serif; font-weight:700; color:#fff; line-height:1;
-  font-size:clamp(11px, 15cqw, 19px);
-  text-shadow:-1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 5px rgba(0,0,0,0.6);
+  font-size:clamp(10px, 13.5cqw, 16px);
+  text-shadow:0 1px 2px rgba(0,0,0,0.9);
 }
-.stat-n.n-top{ top:0; left:33%; }
-.stat-n.n-left{ top:33%; left:0; }
-.stat-n.n-right{ top:33%; right:0; }
-.stat-n.n-bottom{ bottom:0; left:33%; }
+.stat-n.n-top{ top:3px; left:50%; transform:translateX(-50%); }
+.stat-n.n-bottom{ bottom:4px; left:50%; transform:translateX(-50%); }
+.stat-n.n-left{ left:3px; top:50%; transform:translateY(-50%); }
+.stat-n.n-right{ right:3px; top:50%; transform:translateY(-50%); }
+.card.owner-blue .stat-n{ border-color:var(--blue-side); }
+.card.owner-red .stat-n{ border-color:var(--red-side); }
 
 .card-badge{
   position:absolute; top:5px; right:5px; font-family:'Cinzel',serif; font-size:9px;
