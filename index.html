@@ -884,6 +884,24 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     width:44px;
     flex:0 0 auto;
   }
+  /* At 44px, the 4 edge-mounted stat badges (each with a 17px floor,
+     since clamp()'s cqw term is already tiny here) collide with each
+     other and with the corner badges (info button, level stars) — none
+     of those have room left to sit at their own normal floor size too.
+     Shrink everything that competes for the rim, and drop the star
+     rating entirely (same call as .hand-row.enemy already makes for
+     .card-role — least essential info goes first when space runs out). */
+  .side-hand.hand-row .stat-n{
+    width:12px; height:12px; font-size:7.5px; border-width:1px;
+  }
+  .side-hand.hand-row .stat-n.n-top{ top:1px; }
+  .side-hand.hand-row .stat-n.n-bottom{ bottom:1px; }
+  .side-hand.hand-row .stat-n.n-left{ left:1px; }
+  .side-hand.hand-row .stat-n.n-right{ right:1px; }
+  .side-hand.hand-row .info-btn{ width:13px; height:13px; font-size:7px; top:2px; right:2px; }
+  .side-hand.hand-row .level-stars{ display:none; }
+  .side-hand.hand-row .element-badge{ width:10px; height:10px; font-size:6px; }
+  .side-hand.hand-row .card-top{ padding-top:12px; }
   .hand-label.side{
     text-align:left;
     margin:0 0 1px 2px;

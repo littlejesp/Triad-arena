@@ -553,7 +553,20 @@ gjorde att redan flippade kort "flippade om" synligt vid varenda
 efterföljande omritning (se avsnitt 6 för hela mönstret); (2) flyttade
 kortens fyra sifferbadgar från en hopträngd central klunga till kortets
 faktiska fyra kanter (topp-siffran vid toppkanten, osv) efter feedback om
-att det var svårt att se/tolka vilken siffra som hörde till vilken sida;
+att det var svårt att se/tolka vilken siffra som hörde till vilken sida
+(testat på draftskärm/hand/bräde, men INTE på mobilbrytpunkten först —
+användaren frågade uttryckligen "är detta med på mobilen också?", vilket
+avslöjade att det inte var det: vid `@media (max-width:640px)`s 44px
+handkort krockade alla fyra kant-badgarna med varandra OCH med
+info-knappen/stjärnorna, eftersom `.stat-n`s `clamp(17px, 22cqw, 27px)`-
+golv redan är större än vad ett 44px-kort har plats för. Fixat med en
+`.side-hand.hand-row .stat-n`-override inuti samma mobil-mediaquery:
+mindre badgar (12px), tightare kant-marginaler, och stjärnbetyget
+(`.level-stars`) dolt helt vid den bredden — samma "minst viktiga info
+först"-princip som `.hand-row.enemy .card-role{display:none}` redan
+använde. **Läxa: en `cqw`-baserad `clamp()`-storlek är bara responsiv
+NER TILL sitt eget min-golv — under det golvet krävs en egen override per
+extra-trång kontext, container-storleken ensam räcker inte.**);
 (3) lade till en "slash"-svepeffekt (`attackFlash`, se avsnitt 6) som
 blinkar på VARJE anfallet kort — vinst, förlust eller sköldad — inte bara
 på lyckade erövringar. Direkt efter det: en bonus-effekt ovanpå slashen,
