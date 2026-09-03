@@ -535,6 +535,30 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 }
 .arena-rosette{ position:absolute; inset:12%; z-index:0; pointer-events:none; opacity:0.85; }
 
+/* "Conquered!" banner — a bigger, one-off flourish on top of the routine
+   attack slash, reserved for the PLAYER'S OWN captures (placeCard and
+   single-target specials both call showConquestPopup() only when
+   owner==='blue' — the artwork itself reads as a player-facing "you got
+   it" message, so it would read wrong shown for the AI's captures too).
+   Centered on .arena-frame rather than anchored to the captured cell:
+   Same/Plus/Combo can flip several cells in one placement, so a single
+   card-anchored popup wouldn't have one obvious home anyway. */
+.conquest-banner{
+  position:absolute; z-index:20; top:50%; left:50%;
+  width:62%; max-width:340px;
+  transform:translate(-50%,-50%) scale(0.55);
+  opacity:0; pointer-events:none;
+  filter:drop-shadow(0 6px 22px rgba(0,0,0,0.65));
+  animation: conquestPop 1s cubic-bezier(.2,.9,.25,1) forwards;
+}
+@keyframes conquestPop{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.55) rotate(-4deg); }
+  14%{ opacity:1; transform:translate(-50%,-50%) scale(1.08) rotate(1deg); }
+  24%{ transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+  78%{ opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(0.92) rotate(0deg); }
+}
+
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
 .coinflip-frame{
   position:relative; width:180px; height:180px; border-radius:50%;
@@ -1705,6 +1729,7 @@ let state = {
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
+  conquestPopup: false,   // true while the "Conquered!" banner is showing (player captures only)
   rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
@@ -2082,6 +2107,7 @@ function renderBattle(){
       <div class="board">
         ${state.board.map(boardCellHtml).join('')}
       </div>
+      ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge.png" alt="Conquered!">` : ''}
       </div>
 
       <div class="side-hand hand-row">
@@ -2414,6 +2440,24 @@ function isShielded(targetEntry, targetIndex){
   return false;
 }
 
+// "Conquered!" banner — player captures only (the artwork itself reads as
+// a player-facing "you conquered this" message, so it's not shown for the
+// AI's own captures). Uses a token instead of a bare setTimeout so that a
+// second capture landing while the first banner is still up (e.g. a
+// placement capture immediately followed by a special) restarts the ~1s
+// window instead of the earlier timer clearing it out from under the newer one.
+let conquestPopupToken = 0;
+function showConquestPopup(){
+  const token = ++conquestPopupToken;
+  state.conquestPopup = true;
+  setTimeout(()=>{
+    if(conquestPopupToken === token){
+      state.conquestPopup = false;
+      render();
+    }
+  }, 1000);
+}
+
 function placeCard(cellIndex, cardId, owner){
   const hand = owner === 'blue' ? state.playerHand : state.enemyHand;
   const cardIdx = hand.findIndex(c => c.id === cardId);
@@ -2438,6 +2482,7 @@ function placeCard(cellIndex, cardId, owner){
   const sameOrPlus = result.sameOrPlus, combo = result.combo;
   if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) state.winsPopup = { owner, amount: flips };
+  if(flips > 0 && owner === 'blue') showConquestPopup();
   if(flips > 0) setTimeout(()=> SFX.flip(flips), 120);
   if(shielded > 0) setTimeout(()=> SFX.shield(), 90);
   if(bonusTriggered) setTimeout(()=> SFX.bonus(), shielded > 0 ? 260 : 90);
@@ -3196,6 +3241,9 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
   const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
   if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
   state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
+  if(targetEntry && targetEntry.owner === owner && targetEntry.justFlipped && owner === 'blue'){
+    showConquestPopup();
+  }
 
   SFX.bonus();
   render();
@@ -3557,7 +3605,7 @@ function resetGame(){
     phase:'draft', selected:[], board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, winsPopup:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, winsPopup:null, conquestPopup:false, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
   };
   render();
