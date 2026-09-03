@@ -460,7 +460,7 @@ Five" — samma `.mode-toggle` på draftskärmen, bara ett tredje `mode-btn`
 befintliga spelet — grundmotor, vanliga draft-lägena, allt oförändrat.
 
 **Idén**: börja med 5 fasta "story"-kort (Graff, Elara, Sarah, Zaevir,
-Ragnar — användarens eget val), klättra genom `CAMPAIGN_STAGES` (6 etapper,
+Ragnar — användarens eget val), klättra genom `CAMPAIGN_STAGES` (10 etapper,
 en fast/kuraterad fiendehand + valfria-regler-konfiguration per etapp,
 istället för `drawEnemyHand()`s helt slumpade 5-av-34), lås upp fler kort
 vid varje vinst. Förlorar man en etapp: `Retry Stage`, ingen progress
@@ -518,6 +518,23 @@ grep:ade båda arrayerna och diffade mot listan, för att undvika tysta
 | 4 Shadows Lengthen | aurelian, vorlix, lyrith, eviltwistyang, eviltwistyin | Same+Plus | astrael |
 | 5 The Old Powers | voidqueen, tiamat, bahamut, shadowking, astrael | +Combo | vorathos, tiamat |
 | 6 The Final Reckoning | dragon, threeheaddragon, celestialjudgment, infiniteseraph, fenrir | +Elemental | littlejesp |
+| 7 Old Rivals | twinsisters, wyrm, revenant, ferea, medusa | allt på | darien |
+| 8 The Shadowblade Sisters | lyrith, aurelia, twistedgipsy, maximus, darum | allt på | vayra, ysara |
+| 9 Hunter's Pact | daron, aurelian, vorlix, tahabata, ifrit | allt på | sylvarion, torn |
+| 10 The Wild Hunt's Bond | bahamut, dragon, shadowking, voidqueen, fenrir | allt på | pallispell, pallis |
+
+Etapp 7–10 tillkom i en uppföljande session ("gör fler nivåer") — samma
+mönster, bara fler rader i `CAMPAIGN_STAGES`. Bara 4 av `FOREST_FOES`s 34
+kort var fortfarande helt oanvända vid det laget (twinsisters, wyrm,
+revenant, ferea) — resten av etapp 7–10s fiender är MEDVETNA återanvändningar
+av redan-använda `FOREST_FOES` i nya kombinationer (samma sak spelet redan
+gjorde för graff/tiamat/astrael i etapp 1–6, inget nytt mönster). Alla 44
+`HEROES`-kort är nu antingen ett startkort eller en upplåsning EXCEPT de
+utan källtext för en ultimate (dragon, celestialjudgment, infiniteseraph,
+threeheaddragon, shadowking, voidqueen, fenrir, ferea, tilda med flera) och
+twinbrothers/twinsisters/eviltwistyang/eviltwistyin-paren — sparade
+medvetet till en EVENTUELL etapp 11+ om användaren vill ha ännu fler nivåer,
+inte bortglömda.
 
 Testat end-to-end med Playwright (verklig UI-interaktion, inte bara
 state-injicering för klick-delarna): mode-byte, etapp 1:s fasta hand,
@@ -529,8 +546,9 @@ sparad progress korrekt, "Reset Campaign" nollställer allt (med en
 `confirm()`-dialog eftersom det är oåterkalleligt — enda stället i hela
 spelet som använder en native browser-dialog, medvetet val för en
 destruktiv engångs-handling utan befintligt modal-mönster att återanvända),
-och "Campaign complete"-skärmen (alla 6 etapper klarade) listar alla 12
-upplåsta kort korrekt.
+etapp 7:s fiendehand/regler efter hopp direkt till den, och den NYA
+"Campaign complete"-skärmen (alla 10 etapper klarade) listar alla 19
+upplåsta kort (5 start + 14 upplåsningar) korrekt.
 
 **Medvetet inte byggt** (kan läggas till senare, användaren har inte bett
 om det): ingen svårighetsjustering baserat på hur många försök en etapp
