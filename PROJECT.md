@@ -574,10 +574,14 @@ upplåsta kort (5 start + 38 upplåsningar — HELA `HEROES`-rostret) korrekt.
 **Medvetet inte byggt** (kan läggas till senare, användaren har inte bett
 om det): ingen svårighetsjustering baserat på hur många försök en etapp
 tagit, ingen möjlighet att byta ut redan upplåsta kort mellan etapp-försök
-utan att gå via draftskärmen igen, och `#concede-btn` ("Forfeit & Redraft")
-under en pågående campaign-strid säger fortfarande generisk text (fungerar
-korrekt — går tillbaka till campaign-draftskärmen utan att röra progress —
-bara lite missvisande ordval, inte en bugg).
+utan att gå via draftskärmen igen.
+
+`#concede-btn`-texten anpassad efter läge: `state.draftMode==='campaign'
+? 'Retreat to Camp' : 'Forfeit & Redraft'` — samma knapp/handler
+(`resetGame()`), bara etikett-strängen ändras. Åtgärdat efter att ha
+identifierats som en liten skönhetsfläck (ordvalet "Forfeit & Redraft"
+antydde felaktigt att man tappade progress under en campaign-strid, trots
+att beteendet redan var korrekt).
 
 ### New Game+ (svar på "kör om med tuffare AI-händer / tills vi bygger
 fler nivåer")

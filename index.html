@@ -2245,7 +2245,7 @@ function renderBattle(){
     ${state.turn==='blue' && state.phase==='battle' ? `<button class="end-turn" id="end-turn-btn">End Turn</button>` : ''}
 
     ${resultHtml}
-    ${state.phase!=='result' ? `<button class="ghost" id="concede-btn">Forfeit &amp; Redraft</button>` : ''}
+    ${state.phase!=='result' ? `<button class="ghost" id="concede-btn">${state.draftMode==='campaign' ? 'Retreat to Camp' : 'Forfeit &amp; Redraft'}</button>` : ''}
   `;
 }
 
