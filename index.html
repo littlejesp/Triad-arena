@@ -1019,7 +1019,7 @@ const FULL_CARD_IMAGES = {
   naline: 'card-naline-full.jpg',
   deathblade: 'card-deathblade-full.jpg',
   tilda: '2EB4B914-42A1-4340-843C-D4213EA510E4.jpg',
-  littlejesp: '3DAA432E-BF55-4ABC-A0BA-0AC39AB2FAD3.jpg',
+  littlejesp: 'card-littlejesp-full.jpg',
   pallispell: '61EE0465-C021-4F70-9B30-62EEDA2E3DAD.jpg',
   voidqueen: 'A793F95F-8408-43E3-8EFC-CE1F2A80CC48.jpg',
   shadowking: '9C0351F5-41E6-4527-9F99-1356E5D99A5A.jpg',
@@ -1141,7 +1141,21 @@ const HEROES = [
     {name:'Special Attack: Shadow Assault', desc:"Costs 2 wins. Choose an enemy card sharing Deathblade's row or column — swap places with it, and it permanently loses 2 Power on all directions. (Simplified from the card's full text: the \"win against 3 cards with 27+ power\" unlock condition isn't tracked by the engine — see PROJECT.md.)"},
   ]},
   { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
-  { id:'littlejesp', name:"Little Jesp", role:"Champion of Balance", top:10, right:10, bottom:9, left:9, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Balance Break", desc:"When this card wins a battle by exactly 1 point, it gets +1 Power in a chosen direction."}, {name:"Twin Strike", desc:"Once per round, after winning an attack, immediately attack an adjacent enemy card."}, {name:"Guardian's Resolve", desc:"The first time this card would lose a battle each round, the loss is ignored."}, {name:"Champion's Command", desc:"When this card takes control of an enemy, choose an adjacent ally — it gets +1 Power facing the enemy."}], active: {shield:true}},
+  // Divine Bond's card text says "placed ADJACENT to Little Jesp", but the
+  // engine's only board-presence passive (pairPresence, see Twin Brothers/
+  // Evil Twist) checks "partner anywhere on your board" — reused as-is
+  // rather than teaching the core effectiveValue() function a new
+  // adjacency-aware code path (see PROJECT.md's "handle grundmotorn
+  // carefully" rule). "Pallis & Pell" is a single existing card,
+  // id:'pallispell', not two separate board entries.
+  { id:'littlejesp', name:"Little Jesp", role:"Champion of Balance — Order of the Balance", top:10, right:11, bottom:12, left:11, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#c9a227', active: {shield:true, pairPresence:{partner:'pallispell', amount:2}}, special:{ name:'Divine Arrow', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Balance Mastery', desc:"When Little Jesp wins a battle by exactly 1 point margin, he gains +2 Power on a chosen direction on this card. (Flavor only — not currently wired into the battle engine.)"},
+    {name:'Twin Dominance', desc:'Once per round, when this card wins an attack, it may immediately make an extra attack against an adjacent enemy card. (Flavor only — not currently wired into the battle engine.)'},
+    {name:"Guardian's Aura (Passive)", desc:"The first time Little Jesp would lose a battle each round, the loss is ignored (simplified from also granting +3 Power — see PROJECT.md)."},
+    {name:'Divine Bond (Passive)', desc:"While Pallis & Pell are anywhere on your board, Little Jesp gets +2 Power on all sides (simplified from requiring adjacency, and his card skills activating an extra time per round isn't implemented — see PROJECT.md)."},
+    {name:"Champion's Command", desc:'When this card takes control of an enemy card, choose an adjacent ally — it gains +2 Power facing the enemy. (Flavor only — not currently wired into the battle engine.)'},
+    {name:'Special Attack: Divine Arrow', desc:"Costs 2 wins. Choose an enemy card — Little Jesp gains +5 Power for this attack only, and it cannot be blocked by a shield. If the attack wins while Pallis & Pell are anywhere on your board, he keeps +2 Power on all sides permanently."},
+  ]},
   { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}]},
   { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
@@ -2974,6 +2988,26 @@ const SPECIAL_HANDLERS = {
     return enemies.length > 0
       ? `${name}'s Lethal Volley rains down — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} struck!`
       : `${name}'s Lethal Volley finds no enemies to strike!`;
+  },
+  // Explicitly unblockable per the card text ("Kan inte blockeras") — no
+  // specialBlockedByShield check, unlike most other capture specials. The
+  // Pallis & Pell bonus reuses the same "anywhere on your board" check as
+  // this card's Divine Bond passive (active.pairPresence), not a stricter
+  // adjacency check, so the whole card stays internally consistent.
+  littlejesp({ srcEntry, targetEntry, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 5 <= totalPower(targetEntry)){
+      return `${name}'s Divine Arrow flies wide — ${targetEntry.card.name} holds firm!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    const bonded = state.board.some(e => e && e.owner === owner && e.card.id === 'pallispell');
+    let msg = `${name}'s Divine Arrow claims ${targetEntry.card.name}!`;
+    if(bonded){
+      SpecialVerbs.attackBoost(srcEntry, 2);
+      msg += ` With Pallis & Pell at his side, his power surges permanently!`;
+    }
+    return msg;
   },
 };
 

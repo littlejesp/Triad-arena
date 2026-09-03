@@ -85,11 +85,57 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**27 av 44 HEROES-kort har en fungerande ultimate just nu:**
+**28 av 44 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
 Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
-Vorathos, Vayra, Ysara, Torn.
+Vorathos, Vayra, Ysara, Torn, Little Jesp.
+
+**Little Jesp** (befintligt placeholder-kort, `id:'littlejesp'`) — samma
+mönster igen: ny konst + korrigerade stats (`top:10, right:11, bottom:12,
+left:11`, "Ultra Legendary"-nivå — gamla 10/10/9/9 var för lågt för den nya
+konsten) + ny ultimate "Divine Arrow" (`targets:'single'`, EXPLICIT
+oblockerbar — INGEN `specialBlockedByShield`-koll, till skillnad från
+nästan alla andra enkelmåls-specials).
+
+Källkortet är det MEST komplexa hittills: en hel "Synergi: Pallis & Pell"-
+bonus-mekanik (adjacency-baserade buffar, kedjeattacker, extra
+skill-aktiveringar per runda). Viktig upptäckt: **"Pallis & Pell" är EN
+BEFINTLIG kort-identitet** (`id:'pallispell'`, redan i `HEROES`), inte två
+separata brickor — så alla "är Pallis & Pell placerade..."-villkor är i
+praktiken "finns kortet `pallispell` på brädet".
+
+Motorn har redan en passiv-mekanik som nästan matchar: `active.pairPresence`
+(se Twin Brothers/Evil Twist) — kollar "finns partner-kortet NÅGONSTANS på
+DITT bräde" (inte adjacency) i `fullEffectiveValue` (grundmotor-funktion,
+anropas för VARJE styrkejämförelse). Snarare än att lära grundmotorn ett
+nytt adjacency-medvetet kodspår (risk mot en känslig, ofta anropad
+funktion), återanvändes `pairPresence` rakt av för "Divine Bond" —
+**medveten förenkling: "adjacent" → "någonstans på ditt bräde"**. Samma
+förenklade regel återanvänds i `SPECIAL_HANDLERS.littlejesp` för
+ultimatens permanenta bonus-villkor, så hela kortet är internt konsekvent
+(en regel, inte två olika adjacency-tolkningar).
+
+Bortlämnat (flavor-only, dokumenterat i kortets egen text):
+`Balance Mastery` (villkorad bonus vid exakt 1-poängs marginal — kräver
+jämförelse av den EXAKTA marginalen efter alla bonusar, inget sånt hakas
+finns), `Twin Dominance` (kedjeattack efter vinst — samma
+"extra-attack-som-utlöser-en-ny-strid"-system som redan saknas för andra
+kort), `Champion's Command` (buff-en-annan-allierad-vid-erövring), och
+"skills aktiveras en extra gång per runda" (ingen rond-räkning finns,
+samma kända begränsning som i avsnitt 7). `Guardian's Aura`s "+3 Power
+istället"-bonus vid blockerad förlust bortlämnades likaså (samma
+förenkling som Pallis's "Loyal Heart" gör redan — bara själva
+sköld-ignoreringen via `active.shield` behölls).
+
+**Ny AI-observation (dokumenterad, inte fixad):** AI:ts generiska
+`targets:'single'`-loop filtrerar bort sköldade mål (`if(isShielded(...))
+return`) för att inte slösa en engångs-special på ett mål den inte kan
+flippa — men Little Jesps ultimate ignorerar sköldar helt, så filtret är
+FÖR FÖRSIKTIGT för just henne (kan hoppa över ett giltigt mål). Samma
+kategori av "suboptimalt, inte trasigt"-begränsning som den redan kända
+temp-bonus-blinda fläcken i avsnitt 5 — ingen egen AI-gren skriven för
+detta.
 
 **Samma "gör om befintligt placeholder-kort"-mönster fortsatte med fem till
 kort i en efterföljande batch (5 uppladdade bilder samtidigt: 2× Vayra
@@ -366,10 +412,14 @@ Naline (se avsnitt 5/7), gav **Deathblade** och **Vorathos** (två
 befintliga placeholder-kort utan ultimate) ny konst, korrigerade
 stats (Vorathos) och en fungerande ultimate var, och gjorde samma sak för
 **Vayra**, **Ysara** och **Darien** (befintliga) plus **Torn** (helt nytt
-kort) i en efterföljande batch — se avsnitt 5 för alla detaljer, särskilt
-vilka stats som är påhittade (Torn, delvis) vs. avskrivna vs. oförändrade
-(Ysara) eftersom källbilderna varierade mycket i hur mycket speldata de
-faktiskt innehöll. Inget av nedan är bekräftat av användaren, bara idéer:
+kort) i en efterföljande batch, och gav sedan **Little Jesp** (befintligt,
+"Ultra Legendary"-nivå) ny konst, korrigerade stats och ultimaten "Divine
+Arrow" — se avsnitt 5 för alla detaljer, särskilt vilka stats som är
+påhittade (Torn, delvis) vs. avskrivna vs. oförändrade (Ysara) eftersom
+källbilderna varierade mycket i hur mycket speldata de faktiskt innehöll,
+och den nya `active.pairPresence`-återanvändningen för Little Jesps
+"Pallis & Pell"-synergi. Inget av nedan är bekräftat av användaren, bara
+idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**
