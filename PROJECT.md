@@ -467,10 +467,10 @@ vid varje vinst. Förlorar man en etapp: `Retry Stage`, ingen progress
 förloras (etapp-index/upplåsningar ändras bara vid VINST, inte vid förlust
 eller oavgjort).
 
-**Sparad progression**: `campaignProgress` (`{stageIndex, unlocked}`) är en
-egen modul-nivå-variabel, INTE en del av `state` — `state` byts ut helt av
-`resetGame()` vid varje "Draft Again"/etapp-övergång, så campaign-progress
-hade annars nollställts vid varje sådan övergång. Sparas i
+**Sparad progression**: `campaignProgress` (`{stageIndex, unlocked, ngPlus}`)
+är en egen modul-nivå-variabel, INTE en del av `state` — `state` byts ut
+helt av `resetGame()` vid varje "Draft Again"/etapp-övergång, så
+campaign-progress hade annars nollställts vid varje sådan övergång. Sparas i
 `localStorage` (`triadArenaCampaign`, `loadCampaignProgress()`/
 `saveCampaignProgress()`, båda try/catch-inslagna — spelet funkar även om
 localStorage är blockerat, progress sparas bara inte). FÖRSTA gången
@@ -574,11 +574,60 @@ upplåsta kort (5 start + 38 upplåsningar — HELA `HEROES`-rostret) korrekt.
 **Medvetet inte byggt** (kan läggas till senare, användaren har inte bett
 om det): ingen svårighetsjustering baserat på hur många försök en etapp
 tagit, ingen möjlighet att byta ut redan upplåsta kort mellan etapp-försök
-utan att gå via draftskärmen igen, ingen NG+/högre svårighetsnivå efter
-"Campaign complete", och `#concede-btn` ("Forfeit & Redraft") under en
-pågående campaign-strid säger fortfarande generisk text (fungerar korrekt
-— går tillbaka till campaign-draftskärmen utan att röra progress — bara
-lite missvisande ordval, inte en bugg).
+utan att gå via draftskärmen igen, och `#concede-btn` ("Forfeit & Redraft")
+under en pågående campaign-strid säger fortfarande generisk text (fungerar
+korrekt — går tillbaka till campaign-draftskärmen utan att röra progress —
+bara lite missvisande ordval, inte en bugg).
+
+### New Game+ (svar på "kör om med tuffare AI-händer / tills vi bygger
+fler nivåer")
+
+Ett fjärde delsystem inom Campaign, byggt som en stopgap tills fler etapper
+läggs till: när `currentCampaignStage()` returnerar `null` (spelaren har
+klarat alla 16 etapper) visar "Campaign complete"-skärmen nu en extra knapp,
+`#campaign-ngplus-btn` ("Start New Game+N"), bredvid den befintliga "Reset
+Campaign". Klick: `stageIndex` nollställs till 0, `unlocked` behålls
+OFÖRÄNDRAT (alla tidigare upplåsta kort är kvar tillgängliga från start),
+`ngPlus` ökas med 1, sparas till `localStorage`, `state.selected` sätts till
+startkorten igen — samma 16 `CAMPAIGN_STAGES` spelas om från början, bara
+med `ngPlus > 0`.
+
+Själva svårighetshöjningen: `ngPlusBoostCard(card, ngPlus)` — om `ngPlus`
+är 0, returneras kortet oförändrat (no-op för vanlig campaign och alla andra
+lägen). Annars returneras en SHALLOW COPY av kortet med `+2` på alla fyra
+sidor (topp/höger/botten/vänster) per NG+-cykel, cappat vid 3 cykler
+(`Math.min(ngPlus, 3) * 2`, alltså max +6) så att siffrorna inte skenar vid
+upprepade NG+-varv. Appliceras EXAKT ett ställe: `startBattle()`s
+campaign-gren, via `.map(c => ngPlusBoostCard(c, campaignProgress.ngPlus))`
+när `state.enemyHand` byggs från `currentCampaignStage().enemyIds`. Random
+Draft och Choose Your Five går aldrig igenom den här kodvägen och påverkas
+inte alls.
+
+Varför shallow copy och inte mutation av `FOREST_FOES`-objekten direkt:
+samma `FOREST_FOES`-kortobjekt återanvänds av `drawEnemyHand()` i de vanliga
+lägena också (delad array, inte kopior per match) — att mutera dem på
+plats hade läckt NG+-boosten in i Random Draft/Choose Your Five-matcher
+som råkar dra samma kort efteråt. Verifierat via grep att ingen kod i
+spelet jämför kortobjekt med `===` (bara `id`-strängslookups, t.ex.
+`HEROES.find(h => h.id === id) || FOREST_FOES.find(f => f.id === id)` i
+kortinfo-modalens lookup) — shallow-copyn stör alltså ingenting.
+
+UI: stage-header visar `(New Game+N)` när `ngPlus > 0` (`ngTag`-variabel i
+`renderCampaignPanel()`), etapp 1 får extra flavor text ("The forest
+remembers you — its champions strike harder this time."), och slut-skärmen
+nämner vilket NG+-varv som just klarades.
+
+Testat med Playwright: injicerade `localStorage` med etapp 16 klarad + alla
+38 kort upplåsta, laddade om, klickade fram till "Campaign complete"-skärmen
+(skärmdump bekräftar alla 38 kort + "Start New Game+1"-knappen), klickade
+knappen, verifierade via `page.evaluate` att `campaignProgress` blev exakt
+`{stageIndex:0, ngPlus:1, unlockedCount:38}` (upplåsningar bevarade, etapp
+nollställd, ngPlus rätt), skärmdump av resulterande etapp 1-i-NG+1-vy
+(header visar korrekt "STAGE 1 OF 16 — THE AWAKENING (NEW GAME+1)" +
+flavor-texten), startade striden och läste `state.enemyHand`s stats —
+varje fiendekorts alla fyra sidor var exakt bas-värdet +2 (t.ex. `ogre`
+bas `8/5/8/4` → boostat `10/7/10/6`, exakt +2 på varje sida). Inga
+`pageerror`-fel under hela testkörningen.
 
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 

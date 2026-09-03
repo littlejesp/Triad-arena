@@ -2034,17 +2034,19 @@ function renderCampaignPanel(){
   const stage = currentCampaignStage();
   const poolIds = campaignPool();
   const unlockedCards = campaignProgress.unlocked.map(id => HEROES.find(h=>h.id===id)).filter(Boolean);
+  const ngTag = campaignProgress.ngPlus > 0 ? ` (New Game+${campaignProgress.ngPlus})` : '';
 
   if(!stage){
     return `
       <div class="section-label">The tale is told</div>
       <div class="rules">
         <b>Campaign complete!</b> You've carried your banner through every trial the
-        forest had to offer, and every champion has joined your story.
+        forest had to offer, and every champion has joined your story.${campaignProgress.ngPlus > 0 ? ` You cleared this New Game+${campaignProgress.ngPlus} run — the forest grows stronger with every cycle.` : ''}
       </div>
       <div class="draft-grid">
         ${HEROES.filter(h => poolIds.includes(h.id)).map(h => cardFace(h, { clickable:false, noInfo:false })).join('')}
       </div>
+      <button class="cta" id="campaign-ngplus-btn">Start New Game+${campaignProgress.ngPlus + 1}</button>
       <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
     `;
   }
@@ -2061,8 +2063,8 @@ function renderCampaignPanel(){
 
   if(stageNum === 1){
     return `
-      <div class="section-label">Stage 1 of ${CAMPAIGN_STAGES.length} — ${stage.name}</div>
-      <div class="rules">Your story begins with the five champions who started it all.</div>
+      <div class="section-label">Stage 1 of ${CAMPAIGN_STAGES.length} — ${stage.name}${ngTag}</div>
+      <div class="rules">Your story begins with the five champions who started it all.${campaignProgress.ngPlus > 0 ? ' The forest remembers you — its champions strike harder this time.' : ''}</div>
       <div class="draft-grid">
         ${CAMPAIGN_STARTERS.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { clickable:false })).join('')}
       </div>
@@ -2072,7 +2074,7 @@ function renderCampaignPanel(){
   }
 
   return `
-    <div class="section-label">Stage ${stageNum} of ${CAMPAIGN_STAGES.length} — ${stage.name}</div>
+    <div class="section-label">Stage ${stageNum} of ${CAMPAIGN_STAGES.length} — ${stage.name}${ngTag}</div>
     <div class="rules">Choose five champions from your story so far to carry this stage.</div>
     ${unlockedStrip}
     <div class="section-label">Choose exactly five champions</div>
@@ -2366,10 +2368,18 @@ function attachHandlers(){
       }
       const campaignBegin = document.getElementById('campaign-begin-btn');
       if(campaignBegin) campaignBegin.addEventListener('click', ()=>{ SFX.begin(); startCampaignBattle(); });
+      const campaignNgPlus = document.getElementById('campaign-ngplus-btn');
+      if(campaignNgPlus) campaignNgPlus.addEventListener('click', ()=>{
+        campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1 };
+        saveCampaignProgress();
+        state.selected = CAMPAIGN_STARTERS.slice();
+        SFX.begin();
+        render();
+      });
       const campaignReset = document.getElementById('campaign-reset-btn');
       if(campaignReset) campaignReset.addEventListener('click', ()=>{
         if(!confirm('Reset all campaign progress? This cannot be undone.')) return;
-        campaignProgress = { stageIndex:0, unlocked:[] };
+        campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0 };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
         render();
@@ -2462,12 +2472,23 @@ function startCampaignBattle(){
   startBattle();
 }
 
+// New Game+: the same 16 stages, but the forest's champions hit harder —
+// a flat +2 Power per NG+ cycle on all 4 sides, capped at 3 cycles (+6)
+// so repeated NG+ runs don't spiral into absurd numbers. Returns a
+// shallow copy so the shared FOREST_FOES objects (reused by every battle,
+// including plain Random Draft/Choose Your Five matches) are never mutated.
+function ngPlusBoostCard(card, ngPlus){
+  if(!ngPlus) return card;
+  const boost = Math.min(ngPlus, 3) * 2;
+  return { ...card, top: card.top+boost, right: card.right+boost, bottom: card.bottom+boost, left: card.left+boost };
+}
+
 function startBattle(){
   const chosenHeroes = HEROES.filter(h => state.selected.includes(h.id));
   state.playerHand = shuffle(chosenHeroes.slice());
   const campaignStage = state.draftMode === 'campaign' ? currentCampaignStage() : null;
   state.enemyHand = campaignStage
-    ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean)
+    ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean).map(c => ngPlusBoostCard(c, campaignProgress.ngPlus))
     : drawEnemyHand();
   state.board = Array(9).fill(null);
   state.pendingCard = null;
@@ -2607,11 +2628,15 @@ const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
 function loadCampaignProgress(){
   try{
     const raw = localStorage.getItem(CAMPAIGN_SAVE_KEY);
-    if(!raw) return { stageIndex:0, unlocked:[] };
+    if(!raw) return { stageIndex:0, unlocked:[], ngPlus:0 };
     const parsed = JSON.parse(raw);
-    return { stageIndex: parsed.stageIndex||0, unlocked: Array.isArray(parsed.unlocked) ? parsed.unlocked : [] };
+    return {
+      stageIndex: parsed.stageIndex||0,
+      unlocked: Array.isArray(parsed.unlocked) ? parsed.unlocked : [],
+      ngPlus: parsed.ngPlus||0,
+    };
   }catch(e){
-    return { stageIndex:0, unlocked:[] };
+    return { stageIndex:0, unlocked:[], ngPlus:0 };
   }
 }
 function saveCampaignProgress(){
@@ -3876,7 +3901,7 @@ function finishGame(){
     const stage = currentCampaignStage();
     if(stage){
       const newly = stage.unlockIds.filter(id => !campaignProgress.unlocked.includes(id));
-      campaignProgress = { stageIndex: campaignProgress.stageIndex + 1, unlocked: campaignProgress.unlocked.concat(newly) };
+      campaignProgress = { stageIndex: campaignProgress.stageIndex + 1, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus };
       saveCampaignProgress();
       state.campaignUnlocked = newly;
     }
