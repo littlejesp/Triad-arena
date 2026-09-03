@@ -212,6 +212,10 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
   gap:10px; margin-bottom:16px;
 }
+.campaign-unlocked-grid{
+  grid-template-columns:repeat(auto-fill, minmax(72px,1fr));
+  gap:6px; opacity:0.85;
+}
 
 .card{
   position:relative; border-radius:10px; overflow:hidden; cursor:pointer;
@@ -1760,6 +1764,7 @@ let state = {
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
+  campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
   rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
@@ -1969,6 +1974,7 @@ function renderDraft(){
       card flips to your banner. When the board of nine is full, <b>whoever holds the
       most squares wins the duel.</b>
     </div>
+    ${state.draftMode !== 'campaign' ? `
     <div class="rules-toggle-panel">
       <div class="section-label">Optional rules</div>
       <label class="rule-toggle">
@@ -1988,6 +1994,7 @@ function renderDraft(){
         <span><b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup.</span>
       </label>
     </div>
+    ` : ''}
 
     <div class="mode-toggle">
       <button class="mode-btn ${state.draftMode==='random' ? 'active' : ''}" id="mode-random" ${HEROES.length===0 ? 'disabled' : ''}>
@@ -1995,6 +2002,9 @@ function renderDraft(){
       </button>
       <button class="mode-btn ${state.draftMode==='manual' ? 'active' : ''}" id="mode-manual" ${HEROES.length===0 ? 'disabled' : ''}>
         <span class="mode-icon">🎯</span> Choose Your Five
+      </button>
+      <button class="mode-btn ${state.draftMode==='campaign' ? 'active' : ''}" id="mode-campaign" ${HEROES.length===0 ? 'disabled' : ''}>
+        <span class="mode-icon">📖</span> Campaign
       </button>
     </div>
 
@@ -2008,7 +2018,7 @@ function renderDraft(){
         </div>
       </div>
       <div class="footer-note">The Sigil chooses for you. The forest sends five foes to test your banner — some far more dangerous than others.</div>
-    ` : `
+    ` : state.draftMode === 'manual' ? `
       <div class="section-label">Choose exactly five champions</div>
       <div class="draft-grid">
         ${HEROES.map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true })).join('')}
@@ -2016,7 +2026,62 @@ function renderDraft(){
       <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
       <button class="cta" id="begin-btn-manual" ${chosen === 5 ? '' : 'disabled'}>Begin the Duel</button>
       <div class="footer-note">The forest sends five foes to test your banner — some far more dangerous than others.</div>
-    `}
+    ` : renderCampaignPanel()}
+  `;
+}
+
+function renderCampaignPanel(){
+  const stage = currentCampaignStage();
+  const poolIds = campaignPool();
+  const unlockedCards = campaignProgress.unlocked.map(id => HEROES.find(h=>h.id===id)).filter(Boolean);
+
+  if(!stage){
+    return `
+      <div class="section-label">The tale is told</div>
+      <div class="rules">
+        <b>Campaign complete!</b> You've carried your banner through every trial the
+        forest had to offer, and every champion has joined your story.
+      </div>
+      <div class="draft-grid">
+        ${HEROES.filter(h => poolIds.includes(h.id)).map(h => cardFace(h, { clickable:false, noInfo:false })).join('')}
+      </div>
+      <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
+    `;
+  }
+
+  const stageNum = campaignProgress.stageIndex + 1;
+  const chosen = state.selected.length;
+
+  const unlockedStrip = unlockedCards.length ? `
+    <div class="count-row"><span>Unlocked so far</span><span><b>${unlockedCards.length}</b></span></div>
+    <div class="draft-grid campaign-unlocked-grid">
+      ${unlockedCards.map(h => cardFace(h, { clickable:false })).join('')}
+    </div>
+  ` : '';
+
+  if(stageNum === 1){
+    return `
+      <div class="section-label">Stage 1 of ${CAMPAIGN_STAGES.length} — ${stage.name}</div>
+      <div class="rules">Your story begins with the five champions who started it all.</div>
+      <div class="draft-grid">
+        ${CAMPAIGN_STARTERS.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { clickable:false })).join('')}
+      </div>
+      <button class="cta" id="campaign-begin-btn">Begin Stage 1</button>
+      <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
+    `;
+  }
+
+  return `
+    <div class="section-label">Stage ${stageNum} of ${CAMPAIGN_STAGES.length} — ${stage.name}</div>
+    <div class="rules">Choose five champions from your story so far to carry this stage.</div>
+    ${unlockedStrip}
+    <div class="section-label">Choose exactly five champions</div>
+    <div class="draft-grid">
+      ${poolIds.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true })).join('')}
+    </div>
+    <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
+    <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
+    <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
   `;
 }
 
@@ -2092,13 +2157,34 @@ function renderBattle(){
     if(state.winner === 'blue'){ title = 'Victory'; sub = 'Your banner holds the field.'; }
     else if(state.winner === 'red'){ title = 'Defeat'; sub = 'The forest claims the board.'; }
     else { title = 'A Standstill'; sub = 'Neither banner could break the other.'; }
-    resultHtml = `
-      <div class="result-banner">
-        <h2>${title}</h2>
-        <p>${sub}</p>
-      </div>
-      <button class="cta" id="rematch-btn">Draft Again</button>
-    `;
+
+    if(state.draftMode === 'campaign' && state.winner === 'blue'){
+      const unlockedNames = (state.campaignUnlocked||[]).map(id => (HEROES.find(h=>h.id===id)||{}).name).filter(Boolean);
+      const complete = !currentCampaignStage();
+      resultHtml = `
+        <div class="result-banner">
+          <h2>${complete ? 'Campaign Complete!' : 'Stage Cleared!'}</h2>
+          <p>${sub}${unlockedNames.length ? ` ${unlockedNames.join(' and ')} join${unlockedNames.length===1?'s':''} your banner!` : ''}</p>
+        </div>
+        <button class="cta" id="campaign-next-btn">${complete ? 'Return to Campaign' : 'Next Stage'}</button>
+      `;
+    } else if(state.draftMode === 'campaign'){
+      resultHtml = `
+        <div class="result-banner">
+          <h2>Stage Failed</h2>
+          <p>${sub}</p>
+        </div>
+        <button class="cta" id="campaign-retry-btn">Retry Stage</button>
+      `;
+    } else {
+      resultHtml = `
+        <div class="result-banner">
+          <h2>${title}</h2>
+          <p>${sub}</p>
+        </div>
+        <button class="cta" id="rematch-btn">Draft Again</button>
+      `;
+    }
   }
 
   return `
@@ -2233,6 +2319,14 @@ function attachHandlers(){
       SFX.select();
       render();
     });
+    const modeCampaign = document.getElementById('mode-campaign');
+    if(modeCampaign) modeCampaign.addEventListener('click', ()=>{
+      if(state.draftMode === 'campaign') return;
+      state.draftMode = 'campaign';
+      state.selected = campaignProgress.stageIndex === 0 ? CAMPAIGN_STARTERS.slice() : [];
+      SFX.select();
+      render();
+    });
 
     const drawPile = document.getElementById('draw-pile-btn');
     if(drawPile && !drawPile.classList.contains('disabled')){
@@ -2256,6 +2350,30 @@ function attachHandlers(){
       });
       const beginManual = document.getElementById('begin-btn-manual');
       if(beginManual) beginManual.addEventListener('click', ()=>{ SFX.begin(); startBattle(); });
+    }
+
+    if(state.draftMode === 'campaign'){
+      if(campaignProgress.stageIndex > 0){
+        document.querySelectorAll('.draft-grid .card.selectable').forEach(el=>{
+          el.addEventListener('click', ()=>{
+            const id = el.dataset.cardid;
+            const idx = state.selected.indexOf(id);
+            if(idx >= 0){ state.selected.splice(idx,1); SFX.deselect(); }
+            else if(state.selected.length < 5){ state.selected.push(id); SFX.select(); }
+            render();
+          });
+        });
+      }
+      const campaignBegin = document.getElementById('campaign-begin-btn');
+      if(campaignBegin) campaignBegin.addEventListener('click', ()=>{ SFX.begin(); startCampaignBattle(); });
+      const campaignReset = document.getElementById('campaign-reset-btn');
+      if(campaignReset) campaignReset.addEventListener('click', ()=>{
+        if(!confirm('Reset all campaign progress? This cannot be undone.')) return;
+        campaignProgress = { stageIndex:0, unlocked:[] };
+        saveCampaignProgress();
+        state.selected = CAMPAIGN_STARTERS.slice();
+        render();
+      });
     }
 
     const sameBox = document.getElementById('rule-same');
@@ -2317,6 +2435,10 @@ function attachHandlers(){
     if(rematch) rematch.addEventListener('click', resetGame);
     const concede = document.getElementById('concede-btn');
     if(concede) concede.addEventListener('click', resetGame);
+    const campaignNext = document.getElementById('campaign-next-btn');
+    if(campaignNext) campaignNext.addEventListener('click', resetGame);
+    const campaignRetry = document.getElementById('campaign-retry-btn');
+    if(campaignRetry) campaignRetry.addEventListener('click', resetGame);
   }
 }
 
@@ -2327,10 +2449,26 @@ function drawRandomFive(){
   startBattle();
 }
 
+function startCampaignBattle(){
+  const stage = currentCampaignStage();
+  if(!stage) return;
+  // Stage 1 always fields the fixed starter five — state.selected may not
+  // already hold them (e.g. returning here via resetGame() after a retry,
+  // which always clears selected), so force it rather than trusting
+  // whatever the picker last left behind.
+  if(campaignProgress.stageIndex === 0) state.selected = CAMPAIGN_STARTERS.slice();
+  if(state.selected.length !== 5) return;
+  state.rules = { ...stage.rules };
+  startBattle();
+}
+
 function startBattle(){
   const chosenHeroes = HEROES.filter(h => state.selected.includes(h.id));
   state.playerHand = shuffle(chosenHeroes.slice());
-  state.enemyHand = drawEnemyHand();
+  const campaignStage = state.draftMode === 'campaign' ? currentCampaignStage() : null;
+  state.enemyHand = campaignStage
+    ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean)
+    : drawEnemyHand();
   state.board = Array(9).fill(null);
   state.pendingCard = null;
   state.log = 'Place a champion to claim the first square.';
@@ -2420,6 +2558,52 @@ function rivalryBonusAt(cardId, cellIndex, owner){
     if(n && n.owner === owner && isRivalryPair(cardId, n.card.id)) bonus += 1;
   });
   return bonus;
+}
+
+/* ---------------- Campaign mode ---------------- */
+// A separate, optional third way to play — sits entirely alongside Random
+// Draft / Choose Your Five (its own draftMode value), never touches the
+// grundmotor. Progress (which stage you're on, which cards you've
+// unlocked) persists in localStorage independently of `state`, since
+// `state` gets wholesale replaced by resetGame() on every "Draft Again"
+// and campaign progress must survive that.
+const CAMPAIGN_STARTERS = ['graff', 'elara', 'sarah', 'zaevir', 'ragnar'];
+const CAMPAIGN_STAGES = [
+  { name:'The Awakening', enemyIds:['ogre','wendigo','harpy','lich','direbear'],
+    rules:{same:false,plus:false,combo:false,elemental:false}, unlockIds:['templaren'] },
+  { name:'Into the Wilds', enemyIds:['graff','twistedgipsy','medusa','maximus','ifrit'],
+    rules:{same:false,plus:false,combo:false,elemental:false}, unlockIds:['naline'] },
+  { name:'The Gathering Storm', enemyIds:['daron','darum','aurelia','tahabata','twinbrothers'],
+    rules:{same:true,plus:true,combo:false,elemental:false}, unlockIds:['deathblade'] },
+  { name:'Shadows Lengthen', enemyIds:['aurelian','vorlix','lyrith','eviltwistyang','eviltwistyin'],
+    rules:{same:true,plus:true,combo:false,elemental:false}, unlockIds:['astrael'] },
+  { name:'The Old Powers', enemyIds:['voidqueen','tiamat','bahamut','shadowking','astrael'],
+    rules:{same:true,plus:true,combo:true,elemental:false}, unlockIds:['vorathos','tiamat'] },
+  { name:'The Final Reckoning', enemyIds:['dragon','threeheaddragon','celestialjudgment','infiniteseraph','fenrir'],
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['littlejesp'] },
+];
+const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
+
+function loadCampaignProgress(){
+  try{
+    const raw = localStorage.getItem(CAMPAIGN_SAVE_KEY);
+    if(!raw) return { stageIndex:0, unlocked:[] };
+    const parsed = JSON.parse(raw);
+    return { stageIndex: parsed.stageIndex||0, unlocked: Array.isArray(parsed.unlocked) ? parsed.unlocked : [] };
+  }catch(e){
+    return { stageIndex:0, unlocked:[] };
+  }
+}
+function saveCampaignProgress(){
+  try{ localStorage.setItem(CAMPAIGN_SAVE_KEY, JSON.stringify(campaignProgress)); }catch(e){ /* storage unavailable — progress just won't persist */ }
+}
+let campaignProgress = loadCampaignProgress();
+
+function campaignPool(){
+  return CAMPAIGN_STARTERS.concat(campaignProgress.unlocked);
+}
+function currentCampaignStage(){
+  return CAMPAIGN_STAGES[campaignProgress.stageIndex] || null;
 }
 
 /* ---------------- Last Stand Scaling ---------------- */
@@ -3663,6 +3847,20 @@ function finishGame(){
   const redCount = state.board.filter(c => c && c.owner === 'red').length;
   state.winner = blueCount > redCount ? 'blue' : redCount > blueCount ? 'red' : 'draw';
   state.phase = 'result';
+  state.campaignUnlocked = null;
+  // A draw doesn't clear the stage — only a clean win advances campaign
+  // progress. Unlocking + persisting happens right here (not deferred to
+  // the result screen's button) so progress is saved the instant the
+  // stage is won, before the player even clicks anything.
+  if(state.draftMode === 'campaign' && state.winner === 'blue'){
+    const stage = currentCampaignStage();
+    if(stage){
+      const newly = stage.unlockIds.filter(id => !campaignProgress.unlocked.includes(id));
+      campaignProgress = { stageIndex: campaignProgress.stageIndex + 1, unlocked: campaignProgress.unlocked.concat(newly) };
+      saveCampaignProgress();
+      state.campaignUnlocked = newly;
+    }
+  }
   if(state.winner === 'blue') SFX.win();
   else if(state.winner === 'red') SFX.lose();
   else SFX.draw();
@@ -3676,7 +3874,7 @@ function resetGame(){
     phase:'draft', selected:[], board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, winsPopup:null, conquestPopup:false, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
   };
   render();

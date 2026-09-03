@@ -452,6 +452,95 @@ det). Fungerar fint mot allt den redan slår utan bonusen. Detta fanns redan
 innan Astrael — hon exponerar det bara igen. Skulle behöva en
 per-kort-bonustabell i förfiltreringen om det ska fixas ordentligt.
 
+## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
+
+Ett HELT separat tredje sätt att spela, bredvid "Random Draft"/"Choose Your
+Five" — samma `.mode-toggle` på draftskärmen, bara ett tredje `mode-btn`
+(`#mode-campaign`, `state.draftMode='campaign'`). Rör INGET i det
+befintliga spelet — grundmotor, vanliga draft-lägena, allt oförändrat.
+
+**Idén**: börja med 5 fasta "story"-kort (Graff, Elara, Sarah, Zaevir,
+Ragnar — användarens eget val), klättra genom `CAMPAIGN_STAGES` (6 etapper,
+en fast/kuraterad fiendehand + valfria-regler-konfiguration per etapp,
+istället för `drawEnemyHand()`s helt slumpade 5-av-34), lås upp fler kort
+vid varje vinst. Förlorar man en etapp: `Retry Stage`, ingen progress
+förloras (etapp-index/upplåsningar ändras bara vid VINST, inte vid förlust
+eller oavgjort).
+
+**Sparad progression**: `campaignProgress` (`{stageIndex, unlocked}`) är en
+egen modul-nivå-variabel, INTE en del av `state` — `state` byts ut helt av
+`resetGame()` vid varje "Draft Again"/etapp-övergång, så campaign-progress
+hade annars nollställts vid varje sådan övergång. Sparas i
+`localStorage` (`triadArenaCampaign`, `loadCampaignProgress()`/
+`saveCampaignProgress()`, båda try/catch-inslagna — spelet funkar även om
+localStorage är blockerat, progress sparas bara inte). FÖRSTA gången
+`localStorage` används i hela projektet.
+
+**Var allt kopplas in** (alla additiva, ingen rör grundmotor-funktioner):
+- `renderCampaignPanel()` — draftskärmens tredje gren. Etapp 1 visar bara
+  de 5 fasta startkorten (icke-klickbara, ingen väljare — `#campaign-begin-btn`
+  går rakt på). Etapp 2+ återanvänder EXAKT samma väljar-UI/interaktion som
+  "Choose Your Five" (`.draft-grid .card.selectable`-klick-toggle), bara
+  begränsat till `campaignPool()` (startkort + `campaignProgress.unlocked`)
+  istället för hela `HEROES`.
+- `startCampaignBattle()` → sätter `state.rules` från etappens config, sen
+  vanliga `startBattle()`. `startBattle()` självt kollar
+  `state.draftMode==='campaign'` och hämtar fiendehanden från
+  `currentCampaignStage().enemyIds` (mappat mot `FOREST_FOES`) istället för
+  `drawEnemyHand()`s slump, om så är fallet — ett `if`, ingen duplicerad
+  funktion.
+- `finishGame()` — vid `state.draftMode==='campaign' && winner==='blue'`:
+  slår upp etappens `unlockIds`, lägger till (utan dubbletter) i
+  `campaignProgress.unlocked`, ökar `stageIndex`, sparar till localStorage
+  — ALLT DETTA HÄNDER OMEDELBART här, inte uppskjutet till en knapptryckning,
+  så progress är sparad i samma ögonblick striden avgörs. `state.campaignUnlocked`
+  (transient, nollställd varje `finishGame()`-anrop) håller vilka kort som
+  precis låstes upp, bara för resultatskärmens text.
+- Resultatskärmen (`renderBattle()`s `resultHtml`) grenar på
+  `draftMode==='campaign'`: vinst → "Stage Cleared!" (eller "Campaign
+  Complete!" om `currentCampaignStage()` inte längre finns) + vilka kort
+  som gick med, `#campaign-next-btn`; förlust/oavgjort → "Stage Failed" +
+  `#campaign-retry-btn`. Båda knapparna anropar bara vanliga `resetGame()`
+  — `campaignProgress` är redan uppdaterad (eller medvetet oförändrad vid
+  förlust) innan knappen ens visas, så `resetGame()` behöver inget
+  campaign-specifikt alls.
+
+**Etapp-data** (`CAMPAIGN_STAGES`, `CAMPAIGN_STARTERS`) — alla kort-id:n
+verifierade mot `HEROES`/`FOREST_FOES` innan de skrevs in (ett skript som
+grep:ade båda arrayerna och diffade mot listan, för att undvika tysta
+`undefined`-kort från en felstavning):
+
+| Etapp | Fiender (FOREST_FOES) | Regler | Låser upp |
+|---|---|---|---|
+| 1 The Awakening | ogre, wendigo, harpy, lich, direbear | inga | templaren |
+| 2 Into the Wilds | graff, twistedgipsy, medusa, maximus, ifrit | inga | naline |
+| 3 The Gathering Storm | daron, darum, aurelia, tahabata, twinbrothers | Same+Plus | deathblade |
+| 4 Shadows Lengthen | aurelian, vorlix, lyrith, eviltwistyang, eviltwistyin | Same+Plus | astrael |
+| 5 The Old Powers | voidqueen, tiamat, bahamut, shadowking, astrael | +Combo | vorathos, tiamat |
+| 6 The Final Reckoning | dragon, threeheaddragon, celestialjudgment, infiniteseraph, fenrir | +Elemental | littlejesp |
+
+Testat end-to-end med Playwright (verklig UI-interaktion, inte bara
+state-injicering för klick-delarna): mode-byte, etapp 1:s fasta hand,
+vinst → rätt kort upplåst + rätt etapp-index + localStorage matchar exakt,
+etapp 2:s väljare (6 valbara = 5 start + 1 upplåst, korrekt), start av
+etapp 2 ger rätt fiendehand OCH rätt regler, förlust lämnar
+etapp-index/upplåsningar helt oförändrade, en sidladdning läser tillbaka
+sparad progress korrekt, "Reset Campaign" nollställer allt (med en
+`confirm()`-dialog eftersom det är oåterkalleligt — enda stället i hela
+spelet som använder en native browser-dialog, medvetet val för en
+destruktiv engångs-handling utan befintligt modal-mönster att återanvända),
+och "Campaign complete"-skärmen (alla 6 etapper klarade) listar alla 12
+upplåsta kort korrekt.
+
+**Medvetet inte byggt** (kan läggas till senare, användaren har inte bett
+om det): ingen svårighetsjustering baserat på hur många försök en etapp
+tagit, ingen möjlighet att byta ut redan upplåsta kort mellan etapp-försök
+utan att gå via draftskärmen igen, ingen NG+/högre svårighetsnivå efter
+"Campaign complete", och `#concede-btn` ("Forfeit & Redraft") under en
+pågående campaign-strid säger fortfarande generisk text (fungerar korrekt
+— går tillbaka till campaign-draftskärmen utan att röra progress — bara
+lite missvisande ordval, inte en bugg).
+
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 
 `placeCard` → `resolveFlips` → `battleNeighbors`/`computeSamePlusCaptures`
