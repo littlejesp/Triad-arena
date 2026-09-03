@@ -661,6 +661,28 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   100%{ opacity:0; transform:translate(-50%,-85%) scale(0.92); }
 }
 
+/* Attack slash — a quick double blade-sweep flashed over any card that
+   was just battled, win or lose, shielded or not (see .attackFlash on the
+   board entry). Lives on its own child element rather than as an
+   animation on .card itself, so it never fights with .flipping's own
+   transform/filter animation when both play at once on a captured card. */
+.slash-fx{ position:absolute; inset:0; z-index:7; pointer-events:none; overflow:hidden; }
+.slash-line{
+  position:absolute; left:-15%; width:130%; height:7%;
+  background:linear-gradient(90deg, transparent 0%, #fff 40%, #fff 60%, transparent 100%);
+  box-shadow:0 0 8px 2px rgba(255,255,255,0.85), 0 0 18px 5px rgba(255,255,255,0.4);
+  transform-origin:left center;
+  opacity:0;
+}
+.slash-line.line1{ top:28%; animation:slashSweep 0.4s cubic-bezier(.2,.85,.3,1) forwards; }
+.slash-line.line2{ top:58%; animation:slashSweep 0.4s cubic-bezier(.2,.85,.3,1) 0.06s forwards; }
+@keyframes slashSweep{
+  0%{ transform:rotate(-26deg) scaleX(0); opacity:0; }
+  22%{ opacity:1; }
+  55%{ transform:rotate(-26deg) scaleX(1); opacity:1; }
+  100%{ transform:rotate(-26deg) scaleX(1); opacity:0; }
+}
+
 .log{
   font-size:13px; color:var(--text-dim); text-align:center; min-height:24px;
   display:flex; align-items:center; justify-content:center; padding:0 10px; margin-bottom:8px;
@@ -1854,6 +1876,7 @@ function cardFace(card, opts={}){
       ${opts.specialInfo ? `<div class="special-diamond ${opts.specialInfo.ready ? 'ready' : 'locked'}" title="${opts.specialInfo.title}${opts.specialInfo.ready ? ' — tap to unleash' : ' (not enough wins yet)'}"></div>` : ''}
       ${opts.shieldFlash ? `<div class="skill-pop shield">🛡 Shield!</div>` : ''}
       ${opts.bonusFlash ? `<div class="skill-pop bonus">+${opts.bonusAmount||1} Power</div>` : ''}
+      ${opts.attackFlash ? `<div class="slash-fx"><div class="slash-line line1"></div><div class="slash-line line2"></div></div>` : ''}
       <div class="card-inner">
         <div class="card-top">
           <div>
@@ -1989,6 +2012,7 @@ function boardCellHtml(cell, i){
       ${cell ? cardFace(cell.card, {
           owner:cell.owner, flipping:cell.justFlipped, placing:cell.justPlaced,
           shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
+          attackFlash:cell.attackFlash,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
         }) : ''}
     </div>
@@ -2439,14 +2463,12 @@ function placeCard(cellIndex, cardId, owner){
     if(placed){ placed.justPlaced = false; render(); }
   }, 500);
 
-  if(flips > 0 || shielded > 0 || bonusTriggered){
-    setTimeout(()=>{
-      state.board.forEach(entry=>{
-        if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; }
-      });
-      render();
-    }, 950);
-  }
+  setTimeout(()=>{
+    state.board.forEach(entry=>{
+      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; }
+    });
+    render();
+  }, 950);
 
   if(flips > 0){
     setTimeout(()=>{
@@ -3172,6 +3194,7 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
   state.specialMode = null;
 
   const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
+  if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
   state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
 
   SFX.bonus();
@@ -3179,7 +3202,7 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
 
   setTimeout(()=>{
     state.board.forEach(entry=>{
-      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; }
+      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; }
     });
     render();
   }, 950);
@@ -3243,6 +3266,7 @@ function battleNeighbors(index, owner, result){
   present.forEach(p=>{
     const target = state.board[p.ni];
     if(!target || target.owner === owner) return; // may have been captured already by Same/Plus
+    target.attackFlash = true; // purely visual — every real battle gets a slash, win or lose
 
     const placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     const targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');

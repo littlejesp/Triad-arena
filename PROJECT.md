@@ -455,6 +455,42 @@ per-kort-bonustabell i förfiltreringen om det ska fixas ordentligt.
 `startBattle`/`resetGame`/`finishGame` styr fas-övergångar (`draft` →
 `coinflip` → `battle` → `result`).
 
+**Transient visuella flaggor (`justFlipped`/`shieldFlash`/`bonusFlash`/
+`attackFlash`) — ett rent tillägg ovanpå grundmotorn, ändrar aldrig
+vinst/förlust-logiken:** `render()` gör en FULL `app.innerHTML`-omritning
+varje gång NÅGOT händer (AI-drag, knapptryck, vad som helst), så varje
+`entry`-fält som styr en CSS-animationsklass (t.ex. `flipping:
+cell.justFlipped` i `boardCellHtml`) måste EXPLICIT nollställas igen efter
+sin animation — annars ritas animationen om PÅ NYTT vid varenda efterföljande
+`render()`-anrop, för resten av matchen (hittades och fixades som en
+riktig bugg för `justFlipped` — den nollställdes aldrig, så redan flippade
+kort "flippade om" synligt vid varje efterföljande omritning; samma
+latenta bugg fanns för `shieldFlash` när den triggades via en specialattack).
+Mönstret nu: sätt flaggan när händelsen sker (`battleNeighbors`,
+`SPECIAL_HANDLERS.*`, `specialBlockedByShield`), rendera EN gång, och kör
+sedan en `state.board.forEach(...)`-sopning som nollställer ALLA fyra
+flaggorna på HELA brädet i ett `setTimeout(...,950)` — se `placeCard`
+(numret 950 valdes långt efter alla animationers egen varaktighet, 0.55s
+flip / 0.4s slash / 0.9s shield-ring) och `runSpecialResolution` (samma
+sopning, för specialattacker). Sopningen körs numera OVILLKORLIGT (inget
+`if(flips>0 || ...)`-villkor) — annars missar man exakt den kombination av
+flaggor som inte råkar matcha villkoret, vilket var precis hur
+`attackFlash`-läckan skulle ha återupprepat samma bugg. **Lägg alltid till
+nya transienta visuella flaggor i BÅDA dessa sopningar**, annars läcker de
+på samma sätt.
+
+`attackFlash` (satt i `battleNeighbors` för VARJE riktig batalj, vinst eller
+förlust, sköldad eller ej — samt i `runSpecialResolution` för alla
+`targetEntry`-specialer) driver en dubbel "slash"-svepeffekt
+(`.slash-fx`/`.slash-line`, `@keyframes slashSweep`, 0.4s) som blinkar över
+det ANFALLNA kortet. Ligger medvetet på ett eget FRISTÅENDE barn-element,
+inte som en `animation:`-egenskap på `.card` själv — `.card.flipping`
+använder redan `transform`+`filter` i sin egen `flip`-animation, och CSS
+`animation`-genvägen MERGEAR INTE mellan konkurrerande regler (högst
+specificitet vinner hela egenskapen, resten av reglerna ignoreras helt för
+den egenskapen) — ett separat barn-element med sin egen animation undviker
+hela den kategorin krockar helt.
+
 ## 7. Kända problem
 
 - **AI:ts special-targeting** är i grunden en generisk "vinn
@@ -501,8 +537,21 @@ och den nya `active.pairPresence`-återanvändningen för Little Jesps
 "Pallis & Pell"-synergi. Direkt därefter gav en efterföljande session
 **Pallis & Pell** själv (befintligt kort) ny konst och dess FÖRSTA ultimate,
 "Hunter's Wrath" (`targets:'aoe'`, hittar upp till 2 angränsande fiendekort
-automatiskt istället för spelarval — se avsnitt 5 för varför). Inget av
-nedan är bekräftat av användaren, bara idéer:
+automatiskt istället för spelarval — se avsnitt 5 för varför). Uppdaterade
+sedan även **Darien** (den riktiga, INTE `dariensv`) med ny konst och en
+ultimate, "Shadow Breaker", och tog bort `dariensv`-dubbletten helt på
+användarens begäran.
+
+Därefter en "spelkänsla"-omgång på tre delar, allt drivet av konkret
+speltestar-feedback: (1) hittade + fixade `justFlipped`-läcka-buggen som
+gjorde att redan flippade kort "flippade om" synligt vid varenda
+efterföljande omritning (se avsnitt 6 för hela mönstret); (2) flyttade
+kortens fyra sifferbadgar från en hopträngd central klunga till kortets
+faktiska fyra kanter (topp-siffran vid toppkanten, osv) efter feedback om
+att det var svårt att se/tolka vilken siffra som hörde till vilken sida;
+(3) lade till en "slash"-svepeffekt (`attackFlash`, se avsnitt 6) som
+blinkar på VARJE anfallet kort — vinst, förlust eller sköldad — inte bara
+på lyckade erövringar. Inget av nedan är bekräftat av användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**
