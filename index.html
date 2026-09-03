@@ -550,7 +550,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   transform:translate(-50%,-50%) scale(0.55);
   opacity:0; pointer-events:none;
   filter:drop-shadow(0 6px 22px rgba(0,0,0,0.65));
-  animation: conquestPop 1s cubic-bezier(.2,.9,.25,1) forwards;
+  animation: conquestPop 1.4s cubic-bezier(.2,.9,.25,1) forwards;
 }
 @keyframes conquestPop{
   0%{ opacity:0; transform:translate(-50%,-50%) scale(0.55) rotate(-4deg); }
@@ -629,9 +629,9 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   60%{ transform:translateY(4px) scale(1.03); opacity:1; }
   100%{ transform:translateY(0) scale(1); filter:brightness(1); }
 }
-.cell .card.flipping{ animation:flip .55s ease; }
-.cell .card.owner-blue.flipping{ animation:flip .55s ease, captureRingBlue .55s ease; }
-.cell .card.owner-red.flipping{ animation:flip .55s ease, captureRingRed .55s ease; }
+.cell .card.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both; }
+.cell .card.owner-blue.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both, captureRingBlue .55s ease var(--fx-delay,0ms) both; }
+.cell .card.owner-red.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both, captureRingRed .55s ease var(--fx-delay,0ms) both; }
 @keyframes flip{
   0%{ transform:rotateY(0deg) scale(1); filter:brightness(1);}
   45%{ transform:rotateY(90deg) scale(1.07); filter:brightness(1.7);}
@@ -699,8 +699,8 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   transform-origin:left center;
   opacity:0;
 }
-.slash-line.line1{ top:28%; animation:slashSweep 0.4s cubic-bezier(.2,.85,.3,1) forwards; }
-.slash-line.line2{ top:58%; animation:slashSweep 0.4s cubic-bezier(.2,.85,.3,1) 0.06s forwards; }
+.slash-line.line1{ top:28%; animation:slashSweep 0.4s cubic-bezier(.2,.85,.3,1) var(--fx-delay,0ms) both; }
+.slash-line.line2{ top:58%; animation:slashSweep 0.4s cubic-bezier(.2,.85,.3,1) calc(var(--fx-delay,0ms) + 0.06s) both; }
 @keyframes slashSweep{
   0%{ transform:rotate(-26deg) scaleX(0); opacity:0; }
   22%{ opacity:1; }
@@ -1908,8 +1908,9 @@ function cardFace(card, opts={}){
   const specialActiveClass = opts.specialActive ? 'special-active' : '';
   const specialReadyClass = (opts.specialInfo && opts.specialInfo.ready) ? 'special-ready' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
+  const fxDelayStyle = opts.fxDelay ? ` style="--fx-delay:${opts.fxDelay}ms"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass}" data-cardid="${card.id}"${cardTitle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -2056,7 +2057,7 @@ function boardCellHtml(cell, i){
       ${cell ? cardFace(cell.card, {
           owner:cell.owner, flipping:cell.justFlipped, placing:cell.justPlaced,
           shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
-          attackFlash:cell.attackFlash,
+          attackFlash:cell.attackFlash, fxDelay:cell.fxDelay,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
         }) : ''}
     </div>
@@ -2464,8 +2465,12 @@ function isShielded(targetEntry, targetIndex){
 // side's own perspective, so both captures get the flourish now. Uses a
 // token instead of a bare setTimeout so that a second capture landing
 // while the first banner is still up (e.g. a placement capture immediately
-// followed by a special) restarts the ~1s window instead of the earlier
-// timer clearing it out from under the newer one.
+// followed by a special) restarts the window instead of the earlier timer
+// clearing it out from under the newer one. Duration must match
+// .conquest-banner's `conquestPop` animation length in the CSS below —
+// bumped from an original 1s to 1.4s after playtester feedback that
+// captures (this banner included) flew by too fast to actually see.
+const CONQUEST_BANNER_MS = 1400;
 let conquestPopupToken = 0;
 function showConquestPopup(owner){
   const token = ++conquestPopupToken;
@@ -2475,7 +2480,7 @@ function showConquestPopup(owner){
       state.conquestPopup = false;
       render();
     }
-  }, 1000);
+  }, CONQUEST_BANNER_MS);
 }
 
 function placeCard(cellIndex, cardId, owner){
@@ -2530,10 +2535,10 @@ function placeCard(cellIndex, cardId, owner){
 
   setTimeout(()=>{
     state.board.forEach(entry=>{
-      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; }
+      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; }
     });
     render();
-  }, 950);
+  }, 1300);
 
   if(flips > 0){
     setTimeout(()=>{
@@ -2558,11 +2563,15 @@ function advanceTurn(owner){
     setTimeout(finishGame, 500);
     return;
   }
+  // A capture just happened (conquest banner still up) → give the player
+  // a beat to actually see it before the AI's own flip/slash/banner pile
+  // on top. No capture → keep the old snappy pace, nothing to catch up on.
+  const nextTurnDelay = state.conquestPopup ? CONQUEST_BANNER_MS + 200 : 700;
   if(state.extraTurnPending === owner){
     state.extraTurnPending = null;
     state.placedThisTurn = false;
     render();
-    if(owner === 'red'){ setTimeout(enemyTurn, 700); }
+    if(owner === 'red'){ setTimeout(enemyTurn, nextTurnDelay); }
     return;
   }
   state.placedThisTurn = false;
@@ -2570,7 +2579,7 @@ function advanceTurn(owner){
   render();
 
   if(state.turn === 'red'){
-    setTimeout(enemyTurn, 700);
+    setTimeout(enemyTurn, nextTurnDelay);
   }
 }
 
@@ -3270,10 +3279,10 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
 
   setTimeout(()=>{
     state.board.forEach(entry=>{
-      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; }
+      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; }
     });
     render();
-  }, 950);
+  }, 1300);
 
   maybeEndTurn(owner);
 }
@@ -3325,6 +3334,16 @@ function computeSamePlusCaptures(index, owner){
   return captured;
 }
 
+// How much to stagger each successive flip within ONE placement's battles
+// (Same/Plus + regular battle + Combo chain can all flip several cards at
+// once) — capped so a rare huge chain doesn't drag the animation out
+// forever. Purely a presentation delay via the --fx-delay CSS custom
+// property (see cardFace() and .flipping/.slash-line below); doesn't
+// change which cards flip or in what final state, only when their
+// animation starts.
+const FX_STAGGER_MS = 130;
+const FX_STAGGER_CAP = 5;
+
 function battleNeighbors(index, owner, result){
   const present = getEnemyNeighbors(index, owner);
   const placedEntry = state.board[index];
@@ -3335,6 +3354,7 @@ function battleNeighbors(index, owner, result){
     const target = state.board[p.ni];
     if(!target || target.owner === owner) return; // may have been captured already by Same/Plus
     target.attackFlash = true; // purely visual — every real battle gets a slash, win or lose
+    target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
 
     const placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     const targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
@@ -3367,7 +3387,7 @@ function battleNeighbors(index, owner, result){
 function resolveFlips(index, owner){
   const placedEntry = state.board[index];
   const placed = placedEntry.card;
-  const result = { flips:0, shielded:0, bonusTriggered:false, sameOrPlus:0, combo:0 };
+  const result = { flips:0, shielded:0, bonusTriggered:false, sameOrPlus:0, combo:0, flipSeq:0 };
 
   let samePlusSeeds = [];
   if(state.rules.same || state.rules.plus){
@@ -3376,6 +3396,7 @@ function resolveFlips(index, owner){
       const target = state.board[ni];
       target.owner = owner;
       target.justFlipped = true;
+      target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS;
       result.flips++;
       result.sameOrPlus++;
       samePlusSeeds.push(ni);

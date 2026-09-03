@@ -585,7 +585,48 @@ detaljer). Medveten begränsning, KVARSTÅR fortfarande: bara enkelmåls-fall
 täcks — AOE-specialer (Pallis & Pell, Torn, Evil Twist Yin) har ingen
 `targetEntry` att kolla mot i den generiska wrappern, så de triggar den
 inte; skulle kräva att varje handler själv rapporterade vilka index som
-flippades. Inget av nedan är bekräftat av användaren, bara idéer:
+flippades.
+
+**Uppföljning samma session — tempo:** användaren tyckte fortfarande att
+allt gick för fort och att kort "flippas hej vilt" när flera kort flippar
+samtidigt (Same/Plus/Combo kan flippa upp till hela brädet i EN placering
+— alla dessa löstes redan ut synkront i samma `resolveFlips`-anrop, så de
+animerade alla i EXAKT samma ögonblick). Tre ändringar, alla presentation-
+lager ovanpå grundmotorn (grundmotorns faktiska utfall — vem äger vilken
+ruta till slut — är HELT oförändrat, bara NÄR/HUR resultatet visas):
+
+1. **Stegrad flip/slash** (`--fx-delay` CSS custom property, satt via
+   inline `style` i `cardFace()`, läst av `.flipping`/`.slash-line`s
+   `animation-delay`): varje kort som flippar i samma placering (Same/Plus-
+   loopen i `resolveFlips`, vanlig strid i `battleNeighbors`, Combo-kedjan
+   som anropar `battleNeighbors` upprepade gånger) får ett stigande
+   `fxDelay = min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS`
+   (130ms/steg, taket på 5 steg förhindrar att en extrem kedja drar ut
+   animationen orimligt länge). `result.flipSeq` är EN delad räknare på
+   `result`-objektet som redan skickas mellan alla tre källorna, så
+   ordningen blir naturligt kronologisk (Same/Plus "händer" konceptuellt
+   före den vanliga striden, Combo rippel-effekten sist).
+2. **Längre "ERÖVRAD"-banner**: `CONQUEST_BANNER_MS` 1000ms → 1400ms
+   (måste hållas i synk med `.conquest-banner`s `conquestPop`-animations
+   egna `1.4s`-längd i CSS:en — ingen delad konstant mellan JS och CSS
+   här, bara en kommentar på båda ställena som påminner om det).
+3. **AI:t väntar längre innan sitt drag OM spelaren precis erövrade något**:
+   `advanceTurn` läser `state.conquestPopup` (redan `'blue'`/`'red'`/
+   `false` från förra ändringen) för att välja fördröjning —
+   `CONQUEST_BANNER_MS + 200` (~1.6s) om en banner just visades, annars
+   oförändrade 700ms som förut (inget att hinna ikapp om placeringen inte
+   erövrade något). Gäller båda ställena `enemyTurn` schemaläggs från i
+   `advanceTurn` (normal tur-växling OCH extraTurnPending-grenen).
+
+Städ-sopningarna i `placeCard`/`runSpecialResolution` (avsnitt 6) fick
+samma behandling som `justFlipped` m.fl. redan hade: nollställer nu även
+`fxDelay`, och tidpunkten flyttades 950ms → 1300ms för att rymma värsta
+fall (5 steg × 130ms + .55s flip ≈ 1.2s) med marginal. Testat med
+Playwright: en tre-korts samtidig-flip visar synligt att korten flippar i
+sekvens (inte samtidigt), och AI:ts drag mättes faktiskt vänta till
+~1.6s efter en spelar-erövring men fortfarande köra på ~700ms-vägen när
+placeringen inte erövrade något. Inget av nedan är bekräftat av
+användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**
