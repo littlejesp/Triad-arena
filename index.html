@@ -1020,7 +1020,7 @@ const FULL_CARD_IMAGES = {
   deathblade: 'card-deathblade-full.jpg',
   tilda: '2EB4B914-42A1-4340-843C-D4213EA510E4.jpg',
   littlejesp: 'card-littlejesp-full.jpg',
-  pallispell: '61EE0465-C021-4F70-9B30-62EEDA2E3DAD.jpg',
+  pallispell: 'card-pallispell-full.jpg',
   voidqueen: 'A793F95F-8408-43E3-8EFC-CE1F2A80CC48.jpg',
   shadowking: '9C0351F5-41E6-4527-9F99-1356E5D99A5A.jpg',
   dragon: '309C2066-EC8B-4184-B1E6-C8D140B15ED9.jpg',
@@ -1156,7 +1156,7 @@ const HEROES = [
     {name:"Champion's Command", desc:'When this card takes control of an enemy card, choose an adjacent ally — it gains +2 Power facing the enemy. (Flavor only — not currently wired into the battle engine.)'},
     {name:'Special Attack: Divine Arrow', desc:"Costs 2 wins. Choose an enemy card — Little Jesp gains +5 Power for this attack only, and it cannot be blocked by a shield. If the attack wins while Pallis & Pell are anywhere on your board, he keeps +2 Power on all sides permanently."},
   ]},
-  { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}]},
+  { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', special:{ name:'Hunter\'s Wrath', cost:2, once:true, targets:'aoe' }, skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}, {name:"Special Attack: Hunter's Wrath", desc:"Cost 2 Wins. Immediately battles up to 2 adjacent enemy cards (no attack bonus, just their raw Power). If both are defeated, Pallis and Pell gain +1 Power on all sides for the rest of the match."}]},
   { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
     {name:'Veil of Emptiness', desc:"When attacked by a stronger card, the attacker's facing side is lowered by -2 this round."},
@@ -3006,6 +3006,46 @@ const SPECIAL_HANDLERS = {
     if(bonded){
       SpecialVerbs.attackBoost(srcEntry, 2);
       msg += ` With Pallis & Pell at his side, his power surges permanently!`;
+    }
+    return msg;
+  },
+  // No explicit attack bonus in the source text (unlike most single-target
+  // ultimates, which invent one) — a plain totalPower comparison per target,
+  // same shield rules as a normal battle. "Choose up to 2" is simplified to
+  // "the up to 2 adjacent enemies found automatically" (up/right/down/left
+  // order) since the engine has no multi-select board-click flow yet.
+  pallispell({ srcEntry, sourceIndex, owner }){
+    const name = srcEntry.card.name;
+    const row = Math.floor(sourceIndex/3), col = sourceIndex%3;
+    const dirs = [[-1,0],[0,1],[1,0],[0,-1]];
+    const targets = [];
+    dirs.forEach(([dr,dc])=>{
+      if(targets.length >= 2) return;
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const idx = r*3+c;
+      const entry = state.board[idx];
+      if(entry && entry.owner !== owner) targets.push({ entry, idx });
+    });
+    if(targets.length === 0){
+      return `${name}'s Hunter's Wrath finds no one nearby to strike!`;
+    }
+    const basePower = totalPower(srcEntry);
+    const flipped = [];
+    targets.forEach(({ entry, idx })=>{
+      if(basePower <= totalPower(entry)) return;
+      if(specialBlockedByShield(entry, idx)) return;
+      entry.owner = owner;
+      entry.justFlipped = true;
+      flipped.push(entry.card.name);
+    });
+    if(flipped.length === 0){
+      return `${name}'s Hunter's Wrath is fought off without a single flip!`;
+    }
+    let msg = `${name}'s Hunter's Wrath strikes down ${flipped.join(' and ')}!`;
+    if(flipped.length === targets.length && targets.length === 2){
+      SpecialVerbs.attackBoost(srcEntry, 1);
+      msg += ` Pallis and Pell's power surges!`;
     }
     return msg;
   },

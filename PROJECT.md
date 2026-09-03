@@ -85,11 +85,11 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**28 av 44 HEROES-kort har en fungerande ultimate just nu:**
+**29 av 44 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
 Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
-Vorathos, Vayra, Ysara, Torn, Little Jesp.
+Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell.
 
 **Little Jesp** (befintligt placeholder-kort, `id:'littlejesp'`) — samma
 mönster igen: ny konst + korrigerade stats (`top:10, right:11, bottom:12,
@@ -180,6 +180,33 @@ kort i en efterföljande batch (5 uppladdade bilder samtidigt: 2× Vayra
   `darien` (den som andra system faktiskt pekar på). `dariensv` är
   oanvänd/trolig kvarleva från en tidigare session — rör inte den utan att
   fråga användaren om den ska tas bort eller slås ihop.
+
+**Pallis & Pell** (befintligt kort, `id:'pallispell'` — se avsnitt 1150-talet
+om varför den redan hade en `pairPresence`-koppling från Little Jesp) fick ny
+konst (`card-pallispell-full.jpg` + beskuren `cards/card-pallispell.jpg`,
+ersatte en gammal GitHub-UUID-fil) och sin FÖRSTA ultimate, "Hunter's Wrath"
+(cost 2, `targets:'aoe'`). Stats (9/9/10/8) råkade redan matcha den nya
+konsten exakt (som Vayra), ingen ändring behövdes. Källtexten ("Välj upp
+till 2 angränsande fiendekort... Om båda fiendekorten besegras, får Pallis
+och Pell +1 Power på alla sidor resten av rundan") kräver ett spelarval av
+UPP TILL 2 specifika brädmål — motorn har ingen multi-select-brädklick-flow
+(bara `targets:'single'` en klick, `targets:'aoe'`/`'element'`/`'direction'`
+inget brädklick alls), så att bygga en riktig 2-väljs-UI hade krävt ett helt
+nytt UI-lager. **Medveten förenkling**: återanvänder `targets:'aoe'` (löser
+ut direkt, inget brädklick) — `SPECIAL_HANDLERS.pallispell` hittar SJÄLV upp
+till 2 angränsande fiendekort automatiskt (fast ordning upp→höger→ner→
+vänster, samma rad/kol-grannskaps-mönster som redan finns i
+`SPECIAL_HANDLERS.voidqueen`), ingen spelarvalsmöjlighet. Varje hittat mål
+prövas som en vanlig styrkejämförelse (`totalPower` rakt av, INGEN
+tillfällig attack-bonus uppfunnen den här gången — källtexten antyder ingen,
+till skillnad från Vayra/Astrael) + normal sköld-koll
+(`specialBlockedByShield`, inget "pierce" nämns i källan). Om BÅDA hittade
+målen flippas: permanent +1 alla sidor (`SpecialVerbs.attackBoost`, samma
+"denna runda" → "resten av matchen"-förenkling som resten av avsnitt 7).
+Kortet finns bara i `HEROES` (inte `FOREST_FOES`) sen tidigare, så AI:t
+spelar aldrig detta kort och ingen egen AI-special-gren behövdes.
+Testat manuellt (Playwright, direkt state-manipulation): 2/2 flip → bonus,
+1/2 flip → ingen bonus, 0 grannar → "no one nearby"-meddelande, allt korrekt.
 
 **Deathblade** och **Vorathos** var redan befintliga placeholder-kort (fanns
 i `HEROES` sen tidigare, utan ultimate) — den här sessionen fick båda ny
@@ -418,8 +445,11 @@ Arrow" — se avsnitt 5 för alla detaljer, särskilt vilka stats som är
 påhittade (Torn, delvis) vs. avskrivna vs. oförändrade (Ysara) eftersom
 källbilderna varierade mycket i hur mycket speldata de faktiskt innehöll,
 och den nya `active.pairPresence`-återanvändningen för Little Jesps
-"Pallis & Pell"-synergi. Inget av nedan är bekräftat av användaren, bara
-idéer:
+"Pallis & Pell"-synergi. Direkt därefter gav en efterföljande session
+**Pallis & Pell** själv (befintligt kort) ny konst och dess FÖRSTA ultimate,
+"Hunter's Wrath" (`targets:'aoe'`, hittar upp till 2 angränsande fiendekort
+automatiskt istället för spelarval — se avsnitt 5 för varför). Inget av
+nedan är bekräftat av användaren, bara idéer:
 
 - **Fler ultimates — men fyra kort är medvetet hoppade över, inte bara
   oprioriterade:**
