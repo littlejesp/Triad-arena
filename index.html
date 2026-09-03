@@ -965,7 +965,6 @@ const CARD_IMAGES = {
   torn: 'cards/card-torn.jpg',
   vorathos: 'cards/card-vorathos.jpg',
   templaren: 'cards/card-templaren.jpg',
-  dariensv: 'cards/card-dariensv.jpg',
   sylvarion: 'cards/card-sylvarion.jpg',
   ragnar: 'cards/card-ragnar.jpg',
   naline: 'cards/card-naline.jpg',
@@ -1013,7 +1012,6 @@ const FULL_CARD_IMAGES = {
   torn: 'card-torn-full.jpg',
   vorathos: 'card-vorathos-full.jpg',
   templaren: '27D992DB-122B-4BB7-917C-1734ACDFEFA8.jpg',
-  dariensv: 'DECC6B8D-FAFC-4131-9BFA-BF21573B2682.jpg',
   sylvarion: '26598756-C398-4D79-9B30-1EC3CE14EE1C.jpg',
   ragnar: '1978CAB7-874C-433E-B657-0B9B508BB1AB.jpg',
   naline: 'card-naline-full.jpg',
@@ -1075,12 +1073,13 @@ const RULEBOOK_PAGES = [
 /* ---------------- Character data ---------------- */
 // stat mapping: top = Strength, right = Speed, bottom = Magic, left = Defense
 const HEROES = [
-  { id:'darien', name:"Darien", role:"The Shadowarden", top:10, right:10, bottom:9, left:9, element:'water', hue:'linear-gradient(160deg,#0f2440,#0d0b18 60%)', accent:'#5ec8f2', active: {shield:true}, skills: [
-    {name:'Shadow Slash', desc:'A swift, abyssal strike that cuts through defense and spirit alike.'},
-    {name:'Void Step', desc:'Melts into the shadows, reappearing behind his enemy in the blink of an eye.'},
-    {name:'Dark Aegis', desc:'Summons a barrier of darkness that absorbs damage and reflects fear.'},
-    {name:'Soul Reaver', desc:"Drains strength from foes with each strike, healing his own wounds."},
-    {name:'Final Stand', desc:'When all seems lost, Darien taps into a hidden reserve of will, becoming unbreakable for a time.'},
+  { id:'darien', name:"Darien", role:"The Shadowwarden", top:10, right:10, bottom:9, left:9, element:'water', hue:'linear-gradient(160deg,#0f2440,#0d0b18 60%)', accent:'#5ec8f2', active: {shield:true}, special:{ name:'Shadow Breaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Shadow Counter', desc:'When Darien loses a battle in a direction, he immediately counterattacks in that same direction. (Flavor only — not currently wired into the battle engine.)'},
+    {name:'Void Step', desc:'Once per match, Darien may swap places with a friendly card and gain +1 Power. (Flavor only — not currently wired into the battle engine.)'},
+    {name:'Dark Aegis', desc:"The first time Darien would lose a battle, the loss is ignored — that half is wired in via his shield (active.shield, unchanged from before). The card text's extra \"+1 Power\" on trigger is flavor only."},
+    {name:'Last Stand', desc:"If Darien is your last card on the board, he gets +1 Power on all his directions. (Flavor only — not currently wired into the battle engine, same limitation as Sarah's Last Arrow.)"},
+    {name:'Legendary Bond (Passive)', desc:"While bonded to a Legendary partner: +3 Power on all sides, Card Skills trigger an extra time per round, can't lose to a lower total Power, and +1 Power on all sides per consecutive win (stacking). (Flavor only — no partner is named on the card, and round/win-streak tracking doesn't exist in the engine.) His Special Attack being unblockable, the one clause here that doesn't need a partner, IS wired into Shadow Breaker below."},
+    {name:"Special Attack: Shadow Breaker", desc:"Cost 2 Wins. Choose 1 enemy card — unblockable (per Legendary Bond above). If its average side Power is 7 or lower, it's destroyed outright. If 8 or higher, it's permanently weakened by -3 Power instead and stays enemy-owned. (\"POWER\" is read as the target's average side value, since the card's 7/8 thresholds don't fit this engine's much larger total-power range; the \"can't use Card Skills next round\" clause is dropped — no round tracking exists.)"},
   ]},
   { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{bonus:{dir:'right',amount:1}}, skills:[{name:"Eternal Aim", desc:"On placement, choose a direction — Zaevir's attack there gets +2 for the next battle."}, {name:"Forest's Path", desc:"Once per match, Zaevir may attack a card one space away in a straight line, if the path is clear."}, {name:"Focus", desc:"If Zaevir hasn't lost a battle yet, he gets +1 on his next attack."}, {name:"Eternal Arrow", desc:"When Zaevir defeats a card, he may keep attacking in the same direction if another card borders it."}]},
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', skills:[{name:"Shadow Step", desc:"When Sarah loses a battle, you may swap her with a card in an adjacent empty square."}, {name:"Direction Focus", desc:"Once per match, change Sarah's direction on her next attack before the battle resolves."}, {name:"Light Shield", desc:"The first time Sarah would lose a battle, the loss is ignored and the battle counts as a draw."}, {name:"Last Arrow", desc:"If Sarah is your last card on the board, she gets +1 to all her directions."}], active: {shield:true}},
@@ -1121,7 +1120,6 @@ const HEROES = [
     {name:'Special Attack: Time Collapse', desc:"Costs 2 wins. Choose an enemy card, then a direction — Vorathos gains +4 Power for this attack only. If the attack wins, that direction keeps +1 Power permanently."},
   ]},
   { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Shield Wall", desc:"If Templaren wins against a dark or monster-type card, you take control regardless of the numbers."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2'}},
-  { id:'dariensv', name:"Darien", role:"The Shadowarden", top:10, right:8, bottom:8, left:9, element:'fire', hue:'linear-gradient(160deg,#3a0f10,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Shadow Counter", desc:"When Darien wins a battle and takes control of an enemy card, he gains +1 Power in a chosen direction on that card."}, {name:"Empty Step", desc:"Once per round, after winning an attack, Darien can immediately attack another adjacent enemy card."}, {name:"Dark Aegis", desc:"The first time each round Darien would lose a battle, the loss is ignored and he keeps control."}, {name:"Last Stand", desc:"If Darien controls 3 or more enemy cards, he gets +1 Power on all his directions."}], active: {shield:true}},
   { id:'sylvarion', name:"Sylvarion", role:"The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', skills:[{name:"WindStep", desc:"Move this card to any empty position. Usable once per match."}, {name:"Piercing Shot", desc:"Choose an enemy card — it gets +2 Power when attacking that card."}, {name:"Hunter's Focus", desc:"As long as this card hasn't moved this round, it gets +1 Power."}, {name:"Everwind Blessing", desc:"When this card defeats an enemy, choose: +1 Power, or draw 1 card (max hand size 5)."}], active: {bonus:{dir:'top',amount:1}}},
   { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:5, bottom:6, left:9, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Double Strike", desc:"When Ragnar wins a battle, he may attack again this round (once per round)."}, {name:"War Breaker", desc:"Choose an enemy card — Ragnar gets +2 Power when attacking it."}, {name:"Blood Rush", desc:"When Ragnar defeats an enemy card, he gets +1 Power for his next battle."}, {name:"Last Fury", desc:"If Ragnar is your only card left on the board, he gets +3 Power until the round ends."}], active: {bonus:{dir:'top',amount:1}}},
   { id:'naline', name:"Naline", role:"The Storm's Shadow — Order of the Radiance", top:10, right:9, bottom:8, left:8, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#d9622b', active: {bonus:{dir:'top',amount:1}}, special:{ name:'Thunderstorm Assault', cost:2, once:true, targets:'direction' }, skills: [
@@ -3048,6 +3046,24 @@ const SPECIAL_HANDLERS = {
       msg += ` Pallis and Pell's power surges!`;
     }
     return msg;
+  },
+  // Unblockable per the card's Legendary Bond text ("Specialattack Kan inte
+  // Blockeras") — no specialBlockedByShield check. "POWER" read as average
+  // side value (totalPower/4, rounded) rather than totalPower itself — the
+  // card's literal 7/8 thresholds never fire against this game's real
+  // totalPower range (24-44 across the whole roster, see PROJECT.md).
+  // High branch is a pure debuff (no capture), matching the source text,
+  // which never says Darien takes control of the target.
+  darien({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    const avgPower = Math.round(totalPower(targetEntry) / 4);
+    if(avgPower <= 7){
+      const targetName = targetEntry.card.name;
+      state.board[targetIndex] = null;
+      return `${name}'s Shadow Breaker shatters ${targetName} to pieces!`;
+    }
+    SpecialVerbs.debuff(targetEntry, 3);
+    return `${name}'s Shadow Breaker tears through ${targetEntry.card.name}, crippling its power!`;
   },
 };
 

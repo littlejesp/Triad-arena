@@ -85,11 +85,16 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**29 av 44 HEROES-kort har en fungerande ultimate just nu:**
+**30 av 44 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
 Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
-Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell.
+Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell, Darien.
+
+**VIKTIGT — den gamla `dariensv`-dubbletten är BORTTAGEN** (kortobjekt,
+`CARD_IMAGES`/`FULL_CARD_IMAGES`-rader och bildfilerna själva). Fanns bara i
+`HEROES`, refererades ingen annanstans (bekräftat med grep innan borttagning)
+— se avsnitt 5 nedan för Dariens uppdatering samma session.
 
 **Little Jesp** (befintligt placeholder-kort, `id:'littlejesp'`) — samma
 mönster igen: ny konst + korrigerade stats (`top:10, right:11, bottom:12,
@@ -180,6 +185,54 @@ kort i en efterföljande batch (5 uppladdade bilder samtidigt: 2× Vayra
   `darien` (den som andra system faktiskt pekar på). `dariensv` är
   oanvänd/trolig kvarleva från en tidigare session — rör inte den utan att
   fråga användaren om den ska tas bort eller slås ihop.
+
+**UPPDATERING, senare session — båda öppna Darien-frågorna ovan är lösta:**
+Användaren laddade upp EN TREDJE Darien-bild, den här gången i fullt Triad
+Arena-diamantformat (till skillnad från RPG-attributstapel-versionen ovan)
+OCH med en riktig "Special Attack: Shadow Breaker"-sektion med konkreta
+siffror — så till skillnad från förra gången fanns det nu faktiskt en
+ultimate att koppla in. `darien` (den riktiga, `RIVALRY_PAIRS`-refererade)
+fick ny konst igen (`card-darien-full.jpg` skrevs över, ny beskärning av
+`cards/card-darien.jpg`), rollen uppdaterad till "The Shadowwarden" (dubbel-w,
+käll-bildens stavning) och alla 4 skills bytta till den nya källans namn/text
+(Shadow Counter, Void Step, Dark Aegis, Last Stand — alla flavor-only utom
+Dark Aegis vars "ignorera förlusten"-halva redan var kopplad via
+`active.shield`, oförändrad). Ett femte skills-block, "Legendary Bond
+(Passive)" (+3 alla sidor, extra skill-aktivering per runda, kan-inte-förlora-
+mot-lägre-kraft, staplande vinstrid-bonus — allt villkorat på ett obundet
+"legendary partner" som aldrig namnges i källan), är ALLTSAMMANS flavor-only
+förutom EN detalj: "Specialattack Kan inte Blockeras" — den klausulen
+behöver ingen partner, så den kopplades in direkt i Shadow Breaker (ingen
+`specialBlockedByShield`-koll).
+
+Ny ultimate **"Shadow Breaker"** (`targets:'single'`, cost 2, standard
+enkel-klick-flow, inget nytt UI-lager behövdes): källtexten delar upp i två
+grenar baserat på "målets POWER" — "7 eller lägre" → förstör kortet helt,
+"8 eller högre" → -3 permanent och förhindra Kortskills nästa runda. **Viktig
+upptäckt:** hela kort-rosterns `totalPower` (summan av alla 4 sidor) ligger
+mellan 24 och 44 (kollat med ett engångs-skript över hela `HEROES`+
+`FOREST_FOES`) — "7 eller lägre" skulle ALDRIG triggas om man läser POWER
+som `totalPower` rakt av, vilket gör hela lågkrafts-grenen dödkod och
+kortet i praktiken bara en ren -3-debuff. **Medveten omtolkning**: "POWER"
+läses istället som målets GENOMSNITTLIGA sida (`totalPower/4`, avrundat) —
+det ger ett realistiskt spann på ~6 till ~11 över hela rostret, så båda
+grenarna faktiskt kan triggas (svagare kort med totalPower ≤~29 förstörs,
+resten får -3). Detta är samma kategori "källans siffror matchar inte
+motorns skala"-problem som redan dokumenterats för andra kort, bara med en
+tydligare motivering här eftersom det annars hade gjort halva kortet
+obrukbart. Höga grenen är en REN debuff (`SpecialVerbs.debuff`, ingen
+erövring — källtexten nämner aldrig att Darien tar kontroll över målet).
+"Kan inte använda Kortskills nästa runda"-klausulen är bortlämnad (ingen
+rond-räkning finns, samma kända begränsning som resten av avsnitt 7).
+Testat manuellt (Playwright): svagt mål (avg 1) → kortet försvinner helt
+från brädet; starkt mål (avg 10) → stannar fiende-ägt med -3, korrekt i
+båda fallen.
+
+`dariensv` (fire, 10/8/8/9, den oanvända dubbletten) är BORTTAGEN helt på
+användarens explicita begäran — kortobjektet i `HEROES`, dess rader i
+`CARD_IMAGES`/`FULL_CARD_IMAGES`, och båda bildfilerna (helbild + thumbnail)
+är alla raderade. Bekräftat med grep innan borttagning att inget annat
+system pekade på `dariensv` (den var, som misstänkt, en ren kvarleva).
 
 **Pallis & Pell** (befintligt kort, `id:'pallispell'` — se avsnitt 1150-talet
 om varför den redan hade en `pairPresence`-koppling från Little Jesp) fick ny
