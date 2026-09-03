@@ -2435,10 +2435,10 @@ function placeCard(cellIndex, cardId, owner){
     if(placed){ placed.justPlaced = false; render(); }
   }, 500);
 
-  if(shielded > 0 || bonusTriggered){
+  if(flips > 0 || shielded > 0 || bonusTriggered){
     setTimeout(()=>{
       state.board.forEach(entry=>{
-        if(entry){ entry.shieldFlash = false; entry.bonusFlash = false; }
+        if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; }
       });
       render();
     }, 950);
@@ -3172,6 +3172,13 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
 
   SFX.bonus();
   render();
+
+  setTimeout(()=>{
+    state.board.forEach(entry=>{
+      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; }
+    });
+    render();
+  }, 950);
 
   maybeEndTurn(owner);
 }
