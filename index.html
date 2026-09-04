@@ -149,6 +149,12 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .rules b{ color:var(--text); }
 
+.stage-banner{
+  width:100%; max-width:420px; margin:0 auto 20px;
+  border:1px solid var(--gold); box-shadow:0 12px 40px rgba(0,0,0,0.65); line-height:0;
+}
+.stage-banner img{ width:100%; display:block; border-radius:13px; }
+
 .rules-toggle-panel{
   background:var(--panel); border:1px solid var(--line); border-radius:10px;
   padding:12px 16px 14px; margin-bottom:20px;
@@ -2122,8 +2128,11 @@ function renderCampaignPanel(){
     `;
   }
 
+  const banner = stage.banner ? `<div class="stage-banner"><img src="${stage.banner}" alt="${stage.name}"></div>` : '';
+
   return `
     <div class="section-label">Stage ${stageNum} of ${CAMPAIGN_STAGES.length} — ${stage.name}${ngTag}</div>
+    ${banner}
     <div class="rules">Choose five champions from your story so far to carry this stage.</div>
     ${unlockedStrip}
     <div class="section-label">Choose exactly five champions</div>
@@ -2700,7 +2709,8 @@ const CAMPAIGN_STAGES = [
   // every HEROES card is already unlocked by the end of stage 16, so
   // there's nothing left to hand out here.
   { name:'The Triple Triad Sisters', enemyIds:['vaelira','seraphine','nyxara','shadowking','voidqueen'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:[] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:[],
+    banner:'sisters-of-fate-banner.jpg' },
 ];
 const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
 

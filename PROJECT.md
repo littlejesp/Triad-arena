@@ -735,6 +735,26 @@ exakt `+3 × antal förstörda` i `captureBonus`, och Silver Judgment
 nollställer en fiendes `captureBonus`/`sideBonus` innan den drar av -2.
 Inga fel i någon körning.
 
+**Etapp-banner** (senare tillägg, samma session): användaren skickade en
+fjärde bild — en samlingsposter av alla tre systrarna ("Sisters of Fate")
+— och frågade om den passade någonstans på sidan. Sparad som
+`sisters-of-fate-banner.jpg`, kopplad via ett nytt valfritt `banner`-fält
+på etapp-objektet (`CAMPAIGN_STAGES[16].banner`) och en ny `.stage-banner`
+CSS-klass/render-gren i `renderCampaignPanel()` — visas direkt under
+"Stage 17 of 17"-rubriken, ovanför regeltexten, bara på etapper som har
+ett `banner`-fält (bara etapp 17 just nu). Rent additivt: andra etappers
+render påverkas inte (`stage.banner ? ... : ''`).
+
+CSS-bugg hittad och fixad under byggandet: `.stage-banner{overflow:hidden}`
+(för rundade hörn) kolliderade med den kringliggande `.wrap`-containerns
+`display:flex` — ett känt CSS-quirk där ett flex-items `min-height:auto`
+tvingas till `0` så fort elementet har `overflow` satt till något annat än
+`visible`, vilket kollapsade banner-boxen till en 2px-hög linje trots att
+bilden själv laddades och mätte upp korrekt (bekräftat via
+`getBoundingClientRect`/`getComputedStyle` i Playwright). Löst genom att ta
+bort `overflow:hidden` från wrappern och lägga `border-radius` direkt på
+`<img>` istället (samma resultat visuellt, ingen flex-krock).
+
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 
 `placeCard` → `resolveFlips` → `battleNeighbors`/`computeSamePlusCaptures`
