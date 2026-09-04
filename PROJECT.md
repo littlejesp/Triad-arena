@@ -633,6 +633,108 @@ varje fiendekorts alla fyra sidor var exakt bas-värdet +2 (t.ex. `ogre`
 bas `8/5/8/4` → boostat `10/7/10/6`, exakt +2 på varje sida). Inga
 `pageerror`-fel under hela testkörningen.
 
+### Etapp 17: The Triple Triad Sisters (boss-etapp, byggd från användarens egna kortdesigner)
+
+Användaren laddade upp tre färdiga kortdesigner (Vaelira/Seraphine/Nyxara —
+"Triple Triad Sisters", fullständiga bilder med namn/stats/förmågor/ultimate/
+weakness redan inbakade i själva bilden) och bad om en dedikerad boss-etapp,
+INTE spelbara `HEROES`-kort (bekräftat via `AskUserQuestion`). De ligger
+alltså bara i `FOREST_FOES`, inte i `campaignPool()`.
+
+**Kortdata**: `vaelira`/`seraphine`/`nyxara`, element fire/wind/water,
+stats 10/9/10/10, 10/10/10/10 respektive 10/10/9/10 (exakt från
+bilderna), `special.targets:'aoe'` på alla tre (kostnad 2/2/3 wins) — vilket
+betyder att AI:ns generiska aoe-gren i `enemyTryUseSpecial()` redan kan
+använda dem utan någon ny id-specifik AI-targeting-kod (samma mönster som
+Medusa/Sylvarion).
+
+**Fyra nya, generella motor-tillägg** (inga grundmotor-funktioner ändrades,
+bara nya valfria fält/hakar utöver befintliga mönster):
+
+1. **`active.sisterAura`** — generaliserar det befintliga `pairPresence`-
+   mönstret från 1 partner till en lista + en "bonus per antal närvarande"-
+   tabell: `{partners:[...], bonusByCount:{1:X, 2:Y}}`, läst i
+   `fullEffectiveValue()` precis där `pairPresence` redan läses. Ger de tre
+   systrarnas olika Sister's Bond/Empress Aura-text (Vaelira +2/+4, Seraphine
+   +2/+3, Nyxara +1 per syster/+6 vid båda) utan någon ny state-tracking —
+   räknas live varje strid via `sistersPresentCount()`.
+2. **`checkSisterFlip()`** ("Weakness — Broken Focus") — alla tre kortens
+   olika Weakness-texter (som refererar till effekttyper — försegla/rena/
+   vända — som inte finns i spelet) approximerades enhetligt till EN regel,
+   efter uttrycklig användarbekräftelse: flippas en syster till fiendens
+   sida och sedan tillbaka till sin egen, förlorar hon -3 Power den runda
+   hon återtas. Implementerat via `sisterHomeOwner`/`sisterWasCaptured`
+   flaggor satta vid placering (`placeCard()`), och ett anrop till
+   `checkSisterFlip(entry)` insatt efter VARJE ställe i koden som sätter
+   `entry.owner = owner` — både de 2 generiska (`battleNeighbors`,
+   Same/Plus-grenen i `resolveFlips`) och alla ~20 `targetEntry.owner =
+   owner`-rader inne i enskilda `SPECIAL_HANDLERS` (så att t.ex. spelarens
+   Graff/Lyrith/Aurelia osv. som flippar en syster också räknas). No-op för
+   alla andra kort (första raden i `checkSisterFlip` filtrerar på
+   `SISTER_IDS`).
+3. **`ON_PLACE_HANDLERS`** — ny liten dispatch-tabell (samma mönster som
+   `SPECIAL_HANDLERS`, men körs automatiskt från `placeCard()` istället för
+   mot `state.wins`), för Nyxaras Void Touch och Vaeliras Undying Flame:
+   väljer ett slumpmässigt fiendekort på brädet och ger -2 Power
+   (`SpecialVerbs.debuff`). Vaeliras version sätter en `vaeliraBurned`-flagga
+   på målet så samma kort inte kan brännas två gånger (matchar hennes
+   kortartext).
+4. **`special.freeIfSistersPresent`** (bara Nyxara) — Sister's Command:
+   hennes Ultimate kostar 0 Wins när båda de andra systrarna är på brädet.
+   Kontrolleras i `specialUsable()` (annars är knappen inte ens klickbar)
+   OCH i `runSpecialResolution()` (annars dras kostnaden ändå) — samma
+   `sistersPresentCount(...) >= 2`-koll på båda ställena. `special.once`
+   gäller fortfarande (en gång per match, gratis eller inte).
+
+**Medvetet flavor-only** (samma "(Flavor only — ...)"-konvention som redan
+används för Ferea/Aurelia/Twisted Gipsy/Medusa m.fl.), för att hålla
+tilläggets omfattning rimlig: Vaelira's Crimson Surge-korddragning (inget
+card-draw-system finns i spelet), Seraphines Celestial Mark (kräver
+per-mål-tracking av en framtida bonus — inte byggt) och Silver Sight (inget
+dolt-kort/fog-of-war-system finns), Nyxaras Shadow Rend ("förstör svagaste
+fiende vid rundvinst" — ingen generisk on-win-destroy-hook finns; hennes
+Ultimate Void Dominion gör redan motsvarande sak i stor skala).
+
+**Ultimates** (alla tre `SPECIAL_HANDLERS`-funktioner, aoe, inget
+brädval): Vaeliras Infernal Pact förstör (helt, `state.board[i] = null`,
+inte bara flippar) alla fiendekort på brädet + extra tur om något
+förstördes. Nyxaras Void Dominion gör samma sak men ger henne själv
+`+3 captureBonus` per förstört kort istället för extra tur. Seraphines
+Silver Judgment nollställer alla fiendekorts positiva `captureBonus`/
+`sideBonus` (tar bort deras bonusar) och ger dem sedan -2 Power, utan
+sköld-koll (matchar "ignorerar alla barriärer").
+
+**Konst**: bilderna användaren laddade upp är kompletta, redan färdig-
+designade "posters" (namn/stats/förmågor redan inbakade i bilden) — sparade
+rakt av som `card-vaelira-full.jpg`/`card-seraphine-full.jpg`/
+`card-nyxara-full.jpg` i `FULL_CARD_IMAGES` (visas i info-modalen).
+Inga `CARD_IMAGES`-tumnaglar skapades (samma fallback som många andra
+`FOREST_FOES`-kort utan egen konst — ikon + hue-gradient på brädet/i handen).
+
+**Etapp-data**: `CAMPAIGN_STAGES[16]`, `enemyIds:['vaelira','seraphine',
+'nyxara','shadowking','voidqueen']` (2 redan etablerade starka fiender
+fyller ut till 5), alla regler på, `unlockIds:[]` (tomt — alla 43
+`HEROES`-kort är redan upplåsta vid etapp 16, så det finns inget kvar att
+dela ut; bekräftat säkert eftersom `finishGame()`s
+`stage.unlockIds.filter(...)` och resultatskärmens
+`unlockedNames.length ? ... : ''`-villkor båda hanterar en tom array utan
+problem).
+
+Testat med Playwright: (1) ett fullständigt spelat AI-mot-AI-liknande parti
+på riktig etapp 17 — inga `pageerror`, on-place-debuffarna syns tydligt i
+slutresultatet (spelarens Elara/Ragnar fick `captureBonus:-2` var). (2) En
+separat, deterministisk enhetstest-svit som anropar motorfunktionerna direkt
+och verifierar exakta tal: `sisterAura`-bonusen adderar precis rätt (+1/+6
+för Nyxara, +2/+4 för Vaelira, +2/+3 för Seraphine, mätt som differens
+mellan 0/1/2 systrar närvarande), `specialUsable` tillåter Nyxaras Ultimate
+vid 0 Wins bara när båda systrarna är på brädet, `checkSisterFlip` ger
+exakt -3 vid återerövring (och inte vid första tillfångatagandet, och inte
+igen vid en redundant omkontroll), Infernal Pact/Void Dominion förstör rätt
+antal fiendekort och lämnar kastarens eget kort orört, Void Dominion ger
+exakt `+3 × antal förstörda` i `captureBonus`, och Silver Judgment
+nollställer en fiendes `captureBonus`/`sideBonus` innan den drar av -2.
+Inga fel i någon körning.
+
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 
 `placeCard` → `resolveFlips` → `battleNeighbors`/`computeSamePlusCaptures`

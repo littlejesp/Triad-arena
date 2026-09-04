@@ -1120,6 +1120,9 @@ const FULL_CARD_IMAGES = {
   aurelian: 'card-aurelian-full.jpg',
   vorlix: 'card-vorlix-full.jpg',
   astrael: 'card-astrael-full.jpg',
+  vaelira: 'card-vaelira-full.jpg',
+  seraphine: 'card-seraphine-full.jpg',
+  nyxara: 'card-nyxara-full.jpg',
 };
 
 const CARD_BACK_IMAGE = 'card-back-purple.jpg';
@@ -1594,6 +1597,52 @@ const FOREST_FOES = [
     {name:'Starborn (Passive)', desc:'When Astrael is placed on the field, a random direction gains +2 Power (applies for the rest of the match).'},
     {name:'Special Attack: Falling Stars', desc:'Costs 2 wins. Choose an enemy card — three stars strike at random, and the strongest bolt gives Astrael +5 Power on a random side during this attack. If the attack wins, Astrael gains +1 Power on all sides for the rest of the match.'},
   ] },
+  // The Triple Triad Sisters — a 3-card boss trio for Campaign stage 17.
+  // sisterAura (read in fullEffectiveValue) generalizes the existing
+  // pairPresence pattern to 3 partners with a count-based bonus table.
+  // freeIfSistersPresent (Nyxara only) waives her Ultimate's win cost when
+  // both other sisters are on the board — checked in specialUsable/
+  // runSpecialResolution. Several flavor lines (card draw, hidden-card
+  // reveal, marked-target tracking) aren't wired into the engine, matching
+  // the same "(Flavor only...)" convention already used by Ferea/Aurelia/
+  // Twisted Gipsy/Medusa above.
+  { id:'vaelira', name:'Vaelira', role:'The Crimson Arcanist — Boss, Triple Triad Sisters I', element:'fire',
+    top:10, right:9, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#2a0a10,#0d0b18 60%)', accent:'#e0304a', icon:'🔥',
+    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} } },
+    special:{ name:'Infernal Pact', cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Undying Flame (Passive)', desc:'When Vaelira is placed, she burns a random enemy card for -2 Power. A card can only be burned once per match.'},
+      {name:'Crimson Surge', desc:'When Vaelira wins a round, she gains +1 Power on all sides (max +3 Power this match). (Card draw is flavor only — no card-draw system exists in the engine.)'},
+      {name:"Sister's Bond (Passive)", desc:"While at least one of Vaelira's sisters (Seraphine, Nyxara) is on the board, she gets +2 Power on all sides — +4 Power if both are present."},
+      {name:'Weakness — Broken Focus', desc:'If Vaelira is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses emotional control" text).'},
+      {name:'Special Attack: Infernal Pact', desc:'Costs 2 wins. Destroys every enemy card on the board and grants an extra turn immediately after. Usable once per match.'},
+    ] },
+  { id:'seraphine', name:'Seraphine', role:'The Silver Gunslinger — Boss, Triple Triad Sisters II', element:'wind',
+    top:10, right:10, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#e0c060', icon:'🕊️',
+    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} } },
+    special:{ name:'Silver Judgment', cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. (Flavor only — a stacking "extra Power the next time she hits that card" bonus is not currently wired into the battle engine.)'},
+      {name:'Silver Sight', desc:"On Seraphine's turn, she can read a hidden enemy card's Power. (Flavor only — this game has no hidden-card/fog-of-war system; every card is always fully visible.)"},
+      {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
+      {name:'Weakness — Broken Focus', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "focus is broken" text).'},
+      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
+    ] },
+  { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
+    top:10, right:10, bottom:9, left:10,
+    hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#8b3bce', icon:'🌑',
+    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:6} } },
+    special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:true },
+    skills: [
+      {name:'Void Touch (Passive)', desc:'When Nyxara is placed, she chooses a random enemy card and it loses -2 Power.'},
+      {name:'Shadow Rend', desc:'When Nyxara wins a round, she destroys the enemy card with the lowest Power on the board. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
+      {name:'Empress Aura (Passive)', desc:"While Vaelira or Seraphine is on the board, Nyxara gets +1 Power on all sides for each sister present."},
+      {name:"Sister's Command", desc:'While both Vaelira and Seraphine are on the board, Nyxara gains +4 Power on top of Empress Aura, and her Ultimate costs no Wins (still usable only once per match).'},
+      {name:'Weakness — Broken Focus', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses control of the void" text).'},
+      {name:'Special Attack: Void Dominion', desc:'Costs 3 wins — free if both sisters are on the board. Destroys every enemy card on the board; Nyxara gains +3 Power on all sides for each card destroyed this way. Usable once per match.'},
+    ] },
 ];
 
 function drawEnemyHand(){
@@ -2568,6 +2617,29 @@ function isRivalryPair(idA, idB){
   return RIVALRY_PAIRS.some(([a,b]) => (a===idA && b===idB) || (a===idB && b===idA));
 }
 
+/* ---------------- Triple Triad Sisters (boss trio) ---------------- */
+// Vaelira/Seraphine/Nyxara share a count-based aura (see card.active.sisterAura)
+// and a uniform "Broken Focus" weakness: recapturing one of them back to her
+// own side after the enemy took her costs her -3 Power that round. Both are
+// generic, id-keyed additions rather than one-off hacks, so any future boss
+// trio could reuse the same fields.
+const SISTER_IDS = ['vaelira', 'seraphine', 'nyxara'];
+function sistersPresentCount(selfId, owner){
+  return SISTER_IDS.filter(id => id !== selfId && state.board.some(e => e && e.owner === owner && e.card.id === id)).length;
+}
+// Called right after any code path sets `entry.owner = owner` — flags a
+// sister as "captured" the moment she leaves her home side, then applies
+// the Weakness penalty the moment she's won back to it.
+function checkSisterFlip(entry){
+  if(!entry || !SISTER_IDS.includes(entry.card.id)) return;
+  if(entry.owner !== entry.sisterHomeOwner){
+    entry.sisterWasCaptured = true;
+  } else if(entry.sisterWasCaptured){
+    SpecialVerbs.debuff(entry, 3);
+    entry.sisterWasCaptured = false;
+  }
+}
+
 function rivalryBonusAt(cardId, cellIndex, owner){
   const row = Math.floor(cellIndex/3), col = cellIndex%3;
   const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
@@ -2622,6 +2694,13 @@ const CAMPAIGN_STAGES = [
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['ferea','tilda','ifrit','bahamut','tahabata'] },
   { name:"The Ancient Wyrmking's Domain", enemyIds:['celestialjudgment','infiniteseraph','threeheaddragon','dragon','fenrir'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['dragon','shadowking','voidqueen','celestialjudgment','infiniteseraph','fenrir'] },
+  // Stage 17 — a dedicated boss stage for the Triple Triad Sisters trio
+  // (enemy-only cards, not added to HEROES/campaignPool — see the sister
+  // card comments in FOREST_FOES above). unlockIds is intentionally empty:
+  // every HEROES card is already unlocked by the end of stage 16, so
+  // there's nothing left to hand out here.
+  { name:'The Triple Triad Sisters', enemyIds:['vaelira','seraphine','nyxara','shadowking','voidqueen'],
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:[] },
 ];
 const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
 
@@ -2677,6 +2756,11 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
       else if(role === 'defense' && typeof pp.defense === 'number') v += pp.defense;
     }
   }
+  if(card.active && card.active.sisterAura){
+    const sa = card.active.sisterAura;
+    const count = sistersPresentCount(card.id, owner);
+    if(sa.bonusByCount[count]) v += sa.bonusByCount[count];
+  }
   return v;
 }
 
@@ -2723,6 +2807,25 @@ function showConquestPopup(owner){
   }, CONQUEST_BANNER_MS);
 }
 
+// On-placement effects for the Triple Triad Sisters (Void Touch/Undying
+// Flame) — a small id-keyed dispatch mirroring SPECIAL_HANDLERS below, but
+// fired automatically from placeCard instead of spent from `state.wins`.
+const ON_PLACE_HANDLERS = {
+  nyxara(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    SpecialVerbs.debuff(target, 2);
+  },
+  vaelira(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner && !e.vaeliraBurned);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    SpecialVerbs.debuff(target, 2);
+    target.vaeliraBurned = true;
+  },
+};
+
 function placeCard(cellIndex, cardId, owner){
   const hand = owner === 'blue' ? state.playerHand : state.enemyHand;
   const cardIdx = hand.findIndex(c => c.id === cardId);
@@ -2738,6 +2841,14 @@ function placeCard(cellIndex, cardId, owner){
     const side = sides[Math.floor(Math.random()*sides.length)];
     SpecialVerbs.directionalBoost(state.board[cellIndex], [side], card.active.onPlaceBoost);
   }
+  // Triple Triad Sisters: tag her home owner so checkSisterFlip (in
+  // battleNeighbors/resolveFlips) can later tell "just captured" apart from
+  // "recaptured back", then run her on-place ability if she has one.
+  if(SISTER_IDS.includes(card.id)){
+    state.board[cellIndex].sisterHomeOwner = owner;
+    state.board[cellIndex].sisterWasCaptured = false;
+  }
+  if(ON_PLACE_HANDLERS[card.id]) ON_PLACE_HANDLERS[card.id](state.board[cellIndex], owner);
   hand.splice(cardIdx,1);
   state.pendingCard = null;
 
@@ -2900,7 +3011,10 @@ function specialUsable(card, owner){
   if(!special) return false;
   const key = owner + ':' + card.id;
   if(special.once && state.specialUsed[key]) return false;
-  if(state.wins[owner] < special.cost) return false;
+  // Sister's Command (Nyxara): her Ultimate needs no Wins once both other
+  // sisters are on the board — everyone else still pays the normal cost.
+  const free = special.freeIfSistersPresent && sistersPresentCount(card.id, owner) >= 2;
+  if(!free && state.wins[owner] < special.cost) return false;
   if(special.requiresPartner){
     const present = state.board.some(e => e && e.owner === owner && e.card.id === special.requiresPartner);
     if(!present) return false;
@@ -2931,6 +3045,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 3);
     return `${srcEntry.card.name}'s Shadow Assault flips ${targetEntry.card.name} and surges with power!`;
   },
@@ -2945,6 +3060,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 4);
     return `${srcEntry.card.name}'s Serpent's Wrath flips ${targetEntry.card.name}, ignoring its defenses!`;
   },
@@ -2957,6 +3073,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     if(rollCrit(0.25)){
       targetEntry.captureBonus -= 20; // wipes the card's sides to effectively nothing
       return `${srcEntry.card.name} lands a critical strike — ${targetEntry.card.name}'s power is wiped out!`;
@@ -2983,6 +3100,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 2);
     if(targetPower > basePower) SpecialVerbs.extraTurn(owner);
     return `${srcEntry.card.name}'s Axe of Dominion crushes ${targetEntry.card.name}!`;
@@ -2998,6 +3116,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s House of Shadows steals ${targetEntry.card.name}'s fortune!`;
@@ -3013,6 +3132,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 2);
     return `${srcEntry.card.name}'s Gate of Dominion crushes ${targetEntry.card.name}!`;
   },
@@ -3027,6 +3147,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
     return `${srcEntry.card.name}'s Shattered Crown steals ${targetEntry.card.name}'s power!`;
   },
@@ -3041,6 +3162,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s Hellfire engulfs ${targetEntry.card.name}!`;
   },
@@ -3053,6 +3175,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s Megaflare overwhelms ${targetEntry.card.name}, defenses and all!`;
   },
@@ -3068,6 +3191,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.directionalBoost(srcEntry, sides, 1);
     return `${srcEntry.card.name}'s Skybreaker splits the sky over ${targetEntry.card.name}!`;
   },
@@ -3083,6 +3207,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.directionalBoost(srcEntry, sides, 1);
     return `${srcEntry.card.name}'s WorldCleaver carves through ${targetEntry.card.name}!`;
   },
@@ -3117,6 +3242,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     return `${srcEntry.card.name}'s Inferno Dominion claims ${targetEntry.card.name}!`;
   },
   twinbrothers({ srcEntry, targetEntry, owner }){
@@ -3128,6 +3254,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     const sister = state.board.find(e => e && e.owner === owner && e.card.id === 'twinsisters');
     if(sister) SpecialVerbs.attackBoost(sister, 1);
@@ -3142,6 +3269,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     const brother = state.board.find(e => e && e.owner === owner && e.card.id === 'twinbrothers');
     if(brother) SpecialVerbs.attackBoost(brother, 1);
@@ -3207,6 +3335,7 @@ const SPECIAL_HANDLERS = {
         }
         targetEntry.owner = owner;
         targetEntry.justFlipped = true;
+        checkSisterFlip(targetEntry);
         SpecialVerbs.attackBoost(srcEntry, 1);
         return `${name}'s Fivefold Apocalypse (Dominance) claims ${targetEntry.card.name}!`;
     }
@@ -3223,6 +3352,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Falling Stars — the strongest bolt lands on ${starSide} — claims ${targetEntry.card.name}!`;
   },
@@ -3281,6 +3411,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.directionalBoost(srcEntry, [side], 1);
     const dirLabel = direction[0].toUpperCase() + direction.slice(1);
     return `${name}'s Time Collapse claims ${targetEntry.card.name} — power surges on ${dirLabel}!`;
@@ -3299,6 +3430,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name} stops time and rewrites the only ending left — Eclipse claims ${targetEntry.card.name}!`;
   },
@@ -3312,6 +3444,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name} chooses the only ending where she remains — Eternal Eclipse claims ${targetEntry.card.name}!`;
   },
@@ -3339,6 +3472,7 @@ const SPECIAL_HANDLERS = {
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
     const bonded = state.board.some(e => e && e.owner === owner && e.card.id === 'pallispell');
     let msg = `${name}'s Divine Arrow claims ${targetEntry.card.name}!`;
     if(bonded){
@@ -3423,6 +3557,47 @@ const SPECIAL_HANDLERS = {
     }
     const summary = [...hits.entries()].map(([e,n]) => `${e.card.name} (-${n})`).join(', ');
     return `${name}'s Tempest Volley rains true-damage arrows down — ${summary}!`;
+  },
+  // Triple Triad Sisters ultimates. All three are aoe (no board target),
+  // so the AI's generic aoe branch in enemyTryUseSpecial already drives
+  // them — no id-specific AI targeting code needed, unlike Voidqueen/
+  // Tiamat/Vorathos/Deathblade above.
+  vaelira({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    let destroyed = 0;
+    state.board.forEach((entry, i) => {
+      if(entry && entry.owner !== owner){ state.board[i] = null; destroyed++; }
+    });
+    if(destroyed === 0){
+      return `${name}'s Infernal Pact finds no enemies left to consume!`;
+    }
+    SpecialVerbs.extraTurn(owner);
+    return `${name}'s Infernal Pact consumes ${destroyed} enemy card${destroyed>1?'s':''} in crimson flame!`;
+  },
+  seraphine({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0){
+      return `${name}'s Silver Judgment finds no enemies in its line!`;
+    }
+    enemies.forEach(e => {
+      if(e.captureBonus > 0) e.captureBonus = 0;
+      e.sideBonus = { top:0, right:0, bottom:0, left:0 };
+      SpecialVerbs.debuff(e, 2);
+    });
+    return `${name}'s Silver Judgment strips every ward and burns ${enemies.length} enem${enemies.length>1?'ies':'y'} with pure light!`;
+  },
+  nyxara({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    let destroyed = 0;
+    state.board.forEach((entry, i) => {
+      if(entry && entry.owner !== owner){ state.board[i] = null; destroyed++; }
+    });
+    if(destroyed === 0){
+      return `${name}'s Void Dominion opens onto empty ground!`;
+    }
+    SpecialVerbs.attackBoost(srcEntry, destroyed * 3);
+    return `${name}'s Void Dominion swallows ${destroyed} enemy card${destroyed>1?'s':''} whole!`;
   },
 };
 
@@ -3522,7 +3697,8 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
   const handler = SPECIAL_HANDLERS[srcEntry.card.id];
   if(!handler) return;
 
-  state.wins[owner] -= special.cost;
+  const free = special.freeIfSistersPresent && sistersPresentCount(srcEntry.card.id, owner) >= 2;
+  if(!free) state.wins[owner] -= special.cost;
   if(special.once) state.specialUsed[owner + ':' + srcEntry.card.id] = true;
   state.specialMode = null;
 
@@ -3635,6 +3811,7 @@ function battleNeighbors(index, owner, result){
       }
       target.owner = owner;
       target.justFlipped = true;
+      checkSisterFlip(target);
       result.flips++;
       newlyFlipped.push(p.ni);
     }
@@ -3655,6 +3832,7 @@ function resolveFlips(index, owner){
       const target = state.board[ni];
       target.owner = owner;
       target.justFlipped = true;
+      checkSisterFlip(target);
       target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS;
       result.flips++;
       result.sameOrPlus++;
