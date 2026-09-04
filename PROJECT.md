@@ -755,6 +755,37 @@ bilden själv laddades och mätte upp korrekt (bekräftat via
 bort `overflow:hidden` från wrappern och lägga `border-radius` direkt på
 `<img>` istället (samma resultat visuellt, ingen flex-krock).
 
+**Uppdaterad banner + bakgrundshistoria** (ytterligare ett tillägg, samma
+session): användaren skickade en förbättrad version av gruppbilden (bättre
+komposition, logotyperna renare placerade) — `sisters-of-fate-banner.jpg`
+ersattes rakt av, ingen kodändring behövdes eftersom filnamnet är
+oförändrat. Användaren skrev också en fullständig bakgrundshistoria om de
+tre systrarna (Dominion-kraften, varje systers ursprung/kraft/svaghet,
+bandet mellan dem, varför de är sista bossen) och frågade om den passade
+någonstans på sidan.
+
+Löst som en ihopfällbar panel på etapp 17-skärmen: en ny `SISTER_LORE`-
+konstant (array av `{title, body:[...]}`-sektioner, en per kapitel:
+intro/Vaelira/Seraphine/Nyxara/"Three Sisters, One Fate"/"The Final Boss"),
+kopplad till etappen via ett nytt `lore`-fält (samma additiva mönster som
+`banner`). Texten är ÖVERSATT till engelska (originalet skrevs på svenska
+av användaren) för att matcha att absolut all annan text i spelet — alla
+kortnamn, skills, UI-strängar — redan är på engelska; bara detta
+projektdokument är på svenska.
+
+Ny `📖 Read Their Story`/`Hide Their Story`-knapp visas under bannern när
+`stage.lore` finns, togglar `state.showSisterLore` (nytt state-fält,
+tillagt i båda de två ställena `state` konstrueras — grundinitieringen och
+`resetGame()`s återuppbyggnad). Panelen (`.lore-panel`, ny CSS) är en
+scrollbar box (`max-height:420px; overflow-y:auto`) i samma
+panel/border-stil som `.rules`, med kapitelrubriker i guld (`Cinzel`-typsnitt,
+matchar `.poster-name-plain`). Ren flavor — ingen spellogik läser
+`SISTER_LORE`.
+
+Testat med Playwright: knappen togglar panelen korrekt (text växlar
+"Read"/"Hide"), alla sex kapitel renderas med rätt rubriker/stycken,
+sidan scrollar normalt, inga `pageerror`.
+
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 
 `placeCard` → `resolveFlips` → `battleNeighbors`/`computeSamePlusCaptures`

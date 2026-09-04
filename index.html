@@ -155,6 +155,21 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .stage-banner img{ width:100%; display:block; border-radius:13px; }
 
+.lore-panel{
+  background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:16px 18px; margin:0 0 20px; max-height:420px; overflow-y:auto;
+}
+.lore-section{ margin-bottom:18px; }
+.lore-section:last-child{ margin-bottom:0; }
+.lore-title{
+  font-family:'Cinzel',serif; font-weight:700; font-size:14px; letter-spacing:0.03em;
+  color:var(--gold-bright); margin-bottom:8px;
+}
+.lore-section p{
+  font-size:13px; line-height:1.6; color:var(--text-dim); margin:0 0 8px;
+}
+.lore-section p:last-child{ margin-bottom:0; }
+
 .rules-toggle-panel{
   background:var(--panel); border:1px solid var(--line); border-radius:10px;
   padding:12px 16px 14px; margin-bottom:20px;
@@ -1817,6 +1832,7 @@ let state = {
   viewingCard: null,      // card object currently shown in the detail modal
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
+  showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
@@ -2129,10 +2145,23 @@ function renderCampaignPanel(){
   }
 
   const banner = stage.banner ? `<div class="stage-banner"><img src="${stage.banner}" alt="${stage.name}"></div>` : '';
+  const loreToggle = stage.lore ? `<button class="ghost" id="sister-lore-toggle">${state.showSisterLore ? 'Hide Their Story' : '📖 Read Their Story'}</button>` : '';
+  const lorePanel = (stage.lore && state.showSisterLore) ? `
+    <div class="lore-panel">
+      ${stage.lore.map(section => `
+        <div class="lore-section">
+          <div class="lore-title">${section.title}</div>
+          ${section.body.map(p => `<p>${p}</p>`).join('')}
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
 
   return `
     <div class="section-label">Stage ${stageNum} of ${CAMPAIGN_STAGES.length} — ${stage.name}${ngTag}</div>
     ${banner}
+    ${loreToggle}
+    ${lorePanel}
     <div class="rules">Choose five champions from your story so far to carry this stage.</div>
     ${unlockedStrip}
     <div class="section-label">Choose exactly five champions</div>
@@ -2426,6 +2455,11 @@ function attachHandlers(){
       }
       const campaignBegin = document.getElementById('campaign-begin-btn');
       if(campaignBegin) campaignBegin.addEventListener('click', ()=>{ SFX.begin(); startCampaignBattle(); });
+      const sisterLoreToggle = document.getElementById('sister-lore-toggle');
+      if(sisterLoreToggle) sisterLoreToggle.addEventListener('click', ()=>{
+        state.showSisterLore = !state.showSisterLore;
+        render();
+      });
       const campaignNgPlus = document.getElementById('campaign-ngplus-btn');
       if(campaignNgPlus) campaignNgPlus.addEventListener('click', ()=>{
         campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1 };
@@ -2669,6 +2703,71 @@ function rivalryBonusAt(cardId, cellIndex, owner){
 // unlocked) persists in localStorage independently of `state`, since
 // `state` gets wholesale replaced by resetGame() on every "Draft Again"
 // and campaign progress must survive that.
+// Backstory for the Triple Triad Sisters boss stage, written by the user —
+// shown as a collapsible panel under the stage banner (see stage.lore below
+// and the sister-lore-toggle handler in attachHandlers()). Purely flavor
+// text, translated to English to match every other card/UI string in the
+// game; no gameplay logic reads this array.
+const SISTER_LORE = [
+  { title: 'The Sisters Who Never Lost', body: [
+    'It is said that there once existed a power so immense that no king, god, or sorcerer could ever hope to control it.',
+    'They called it the Dominion — a force that could bend fire, the void, and fate itself.',
+    'To keep it from tearing the world apart, the power was split into three.',
+    'Three daughters were born in the same breath.',
+    'Vaelira. Seraphine. Nyxara.',
+    'No one knew why they were born with such power. The world would soon find out.',
+  ] },
+  { title: '🔥 Vaelira — The Crimson Arcanist', body: [
+    'Vaelira was the youngest of the three.',
+    "Even as a child she could summon a black-red flame that could not be put out. Ordinary fire consumes something and dies. Vaelira's fire never stopped.",
+    'She learned to wield it as magic — but the flame demanded a price. The more she used it, the more it began to feed on her feelings.',
+    'Anger made it stronger. Grief made it darker. Fear made it wild.',
+    'In the end, Vaelira understood the truth: the fire did not obey her. It knew her.',
+    'And when Vaelira loses control, the flame burns through ally and enemy alike.',
+    'It became her greatest strength — and her greatest weakness.',
+  ] },
+  { title: '🤍 Seraphine — The Silver Gunslinger', body: [
+    'The middle sister was cut from entirely different cloth.',
+    'Seraphine needed no army. No magic. Only two pistols.',
+    'Forged from the silver of a fallen star, her weapons could strike a target no one else could even see. The world came to know her as the Silver Gunslinger.',
+    'Seraphine could read the smallest openings in reality — the instant an enemy was most vulnerable.',
+    'But her gift carried a cost. To see everything, she had to give it her total focus.',
+    'Break her concentration, and her precision vanishes with it.',
+    'So Seraphine never fights in panic. She waits. She watches. And by the time she finally raises her pistols, it is already too late.',
+  ] },
+  { title: '🖤 Nyxara — The Void Empress', body: [
+    'And then there was the eldest.',
+    'Nyxara was born with darkness inside her — not ordinary darkness, but the emptiness between the stars.',
+    'She could tear open portals, devour magic whole, and summon a towering Reaper that seemed forged from the void itself.',
+    'She became the strongest of the three sisters. She also carried the heaviest burden.',
+    'The more Nyxara drew on the Void, the more the emptiness took hold of her. She could steal power from almost anyone — but every time she did, she lost a piece of herself with it.',
+    'In time, she came to fear only one thing: the day she would no longer know who Nyxara was.',
+  ] },
+  { title: '🩸 Three Sisters, One Fate', body: [
+    'As they grew older, the sisters tried to walk separate paths.',
+    'Vaelira sought power. Seraphine sought perfection. Nyxara sought control.',
+    'But the Dominion had never truly been divided. It still lived between them.',
+    'When one sister grew stronger, the others stirred.',
+    'And when all three stood together, they finally understood the truth: they were not made to protect the world from the Dominion. They were made to become its final wardens.',
+    'But something went wrong. The Dominion began to demand more — and the sisters refused to submit.',
+    'So they did the only thing they could. They seized the power for themselves.',
+    'Then they vanished. For decades, nothing was heard of them again.',
+  ] },
+  { title: '👑 The Final Boss', body: [
+    'Now they have returned.',
+    'Vaelira, with her undying flame. Seraphine, with her twin Silver Desert Eagles. Nyxara, with her Void Reaper.',
+    'They have not come to conquer a kingdom.',
+    'They have come to find the last piece of the Dominion — and it lies on the field of Triad Arena.',
+    "That is why the three sisters are the game's final boss.",
+    'But there is one thing even they fear: their own weaknesses.',
+    "Vaelira can lose control of the fire. Seraphine's focus can be broken. Nyxara can lose herself in the Void.",
+    'And if one sister falls, the other two grow weaker.',
+    'But if all three stand on the field together... the Dominion awakens.',
+    'And that is the moment a player realizes the real final fight was never against three sisters.',
+    'It was against what lives between them.',
+  ] },
+];
+
 const CAMPAIGN_STARTERS = ['graff', 'elara', 'sarah', 'zaevir', 'ragnar'];
 const CAMPAIGN_STAGES = [
   { name:'The Awakening', enemyIds:['ogre','wendigo','harpy','lich','direbear'],
@@ -2710,7 +2809,7 @@ const CAMPAIGN_STAGES = [
   // there's nothing left to hand out here.
   { name:'The Triple Triad Sisters', enemyIds:['vaelira','seraphine','nyxara','shadowking','voidqueen'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:[],
-    banner:'sisters-of-fate-banner.jpg' },
+    banner:'sisters-of-fate-banner.jpg', lore:SISTER_LORE },
 ];
 const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
 
@@ -4107,7 +4206,7 @@ function resetGame(){
     phase:'draft', selected:[], board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
   };
   render();
