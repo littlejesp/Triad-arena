@@ -10,10 +10,57 @@ AI-motståndare ("Forest", röd). Kort har fyra sidor (upp/höger/ner/vänster).
 När du placerar ett kort jämförs dess sidor mot angränsande fiendekort — vinner
 din sida flippas fienden till din färg. Flest rutor när brädet är fullt vinner.
 
-Hela spelet är **en enda fil**, `index.html` (~2 800 rader): HTML-skal, all CSS
+Hela spelet är **en enda fil**, `index.html` (~4 200 rader): HTML-skal, all CSS
 i en `<style>`-tagg, all JS i en `<script>`-tagg. Inga byggsteg, inga npm-paket,
 inget ramverk. Öppnas direkt i webbläsaren eller serveras som valfri statisk
 fil (t.ex. GitHub Pages).
+
+## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
+
+**Inget pågående eller avbrutet arbete.** Allt som beskrivs i det här
+dokumentet är committat OCH mergat till `main` — en ny session kan börja
+direkt på ett rent, körbart läge. Arbetsflödet hela sessionen har varit:
+jobba på en feature-branch, fråga användaren explicit inför VARJE merge
+till `main` (aldrig anta tillstånd från en tidigare merge), merga, gå
+tillbaka till feature-branchen. Fortsätt så tills användaren säger annat.
+
+Tre spellägen finns sida vid sida (`state.draftMode`): **Random Draft**
+(ursprungligt läge, slumpad hand), **Choose Your Five** (välj fritt ur
+hela `HEROES`), och **Campaign** (nytt denna session — se avsnitt 5b).
+Grundmotorn (placering/flip/Same/Plus/Combo/Elemental, avsnitt 6) är
+ORÖRD genom hela sessionen — allt nytt är additiva lager.
+
+**Vad som byggdes den här sessionen, i ordning:**
+1. Sylvarion fick sin första ultimate (avsnitt 8, sent i historiken).
+2. **Campaign-läge** (avsnitt 5b) — helt nytt tredje spelläge, användarens
+   idé: börja med 5 startkort, klättra genom 16 kuraterade etapper, lås
+   upp fler kort vid varje vinst, progress sparas i `localStorage`
+   (`campaignProgress`, medvetet UTANFÖR `state`).
+3. **New Game+** (avsnitt 5b) — kör om samma 16 etapper med `+2 Power`/cykel
+   på fiendehänderna (cappat vid 3 cykler), en stopgap tills fler etapper
+   byggs.
+4. **Etapp 17: The Triple Triad Sisters** (avsnitt 5b) — en dedikerad
+   boss-etapp byggd från tre kortdesigner användaren laddade upp
+   (Vaelira/Seraphine/Nyxara). Fyra nya, generella motor-tillägg
+   (`active.sisterAura`, `checkSisterFlip`/Weakness, `ON_PLACE_HANDLERS`,
+   `special.freeIfSistersPresent`) — se avsnitt 5b för fullständiga
+   detaljer, det är den mest arkitekturellt intressanta delen av sessionen.
+5. En grupp-banner (`sisters-of-fate-banner.jpg`) och en ihopfällbar
+   bakgrundshistoria (`SISTER_LORE`, "📖 Read Their Story"-knapp) på
+   etapp 17-skärmen, båda från material användaren skickade.
+6. En liten UX-fix: `#concede-btn`s text är nu kontextmedveten ("Retreat
+   to Camp" i Campaign, annars oförändrat "Forfeit & Redraft").
+
+**Medvetet uppskjutet, diskuterat men inte påbörjat:** multiplayer (se
+avsnitt 5b, egen underrubrik) — användaren vill bygga ut spelet mer
+(innehåll/balans) innan nätverkskomplexitet läggs till. Ingen kod skriven.
+
+**Ovaliderat, värt att fråga om näst:** NG+-svårighetsgraden (+2/cykel) är
+en gissning, aldrig speltestad av en människa — fråga användaren hur det
+kändes om de nämner att ha spelat det. Detsamma gäller balansen på The
+Triple Triad Sisters (10/9-10/10-tier stats + flera ultimates i en enda
+fiendehand är den svåraste etappen i spelet, medvetet, men okänt om det
+känns rättvist eller övermäktigt i praktiken).
 
 ## 2. Mål och scope
 
@@ -873,9 +920,9 @@ hela den kategorin krockar helt.
   session: en tillfällig `python3 -m http.server` + Playwright-skript i
   `/tmp` (kastas vid sessionsslut). Se avsnitt 9 om ni vill återskapa flödet.
 
-## 8. Att göra / naturliga nästa steg
+## 8. Att göra / naturliga nästa steg (historik från ÄLDRE sessioner — se avsnitt 1b för DEN SENASTE sessionens arbete)
 
-Inget pågående/avbrutet arbete. Senaste sessionen städade repo-roten
+Inget pågående/avbrutet arbete. Den (då) senaste sessionen städade repo-roten
 (tog bort ~38MB skräp/dubblettfiler), konverterade alla ogenomskinliga
 helbilds-PNG:er till JPEG (~110MB besparing, ingen synlig kvalitetsskillnad),
 lade till en illustrerad regelbok (📖-knapp i mastheaden, se avsnitt 3),
@@ -1063,7 +1110,12 @@ användaren, bara idéer:
 ## 10. Snabbstart för nästa session
 
 1. Läs det här dokumentet (`PROJECT.md`) — det är den primära kontexten.
+   Börja med **avsnitt 1b** för en snabb status, läs sedan avsnitt 5b
+   (Campaign/NG+/Triple Triad Sisters) i detalj innan du rör något av det.
 2. `git log --oneline -20` för att se allt som redan är gjort sedan detta
-   skrevs.
-3. Fråga användaren vad de vill bygga härnäst, eller föreslå något från
-   avsnitt 8 om de inte har något specifikt i åtanke.
+   skrevs (bör visa merge-historiken till `main`, inget okänt).
+3. Fråga användaren vad de vill bygga härnäst. Naturliga kandidater just nu:
+   spela in NG+/etapp 17-balans-feedback, fler campaign-etapper (18+),
+   koppla in fler "(Flavor only)"-förmågor, eller multiplayer (medvetet
+   uppskjutet, se avsnitt 5b — bygg INTE detta utan att fråga först, det är
+   en stor arkitekturändring).
