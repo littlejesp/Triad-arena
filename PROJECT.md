@@ -17,25 +17,38 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Klart: en liten motor/kvalitet-lista, vald av användaren efter att ha
-bett om förbättringsförslag.** Allt nedan är COMMITTAT på sessionens
-feature-branch men INTE ÄNNU MERGAT till `main` — fråga användaren
-explicit innan merge (aldrig anta tillstånd från en tidigare merge).
+**Klart, COMMITTAT på sessionens feature-branch men INTE ÄNNU MERGAT till
+`main`** — fråga användaren explicit innan merge (aldrig anta tillstånd
+från en tidigare merge). Två delar denna session:
 
-- ✅ **Rond-räkningssystem** — se ny underrubrik i avsnitt 6 och
-  uppdaterad post i avsnitt 7. Tiamats Weakening/Defense är första och
-  hittills enda kortet som använder det.
-- ✅ **AOE-specialer triggar nu "ERÖVRAD"-bannern** — se avsnitt 6
-  ("ERÖVRAD-bannern och AOE-specialer").
-- ✅ **Automatiserad testsvit** — `package.json` + `tests/` tillagt, se
-  avsnitt 9 för hur man kör den och avsnitt 7 för vad den (ännu inte)
-  täcker.
+**1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
+om förbättringsförslag:
+- ✅ **Rond-räkningssystem** (`state.turnCount`/`sweepExpiredRoundEffects`/
+  `SpecialVerbs.debuffThisRound`) — se avsnitt 6. **VIKTIGT:** byggdes mot
+  Tiamats då gamla Weakening-effekt, men Tiamat gjordes om totalt strax
+  därefter (se punkt 2 nedan) och använder INTE längre denna mekanik —
+  primitiven finns kvar i motorn, redo för nästa kort som faktiskt behöver
+  en "denna runda"-effekt, men har just nu INGEN aktiv användare i
+  `HEROES`/`FOREST_FOES`. Testad direkt (`tests/game.test.mjs`), inte via
+  något skarpt kort.
+- ✅ **AOE-specialer triggar nu "ERÖVRAD"-bannern** — se avsnitt 6.
+- ✅ **Automatiserad testsvit** — `package.json` + `tests/`, se avsnitt 9.
 
-Parallellt, INTE en del av den här listan: användaren håller själv på att
-göra om 5 befintliga kort till bossar (bekräftat att varken Ferea eller
-Twisted Gipsy är bland dem, så deras "Flavor only"-kopplingar i avsnitt 8
-är fortfarande fritt fram att göra separat om det blir aktuellt). Inget
-kortarbete påbörjat härifrån ännu — vänta på att användaren skickar
+**2. Fyra kort fick ny konst OCH en fullständig ombyggnad, från nya
+poster-bilder användaren laddade upp DIREKT EFTER motor-listan (inte
+begärt i förväg)** — Tiamat (befintlig, hel ombyggnad av en redan levande
+ultimate), samt de tre kort som avsnitt 8 länge listat som "medvetet
+hoppade över, inget källtext fanns": **The Celestial Judgment**, **The
+Infinite Seraph** och **The Eclipse Fenrir** fick nu sina första riktiga
+ultimates. Se avsnitt 5 för alla detaljer (nya delade motor-primitiver:
+`active.boardLeadBonus`, `active.debuffImmune`, `active.onWinDirectionalBoost`/
+`onWinDebuffOnce`, samt en delad `enemiesInDirection()`-helper). Endast
+`dragon`/`threeheaddragon` återstår nu från den gamla "inget källtext"-listan.
+
+Parallellt, INTE en del av något av ovanstående: användaren nämnde också
+att de håller på att göra om 5 andra befintliga kort till bossar
+(bekräftat att varken Ferea eller Twisted Gipsy är bland dem). Inget av
+det arbetet är påbörjat härifrån — vänta på att användaren skickar
 design/bilder för de 5 korten innan något kodas.
 
 Allt ANNAT i det här dokumentet (Campaign, NG+, Triple Triad Sisters, hela
@@ -154,11 +167,14 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**31 av 44 HEROES-kort har en fungerande ultimate just nu:**
+**34 av 44 HEROES-kort har en fungerande ultimate just nu:**
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
 Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
-Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell, Darien, Sylvarion.
+Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell, Darien, Sylvarion,
+The Celestial Judgment, The Infinite Seraph, The Eclipse Fenrir (de sista
+tre tillkom i samma senare session som gjorde om Tiamat — se avsnitt 5:s
+sista underrubrik, direkt före avsnitt 5b).
 
 **VIKTIGT — den gamla `dariensv`-dubbletten är BORTTAGEN** (kortobjekt,
 `CARD_IMAGES`/`FULL_CARD_IMAGES`-rader och bildfilerna själva). Fanns bara i
@@ -502,7 +518,8 @@ eller aktivera AOE alltid om en fiende finns. Kort vars mekanik inte passar
 den heuristiken (den bryr sig bara om styrkejämförelse) får sin egen
 `if(c.entry.card.id === '<id>')`-gren FÖRE den generiska loopen: Voidqueen
 (målar den blå-ägda rutan med flest blå grannar, inte den "vinnbaraste"),
-Tiamat (bypassar choice-pickern helt, går rakt på Dominance). Lägg nya
+Tiamat (bypassar choice-pickern helt — se nedan, hennes fem "krafter" är
+numera bara smak, så AI:t skickar in ett godtyckligt värde). Lägg nya
 undantag här om ett framtida kort inte är en ren "vinn styrkejämförelsen,
 flippa"-attack.
 
@@ -515,6 +532,224 @@ klarar det med sin +5 men filtreringen ser bara hennes 32 och hoppar över
 det). Fungerar fint mot allt den redan slår utan bonusen. Detta fanns redan
 innan Astrael — hon exponerar det bara igen. Skulle behöva en
 per-kort-bonustabell i förfiltreringen om det ska fixas ordentligt.
+
+### Tiamat, The Celestial Judgment, The Infinite Seraph, The Eclipse Fenrir — en ombyggnads-batch från fyra nya poster-bilder
+
+Användaren laddade upp fyra nya, kompletta kortdesigner (samma "poster med
+allt inbakat"-format som Triple Triad Sisters/Vayra/Ysara/Darien) direkt
+efter motor/kvalitet-listan (avsnitt 1b) — inte efterfrågat, bara skickat.
+Tre av dem (**The Celestial Judgment**, **The Infinite Seraph**, **The
+Eclipse Fenrir**) var sedan tidigare explicit dokumenterade i avsnitt 8 som
+"medvetet hoppade över — inget källtext fanns, kräver ett designbeslut".
+Nu fanns källtext, så alla tre fick sin FÖRSTA riktiga ultimate. Den
+fjärde, **Tiamat**, hade redan en fungerande ultimate (byggd tidigt i
+projektet, senast utökad SAMMA session med rond-klockan) — den nya bilden
+ersätter den HELT, konst och mekanik, på samma "senaste källan är
+auktoritativ"-princip som redan etablerats för Darien (tre uppladdningar
+över tid, senaste vinner).
+
+**Konst**: alla fyra är 941×1672 (standardformat). Fullbilder sparade som
+`card-<id>-full.jpg` (bytte namnkonvention bort från de gamla GitHub-UUID-
+filnamnen, bekräftat med grep innan borttagning att ingen annat pekade på
+dem, samma process som `dariensv`-städningen). Thumbnails krävde en högre
+`y`-startpunkt än standardbeskärningen (`crop(140,300)-(800,731)`) för tre
+av de fyra — ansiktena satt högre upp i kompositionen än på tidigare kort:
+Infinite Seraph/Fenrir landade bra på `y=90`, Celestial Judgment på `y=60`.
+Tiamat (fem drakhuvuden i en klunga längre ner i bilden) fungerade med
+standardbeskärningen oförändrad.
+
+**Nya delade motor-primitiver** (inga grundmotor-funktioner ändrade, bara
+nya valfria `active`-nycklar lästa av `fullEffectiveValue`/`battleNeighbors`/
+`SpecialVerbs`, samma additiva mönster som `pairPresence`/`sisterAura`):
+
+- **`active.boardLeadBonus:{amount, orEqual}`** — live i `fullEffectiveValue`,
+  jämför antal rutor på brädet (`state.board.filter(...).length`), ingen
+  sparad state. `orEqual:false` = "fler än", `orEqual:true` = "lika många
+  eller fler". Används av Tiamats Apocalyptic Retribution (strikt) och The
+  Celestial Judgments Balance (orEqual).
+- **`active.boardUnderdogAttackBonus:N`** — samma bräd-räkning men omvänt
+  villkor (ägaren har FÄRRE rutor än motståndaren) och bara när
+  `role==='attack'`. Används av Fenrirs Nordic Wrath.
+- **`active.adjacentEnemiesBoost:{minCount, amount}`** — live i
+  `fullEffectiveValue`, bara `role==='attack'`: räknar fiendekort
+  ortogonalt intill kortets EGEN cell (samma räkne-mönster som redan fanns
+  i `isShielded`s `conditionalShield`). Används av Tiamats Five Heads, One
+  Will — källtextens "+1 på riktningen i HENNES NÄSTA ATTACK" är medvetet
+  omtolkat till "+1 varje gång villkoret gäller under en attack" (ingen
+  sparad "väntande bonus"-flagga), enklare och funktionellt likvärdigt så
+  länge Tiamat inte gör flera attacker mellan att villkoret blir sant och
+  falskt.
+- **`active.onWinDirectionalBoost:N`** / **`active.onWinDebuffOnce:N`** — ny
+  funktion `checkOnWinBonuses(winnerEntry, myEdge, loserEntry)`, anropad
+  direkt efter `checkSisterFlip(target)` i `battleNeighbors` (samma
+  infogningspunkt, samma "additiv sopning in i grundmotorn"-princip).
+  `onWinDirectionalBoost` ger permanent +N på den vinnande sidan, en gång
+  per match (`entry.onWinDirectionalBoostUsed`-flagga) — Tiamats Queen of
+  Dragons och Fenrirs Moon's Shadow. `onWinDebuffOnce` ger permanent -N till
+  FÖRLORAREN istället, en gång per match (första vinsten, oavsett sida) —
+  The Celestial Judgments Judgment Strike. Gäller bara riktiga strider
+  (`battleNeighbors`), INTE Same/Plus-erövringar (de går aldrig via en
+  faktisk styrkejämförelse mot det placerade kortet).
+- **`active.debuffImmune:true`** — kollas överst i BÅDA
+  `SpecialVerbs.debuff`/`debuffThisRound` (en guard, inte per anropsställe,
+  eftersom båda verben per konvention ALDRIG anropas på kastarens eget
+  kort). Fenrirs Eternal Loyalty — han är nu bokstavligen immun mot varje
+  debuff-baserad special i spelet, inklusive framtida.
+- **`enemiesInDirection(index, direction, owner)`** — Nalines
+  linjesöknings-logik (upp/höger/ner/vänster, strikt bortom `index`, inte
+  hela raden/kolumnen) bröts ut till en delad funktion (Naline själv
+  omfaktoriserad till att använda den) eftersom fyra till specialer nu
+  behöver exakt samma sak. Returnerar `{index, entry}`-par (inte bara
+  entries) eftersom Judgments erövringsgren behöver index för att kunna
+  `state.board[i] = null`.
+- **`protectedByInfiniteSeraph(owner)`** — kollar om `owner` har
+  `infiniteseraph` på sin sida av brädet. Anropas direkt i de tre handlers
+  som faktiskt förstör/byter kort (`vaelira`, `nyxara`, `deathblade`) — inte
+  en generell spärr i grundmotorn, bara ett tidigt-return i just de
+  handlarna. Se Infinite Seraph nedan.
+
+**Tiamat** (`top:10, right:9, bottom:10, left:9`, oförändrat) — helt ny
+`skills`-text och ultimate. De fyra passiva/skill-effekterna:
+- Fivefold Catastrophe (placeras → +2 på en riktning resten av matchen) —
+  återanvänder BEFINTLIGA `active.onPlaceBoost` (samma mekanik som
+  Astraels Starborn) rakt av, bara `2` istället för Astraels amount.
+  Källtexten låter spelaren VÄLJA riktning; ingen sådan UI finns vid
+  kortplacering, så precis som Astrael blir det slumpad riktning istället.
+- Queen of Dragons → `active.onWinDirectionalBoost:1` (ny primitiv, se ovan).
+- Apocalyptic Retribution → `active.boardLeadBonus:{amount:1,orEqual:false}`.
+- Five Heads, One Will → `active.adjacentEnemiesBoost:{minCount:2,amount:1}`.
+
+Ultimaten **"The Fivefold Apocalypse"** i den nya källan är en HELT annan
+struktur än den gamla (som hade fem MEKANISKT OLIKA val: Attack/Defense/
+Breakthrough/Weakening/Dominance — se den gamla texten i git-historiken om
+den behövs). Nya texten: "Choose one of the five powers: Fire, Ice, Storm,
+Void, Nature. Next attack gets +5 Power on the chosen direction; if Tiamat
+wins, +1 all sides permanently" — ger INGEN mekanisk skillnad mellan de
+fem krafterna den här gången (bara namn/smak), och "nästa attack på VALD
+RIKTNING" hade krävt en helt ny "väntande riktningsbonus konsumeras vid
+nästa träff på den sidan"-mekanik i `fullEffectiveValue` (en känslig,
+extremt ofta anropad funktion — risk att bygga en mutation in i en
+funktion som annars är ren/side-effect-fri, som även anropas av
+förhandsgranskning/highlight-kod, inte bara riktiga strider). **Medveten
+förenkling**: `SPECIAL_HANDLERS.tiamat` byggdes om till motorns
+STANDARDMÖNSTER för enkelmålsattacker (temp +5 vid jämförelsen, permanent
++1 alla sidor vid vinst — se Astrael/Vayra), samma tvåstegs mål-sen-val-
+flöde behålls (`TIAMAT_POWER_CHOICES` bytt till Fire/Ice/Storm/Void/Nature-
+etiketter) men alla fem val löser ut IDENTISKT. AI:t bypassar fortfarande
+choice-pickern (kan inte klicka en popup) och skickar in ett godtyckligt
+`power:'fire'` — värdet läses inte längre av handlern alls.
+
+**VIKTIGT — rond-klocka-kopplingen försvann:** Tiamats Weakening (byggd
+med `SpecialVerbs.debuffThisRound` tidigare SAMMA session, se avsnitt 6)
+fanns bara i den GAMLA ultimate-strukturen och är borta i den nya. Rond-
+klockans motorkod (`state.turnCount`/`sweepExpiredRoundEffects`) rördes
+INTE och fungerar fortfarande identiskt (verifierat med samma tester, nu
+kopplade direkt mot `SpecialVerbs.debuffThisRound` istället för via ett
+kort) — men har just nu inget skarpt kort som använder den. Nästa kort med
+en riktig "denna runda"-effekt i sin källtext kan återanvända den direkt.
+
+**The Celestial Judgment** (`role` fick tillägget "— Voice of the Eternal
+Order", stats `top:9, right:10, bottom:9, left:10`, ändrat från de gamla
+placeholder-siffrorna `10/10/8/9`) — första ultimate. Fyra av fem
+skills/passiv kopplades in:
+- Judgment Strike → `active.onWinDebuffOnce:1`.
+- Balance → `active.boardLeadBonus:{amount:1,orEqual:true}`.
+- Divine Judgment (placerings-riktning + villkorad debuff-vid-vinst på just
+  den riktningen) — **flavor only**, medvetet hoppad över: hade krävt en
+  sparad per-kort "vald riktning vid placering"-flagga PLUS en till
+  variant av `checkOnWinBonuses` som bara triggar på en specifik sida
+  istället för "vinnarens använda sida" — mer maskineri än det här kortets
+  fjärde effekt motiverar, särskilt när Judgment Strike + Ultimate redan
+  täcker kortets kärnidentitet.
+- Heavenly Aegis (förlust med marginal ≤3 blir oavgjort istället) —
+  **flavor only**, samma skäl som alltid: motorn har bara vinst/förlust per
+  ruta, inget oavgjort-utfall existerar där.
+
+Ultimate **"Eternal Verdict"** (`targets:'direction'`, kostnad 2): väljer
+en riktning, alla fiendekort i linjen (via `enemiesInDirection`) får
+permanent -1 alla sidor — ELLER förstörs helt om deras stat-värde på just
+den valda riktningen (`top`/`right`/`bottom`/`left`, samma bokstavliga
+tolkning som Vorathos redan använder för sin riktningsväljare) är 3 eller
+lägre. "Power på riktningen" läses som MÅLETS EGNA stat-siffra i den
+riktningen (inte kanten som pekar mot Judgment) — en tolkning, dokumenterad
+i koden. Ovillkorlig, ingen sköld-koll (samma stil som Naline/eviltwistyin).
+
+**The Infinite Seraph** (`role` fick "— The Keeper of All Possibilities",
+stats `top:9, right:10, bottom:9, left:10`, ändrat från `10/9/10/8`) —
+första ultimate. Eternal Presence-passivet (global "inga kort kan tas bort/
+förstöras/bytas av motståndarens effekter") implementerades GENOM att lägga
+en tidig-return-koll (`protectedByInfiniteSeraph`, se ovan) direkt i de
+enda tre handlers som faktiskt förstör eller byter kort:
+`SPECIAL_HANDLERS.vaelira`/`.nyxara` (båda förstör HELA fiendesidan —
+blockeras helt, inget förstörs, eget meddelande) och `.deathblade`
+(positionsbyte — blockeras om MÅLETS ägare har en Seraph, inget byte sker).
+Tolkat som "skyddar HELA sidan hon står på", inte bara henne själv — matchar
+källtextens "no cardS can be removed" (plural). De tre återstående
+skills (Cosmic Insight, Infinite Paths, Omniscient Aegis) är alla **flavor
+only** (hand-peek/kort-lås, fri omplacering-utanför-Special-flow,
+oavgjort-vid-förlust — samma redan etablerade kategorier av saknade system:
+inget fog-of-war, ingen fristående reposition-trigger, inget oavgjort-per-
+ruta-utfall).
+
+Ultimate **"All Possibilities"** (`targets:'direction'`, kostnad 2): rakt av
+samma mönster som Naline (permanent -1 alla sidor till hela linjen,
+ovillkorligt) — källtextens avslutande "dra ett kort" är bortlämnat (inget
+däck/dragnings-system finns, samma standardförenkling som överallt annars).
+
+**The Eclipse Fenrir** (stats `top:9, right:10, bottom:9, left:10`, bara
+`right` ändrad från `9`) — första ultimate. Gamla `active:{onCaptureBonus:1}`
+("Hunt of the Eclipse: +1 Power vid erövring") togs BORT helt — den nya
+källan listar inte den förmågan alls bland sina fyra skills, så den är inte
+längre en del av kortet (samma "ny källa är auktoritativ, inte additiv"-
+princip som resten av batchen). Fyra effekter:
+- Nordic Wrath → `active.boardUnderdogAttackBonus:2` (den GAMLA flavor-
+  texten råkade redan beskriva exakt samma mekanik ordagrant — enda skillet
+  i hela batchen där gammal och ny text redan stämde överens innan kodning).
+- Moon's Shadow → `active.onWinDirectionalBoost:1` (delad primitiv med
+  Tiamats Queen of Dragons).
+- Eternal Loyalty → `active.debuffImmune:true`.
+- Fenrir's Curse (motståndaren får ingen bonus-effekt av att vinna mot
+  Fenrir) — **flavor only**: hade krävt att VARJE nuvarande och framtida
+  on-win-bonus (onWinDirectionalBoost, onWinDebuffOnce, onCaptureBonus,
+  Sister-mekaniker, m.fl.) kollade "var motståndaren Fenrir" — för skört
+  att underhålla generiskt för en enda korts räkning.
+- **Hunt of the Eclipse döptes om till en on-place-passiv** (namnet
+  återanvänt från den gamla förmågan, men helt ny effekt): placeras Fenrir
+  → slumpad riktning (samma "ingen platserings-val-UI finns"-förenkling som
+  Tiamats Fivefold Catastrophe) → alla fiendekort i linjen (via
+  `enemiesInDirection`) får permanent -1 alla sidor. Ny
+  `ON_PLACE_HANDLERS.fenrir`-gren; `ON_PLACE_HANDLERS`-anropet i
+  `placeCard` utökades med ett tredje `cellIndex`-argument (tidigare bara
+  `entry, owner`) eftersom det här är första on-place-handlern som behöver
+  veta VAR kortet lades för att kunna räkna en riktningslinje.
+
+Ultimate **"Ragnarök"** (`targets:'direction'`, kostnad 2): samma
+raka linje-debuff-mönster som Judgment/Seraph men -2 istället för -1.
+Källtextens extra klausul ("Fenrir +2 alla sidor under DENNA attack, +1
+till om han vinner") är bortlämnad — en AOE-riktningsspecial utan brädmål
+har ingen enskild vinst/förlust-jämförelse att haka en sådan bonus på,
+samma kategori av drop som Nalines LIGHT-tröskel.
+
+**AI-status**: alla tre nya `targets:'direction'`-ultimates (Judgment,
+Seraph, Fenrir) omfattas av samma BEFINTLIGA guard i `enemyTryUseSpecial`
+som redan blockerar Naline (`if(c.special.targets === 'element' ||
+c.special.targets === 'direction') continue;`) — AI:t använder alltså
+ALDRIG dessa tre ultimates, kraschar inte heller. Samma kända, redan
+dokumenterade begränsning, inget nytt att fixa.
+
+**Testat**: en fristående Playwright-svit (state-injicering, kastad efter
+sessionen — själva täckningen flyttades in i `tests/game.test.mjs`, se
+avsnitt 9) verifierade varje ny primitiv isolerat (boardLeadBonus strikt
+vs. orEqual, adjacentEnemiesBoost roll-spärrat till attack, debuffImmune
+mot både `debuff`/`debuffThisRound`, Judgments förstör-vs-debuff-gren med
+en påhittad svag/stark testkort, Seraphs blockering med/utan henne
+närvarande) PLUS en fullständig AI-mot-spelare-match med alla fyra nya kort
+tvingade in i båda händerna samtidigt (`state.playerHand`/`enemyHand`
+manuellt satta före start) — inga `pageerror`, alla fyra korts nya `active`-
+hakar syntes trigga i `captureBonus`-värdena på slutbrädet. `npm test`
+(den permanenta sviten) uppdaterades med sex nya tester och två omskrivna
+(rond-klockans tester pekade om till att anropa `SpecialVerbs.debuffThisRound`
+direkt istället för via Tiamat, se avsnitt 9) — alla 12 tester gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 
@@ -1167,14 +1402,20 @@ användaren, bara idéer:
     det här dokumentet påstod) — att koppla in en ultimate här betyder att
     HITTA PÅ en ny effekt från grunden, inte "koppla in befintlig text". Det
     är ett designbeslut, inte ett implementationsjobb — fråga användaren
-    vad de ska göra innan ni skriver kod.
+    vad de ska göra innan ni skriver kod. **UPPDATERING, en senare session:
+    LÖST för dessa två (plus `fenrir`, som var i samma läge) — användaren
+    laddade upp fullständiga nya poster-bilder med riktiga ultimates för
+    alla tre. Se avsnitt 5, underrubriken om Tiamat/Judgment/Seraph/Fenrir.**
   - `threeheaddragon`s "Trinity Apocalypse" (`skills`-texten finns) säger
     ordagrant "Takes control of every card on the board" — en bokstavlig
     implementation är nära ett ögonblicksvinst-knapp för 3 wins och
     riskerar att göra spelet meningslöst. Kräver ett balansbeslut från
     användaren om hur kraftig effekten faktiskt ska vara innan den kodas.
   - `dragon` (Ancient Wyrmking) har ingen special-textrad alls, bara en
-    passiv `Ancient Shield` — samma läge som celestialjudgment/infiniteseraph.
+    passiv `Ancient Shield` — samma läge som `celestialjudgment`/
+    `infiniteseraph` var i (se uppdateringen ovan; `dragon` och
+    `threeheaddragon` är nu de ENDA två kort i hela rostret som fortfarande
+    väntar på ett sådant designbeslut).
 - **Bättre AI-targeting** för framtida icke-strid-specialattacker (se
   avsnitt 5/Kända problem för mönstret — Voidqueen och Tiamat har redan
   egna undantag).

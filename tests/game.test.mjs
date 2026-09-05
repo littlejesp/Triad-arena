@@ -68,37 +68,38 @@ test('base engine: a stronger card captures a weaker adjacent enemy on placement
   await page.close();
 });
 
-test('round clock: Tiamat\'s Weakening expires after the target\'s next turn, Defense stays permanent', async () => {
+// Tiamat's ultimate was rebuilt in a later session (see PROJECT.md) and no
+// longer uses SpecialVerbs.debuffThisRound — these tests exercise the
+// round-clock primitive directly instead of through a specific card, since
+// no shipped card currently uses it (documented in PROJECT.md as a
+// generic, currently-unused-but-available engine primitive).
+test('round clock: SpecialVerbs.debuffThisRound expires after the target\'s next turn; debuff() stays permanent', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
-    const tiamat = findCardById('tiamat');
     const dummy = findCardById('ogre');
 
-    const weaken = freshEntry(dummy, 'red');
     state.board = Array(9).fill(null);
-    state.board[0] = freshEntry(tiamat, 'blue');
-    state.board[1] = weaken;
+    const weaken = freshEntry(dummy, 'red');
+    state.board[1] = weaken; // sweepExpiredRoundEffects only scans state.board
     state.turnCount = 10;
-    SPECIAL_HANDLERS.tiamat({ srcEntry: state.board[0], targetEntry: weaken, targetIndex: 1, owner: 'blue', power: 'weakening' });
+    SpecialVerbs.debuffThisRound(weaken, 1);
     const afterCast = weaken.captureBonus;
     state.turnCount++; sweepExpiredRoundEffects();
     const afterOpponentTurn = weaken.captureBonus; // should still be weakened
     state.turnCount++; sweepExpiredRoundEffects();
     const afterOwnNextTurn = weaken.captureBonus; // should be back to 0
 
-    const defend = freshEntry(dummy, 'red');
-    state.board[3] = freshEntry(tiamat, 'blue');
-    state.board[4] = defend;
-    SPECIAL_HANDLERS.tiamat({ srcEntry: state.board[3], targetEntry: defend, targetIndex: 4, owner: 'blue', power: 'defense' });
+    const permanent = freshEntry(dummy, 'red');
+    SpecialVerbs.debuff(permanent, 1);
     state.turnCount += 5; sweepExpiredRoundEffects();
 
-    return { afterCast, afterOpponentTurn, afterOwnNextTurn, defensePermanent: defend.captureBonus };
+    return { afterCast, afterOpponentTurn, afterOwnNextTurn, permanentAfterSweeps: permanent.captureBonus };
   })()`);
   assert.equal(result.afterCast, -1);
-  assert.equal(result.afterOpponentTurn, -1, 'Weakening should still apply through the opponent\'s reply');
-  assert.equal(result.afterOwnNextTurn, 0, 'Weakening should be gone by the caster\'s next turn');
-  assert.equal(result.defensePermanent, -1, 'Defense has no time limit in the source text and must not expire');
+  assert.equal(result.afterOpponentTurn, -1, 'debuffThisRound should still apply through the opponent\'s reply');
+  assert.equal(result.afterOwnNextTurn, 0, 'debuffThisRound should be gone by the caster\'s next turn');
+  assert.equal(result.permanentAfterSweeps, -1, 'plain debuff() has no time limit and must not expire');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -107,14 +108,12 @@ test('round clock: a "this round" effect is symmetric regardless of which side c
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
-    const tiamat = findCardById('tiamat');
     const dummy = findCardById('ogre');
-    const target = freshEntry(dummy, 'blue');
     state.board = Array(9).fill(null);
-    state.board[6] = freshEntry(tiamat, 'red');
-    state.board[7] = target;
+    const target = freshEntry(dummy, 'blue');
+    state.board[7] = target; // sweepExpiredRoundEffects only scans state.board
     state.turnCount = 50;
-    SPECIAL_HANDLERS.tiamat({ srcEntry: state.board[6], targetEntry: target, targetIndex: 7, owner: 'red', power: 'weakening' });
+    SpecialVerbs.debuffThisRound(target, 1);
     state.turnCount++; sweepExpiredRoundEffects();
     const afterOne = target.captureBonus;
     state.turnCount++; sweepExpiredRoundEffects();
@@ -181,6 +180,135 @@ test('conquest banner: a stale justFlipped flag elsewhere on the board is not a 
     return { conquestPopup: state.conquestPopup };
   })()`);
   assert.equal(result.conquestPopup, false);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+// Tiamat, The Celestial Judgment, The Infinite Seraph and The Eclipse
+// Fenrir were redesigned in a later session from new source art (see
+// PROJECT.md section 5) — these cover the new shared primitives
+// (active.boardLeadBonus / active.debuffImmune) and each card's rebuilt
+// ultimate.
+test('Tiamat: rebuilt Fivefold Apocalypse captures with a permanent +1 on win', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('tiamat'), 'blue');
+    const target = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = src;
+    state.board[1] = target;
+    SPECIAL_HANDLERS.tiamat({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    return { capturedOwner: target.owner, srcPermanentBonus: src.captureBonus };
+  })()`);
+  assert.equal(result.capturedOwner, 'blue');
+  assert.equal(result.srcPermanentBonus, 1);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('active.boardLeadBonus: strict lead (Tiamat) vs. tie-counts (The Celestial Judgment)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    // Tied board count (1 vs 1): Tiamat's "more than" requirement should NOT apply...
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(findCardById('tiamat'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.playerHand = [1,2]; state.enemyHand = [1,2]; // length >= 2 so lastStandBonus contributes 0
+    const tiamatTied = fullEffectiveValue(findCardById('tiamat'), 'top', null, 0, 'blue', 'attack');
+    // ...but a strict lead (2 vs 1) should.
+    state.board[2] = freshEntry(findCardById('ogre'), 'blue');
+    const tiamatLeading = fullEffectiveValue(findCardById('tiamat'), 'top', null, 0, 'blue', 'attack');
+
+    // The Celestial Judgment's Balance uses orEqual: true, so a tie DOES apply.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(findCardById('celestialjudgment'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    const judgmentTied = fullEffectiveValue(findCardById('celestialjudgment'), 'top', null, 0, 'blue', 'attack');
+
+    return {
+      tiamatTiedBonus: tiamatTied - findCardById('tiamat').top,
+      tiamatLeadingBonus: tiamatLeading - findCardById('tiamat').top,
+      judgmentTiedBonus: judgmentTied - findCardById('celestialjudgment').top,
+    };
+  })()`);
+  assert.equal(result.tiamatTiedBonus, 0, 'a tie should not satisfy Tiamat\'s strict "more than" requirement');
+  assert.equal(result.tiamatLeadingBonus, 1, 'a strict lead should grant Tiamat\'s +1');
+  assert.equal(result.judgmentTiedBonus, 1, 'a tie should satisfy Judgment\'s orEqual requirement');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('The Celestial Judgment: Eternal Verdict destroys a weak facing side, debuffs a strong one', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('celestialjudgment'), 'blue');
+    state.board[4] = src;
+    const fragile = { id:'fragile-test', name:'Fragile', top:2, right:5, bottom:5, left:5 };
+    const sturdy = { id:'sturdy-test', name:'Sturdy', top:8, right:5, bottom:5, left:5 };
+    state.board[1] = freshEntry(fragile, 'red'); // directly 'up' from center
+    SPECIAL_HANDLERS.celestialjudgment({ srcEntry: src, sourceIndex: 4, owner: 'blue', direction: 'up' });
+    const fragileResult = state.board[1];
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('celestialjudgment'), 'blue');
+    state.board[1] = freshEntry(sturdy, 'red');
+    SPECIAL_HANDLERS.celestialjudgment({ srcEntry: state.board[4], sourceIndex: 4, owner: 'blue', direction: 'up' });
+    const sturdyResult = state.board[1];
+
+    return {
+      fragileDestroyed: fragileResult === null,
+      sturdyDebuff: sturdyResult ? sturdyResult.captureBonus : 'missing',
+    };
+  })()`);
+  assert.equal(result.fragileDestroyed, true, 'a facing side of 3 or less should be destroyed outright');
+  assert.equal(result.sturdyDebuff, -1, 'a facing side above 3 should just get -1 permanently');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('The Infinite Seraph: Eternal Presence blocks Vaelira\'s destroy-all, but not without her present', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[2] = freshEntry(findCardById('infiniteseraph'), 'red');
+    const blockedMsg = SPECIAL_HANDLERS.vaelira({ srcEntry: state.board[0], owner: 'blue' });
+    const survivedWithSeraph = state.board[1] !== null;
+
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.vaelira({ srcEntry: state.board[0], owner: 'blue' });
+    const destroyedWithoutSeraph = state.board[1] === null;
+
+    return { survivedWithSeraph, blockedMsg, destroyedWithoutSeraph };
+  })()`);
+  assert.equal(result.survivedWithSeraph, true);
+  assert.ok(result.blockedMsg.includes('Eternal Presence'));
+  assert.equal(result.destroyedWithoutSeraph, true, 'without Eternal Presence, Infernal Pact should destroy as normal');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('The Eclipse Fenrir: Eternal Loyalty makes him immune to debuff() and debuffThisRound()', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const fenrir = freshEntry(findCardById('fenrir'), 'red');
+    SpecialVerbs.debuff(fenrir, 5);
+    const afterDebuff = fenrir.captureBonus;
+    SpecialVerbs.debuffThisRound(fenrir, 5);
+    return { afterDebuff, afterDebuffThisRound: fenrir.captureBonus, tempEffects: (fenrir.tempEffects || []).length };
+  })()`);
+  assert.equal(result.afterDebuff, 0);
+  assert.equal(result.afterDebuffThisRound, 0);
+  assert.equal(result.tempEffects, 0);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

@@ -1119,11 +1119,11 @@ const FULL_CARD_IMAGES = {
   threeheaddragon: 'FA822C03-2590-446B-9F40-DB904BB28B8F.jpg',
   ifrit: '74768DE6-1C73-4629-935D-6EA018ACBCCD.jpg',
   bahamut: 'BFBF6036-F55F-4B42-BDE8-8715ED5BAAEB.jpg',
-  tiamat: '3C84D5DF-D767-4BB5-944B-7C9646FD8314.jpg',
+  tiamat: 'card-tiamat-full.jpg',
   tahabata: '99DD524F-E6E1-4476-8FD8-786837E063A9.jpg',
-  celestialjudgment: '53EC4B91-8E2B-4AF5-B8DD-FF285EC69356.jpg',
-  infiniteseraph: 'A9968B01-22AD-4426-8434-76C7614316CF.jpg',
-  fenrir: '7348B1EC-86F3-4A98-8B66-3835193A0598.jpg',
+  celestialjudgment: 'card-celestialjudgment-full.jpg',
+  infiniteseraph: 'card-infiniteseraph-full.jpg',
+  fenrir: 'card-fenrir-full.jpg',
   pallis: '63AE7554-757F-459C-9ED0-727E68C8E12E.jpg',
   twinbrothers: '0D171967-BE44-4444-AB1D-E145304BCD5A.jpg',
   twinsisters: 'A2B1A2CA-0D9C-46E9-B3C5-07C0283C4407.jpg',
@@ -1286,12 +1286,11 @@ const HEROES = [
     {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
     {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
   ] },
-  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Ancient Sovereignty (Passive)', desc:"The first time Tiamat would lose a battle, her strength can't be lowered by skills during that battle."},
-    {name:'Fivefold Catastrophe', desc:'Once per match, when Tiamat wins a card, she gets +1 on all sides this round.'},
-    {name:'Queen of Dragons', desc:'If Tiamat stands next to another Dragon-type card, both cards get +1 on the sides facing each other.'},
-    {name:'Apocalyptic Retribution', desc:'The first time Tiamat loses control of a card, she gets +2 Power on that side the next time she defends from that direction.'},
-    {name:'Five Heads, One Will', desc:'If Tiamat is surrounded by at least 3 cards, choose a direction - she gets +2 Power there this round.'},
-    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Attack (+2), Defense (enemy -1 all sides), Breakthrough (ignore 1 enemy defensive skill), Weakening (enemy -1 all sides this round), or Dominance (+1 all sides on win).'},
+  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
+    {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
+    {name:'Apocalyptic Retribution', desc:'If Tiamat controls more squares than her opponent, she gets +1 Power on all sides.'},
+    {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
+    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
   ] },
   { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
@@ -1300,23 +1299,24 @@ const HEROES = [
     {name:"Pyrelord's Awakening", desc:'If Tahabata is surrounded by at least 2 enemy cards, he gets +1 on all sides this round.'},
     {name:'Special Attack: Inferno Dominion', desc:'Costs 2 wins. Choose an adjacent enemy card - Tahabata attacks with +2 Power on that side, taking control of the card as usual if he wins.'},
   ] },
-  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card', element:'wind', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', skills: [    {name:'Judgment of the Stars (Passive)', desc:'If this card loses a battle on a side for the first time, it gets +2 Power on that side the next round.'},
-    {name:"Heaven's Hammer", desc:'When The Celestial Judgment wins a battle, all adjacent enemy cards get -1 on all sides this round.'},
-    {name:'Shield of Light', desc:'When it defends a side and wins, it takes no damage from the enemy special ability on that side.'},
-    {name:'Cosmic Justice', desc:'If 3 or more sides are controlled by The Celestial Judgment at the end of your round, draw 1 card from your deck.'},
-    {name:"Judgment's Light", desc:'When it takes back a card, choose an adjacent side - it gets +1 Power there this round.'},
+  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Divine Judgment (Passive)', desc:"When The Celestial Judgment is placed, choose a direction — the card that loses an attack against that direction becomes permanently Weakened. (Flavor only — would need a stored on-placement direction plus a conditional win-hook keyed to it; skipped to keep this card's scope contained. Judgment Strike and the Ultimate below cover her main identity.)"},
+    {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
+    {name:'Balance', desc:'If The Celestial Judgment controls as many or more squares than her opponent, she gets +1 Power on all sides.'},
+    {name:'Heavenly Aegis', desc:'When this card would lose an attack by a margin of 3 or less, the battle becomes a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
+    {name:'Special Attack: Eternal Verdict', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. Any of them with 3 Power or less facing that direction is destroyed outright instead.'},
   ] },
-  { id:'infiniteseraph', name:'The Infinite Seraph', role:'Legendary Card', element:'wind', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#1c1a10,#0d0b18 60%)', accent:'#e0d090', skills: [    {name:'Cycle of Infinity (Passive)', desc:'Once per match: when The Infinite Seraph loses control of a card, you may immediately attempt to win back an adjacent card.'},
-    {name:'Light Wisdom', desc:"The Seraph's light dazzles the enemy, granting you the advantage at the start of the battle."},
-    {name:'Celestial Barrier', desc:"Creates a barrier that protects against the opponent's next special attack."},
-    {name:'Seraphic Cleansing', desc:'Cleanses negative effects and grants +1 Power on all sides next round.'},
-    {name:'Cosmic Harmony', desc:"The Seraph rebalances the cosmos, restoring a card's true balance."},
+  { id:'infiniteseraph', name:'The Infinite Seraph', role:'Legendary Card — The Keeper of All Possibilities', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1a10,#0d0b18 60%)', accent:'#e0d090', special:{ name:'All Possibilities', cost:2, once:true, targets:'direction' }, skills: [    {name:'Eternal Presence (Passive)', desc:"While The Infinite Seraph is on the board, none of her side's cards can be removed, destroyed, or swapped by the opponent's effects (Vaelira's Infernal Pact, Nyxara's Void Dominion, and Deathblade's Shadow Assault are all blocked while she stands)."},
+    {name:'Cosmic Insight', desc:"When this card wins an attack, you may look at the opponent's hand and choose a card — it can't be played next round. (Flavor only — no hand-reveal/fog-of-war system exists.)"},
+    {name:'Infinite Paths', desc:"You may swap this card's position with any of your own cards on the board after every round. Once per match. (Flavor only — no standalone reposition trigger exists outside of a Special Attack.)"},
+    {name:'Omniscient Aegis', desc:'When this card would lose an attack, you may choose to make it a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
+    {name:'Special Attack: All Possibilities', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently.'},
   ] },
-  { id:'fenrir', name:'The Eclipse Fenrir', role:'Mystic Card', element:'wind', top:9, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a0e1c,#0d0b18 60%)', accent:'#5ec8f2', active: {onCaptureBonus:1}, skills: [    {name:'Hunt of the Eclipse (Passive)', desc:'When The Eclipse Fenrir takes over a card, it gains +1 Power (applies to future battles).'},
-    {name:'Nordic Wrath', desc:'When Fenrir attacks a card controlling more cards than you, it gets +2 on all sides during that attack.'},
-    {name:"Moon's Shadow", desc:'After Fenrir wins a battle on a side, draw 1 card from your deck.'},
-    {name:"Fenrir's Curse", desc:"If Fenrir loses a battle, the opponent can't take the card if Fenrir has 8 or more on any other side."},
-    {name:'Eternal Loyalty', desc:"Fenrir can never be flipped by the opponent's card skills or special attacks."},
+  { id:'fenrir', name:'The Eclipse Fenrir', role:'Mystic Card', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#0a0e1c,#0d0b18 60%)', accent:'#5ec8f2', active:{ boardUnderdogAttackBonus:2, onWinDirectionalBoost:1, debuffImmune:true }, special:{ name:'Ragnarök', cost:2, once:true, targets:'direction' }, skills: [    {name:'Hunt of the Eclipse (Passive)', desc:"When The Eclipse Fenrir is placed, choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. (Source text lets you choose the direction — simplified to random, same as Tiamat's Fivefold Catastrophe, since no on-placement direction-choice UI exists.)"},
+    {name:'Nordic Wrath', desc:'When Fenrir attacks a card whose side controls more squares than his, he gets +2 Power on all sides during that attack.'},
+    {name:"Moon's Shadow", desc:'When Fenrir wins an attack, he gets +1 Power on the direction used, for the rest of the match. Once per match.'},
+    {name:"Fenrir's Curse", desc:"When Fenrir loses an attack, the opponent gets no extra benefit from that win (e.g. an on-win card skill triggering). (Flavor only — would need every current and future on-win bonus to check 'was this against Fenrir', too fragile to maintain generically.)"},
+    {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
+    {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
   { id:'pallis', name:'Pallis', role:'Legendary Card — The Faithful Protector', element:'earth', top:4, right:10, bottom:10, left:8, hue:'linear-gradient(160deg,#1c2010,#0d0b18 60%)', accent:'#c9a227', active:{shield:true}, special:{ name:'Wave of Loyalty', cost:2, once:true, targets:'element' }, skills: [    {name:'Loyal Heart (Passive)', desc:'The first time Pallis would lose control this round, the attack is fully ignored (simplified from also granting +1 all sides).'},
     {name:'Protective Aura', desc:"Choose an adjacent allied card — it can't be lost this round."},
@@ -1502,12 +1502,11 @@ const FOREST_FOES = [
     {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
     {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
   ] },
-  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Ancient Sovereignty (Passive)', desc:"The first time Tiamat would lose a battle, her strength can't be lowered by skills during that battle."},
-    {name:'Fivefold Catastrophe', desc:'Once per match, when Tiamat wins a card, she gets +1 on all sides this round.'},
-    {name:'Queen of Dragons', desc:'If Tiamat stands next to another Dragon-type card, both cards get +1 on the sides facing each other.'},
-    {name:'Apocalyptic Retribution', desc:'The first time Tiamat loses control of a card, she gets +2 Power on that side the next time she defends from that direction.'},
-    {name:'Five Heads, One Will', desc:'If Tiamat is surrounded by at least 3 cards, choose a direction - she gets +2 Power there this round.'},
-    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Attack (+2), Defense (enemy -1 all sides), Breakthrough (ignore 1 enemy defensive skill), Weakening (enemy -1 all sides this round), or Dominance (+1 all sides on win).'},
+  { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
+    {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
+    {name:'Apocalyptic Retribution', desc:'If Tiamat controls more squares than her opponent, she gets +1 Power on all sides.'},
+    {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
+    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
   ] },
   { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
@@ -1516,23 +1515,24 @@ const FOREST_FOES = [
     {name:"Pyrelord's Awakening", desc:'If Tahabata is surrounded by at least 2 enemy cards, he gets +1 on all sides this round.'},
     {name:'Special Attack: Inferno Dominion', desc:'Costs 2 wins. Choose an adjacent enemy card - Tahabata attacks with +2 Power on that side, taking control of the card as usual if he wins.'},
   ] },
-  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card', element:'wind', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', skills: [    {name:'Judgment of the Stars (Passive)', desc:'If this card loses a battle on a side for the first time, it gets +2 Power on that side the next round.'},
-    {name:"Heaven's Hammer", desc:'When The Celestial Judgment wins a battle, all adjacent enemy cards get -1 on all sides this round.'},
-    {name:'Shield of Light', desc:'When it defends a side and wins, it takes no damage from the enemy special ability on that side.'},
-    {name:'Cosmic Justice', desc:'If 3 or more sides are controlled by The Celestial Judgment at the end of your round, draw 1 card from your deck.'},
-    {name:"Judgment's Light", desc:'When it takes back a card, choose an adjacent side - it gets +1 Power there this round.'},
+  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Divine Judgment (Passive)', desc:"When The Celestial Judgment is placed, choose a direction — the card that loses an attack against that direction becomes permanently Weakened. (Flavor only — would need a stored on-placement direction plus a conditional win-hook keyed to it; skipped to keep this card's scope contained. Judgment Strike and the Ultimate below cover her main identity.)"},
+    {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
+    {name:'Balance', desc:'If The Celestial Judgment controls as many or more squares than her opponent, she gets +1 Power on all sides.'},
+    {name:'Heavenly Aegis', desc:'When this card would lose an attack by a margin of 3 or less, the battle becomes a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
+    {name:'Special Attack: Eternal Verdict', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. Any of them with 3 Power or less facing that direction is destroyed outright instead.'},
   ] },
-  { id:'infiniteseraph', name:'The Infinite Seraph', role:'Legendary Card', element:'wind', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#1c1a10,#0d0b18 60%)', accent:'#e0d090', skills: [    {name:'Cycle of Infinity (Passive)', desc:'Once per match: when The Infinite Seraph loses control of a card, you may immediately attempt to win back an adjacent card.'},
-    {name:'Light Wisdom', desc:"The Seraph's light dazzles the enemy, granting you the advantage at the start of the battle."},
-    {name:'Celestial Barrier', desc:"Creates a barrier that protects against the opponent's next special attack."},
-    {name:'Seraphic Cleansing', desc:'Cleanses negative effects and grants +1 Power on all sides next round.'},
-    {name:'Cosmic Harmony', desc:"The Seraph rebalances the cosmos, restoring a card's true balance."},
+  { id:'infiniteseraph', name:'The Infinite Seraph', role:'Legendary Card — The Keeper of All Possibilities', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1a10,#0d0b18 60%)', accent:'#e0d090', special:{ name:'All Possibilities', cost:2, once:true, targets:'direction' }, skills: [    {name:'Eternal Presence (Passive)', desc:"While The Infinite Seraph is on the board, none of her side's cards can be removed, destroyed, or swapped by the opponent's effects (Vaelira's Infernal Pact, Nyxara's Void Dominion, and Deathblade's Shadow Assault are all blocked while she stands)."},
+    {name:'Cosmic Insight', desc:"When this card wins an attack, you may look at the opponent's hand and choose a card — it can't be played next round. (Flavor only — no hand-reveal/fog-of-war system exists.)"},
+    {name:'Infinite Paths', desc:"You may swap this card's position with any of your own cards on the board after every round. Once per match. (Flavor only — no standalone reposition trigger exists outside of a Special Attack.)"},
+    {name:'Omniscient Aegis', desc:'When this card would lose an attack, you may choose to make it a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
+    {name:'Special Attack: All Possibilities', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently.'},
   ] },
-  { id:'fenrir', name:'The Eclipse Fenrir', role:'Mystic Card', element:'wind', top:9, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a0e1c,#0d0b18 60%)', accent:'#5ec8f2', active: {onCaptureBonus:1}, skills: [    {name:'Hunt of the Eclipse (Passive)', desc:'When The Eclipse Fenrir takes over a card, it gains +1 Power (applies to future battles).'},
-    {name:'Nordic Wrath', desc:'When Fenrir attacks a card controlling more cards than you, it gets +2 on all sides during that attack.'},
-    {name:"Moon's Shadow", desc:'After Fenrir wins a battle on a side, draw 1 card from your deck.'},
-    {name:"Fenrir's Curse", desc:"If Fenrir loses a battle, the opponent can't take the card if Fenrir has 8 or more on any other side."},
-    {name:'Eternal Loyalty', desc:"Fenrir can never be flipped by the opponent's card skills or special attacks."},
+  { id:'fenrir', name:'The Eclipse Fenrir', role:'Mystic Card', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#0a0e1c,#0d0b18 60%)', accent:'#5ec8f2', active:{ boardUnderdogAttackBonus:2, onWinDirectionalBoost:1, debuffImmune:true }, special:{ name:'Ragnarök', cost:2, once:true, targets:'direction' }, skills: [    {name:'Hunt of the Eclipse (Passive)', desc:"When The Eclipse Fenrir is placed, choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. (Source text lets you choose the direction — simplified to random, same as Tiamat's Fivefold Catastrophe, since no on-placement direction-choice UI exists.)"},
+    {name:'Nordic Wrath', desc:'When Fenrir attacks a card whose side controls more squares than his, he gets +2 Power on all sides during that attack.'},
+    {name:"Moon's Shadow", desc:'When Fenrir wins an attack, he gets +1 Power on the direction used, for the rest of the match. Once per match.'},
+    {name:"Fenrir's Curse", desc:"When Fenrir loses an attack, the opponent gets no extra benefit from that win (e.g. an on-win card skill triggering). (Flavor only — would need every current and future on-win bonus to check 'was this against Fenrir', too fragile to maintain generically.)"},
+    {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
+    {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
   { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
     {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
@@ -2617,12 +2617,16 @@ function elementBeats(a, b){ return a && b && ELEMENT_BEATS[a] === b; }
 // an extra pick beyond (or instead of) a board target — rendered by
 // renderChoicePicker(), resolved by resolveSpecialChoice().
 const ELEMENT_CHOICES = ['fire','wind','earth','water'].map(el => ({ value: el, icon: ELEMENT_ICONS[el], label: el[0].toUpperCase()+el.slice(1) }));
+// Purely flavor labels since the redesigned Fivefold Apocalypse (see
+// SPECIAL_HANDLERS.tiamat) gives all five powers the same mechanical
+// effect — kept as a choice anyway for the ritual feel of "channeling one
+// of five heads".
 const TIAMAT_POWER_CHOICES = [
-  { value:'attack', icon:'⚔️', label:'Attack' },
-  { value:'defense', icon:'🛡️', label:'Defense' },
-  { value:'breakthrough', icon:'💥', label:'Breakthrough' },
-  { value:'weakening', icon:'🌀', label:'Weakening' },
-  { value:'dominance', icon:'👑', label:'Dominance' },
+  { value:'fire', icon:'🔥', label:'Fire' },
+  { value:'ice', icon:'❄️', label:'Ice' },
+  { value:'storm', icon:'⚡', label:'Storm' },
+  { value:'void', icon:'🌀', label:'Void' },
+  { value:'nature', icon:'🌿', label:'Nature' },
 ];
 const DIRECTION_CHOICES = [
   { value:'up', icon:'⬆️', label:'Up' },
@@ -2630,6 +2634,36 @@ const DIRECTION_CHOICES = [
   { value:'down', icon:'⬇️', label:'Down' },
   { value:'left', icon:'⬅️', label:'Left' },
 ];
+
+// Shared by every "line in a chosen direction" effect (Naline's Thunderstorm
+// Assault, The Celestial Judgment's Eternal Verdict, The Infinite Seraph's
+// All Possibilities, The Eclipse Fenrir's on-place passive and Ragnarök) —
+// every enemy card strictly beyond `index` in that direction, not the whole
+// row/column. Returns {index, entry} pairs (not bare entries) since
+// board-mutating callers like Judgment's destroy branch need the index too.
+function enemiesInDirection(index, direction, owner){
+  const row = Math.floor(index / 3), col = index % 3;
+  const targets = [];
+  for(let i = 0; i < 9; i++){
+    const r = Math.floor(i / 3), c = i % 3;
+    if(direction === 'up' && c === col && r < row) targets.push(i);
+    else if(direction === 'down' && c === col && r > row) targets.push(i);
+    else if(direction === 'left' && r === row && c < col) targets.push(i);
+    else if(direction === 'right' && r === row && c > col) targets.push(i);
+  }
+  return targets
+    .map(i => ({ index: i, entry: state.board[i] }))
+    .filter(p => p.entry && p.entry.owner !== owner);
+}
+
+// The Infinite Seraph's Eternal Presence: "no cards can be removed,
+// destroyed, or swapped by opponent's effects" while she's on the board —
+// read as protecting her WHOLE side, not just herself. Checked directly by
+// the handful of handlers that actually destroy or swap cards (Vaelira,
+// Nyxara, Deathblade) rather than as a blanket engine-wide guard.
+function protectedByInfiniteSeraph(owner){
+  return state.board.some(e => e && e.owner === owner && e.card.id === 'infiniteseraph');
+}
 
 function effectiveValue(card, edgeKey, opponentCard){
   let v = card[edgeKey];
@@ -2681,6 +2715,27 @@ function checkSisterFlip(entry){
   } else if(entry.sisterWasCaptured){
     SpecialVerbs.debuff(entry, 3);
     entry.sisterWasCaptured = false;
+  }
+}
+
+// Called from battleNeighbors right after a normal (non-special) attack
+// wins, alongside checkSisterFlip above — additive, once-per-match passives
+// that key off "the side used in a winning attack": Tiamat's Queen of
+// Dragons and The Eclipse Fenrir's Moon's Shadow (permanent self-buff on
+// that side) and The Celestial Judgment's Judgment Strike (permanent debuff
+// to the loser instead, on the card's very first win of the match,
+// regardless of which side). Both flags live on the winning entry so they
+// reset naturally with a fresh placement.
+function checkOnWinBonuses(winnerEntry, myEdge, loserEntry){
+  const a = winnerEntry.card.active;
+  if(!a) return;
+  if(a.onWinDirectionalBoost && !winnerEntry.onWinDirectionalBoostUsed){
+    SpecialVerbs.directionalBoost(winnerEntry, [myEdge], a.onWinDirectionalBoost);
+    winnerEntry.onWinDirectionalBoostUsed = true;
+  }
+  if(a.onWinDebuffOnce && !winnerEntry.onWinDebuffOnceUsed){
+    SpecialVerbs.debuff(loserEntry, a.onWinDebuffOnce);
+    winnerEntry.onWinDebuffOnceUsed = true;
   }
 }
 
@@ -2871,6 +2926,39 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     const count = sistersPresentCount(card.id, owner);
     if(sa.bonusByCount[count]) v += sa.bonusByCount[count];
   }
+  // Live board-count comparisons — recomputed on every call, nothing stored,
+  // same "no state needed" shape as pairPresence/sisterAura above. Used by
+  // Tiamat's Apocalyptic Retribution / The Celestial Judgment's Balance
+  // (owner ahead or tied on squares controlled → flat bonus) and The Eclipse
+  // Fenrir's Nordic Wrath (owner BEHIND on squares, while attacking → bonus).
+  if(card.active && card.active.boardLeadBonus){
+    const bl = card.active.boardLeadBonus;
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    const theirs = state.board.filter(e => e && e.owner !== owner).length;
+    if(bl.orEqual ? mine >= theirs : mine > theirs) v += bl.amount;
+  }
+  if(card.active && card.active.boardUnderdogAttackBonus && role === 'attack'){
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    const theirs = state.board.filter(e => e && e.owner !== owner).length;
+    if(mine < theirs) v += card.active.boardUnderdogAttackBonus;
+  }
+  // Tiamat's Five Heads, One Will: "+1 on the direction used in her next
+  // attack" while she has 2+ adjacent enemies — read live at comparison
+  // time instead of tracking a deferred "next attack" flag, so it's really
+  // just "whenever the condition holds during one of her attacks".
+  if(card.active && card.active.adjacentEnemiesBoost && role === 'attack'){
+    const ab = card.active.adjacentEnemiesBoost;
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    let enemyNeighbors = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner) enemyNeighbors++;
+    });
+    if(enemyNeighbors >= ab.minCount) v += ab.amount;
+  }
   return v;
 }
 
@@ -2934,6 +3022,15 @@ const ON_PLACE_HANDLERS = {
     SpecialVerbs.debuff(target, 2);
     target.vaeliraBurned = true;
   },
+  // The Eclipse Fenrir's Hunt of the Eclipse: the source text lets the
+  // player choose the direction; simplified to random, same call as
+  // Tiamat's Fivefold Catastrophe (active.onPlaceBoost) — no on-placement
+  // direction-choice UI exists.
+  fenrir(entry, owner, cellIndex){
+    const dirs = ['up','right','down','left'];
+    const direction = dirs[Math.floor(Math.random()*dirs.length)];
+    enemiesInDirection(cellIndex, direction, owner).forEach(p => SpecialVerbs.debuff(p.entry, 1));
+  },
 };
 
 function placeCard(cellIndex, cardId, owner){
@@ -2958,7 +3055,7 @@ function placeCard(cellIndex, cardId, owner){
     state.board[cellIndex].sisterHomeOwner = owner;
     state.board[cellIndex].sisterWasCaptured = false;
   }
-  if(ON_PLACE_HANDLERS[card.id]) ON_PLACE_HANDLERS[card.id](state.board[cellIndex], owner);
+  if(ON_PLACE_HANDLERS[card.id]) ON_PLACE_HANDLERS[card.id](state.board[cellIndex], owner, cellIndex);
   hand.splice(cardIdx,1);
   state.pendingCard = null;
 
@@ -3093,7 +3190,15 @@ const SpecialVerbs = {
   extraTurn(owner){ state.extraTurnPending = owner; },
   // Weakens a card with nothing gained in return — for area effects like
   // Oblivion's Call / Yang Resonance that punish without capturing anyone.
-  debuff(entry, amount){ entry.captureBonus -= amount; },
+  // The Eclipse Fenrir's Eternal Loyalty ("can't have his Power values
+  // lowered by enemy card skills") is checked here rather than at every
+  // call site — debuff()/debuffThisRound() are only ever called on an
+  // ENEMY target by convention, never on the caster's own card, so a single
+  // guard here is equivalent to guarding all of them.
+  debuff(entry, amount){
+    if(entry.card.active && entry.card.active.debuffImmune) return;
+    entry.captureBonus -= amount;
+  },
   // Boosts only the listed sides (e.g. ['top','bottom']) instead of all four —
   // for ultimates like Skybreaker/WorldCleaver that favor one axis of the card.
   directionalBoost(entry, sides, amount){
@@ -3106,6 +3211,7 @@ const SpecialVerbs = {
   // `entry.tempEffects` + `sweepExpiredRoundEffects()` below; see the
   // comment there for what "a round" means here.
   debuffThisRound(entry, amount){
+    if(entry.card.active && entry.card.active.debuffImmune) return;
     entry.captureBonus -= amount;
     entry.tempEffects = entry.tempEffects || [];
     entry.tempEffects.push({ captureDelta: -amount, expiresAtTurnCount: state.turnCount + 2 });
@@ -3441,47 +3547,28 @@ const SPECIAL_HANDLERS = {
       ? `${srcEntry.card.name}'s Wave of Loyalty blesses ${matches.length} ${elName} ${matches.length===1 ? 'ally' : 'allies'}!`
       : `${srcEntry.card.name}'s Wave of Loyalty finds no ${elName} allies to bless!`;
   },
-  // Tiamat's five powers don't all fit the same shape (a self-buff, a flat
-  // debuff, a shield-break, and an actual win/flip attempt are mechanically
-  // different things) — this is a simplified reading of "The Fivefold
-  // Apocalypse", picked to be reasonable rather than a literal transcription.
-  // Defense ("enemy -1 all sides") and Weakening ("enemy -1 all sides this
-  // round") are now genuinely distinct now that the engine has a round
-  // clock (see SpecialVerbs.debuffThisRound/sweepExpiredRoundEffects) —
-  // Defense is permanent, Weakening wears off after the target's next turn.
-  tiamat({ srcEntry, targetEntry, targetIndex, owner, power }){
+  // Redesigned in a later session from a new source poster that replaces
+  // the old five-distinct-effects "Fivefold Apocalypse" (Attack/Defense/
+  // Breakthrough/Weakening/Dominance) entirely: "choose one of the five
+  // powers: Fire, Ice, Storm, Void or Nature. Attack gets +5 Power; if
+  // Tiamat wins, +1 all sides for the rest of the match." Unlike the old
+  // kit, the new text gives no distinct mechanical effect per power — all
+  // five are flavor labels this time, so the choice picker stays (for feel)
+  // but every choice resolves identically, via the engine's standard
+  // single-target temp-boost-then-permanent-on-win pattern (see Astrael).
+  tiamat({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
-    switch(power){
-      case 'attack':
-        SpecialVerbs.attackBoost(srcEntry, 2);
-        return `${name} channels the Fivefold Apocalypse — Attack surges within her!`;
-      case 'defense':
-        SpecialVerbs.debuff(targetEntry, 1);
-        return `${name}'s Fivefold Apocalypse saps ${targetEntry.card.name}!`;
-      case 'weakening':
-        SpecialVerbs.debuffThisRound(targetEntry, 1);
-        return `${name}'s Fivefold Apocalypse weakens ${targetEntry.card.name} for this round!`;
-      case 'breakthrough': {
-        const hadShield = isShielded(targetEntry, targetIndex);
-        if(hadShield){ targetEntry.shieldUsed = true; targetEntry.shieldFlash = true; }
-        return hadShield
-          ? `${name}'s Fivefold Apocalypse shatters ${targetEntry.card.name}'s defenses!`
-          : `${name}'s Fivefold Apocalypse finds no defenses to break through!`;
-      }
-      case 'dominance':
-      default:
-        if(totalPower(srcEntry) <= totalPower(targetEntry)){
-          return `${name}'s Fivefold Apocalypse (Dominance) is repelled by ${targetEntry.card.name}!`;
-        }
-        if(specialBlockedByShield(targetEntry, targetIndex)){
-          return `${targetEntry.card.name}'s shield holds against the Fivefold Apocalypse!`;
-        }
-        targetEntry.owner = owner;
-        targetEntry.justFlipped = true;
-        checkSisterFlip(targetEntry);
-        SpecialVerbs.attackBoost(srcEntry, 1);
-        return `${name}'s Fivefold Apocalypse (Dominance) claims ${targetEntry.card.name}!`;
+    if(totalPower(srcEntry) + 5 <= totalPower(targetEntry)){
+      return `${name}'s Fivefold Apocalypse is repelled by ${targetEntry.card.name}!`;
     }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against the Fivefold Apocalypse!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Fivefold Apocalypse claims ${targetEntry.card.name}!`;
   },
   astrael({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
@@ -3508,22 +3595,72 @@ const SPECIAL_HANDLERS = {
   // straight-debuff special).
   naline({ srcEntry, sourceIndex, owner, direction }){
     const name = srcEntry.card.name;
-    const row = Math.floor(sourceIndex / 3);
-    const col = sourceIndex % 3;
-    const targets = [];
-    for(let i = 0; i < 9; i++){
-      const r = Math.floor(i / 3), c = i % 3;
-      if(direction === 'up' && c === col && r < row) targets.push(i);
-      else if(direction === 'down' && c === col && r > row) targets.push(i);
-      else if(direction === 'left' && r === row && c < col) targets.push(i);
-      else if(direction === 'right' && r === row && c > col) targets.push(i);
-    }
-    const enemies = targets.map(i => state.board[i]).filter(e => e && e.owner !== owner);
-    enemies.forEach(e => SpecialVerbs.debuff(e, 3));
+    const enemies = enemiesInDirection(sourceIndex, direction, owner);
+    enemies.forEach(p => SpecialVerbs.debuff(p.entry, 3));
     const dirLabel = direction[0].toUpperCase() + direction.slice(1);
     return enemies.length > 0
       ? `${name}'s Thunderstorm Assault crashes ${dirLabel} — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} struck down!`
       : `${name}'s Thunderstorm Assault crashes ${dirLabel} but finds no enemies in its path!`;
+  },
+  // "Eternal Verdict": choose a direction; every enemy in that line is
+  // Weakened (-1 all sides, permanent) — or destroyed outright if their
+  // stat facing that same direction is 3 or lower. "Power on the
+  // direction" is read as the target's own top/right/bottom/left stat in
+  // the chosen direction (not the specific edge touching Judgment), same
+  // literal reading Vorathos's direction choice already uses. Unconditional
+  // and unblockable, consistent with every other direction-line special.
+  celestialjudgment({ srcEntry, sourceIndex, owner, direction }){
+    const name = srcEntry.card.name;
+    const dirMap = { up:'top', right:'right', down:'bottom', left:'left' };
+    const facingSide = dirMap[direction];
+    const enemies = enemiesInDirection(sourceIndex, direction, owner);
+    let destroyed = 0, weakened = 0;
+    enemies.forEach(({ index, entry }) => {
+      if(entry.card[facingSide] <= 3){
+        state.board[index] = null;
+        destroyed++;
+      } else {
+        SpecialVerbs.debuff(entry, 1);
+        weakened++;
+      }
+    });
+    const dirLabel = direction[0].toUpperCase() + direction.slice(1);
+    if(destroyed === 0 && weakened === 0){
+      return `${name}'s Eternal Verdict passes ${dirLabel} but finds no enemies in its path!`;
+    }
+    const parts = [];
+    if(destroyed > 0) parts.push(`shatters ${destroyed} outright`);
+    if(weakened > 0) parts.push(`weakens ${weakened}`);
+    return `${name}'s Eternal Verdict crashes ${dirLabel} — ${parts.join(' and ')}!`;
+  },
+  // "All Possibilities": choose a direction; every enemy in that line is
+  // Weakened (-1 all sides, permanent). The source text's closing "draw a
+  // card" clause is dropped — no deck/draw system exists anywhere in the
+  // engine (same simplification already applied to every other card that
+  // mentions drawing).
+  infiniteseraph({ srcEntry, sourceIndex, owner, direction }){
+    const name = srcEntry.card.name;
+    const enemies = enemiesInDirection(sourceIndex, direction, owner);
+    enemies.forEach(p => SpecialVerbs.debuff(p.entry, 1));
+    const dirLabel = direction[0].toUpperCase() + direction.slice(1);
+    return enemies.length > 0
+      ? `${name}'s All Possibilities unfolds ${dirLabel} — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} Weakened!`
+      : `${name}'s All Possibilities unfolds ${dirLabel} but finds no enemies in its path!`;
+  },
+  // "Ragnarök": choose a direction; every enemy in that line permanently
+  // loses 2 Power on all sides. The source text's extra "+2 Power during
+  // this attack, +1 more on win" self-buff clause has no single win/lose
+  // comparison to attach to in an unconditional line-wide AOE (no board
+  // target is picked at all) — dropped, same category of drop as Naline's
+  // LIGHT-affinity clause.
+  fenrir({ srcEntry, sourceIndex, owner, direction }){
+    const name = srcEntry.card.name;
+    const enemies = enemiesInDirection(sourceIndex, direction, owner);
+    enemies.forEach(p => SpecialVerbs.debuff(p.entry, 2));
+    const dirLabel = direction[0].toUpperCase() + direction.slice(1);
+    return enemies.length > 0
+      ? `${name}'s Ragnarök tears through ${dirLabel} — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} broken!`
+      : `${name}'s Ragnarök tears through ${dirLabel} but finds no enemies in its path!`;
   },
   // "Shadow Assault"'s "win against 3 cards with 27+ power" clause is an
   // unlock condition the engine has no state for (would need a new per-card
@@ -3533,6 +3670,9 @@ const SPECIAL_HANDLERS = {
   deathblade({ srcEntry, sourceIndex, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     const foeName = targetEntry.card.name;
+    if(protectedByInfiniteSeraph(targetEntry.owner)){
+      return `${name}'s Shadow Assault cannot displace ${foeName} — The Infinite Seraph's Eternal Presence holds!`;
+    }
     state.board[sourceIndex] = targetEntry;
     state.board[targetIndex] = srcEntry;
     SpecialVerbs.debuff(state.board[sourceIndex], 2);
@@ -3707,6 +3847,9 @@ const SPECIAL_HANDLERS = {
   // Tiamat/Vorathos/Deathblade above.
   vaelira({ srcEntry, owner }){
     const name = srcEntry.card.name;
+    if(protectedByInfiniteSeraph(owner === 'blue' ? 'red' : 'blue')){
+      return `${name}'s Infernal Pact shatters against The Infinite Seraph's Eternal Presence!`;
+    }
     let destroyed = 0;
     state.board.forEach((entry, i) => {
       if(entry && entry.owner !== owner){ state.board[i] = null; destroyed++; }
@@ -3732,6 +3875,9 @@ const SPECIAL_HANDLERS = {
   },
   nyxara({ srcEntry, owner }){
     const name = srcEntry.card.name;
+    if(protectedByInfiniteSeraph(owner === 'blue' ? 'red' : 'blue')){
+      return `${name}'s Void Dominion recoils from The Infinite Seraph's Eternal Presence!`;
+    }
     let destroyed = 0;
     state.board.forEach((entry, i) => {
       if(entry && entry.owner !== owner){ state.board[i] = null; destroyed++; }
@@ -3821,7 +3967,7 @@ function resolveSpecialChoice(value){
     runSpecialResolution(mode.sourceIndex, null, { element: value });
   } else if(srcEntry.card.id === 'tiamat'){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { power: value });
-  } else if(srcEntry.card.id === 'naline'){
+  } else if(srcEntry.card.id === 'naline' || srcEntry.card.id === 'celestialjudgment' || srcEntry.card.id === 'infiniteseraph' || srcEntry.card.id === 'fenrir'){
     runSpecialResolution(mode.sourceIndex, null, { direction: value });
   } else if(srcEntry.card.id === 'vorathos'){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { direction: value });
@@ -3963,6 +4109,7 @@ function battleNeighbors(index, owner, result){
       target.owner = owner;
       target.justFlipped = true;
       checkSisterFlip(target);
+      checkOnWinBonuses(placedEntry, p.myEdge, target);
       result.flips++;
       newlyFlipped.push(p.ni);
     }
@@ -4069,12 +4216,13 @@ function enemyTryUseSpecial(){
       continue;
     }
 
-    // Tiamat's five powers need an extra choice beyond a target (see
-    // resolveSpecialTarget/SPECIAL_HANDLERS.tiamat) — the AI has no picker
-    // UI to drive, so it bypasses that flow and always goes straight for
-    // Dominance (the one power that actually wins the card), using the
-    // same "would I win this fight" heuristic as every other attack-and-flip
-    // special below.
+    // Tiamat still opens a choice picker after a target click (see
+    // resolveSpecialTarget) even though the redesigned Fivefold Apocalypse
+    // makes all five powers mechanically identical — the AI has no picker
+    // UI to drive, so it bypasses that flow entirely, using the same "would
+    // I win this fight" heuristic as every other attack-and-flip special
+    // below. The power value itself is unused by SPECIAL_HANDLERS.tiamat
+    // now; 'fire' is passed only for log/flavor consistency.
     if(c.entry.card.id === 'tiamat'){
       let bestTarget = null, bestPower = -1;
       state.board.forEach((target, ti) => {
@@ -4086,7 +4234,7 @@ function enemyTryUseSpecial(){
         }
       });
       if(bestTarget != null){
-        runSpecialResolution(c.sourceIndex, bestTarget, { power: 'dominance' });
+        runSpecialResolution(c.sourceIndex, bestTarget, { power: 'fire' });
         return true;
       }
       continue;
