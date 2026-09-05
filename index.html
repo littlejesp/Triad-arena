@@ -1116,7 +1116,7 @@ const FULL_CARD_IMAGES = {
   voidqueen: 'A793F95F-8408-43E3-8EFC-CE1F2A80CC48.jpg',
   shadowking: '9C0351F5-41E6-4527-9F99-1356E5D99A5A.jpg',
   dragon: '309C2066-EC8B-4184-B1E6-C8D140B15ED9.jpg',
-  threeheaddragon: 'FA822C03-2590-446B-9F40-DB904BB28B8F.jpg',
+  threeheaddragon: 'card-threeheaddragon-full.jpg',
   ifrit: '74768DE6-1C73-4629-935D-6EA018ACBCCD.jpg',
   bahamut: 'BFBF6036-F55F-4B42-BDE8-8715ED5BAAEB.jpg',
   tiamat: 'card-tiamat-full.jpg',
@@ -1481,12 +1481,12 @@ const FOREST_FOES = [
     {name:'Soul Fuel', desc:'When she loses a card, she immediately gains +2 on all sides next round.'},
     {name:"Special Attack: Oblivion's Call", desc:'Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it get -2 on the sides facing her until your next round.'},
   ] },
-  { id:'threeheaddragon', name:'Three Head Dragon', role:'Legendary Cosmic Card — The Trinity of Oblivion', element:'fire', top:10, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#1a0a28,#0d0b18 60%)', accent:'#8b6ef2', active:{shield:true}, icon:'🐲', skills: [    {name:'Trinity Bastion (Passive)', desc:'Three Head Dragon survives the first loss it would take (simplified from its once-per-round original design).'},
-    {name:'Cosmic Dominance', desc:'Takes control of all adjacent cards. Those cards get -2 Power on all sides next round.'},
-    {name:'Dragonic Fury', desc:'Gets +2 Power on a chosen side for every loss the opponent has taken this round.'},
-    {name:'Rift of Oblivion', desc:"Erases any card from the board — yours or the opponent's — replacing it with an empty hole."},
-    {name:'Eternal Rebirth', desc:'When Three Head Dragon loses, it returns to the center of the board with +2 Power on all sides.'},
-    {name:'Special Attack: Trinity Apocalypse', desc:'Costs 3 wins. Takes control of every card on the board. All opponent cards drop to 0 Power next round. Three Head Dragon gets +5 Power on all sides for the rest of the match. Only usable if all three heads survived the round.'},
+  { id:'threeheaddragon', name:'Three Head Dragon', role:'Mystic Card', element:'fire', top:10, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#1a0a28,#0d0b18 60%)', accent:'#8b6ef2', icon:'🐲', active:{ freezeDefenderPenalty:2, onWinAreaDebuff:1, destroyImmune:true }, special:{ name:'Apokalyps', cost:2, once:true, targets:'aoe' }, skills: [    {name:'Three Souls, One Fury (Passive)', desc:"When Three Head Dragon is placed, every enemy card gets -1 Power on its weakest side."},
+    {name:"Ice's Breath", desc:'When Three Head Dragon attacks, the defending side is frozen and gets -2 Power during that attack.'},
+    {name:"Fire's Wrath", desc:'When Three Head Dragon wins a battle, every enemy card around the defeated card gets -1 Power on all sides.'},
+    {name:"Poison's Torment", desc:"When Three Head Dragon loses a battle, the winner gets -2 Power on all sides during its next attack. (Flavor only — would need a deferred bonus consumed on a card's next attack, the same category of engine risk avoided for Tiamat's rebuilt ultimate; see PROJECT.md.)"},
+    {name:'Immortal Chaos', desc:"Three Head Dragon can never be destroyed by an opponent's card skills or Special Attacks."},
+    {name:'Special Attack: Apokalyps', desc:'Costs 2 wins. Every enemy card gets -3 Power on all sides for the rest of this round.'},
   ] },
   { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
@@ -2726,7 +2726,7 @@ function checkSisterFlip(entry){
 // to the loser instead, on the card's very first win of the match,
 // regardless of which side). Both flags live on the winning entry so they
 // reset naturally with a fresh placement.
-function checkOnWinBonuses(winnerEntry, myEdge, loserEntry){
+function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex){
   const a = winnerEntry.card.active;
   if(!a) return;
   if(a.onWinDirectionalBoost && !winnerEntry.onWinDirectionalBoostUsed){
@@ -2736,6 +2736,19 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry){
   if(a.onWinDebuffOnce && !winnerEntry.onWinDebuffOnceUsed){
     SpecialVerbs.debuff(loserEntry, a.onWinDebuffOnce);
     winnerEntry.onWinDebuffOnceUsed = true;
+  }
+  // Three Head Dragon's Fire's Wrath: every enemy card orthogonally around
+  // the just-captured square also gets hit — no "once per match" cap in
+  // the source text, unlike the two hooks above, so this fires on every win.
+  if(a.onWinAreaDebuff && loserIndex != null){
+    const row = Math.floor(loserIndex/3), col = loserIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== winnerEntry.owner) SpecialVerbs.debuff(n, a.onWinAreaDebuff);
+    });
   }
 }
 
@@ -2959,6 +2972,15 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     });
     if(enemyNeighbors >= ab.minCount) v += ab.amount;
   }
+  // Three Head Dragon's Ice's Breath: "the enemy's opposing side is frozen,
+  // -2 Power during this attack" — read off the ATTACKER's active (not this
+  // card's own), only on the defense-role call, so it only ever lowers the
+  // card it's attacking. Still respects that card's own debuffImmune (e.g.
+  // The Eclipse Fenrir), same as every other debuff in the engine.
+  if(role === 'defense' && opponentCard && opponentCard.active && opponentCard.active.freezeDefenderPenalty){
+    const immune = card.active && card.active.debuffImmune;
+    if(!immune) v -= opponentCard.active.freezeDefenderPenalty;
+  }
   return v;
 }
 
@@ -3030,6 +3052,20 @@ const ON_PLACE_HANDLERS = {
     const dirs = ['up','right','down','left'];
     const direction = dirs[Math.floor(Math.random()*dirs.length)];
     enemiesInDirection(cellIndex, direction, owner).forEach(p => SpecialVerbs.debuff(p.entry, 1));
+  },
+  // Three Souls, One Fury: every enemy on the board, not just adjacent
+  // ones (the source text says "all enemy cards", no line-of-sight
+  // wording like Naline/Fenrir's directional effects) — permanent -1 on
+  // each one's own weakest side (raw card stat, same "read the printed
+  // number" simplification as The Celestial Judgment's facing-side check).
+  threeheaddragon(entry, owner){
+    const sides = ['top','right','bottom','left'];
+    state.board.forEach(e => {
+      if(!e || e.owner === owner) return;
+      let weakest = sides[0];
+      sides.forEach(s => { if(e.card[s] < e.card[weakest]) weakest = s; });
+      SpecialVerbs.directionalBoost(e, [weakest], -1);
+    });
   },
 };
 
@@ -3201,7 +3237,11 @@ const SpecialVerbs = {
   },
   // Boosts only the listed sides (e.g. ['top','bottom']) instead of all four —
   // for ultimates like Skybreaker/WorldCleaver that favor one axis of the card.
+  // Every existing caller only ever applies a positive amount to its own
+  // card; a negative amount is a debuff (e.g. Three Head Dragon's Three
+  // Souls, One Fury), so it respects debuffImmune same as debuff() above.
   directionalBoost(entry, sides, amount){
+    if(amount < 0 && entry.card.active && entry.card.active.debuffImmune) return;
     if(!entry.sideBonus) entry.sideBonus = { top:0, right:0, bottom:0, left:0 };
     sides.forEach(s => { entry.sideBonus[s] = (entry.sideBonus[s] || 0) + amount; });
   },
@@ -3616,7 +3656,8 @@ const SPECIAL_HANDLERS = {
     const enemies = enemiesInDirection(sourceIndex, direction, owner);
     let destroyed = 0, weakened = 0;
     enemies.forEach(({ index, entry }) => {
-      if(entry.card[facingSide] <= 3){
+      const canDestroy = entry.card[facingSide] <= 3 && !(entry.card.active && entry.card.active.destroyImmune);
+      if(canDestroy){
         state.board[index] = null;
         destroyed++;
       } else {
@@ -3661,6 +3702,23 @@ const SPECIAL_HANDLERS = {
     return enemies.length > 0
       ? `${name}'s Ragnarök tears through ${dirLabel} — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} broken!`
       : `${name}'s Ragnarök tears through ${dirLabel} but finds no enemies in its path!`;
+  },
+  // "Apokalyps": the source text bundles two effects — "all enemy cards
+  // -3 all sides THIS ROUND" (a genuine round-scoped effect, the first
+  // shipped card to actually use SpecialVerbs.debuffThisRound/the round
+  // clock since Tiamat's redesign retired its only previous user — see
+  // PROJECT.md section 6) and a self-buff "+3 Power on a chosen direction
+  // during this attack". The second clause has no single attack to attach
+  // to in an untargeted AOE (no board click at all) — dropped, same
+  // category of drop as Fenrir's Ragnarök self-buff clause above.
+  threeheaddragon({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0){
+      return `${name}'s Apokalyps finds no enemies to wither!`;
+    }
+    enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 3));
+    return `${name}'s Apokalyps withers ${enemies.length} enemy ${enemies.length === 1 ? 'card' : 'cards'} for the rest of this round!`;
   },
   // "Shadow Assault"'s "win against 3 cards with 27+ power" clause is an
   // unlock condition the engine has no state for (would need a new per-card
@@ -3852,7 +3910,9 @@ const SPECIAL_HANDLERS = {
     }
     let destroyed = 0;
     state.board.forEach((entry, i) => {
-      if(entry && entry.owner !== owner){ state.board[i] = null; destroyed++; }
+      if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
+        state.board[i] = null; destroyed++;
+      }
     });
     if(destroyed === 0){
       return `${name}'s Infernal Pact finds no enemies left to consume!`;
@@ -3880,7 +3940,9 @@ const SPECIAL_HANDLERS = {
     }
     let destroyed = 0;
     state.board.forEach((entry, i) => {
-      if(entry && entry.owner !== owner){ state.board[i] = null; destroyed++; }
+      if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
+        state.board[i] = null; destroyed++;
+      }
     });
     if(destroyed === 0){
       return `${name}'s Void Dominion opens onto empty ground!`;
@@ -4109,7 +4171,7 @@ function battleNeighbors(index, owner, result){
       target.owner = owner;
       target.justFlipped = true;
       checkSisterFlip(target);
-      checkOnWinBonuses(placedEntry, p.myEdge, target);
+      checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni);
       result.flips++;
       newlyFlipped.push(p.ni);
     }

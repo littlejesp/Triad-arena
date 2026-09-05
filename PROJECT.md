@@ -24,26 +24,30 @@ från en tidigare merge). Två delar denna session:
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
 - ✅ **Rond-räkningssystem** (`state.turnCount`/`sweepExpiredRoundEffects`/
-  `SpecialVerbs.debuffThisRound`) — se avsnitt 6. **VIKTIGT:** byggdes mot
-  Tiamats då gamla Weakening-effekt, men Tiamat gjordes om totalt strax
-  därefter (se punkt 2 nedan) och använder INTE längre denna mekanik —
-  primitiven finns kvar i motorn, redo för nästa kort som faktiskt behöver
-  en "denna runda"-effekt, men har just nu INGEN aktiv användare i
-  `HEROES`/`FOREST_FOES`. Testad direkt (`tests/game.test.mjs`), inte via
-  något skarpt kort.
+  `SpecialVerbs.debuffThisRound`) — se avsnitt 6. Byggdes mot Tiamats då
+  gamla Weakening-effekt, men Tiamat gjordes om totalt strax därefter (se
+  punkt 2 nedan) och tappade sin koppling till den — **Three Head Dragons
+  Apokalyps-ultimate (tillagd i samma punkt 2) blev den nya, nu levande
+  användaren**, så primitiven har alltid haft minst ett skarpt kort som
+  faktiskt övar den, aldrig helt orörd i praktiken.
 - ✅ **AOE-specialer triggar nu "ERÖVRAD"-bannern** — se avsnitt 6.
 - ✅ **Automatiserad testsvit** — `package.json` + `tests/`, se avsnitt 9.
 
-**2. Fyra kort fick ny konst OCH en fullständig ombyggnad, från nya
+**2. Fem kort fick ny konst OCH en fullständig ombyggnad, från nya
 poster-bilder användaren laddade upp DIREKT EFTER motor-listan (inte
-begärt i förväg)** — Tiamat (befintlig, hel ombyggnad av en redan levande
-ultimate), samt de tre kort som avsnitt 8 länge listat som "medvetet
-hoppade över, inget källtext fanns": **The Celestial Judgment**, **The
-Infinite Seraph** och **The Eclipse Fenrir** fick nu sina första riktiga
-ultimates. Se avsnitt 5 för alla detaljer (nya delade motor-primitiver:
-`active.boardLeadBonus`, `active.debuffImmune`, `active.onWinDirectionalBoost`/
-`onWinDebuffOnce`, samt en delad `enemiesInDirection()`-helper). Endast
-`dragon`/`threeheaddragon` återstår nu från den gamla "inget källtext"-listan.
+begärt i förväg, i två omgångar samma session)** — Tiamat (befintlig, hel
+ombyggnad av en redan levande ultimate), samt fyra kort som avsnitt 8 länge
+listat som "medvetet hoppade över, inget källtext fanns": **The Celestial
+Judgment**, **The Infinite Seraph**, **The Eclipse Fenrir** och **Three
+Head Dragon** fick nu sina första riktiga ultimates. Se avsnitt 5 för alla
+detaljer (nya delade motor-primitiver: `active.boardLeadBonus`,
+`active.debuffImmune`, `active.destroyImmune`, `active.onWinDirectionalBoost`/
+`onWinDebuffOnce`/`onWinAreaDebuff`, `active.freezeDefenderPenalty`, samt en
+delad `enemiesInDirection()`-helper). **Three Head Dragons Apokalyps är det
+första skarpa kortet som faktiskt använder rond-klockan** sedan Tiamats
+ombyggnad tog bort dess enda tidigare användare (se punkt 1 ovan) — så
+primitiven har nu en levande användare igen. Endast `dragon` återstår nu
+från den gamla "inget källtext"-listan.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -174,7 +178,11 @@ Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
 Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell, Darien, Sylvarion,
 The Celestial Judgment, The Infinite Seraph, The Eclipse Fenrir (de sista
 tre tillkom i samma senare session som gjorde om Tiamat — se avsnitt 5:s
-sista underrubrik, direkt före avsnitt 5b).
+sista underrubrik, direkt före avsnitt 5b). **Three Head Dragon** fick sin
+FÖRSTA ultimate i samma batch men räknas inte i "34 av 44" ovan — den
+finns bara i `FOREST_FOES` (ett rent monster, ingen `HEROES`-dubblett,
+till skillnad från de fyra ovan), samma mönster som `dragon`/`ogre`/
+`wendigo` m.fl.
 
 **VIKTIGT — den gamla `dariensv`-dubbletten är BORTTAGEN** (kortobjekt,
 `CARD_IMAGES`/`FULL_CARD_IMAGES`-rader och bildfilerna själva). Fanns bara i
@@ -750,6 +758,92 @@ hakar syntes trigga i `captureBonus`-värdena på slutbrädet. `npm test`
 (den permanenta sviten) uppdaterades med sex nya tester och två omskrivna
 (rond-klockans tester pekade om till att anropa `SpecialVerbs.debuffThisRound`
 direkt istället för via Tiamat, se avsnitt 9) — alla 12 tester gröna.
+
+### Three Head Dragon — samma batch, skickad direkt efter (femte kortet)
+
+Bekräftar samma mönster: bara i `FOREST_FOES` (rent monster, ingen
+`HEROES`-dubblett). Gammal `role` ("Legendary Cosmic Card — The Trinity of
+Oblivion") och gammal `active:{shield:true}` (Trinity Bastion) TOGS BORT —
+den nya källan kallar kortet bara "Mystiskt Kort" och listar ingen
+"överlev första förlusten"-passiv alls bland sina fyra skills, så precis
+som Fenrirs borttagna Hunt of the Eclipse-bonus är det inte längre en del
+av kortet (ny källa = auktoritativ, inte additiv till den gamla).
+Stats `top:10, right:10, bottom:8, left:10` (bytte `right`/`bottom` från
+`8`/`9`). Konst: samma 941×1672-standardformat, denna gång fungerade
+STANDARDBESKÄRNINGEN direkt (dragontrion sitter längre ner i bilden,
+som Tiamats fem huvuden) — inget `y`-justeringsbehov den här gången.
+
+**Tre NYA delade primitiver** (utöver de från Tiamat/Judgment/Seraph/Fenrir
+ovan, samma additiva mönster):
+
+- **`active.freezeDefenderPenalty:N`** — läst i `fullEffectiveValue`, men
+  bara på DEFENDER-anropet (`role==='defense'`) och av `opponentCard.active`
+  (INTE kortets eget `active`) — första gången ett korts egen förmåga
+  påverkar HUR MOTSTÅNDAREN räknas, inte kortet självt. Respekterar
+  försvararens egen `debuffImmune` (samma regel som alla andra debuffs).
+  Isens Andtag: -2 på fiendens sida under just den attacken.
+- **`active.onWinAreaDebuff:N`** — tredje grenen i `checkOnWinBonuses`
+  (utökad med ett fjärde argument, `loserIndex`, så den kan hitta
+  FÖRLORARENS grannar) — permanent -1 alla sidor till varje FIENDE
+  ortogonalt intill den precis erövrade rutan. Till skillnad från
+  `onWinDirectionalBoost`/`onWinDebuffOnce` har den INGEN "en gång per
+  match"-spärr (källtexten nämner ingen), så den triggar vid varje vinst.
+  Eldens Vrede.
+- **`active.destroyImmune:true`** — kollas direkt i de tre
+  förstör-handlarna (`vaelira`/`nyxara`: hoppar över just det kortet i sin
+  `forEach`-loop, förstör resten som vanligt; `celestialjudgment`: faller
+  tillbaka till debuff-grenen istället för att förstöra). Skiljer sig
+  medvetet från Infinite Seraphs `protectedByInfiniteSeraph` (som skyddar
+  HELA sidan) — detta skyddar bara KORTET SJÄLVT, matchar källtextens
+  "Three Head Dragon can never be destroyed" (inte hans lagkamrater).
+  Odödlig Kaos.
+- **`SpecialVerbs.directionalBoost` respekterar nu också `debuffImmune`**
+  när `amount < 0` — behövdes för Three Souls, One Fury (se nedan) som är
+  första stället någon debuff appliceras via `directionalBoost` istället
+  för `debuff`/`debuffThisRound`. Alla tidigare anrop använde bara
+  positiva belopp på kastarens eget kort, så det här är bakåtkompatibelt.
+
+**Fyra skills, tre kopplade:**
+- Three Souls, One Fury (placerings-passiv) → ny `ON_PLACE_HANDLERS.threeheaddragon`:
+  ALLA fiendekort på HELA brädet (inte bara angränsande — källtexten säger
+  bara "alla fiendekort", ingen räckvidds-begränsning som Nalines/Fenrirs
+  riktningslinjer) får permanent -1 på sin EGEN svagaste sida (räknat på
+  kortets råa tryckta sifra, samma förenkling som Judgments
+  facing-side-koll använder).
+- Isens Andtag → `active.freezeDefenderPenalty:2`.
+- Eldens Vrede → `active.onWinAreaDebuff:1`.
+- Giftets Plåga ("vinnaren mot Three Head Dragon får -2 alla sidor under
+  sin NÄSTA attack") — **flavor only**, samma riskkategori som blev
+  anledningen till att Tiamats gamla ultimate byggdes om: en "väntande
+  bonus som konsumeras vid nästa attack" hade krävt en mutation inuti
+  `fullEffectiveValue`, en känslig och ofta anropad ren läsfunktion (även
+  använd av förhandsgranskningskod, inte bara riktiga strider) — samma
+  motivering som redan dokumenterad för Tiamat ovan.
+- Odödlig Kaos → `active.destroyImmune:true`.
+
+Ultimate **"Apokalyps"** (`targets:'aoe'`, kostnad 2): källtexten har två
+klausuler — "alla fiendekort -3 alla sidor DENNA RUNDA" (kopplad rakt av
+via `SpecialVerbs.debuffThisRound`, samma `enemies.forEach`-mönster som
+Torn/Sylvarion/Seraphine) och "Three Head Dragon +3 Power på en vald
+riktning UNDER DENNA ATTACK" (bortlämnad — en oriktad AOE utan brädmål har
+ingen enskild attack att fästa en riktad självbuff på, samma kategori av
+drop som Fenrirs Ragnarök-klausul ovan). **Detta är kortet som gör att
+rond-klockan (avsnitt 6) äntligen har en skarp användare igen** efter att
+Tiamats ombyggnad tog bort dess första.
+
+**AI-status**: `targets:'aoe'` hanteras redan helt generiskt (`executeSpecial`
+löser ut direkt, `enemyTryUseSpecial`s AOE-gren aktiverar den automatiskt
+om en fiende finns) — inget nytt AI-specialfall behövdes, till skillnad
+från de tre `targets:'direction'`-korten ovan.
+
+**Testat**: samma metodik som föregående fyra kort — en fristående
+Playwright-svit verifierade varje ny primitiv isolerat (svagaste-sida-
+träff med en påhittad asymmetrisk testkort, frysnings-straff med/utan
+Fenrirs immunitet, områdesdebuff träffar bara FIENDENS grannar inte
+kastarens egna, `destroyImmune` överlever Vaelira men blir debuffad av
+Judgment istället för förstörd, ultimatens rond-utgång i två steg) PLUS en
+full slumpad match med kortet tvingat in i fiendehanden — inga `pageerror`.
+Fem nya tester lades till i `tests/game.test.mjs` (totalt 17, alla gröna).
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 
@@ -1406,16 +1500,18 @@ användaren, bara idéer:
     LÖST för dessa två (plus `fenrir`, som var i samma läge) — användaren
     laddade upp fullständiga nya poster-bilder med riktiga ultimates för
     alla tre. Se avsnitt 5, underrubriken om Tiamat/Judgment/Seraph/Fenrir.**
-  - `threeheaddragon`s "Trinity Apocalypse" (`skills`-texten finns) säger
-    ordagrant "Takes control of every card on the board" — en bokstavlig
-    implementation är nära ett ögonblicksvinst-knapp för 3 wins och
-    riskerar att göra spelet meningslöst. Kräver ett balansbeslut från
-    användaren om hur kraftig effekten faktiskt ska vara innan den kodas.
+  - `threeheaddragon`s gamla "Trinity Apocalypse" (`skills`-texten fanns)
+    sa ordagrant "Takes control of every card on the board" — en bokstavlig
+    implementation låg nära en ögonblicksvinst-knapp för 3 wins. **UPPDATERING,
+    samma senare session som ovan: LÖST — användaren laddade upp en helt ny
+    poster med en mycket rimligare ultimate ("Apokalyps": alla fiendekort
+    -3 alla sidor i EN runda), som ersatte hela det gamla kortet (konst,
+    passiv, alla fyra skills). Se avsnitt 5.**
   - `dragon` (Ancient Wyrmking) har ingen special-textrad alls, bara en
     passiv `Ancient Shield` — samma läge som `celestialjudgment`/
-    `infiniteseraph` var i (se uppdateringen ovan; `dragon` och
-    `threeheaddragon` är nu de ENDA två kort i hela rostret som fortfarande
-    väntar på ett sådant designbeslut).
+    `infiniteseraph`/`threeheaddragon` var i (se uppdateringarna ovan;
+    `dragon` är nu ENDA kortet i hela rostret som fortfarande väntar på ett
+    sådant designbeslut).
 - **Bättre AI-targeting** för framtida icke-strid-specialattacker (se
   avsnitt 5/Kända problem för mönstret — Voidqueen och Tiamat har redan
   egna undantag).

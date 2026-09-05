@@ -313,6 +313,116 @@ test('The Eclipse Fenrir: Eternal Loyalty makes him immune to debuff() and debuf
   await page.close();
 });
 
+// Three Head Dragon was redesigned from a new source poster in the same
+// later session as Tiamat/Judgment/Seraph/Fenrir above (see PROJECT.md
+// section 5) — it's the card that finally gives the round-clock a live
+// user again after Tiamat's rebuild retired its only previous one.
+test('Three Head Dragon: on-place passive hits only each enemy\'s own weakest side', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.playerHand = [findCardById('threeheaddragon')];
+    const asym = { id:'asym-test', name:'Asym', top:8, right:3, bottom:9, left:7 };
+    state.board[1] = freshEntry(asym, 'red');
+    placeCard(4, 'threeheaddragon', 'blue');
+    const sb = state.board[1].sideBonus || {};
+    return { weakestSideHit: sb.right || 0, otherSidesUntouched: (sb.top||0) + (sb.bottom||0) + (sb.left||0) };
+  })()`);
+  assert.equal(result.weakestSideHit, -1);
+  assert.equal(result.otherSidesUntouched, 0);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Three Head Dragon: Ice\'s Breath freezes a defender unless it has debuffImmune', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const dragon = findCardById('threeheaddragon');
+    const dummy = { id:'dummy-test', name:'Dummy', top:5, right:5, bottom:5, left:5 };
+    const normalDefense = fullEffectiveValue(dummy, 'top', dragon, 99, 'red', 'defense') - dummy.top;
+    const fenrirCard = findCardById('fenrir');
+    const fenrirDefense = fullEffectiveValue(fenrirCard, 'top', dragon, 99, 'red', 'defense') - fenrirCard.top;
+    return { normalDefense, fenrirDefense };
+  })()`);
+  assert.equal(result.normalDefense, -2);
+  assert.equal(result.fenrirDefense, 0, 'Eternal Loyalty (debuffImmune) should block the freeze too');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Three Head Dragon: Fire\'s Wrath hits enemy neighbors of a just-captured square, not the winner\'s own', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.playerHand = [findCardById('threeheaddragon')];
+    state.board[1] = freshEntry({ id:'weak1', name:'Weak1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[0] = freshEntry({ id:'neighbor1', name:'Neighbor1', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = freshEntry({ id:'neighbor2', name:'Neighbor2', top:5,right:5,bottom:5,left:5 }, 'blue');
+    placeCard(4, 'threeheaddragon', 'blue');
+    return { capturedOwner: state.board[1].owner, enemyNeighborHit: state.board[0].captureBonus, ownNeighborUntouched: state.board[2].captureBonus };
+  })()`);
+  assert.equal(result.capturedOwner, 'blue');
+  assert.equal(result.enemyNeighborHit, -1);
+  assert.equal(result.ownNeighborUntouched, 0);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('active.destroyImmune: Vaelira/Nyxara skip it, The Celestial Judgment debuffs instead of destroying', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[1] = freshEntry(findCardById('threeheaddragon'), 'red');
+    state.board[2] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.vaelira({ srcEntry: state.board[0], owner: 'blue' });
+    const immuneSurvived = state.board[1] !== null;
+    const normalDestroyed = state.board[2] === null;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('celestialjudgment'), 'blue');
+    const fragileImmune = { id:'fragile-immune', name:'FragileImmune', top:2, right:5, bottom:5, left:5, active:{ destroyImmune:true } };
+    state.board[1] = freshEntry(fragileImmune, 'red');
+    SPECIAL_HANDLERS.celestialjudgment({ srcEntry: state.board[4], sourceIndex: 4, owner: 'blue', direction: 'up' });
+
+    return { immuneSurvived, normalDestroyed, judgmentDebuffedInstead: state.board[1] ? state.board[1].captureBonus : 'destroyed' };
+  })()`);
+  assert.equal(result.immuneSurvived, true);
+  assert.equal(result.normalDestroyed, true);
+  assert.equal(result.judgmentDebuffedInstead, -1);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Three Head Dragon: Apokalyps debuffs all enemies for the rest of the round, then expires', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    const dragonSrc = freshEntry(findCardById('threeheaddragon'), 'blue');
+    const enemy = freshEntry({ id:'e1', name:'E1', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[0] = dragonSrc;
+    state.board[1] = enemy;
+    state.turnCount = 100;
+    SPECIAL_HANDLERS.threeheaddragon({ srcEntry: dragonSrc, owner: 'blue' });
+    const afterCast = enemy.captureBonus;
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterOneSweep = enemy.captureBonus;
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterTwoSweeps = enemy.captureBonus;
+    return { afterCast, afterOneSweep, afterTwoSweeps };
+  })()`);
+  assert.equal(result.afterCast, -3);
+  assert.equal(result.afterOneSweep, -3, 'should still apply through the opponent\'s reply');
+  assert.equal(result.afterTwoSweeps, 0, 'should be gone by the caster\'s next turn');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
