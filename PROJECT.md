@@ -17,9 +17,9 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Klart, COMMITTAT på sessionens feature-branch men INTE ÄNNU MERGAT till
-`main`** — fråga användaren explicit innan merge (aldrig anta tillstånd
-från en tidigare merge). Två delar denna session:
+**Klart och MERGAT till `main`** (användaren bekräftade explicit). Två
+delar denna session — som alltid, en ny session kan börja direkt på ett
+rent läge, ingen väntande merge:
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
