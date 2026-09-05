@@ -1,0 +1,12 @@
+{
+  "name": "triad-arena-tests",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only tooling for Triad Arena. The game itself (index.html) has zero dependencies — see PROJECT.md section 9.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

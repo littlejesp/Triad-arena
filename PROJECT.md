@@ -17,19 +17,19 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Pågående: en liten motor/kvalitet-lista, vald av användaren efter att ha
-bett om förbättringsförslag.** Ordning (rond-räkning → AOE-erövringsbanner →
-testsvit), valt av användaren själv. Arbetsflödet: jobba på
-sessionens feature-branch, fråga användaren explicit inför VARJE merge till
-`main` (aldrig anta tillstånd från en tidigare merge), merga, gå tillbaka
-till feature-branchen.
+**Klart: en liten motor/kvalitet-lista, vald av användaren efter att ha
+bett om förbättringsförslag.** Allt nedan är COMMITTAT på sessionens
+feature-branch men INTE ÄNNU MERGAT till `main` — fråga användaren
+explicit innan merge (aldrig anta tillstånd från en tidigare merge).
 
-- ✅ **Rond-räkningssystem** — klart, se ny underrubrik i avsnitt 6 och
+- ✅ **Rond-räkningssystem** — se ny underrubrik i avsnitt 6 och
   uppdaterad post i avsnitt 7. Tiamats Weakening/Defense är första och
   hittills enda kortet som använder det.
-- ✅ **AOE-specialer triggar nu "ERÖVRAD"-bannern** — klart, se avsnitt 6
+- ✅ **AOE-specialer triggar nu "ERÖVRAD"-bannern** — se avsnitt 6
   ("ERÖVRAD-bannern och AOE-specialer").
-- ⏳ **Ingen automatiserad testsvit i repot** — sist på listan.
+- ✅ **Automatiserad testsvit** — `package.json` + `tests/` tillagt, se
+  avsnitt 9 för hur man kör den och avsnitt 7 för vad den (ännu inte)
+  täcker.
 
 Parallellt, INTE en del av den här listan: användaren håller själv på att
 göra om 5 befintliga kort till bossar (bekräftat att varken Ferea eller
@@ -1007,9 +1007,14 @@ att bekräfta att vanlig enkelmåls-erövring fortfarande fungerar som förut.
   stapling på Ferea, kortstöld-från-hand på Twisted Gipsy, däckmanipulation
   på Ferea, m.fl.) — kan nu göras mer troget med rond-klockan om/när det blir
   aktuellt.
-- **Ingen automatiserad testsvit i repot.** All verifiering görs manuellt per
-  session: en tillfällig `python3 -m http.server` + Playwright-skript i
-  `/tmp` (kastas vid sessionsslut). Se avsnitt 9 om ni vill återskapa flödet.
+- **En automatiserad testsvit finns nu** (`tests/` + `npm test`, se avsnitt
+  9) men täcker bara ett litet urval: grundmotorns flip/erövring, rond-
+  klockan och conquest-bannerns AOE-fix, plus en full slumpad match end-to-
+  end. Det mesta av spelets ~31 ultimates har fortfarande INGEN automatisk
+  regressionstest — manuell verifiering (state-injicering + Playwright,
+  kastas efter varje session) är fortsatt normen för nytt kortarbete. Bygg
+  gärna ut `tests/game.test.mjs` per nytt kort istället för att bara testa
+  manuellt, om det är rimligt utan att sakta ner iterationstakten för mycket.
 
 ## 8. Att göra / naturliga nästa steg (historik från ÄLDRE sessioner — se avsnitt 1b för DEN SENASTE sessionens arbete)
 
@@ -1188,11 +1193,26 @@ användaren, bara idéer:
   `git checkout <arbetsbranch>` igen. Fråga användaren om detta fortfarande
   är rätt flöde om lång tid gått.
 - **Testverktyg** (bara för utveckling, inte del av produkten): Python
-  (`http.server`) för att servera filen lokalt + Playwright/Chromium
-  (`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`, flagga
-  `--no-sandbox`) för att klicka igenom flöden och ta skärmdumpar. Skriv
-  alltid ett `node --check` på det extraherade `<script>`-innehållet innan
-  commit (script-taggens innehåll, se tidigare sessioner för exakt kommando).
+  (`http.server`) eller Node (se `tests/server.mjs`) för att servera filen
+  lokalt + Playwright/Chromium för att klicka igenom flöden och ta
+  skärmdumpar. Skriv alltid ett `node --check` på det extraherade
+  `<script>`-innehållet innan commit (script-taggens innehåll, se tidigare
+  sessioner för exakt kommando).
+- **Automatiserad testsvit** (`package.json` + `tests/`, tillagd en senare
+  session — se avsnitt 6 för VAD den täcker): `npm install && npx
+  playwright install chromium && npm test`. Node:s inbyggda testrunner
+  (`node --test`, inga extra testberoenden behövs utöver Playwright självt)
+  + riktig headless Chromium som laddar `index.html` från en liten
+  Node-server (`tests/server.mjs`) och anropar motorns globala
+  funktioner/`state` direkt via `page.evaluate(...)` — samma
+  "state-injicerings"-stil som redan användes för manuell testning i
+  tidigare sessioner (se t.ex. Pallis & Pell-testerna i avsnitt 5b), bara
+  permanent i repot istället för ett engångsskript i `/tmp`. Blockerar
+  Google Fonts-`@import`:et (och all annan extern trafik) per sida så
+  testerna kör snabbt och offline (~1s/test istället för ~13s). Täcker inte
+  UI-klick/DOM-rendering, bara motorlogiken — se testfilens egen
+  toppkommentar. `node_modules/` är gitignorat, `playwright` är den enda
+  dev-dependencyn.
 - **Bildbeskärning**: fullbilder är 941×1672. Standardbeskärning för
   thumbnails: `crop((140,300)-(800,731))` → resize till 640×418, kvalitet 90.
   Justera y-start (±30-100px) om ansiktet hamnar för högt/lågt eller om
