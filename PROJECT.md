@@ -786,6 +786,28 @@ Testat med Playwright: knappen togglar panelen korrekt (text växlar
 "Read"/"Hide"), alla sex kapitel renderas med rätt rubriker/stycken,
 sidan scrollar normalt, inga `pageerror`.
 
+### Multiplayer — medvetet uppskjutet
+
+Diskuterat men INTE påbörjat: hela spelet är idag en helt fristående
+klientsida HTML-fil (ingen backend, ingen server, bara `localStorage` för
+campaign-progress) — riktig multiplayer (två spelare på olika enheter)
+kräver ett synk-lager av något slag. Tre vägar diskuterade:
+
+1. **Serverless realtids-databas** (t.ex. Firebase/Supabase) — passar bra
+   för ett turordningsbaserat spel som inte är latency-känsligt, ingen egen
+   server att drifta, men binder spelet till en extern tjänst (API-nycklar,
+   säkerhetsregler, gratisnivå-gränser).
+2. **Egen WebSocket-server** — mest kontroll, men kräver riktig serverdrift
+   (funkar INTE på ren statisk hosting som GitHub Pages, vilket är hur
+   spelet körs idag).
+3. **Peer-to-peer (WebRTC)** — ingen backend alls, men kräver någon form av
+   "mötesplats" för att två spelare ska hitta varandra (signalering), och
+   är klurigare att få robust.
+
+Användarens beslut: vänta med multiplayer tills spelet är mer komplett
+(mer innehåll, bättre balans) innan nätverkskomplexitet läggs till. Ingen
+kod skriven för detta ännu — ren framtida bordsanteckning.
+
 ## 6. Övriga viktiga funktioner (grundmotor — rör försiktigt)
 
 `placeCard` → `resolveFlips` → `battleNeighbors`/`computeSamePlusCaptures`
