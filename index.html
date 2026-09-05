@@ -3847,8 +3847,16 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
 
   const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
   if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
+  // Snapshot which cells were already flagged justFlipped (from an earlier
+  // action still mid-animation) so an AOE handler's captures — e.g. Pallis &
+  // Pell's Hunter's Wrath, which has no single targetEntry to check — are
+  // still detected below without also re-triggering the banner for a stale
+  // flip that isn't this special's doing.
+  const alreadyFlipped = new Set();
+  state.board.forEach((e, i) => { if(e && e.justFlipped) alreadyFlipped.add(i); });
   state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
-  if(targetEntry && targetEntry.owner === owner && targetEntry.justFlipped){
+  const captured = state.board.some((e, i) => e && e.owner === owner && e.justFlipped && !alreadyFlipped.has(i));
+  if(captured){
     showConquestPopup(owner);
   }
 

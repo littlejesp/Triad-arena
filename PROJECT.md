@@ -27,7 +27,8 @@ till feature-branchen.
 - ✅ **Rond-räkningssystem** — klart, se ny underrubrik i avsnitt 6 och
   uppdaterad post i avsnitt 7. Tiamats Weakening/Defense är första och
   hittills enda kortet som använder det.
-- ⏳ **AOE-specialer triggar inte "ERÖVRAD"-bannern** — näst på tur.
+- ✅ **AOE-specialer triggar nu "ERÖVRAD"-bannern** — klart, se avsnitt 6
+  ("ERÖVRAD-bannern och AOE-specialer").
 - ⏳ **Ingen automatiserad testsvit i repot** — sist på listan.
 
 Parallellt, INTE en del av den här listan: användaren håller själv på att
@@ -956,6 +957,35 @@ som mall för framtida kort.
   `turnCount++`/sopnings-koden i `advanceTurn` inte stör vanlig
   tursväxling — inga `pageerror`.
 
+### ERÖVRAD-bannern och AOE-specialer
+
+`runSpecialResolution`s conquest-banner-koll använde ursprungligen bara
+`targetEntry.owner === owner && targetEntry.justFlipped` — fungerar för
+`targets:'single'`-kort (`targetEntry` är då den fiende som eventuellt
+flippades) men AOE-specialer (`targets:'aoe'`) har ingen `targetIndex` alls,
+så `targetEntry` var alltid `null` för dem — bannern triggades aldrig även
+när t.ex. Pallis & Pells Hunter's Wrath faktiskt erövrade kort.
+
+Löst utan att röra en enda `SPECIAL_HANDLERS`-funktion: handlern som
+FAKTISKT erövrar ett kort satte redan `entry.justFlipped = true` på den
+erövrade rutan (Pallis & Pell gjorde redan detta, precis som alla
+enkelmåls-kort) — kollen i `runSpecialResolution` byttes bara ut mot en
+brädsvepning: `state.board.some(e => e && e.owner === owner &&
+e.justFlipped && ...)`. Enda extra steget: ett snapshot av VILKA celler som
+redan var flaggade `justFlipped` INNAN handlern körs (kvarlevor från en
+tidigare, fortfarande-animerande händelse inom samma 1300ms-sopningsfönster,
+se avsnitt 6 ovan) subtraheras bort, så en gammal flagga aldrig räknas som
+en ny erövring. Fungerar nu identiskt för `single` och `aoe` utan att
+handlarna behöver rapportera något extra.
+
+Testat direkt mot `runSpecialResolution` (state-injicering): Pallis & Pells
+Hunter's Wrath (AOE, faktisk erövring) → bannern visas korrekt; Deathblades
+Shadow Assault (enkelmål, positionsbyte + debuff, ALDRIG en erövring) →
+ingen banner, som förut; en konstruerad kvarvarande `justFlipped`-flagga
+någon annanstans på brädet före en Torn-attack (AOE-debuff, erövrar aldrig
+någon) → ingen falsk banner. Även en full end-to-end-match kördes om för
+att bekräfta att vanlig enkelmåls-erövring fortfarande fungerar som förut.
+
 ## 7. Kända problem
 
 - **AI:ts special-targeting** är i grunden en generisk "vinn
@@ -1045,11 +1075,11 @@ motsvarighet (`conquered-badge-red.png`, samma text/komposition men i röd
 palett), så nu triggas bannern för BÅDA sidor: `state.conquestPopup`
 håller vilken sida ('blue'/'red') som erövrade, och `<img>`-taggens `src`
 väljer rätt fil därefter (se `.conquest-banner`-CSS-kommentaren för
-detaljer). Medveten begränsning, KVARSTÅR fortfarande: bara enkelmåls-fall
-täcks — AOE-specialer (Pallis & Pell, Torn, Evil Twist Yin) har ingen
-`targetEntry` att kolla mot i den generiska wrappern, så de triggar den
-inte; skulle kräva att varje handler själv rapporterade vilka index som
-flippades.
+detaljer). Medveten begränsning vid den tidpunkten: bara enkelmåls-fall
+täcktes — AOE-specialer (Pallis & Pell, Torn, Evil Twist Yin) hade ingen
+`targetEntry` att kolla mot i den generiska wrappern, så de triggade den
+inte. **Åtgärdat i en senare session — se avsnitt 6, "ERÖVRAD-bannern och
+AOE-specialer".**
 
 **Uppföljning samma session — tempo:** användaren tyckte fortfarande att
 allt gick för fort och att kort "flippas hej vilt" när flera kort flippar
