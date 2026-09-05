@@ -1844,6 +1844,7 @@ let state = {
   specialMode: null,      // { sourceIndex, special } while awaiting a target click for a special attack
   extraTurnPending: null, // owner who gets to act again instead of passing the turn
   placedThisTurn: false,  // true once the active side has placed their one card for this turn
+  turnCount: 0,           // increments on every real turn switch (see advanceTurn) — powers "this round" effects
 };
 
 function uid(card, owner){ return owner + ':' + card.id; }
@@ -3036,6 +3037,8 @@ function advanceTurn(owner){
   }
   state.placedThisTurn = false;
   state.turn = owner === 'blue' ? 'red' : 'blue';
+  state.turnCount++;
+  sweepExpiredRoundEffects();
   render();
 
   if(state.turn === 'red'){
@@ -3097,7 +3100,36 @@ const SpecialVerbs = {
     if(!entry.sideBonus) entry.sideBonus = { top:0, right:0, bottom:0, left:0 };
     sides.forEach(s => { entry.sideBonus[s] = (entry.sideBonus[s] || 0) + amount; });
   },
+  // Same as debuff(), but reversed automatically once the round it was cast
+  // in has passed — for source text that explicitly says "this round"
+  // (e.g. Tiamat's Weakening) instead of a permanent penalty. Backed by
+  // `entry.tempEffects` + `sweepExpiredRoundEffects()` below; see the
+  // comment there for what "a round" means here.
+  debuffThisRound(entry, amount){
+    entry.captureBonus -= amount;
+    entry.tempEffects = entry.tempEffects || [];
+    entry.tempEffects.push({ captureDelta: -amount, expiresAtTurnCount: state.turnCount + 2 });
+  },
 };
+
+// Reverses any SpecialVerbs.*ThisRound effect whose window has closed.
+// "A round" = one full back-and-forth: the effect survives the rest of the
+// caster's own turn AND the opponent's very next turn, then is undone right
+// as it becomes the caster's turn again (`state.turnCount` ticks once per
+// turn switch in advanceTurn, so +2 turns = "through the opponent's reply").
+// Deliberately symmetric for either side casting it. Call this at every
+// turn switch, not just once per round, so it never runs stale by more than
+// one turn regardless of which side started the clock.
+function sweepExpiredRoundEffects(){
+  state.board.forEach(entry => {
+    if(!entry || !entry.tempEffects || entry.tempEffects.length === 0) return;
+    entry.tempEffects = entry.tempEffects.filter(effect => {
+      if(effect.expiresAtTurnCount > state.turnCount) return true;
+      entry.captureBonus -= effect.captureDelta;
+      return false;
+    });
+  });
+}
 
 function totalPower(entry){
   const c = entry.card;
@@ -3412,11 +3444,11 @@ const SPECIAL_HANDLERS = {
   // Tiamat's five powers don't all fit the same shape (a self-buff, a flat
   // debuff, a shield-break, and an actual win/flip attempt are mechanically
   // different things) — this is a simplified reading of "The Fivefold
-  // Apocalypse", picked to be reasonable rather than a literal transcription:
-  // Defense and Weakening collapse into the same effect once "this round"
-  // effects are simplified to permanent (per the engine's existing
-  // convention — see PROJECT.md's Known Problems), so those two choices
-  // are mechanically identical here.
+  // Apocalypse", picked to be reasonable rather than a literal transcription.
+  // Defense ("enemy -1 all sides") and Weakening ("enemy -1 all sides this
+  // round") are now genuinely distinct now that the engine has a round
+  // clock (see SpecialVerbs.debuffThisRound/sweepExpiredRoundEffects) —
+  // Defense is permanent, Weakening wears off after the target's next turn.
   tiamat({ srcEntry, targetEntry, targetIndex, owner, power }){
     const name = srcEntry.card.name;
     switch(power){
@@ -3424,9 +3456,11 @@ const SPECIAL_HANDLERS = {
         SpecialVerbs.attackBoost(srcEntry, 2);
         return `${name} channels the Fivefold Apocalypse — Attack surges within her!`;
       case 'defense':
-      case 'weakening':
         SpecialVerbs.debuff(targetEntry, 1);
         return `${name}'s Fivefold Apocalypse saps ${targetEntry.card.name}!`;
+      case 'weakening':
+        SpecialVerbs.debuffThisRound(targetEntry, 1);
+        return `${name}'s Fivefold Apocalypse weakens ${targetEntry.card.name} for this round!`;
       case 'breakthrough': {
         const hadShield = isShielded(targetEntry, targetIndex);
         if(hadShield){ targetEntry.shieldUsed = true; targetEntry.shieldFlash = true; }
@@ -4208,6 +4242,7 @@ function resetGame(){
     log:'Choose the five champions who will carry your banner.', winner:null,
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
+    turnCount: 0,
   };
   render();
 }

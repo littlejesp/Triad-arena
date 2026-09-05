@@ -17,12 +17,28 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Inget pågående eller avbrutet arbete.** Allt som beskrivs i det här
-dokumentet är committat OCH mergat till `main` — en ny session kan börja
-direkt på ett rent, körbart läge. Arbetsflödet hela sessionen har varit:
-jobba på en feature-branch, fråga användaren explicit inför VARJE merge
-till `main` (aldrig anta tillstånd från en tidigare merge), merga, gå
-tillbaka till feature-branchen. Fortsätt så tills användaren säger annat.
+**Pågående: en liten motor/kvalitet-lista, vald av användaren efter att ha
+bett om förbättringsförslag.** Ordning (rond-räkning → AOE-erövringsbanner →
+testsvit), valt av användaren själv. Arbetsflödet: jobba på
+sessionens feature-branch, fråga användaren explicit inför VARJE merge till
+`main` (aldrig anta tillstånd från en tidigare merge), merga, gå tillbaka
+till feature-branchen.
+
+- ✅ **Rond-räkningssystem** — klart, se ny underrubrik i avsnitt 6 och
+  uppdaterad post i avsnitt 7. Tiamats Weakening/Defense är första och
+  hittills enda kortet som använder det.
+- ⏳ **AOE-specialer triggar inte "ERÖVRAD"-bannern** — näst på tur.
+- ⏳ **Ingen automatiserad testsvit i repot** — sist på listan.
+
+Parallellt, INTE en del av den här listan: användaren håller själv på att
+göra om 5 befintliga kort till bossar (bekräftat att varken Ferea eller
+Twisted Gipsy är bland dem, så deras "Flavor only"-kopplingar i avsnitt 8
+är fortfarande fritt fram att göra separat om det blir aktuellt). Inget
+kortarbete påbörjat härifrån ännu — vänta på att användaren skickar
+design/bilder för de 5 korten innan något kodas.
+
+Allt ANNAT i det här dokumentet (Campaign, NG+, Triple Triad Sisters, hela
+grundmotorn) är sedan tidigare committat OCH mergat till `main`.
 
 Tre spellägen finns sida vid sida (`state.draftMode`): **Random Draft**
 (ursprungligt läge, slumpad hand), **Choose Your Five** (välj fritt ur
@@ -899,6 +915,47 @@ specificitet vinner hela egenskapen, resten av reglerna ignoreras helt för
 den egenskapen) — ett separat barn-element med sin egen animation undviker
 hela den kategorin krockar helt.
 
+### Rond-klockan (`state.turnCount` / `sweepExpiredRoundEffects`)
+
+Ny, minimal primitiv för att äntligen kunna skilja "denna runda" från
+"permanent" — svar på det äldsta kända problemet i avsnitt 7. Medvetet
+INTE tillämpad överallt på en gång (se avsnitt 1b/7 för varför); bara
+Tiamats Weakening använder den hittills, som bevis på att den fungerar och
+som mall för framtida kort.
+
+- `state.turnCount` ökar med 1 varje gång `advanceTurn` faktiskt växlar
+  `state.turn` (INTE vid `extraTurnPending`-grenen, eftersom ingen
+  motståndartur då hinner ske). Nollställs i båda `state`-konstruktionerna
+  (grundinit + `resetGame()`), precis som alla andra transienta fält.
+- **En "runda" definieras symmetriskt**: en tillfällig effekt överlever
+  resten av kastarens egen tur OCH motståndarens NÄSTA tur, och tas bort
+  precis när det blir kastarens tur igen (`expiresAtTurnCount = turnCount +
+  2` vid skapandet). Samma regel oavsett vilken sida som kastar — testat
+  explicit åt båda hållen.
+- `SpecialVerbs.debuffThisRound(entry, amount)` är den enda nya verben
+  hittills — samma signatur som `debuff`, men bokför en post i
+  `entry.tempEffects` (`{captureDelta, expiresAtTurnCount}`).
+  `sweepExpiredRoundEffects()` (anropas i `advanceTurn` direkt efter
+  `turnCount++`) går igenom HELA brädet varje tursväxling och river tillbaka
+  `captureDelta` för varje post vars `expiresAtTurnCount` har passerats.
+- Skrivet generellt nog för framtida `directionalBoost`/`attackBoost`-
+  varianter (`sideDeltas`-hantering finns redan i sopningen även om ingen
+  verb sätter det ännu) — kopiera mönstret, inte bara `debuffThisRound`,
+  om nästa kort behöver en tillfällig sido- eller helkorts-boost istället
+  för en debuff.
+- **Tiamat** (`SPECIAL_HANDLERS.tiamat`): "Defense" (`enemy -1 all sides`,
+  originaltext utan tidsbegränsning) och "Weakening" (`enemy -1 all sides
+  this round`) var identiska i koden innan (båda `SpecialVerbs.debuff`) —
+  nu använder Weakening `debuffThisRound` och är på riktigt tillfällig,
+  Defense är oförändrad (permanent). Testat direkt mot `SPECIAL_HANDLERS`
+  (state-injicering, ingen UI-klick behövdes): debuffen kvarstår genom
+  motståndarens svarsdrag och försvinner exakt vid kastarens nästa tur, i
+  båda riktningar (blå kastar mot röd, röd kastar mot blå), Defense
+  opåverkad genom samma sopningar. Även en full spelomgång kördes end-to-
+  end (draft → 9 placeringar → resultat) för att bekräfta att den nya
+  `turnCount++`/sopnings-koden i `advanceTurn` inte stör vanlig
+  tursväxling — inga `pageerror`.
+
 ## 7. Kända problem
 
 - **AI:ts special-targeting** är i grunden en generisk "vinn
@@ -908,14 +965,18 @@ hela den kategorin krockar helt.
   använda dem meningsfullt. **Pallis och Naline aktiveras aldrig av AI:t**
   just nu (guardad bort för att inte krascha — se avsnitt 5) tills de får
   en egen dedikerad gren.
-- **Ingen rond-räkning** finns i motorn. Alla "X denna runda"-effekter i
-  originaltexterna är förenklade till "resten av matchen" (permanent). Flera
-  passiva förmågor är rena "(Flavor only)"-texter, inte kopplade alls
-  (Frostmark-stapling på Ferea, kortstöld-från-hand på Twisted Gipsy,
-  däckmanipulation på Ferea, m.fl.). Konkret exempel på hur detta urvattnar
-  korddesign: Tiamats "Defense" och "Weakening"-val i Fivefold Apocalypse var
-  i originaltexten skilda (en permanent, en "this round") men blir samma
-  kod-effekt (`SpecialVerbs.debuff`) här — se `SPECIAL_HANDLERS.tiamat`.
+- **Rond-räkning finns nu (se avsnitt 6, "Rond-klockan"), men bara EN effekt
+  använder den hittills** (Tiamats Weakening — se `SpecialVerbs.debuffThisRound`).
+  Alla ANDRA "X denna runda"-effekter i originaltexterna (t.ex. Bahamuts
+  Megaflare "+1 alla sidor denna runda om han vinner", Tiamats egna passiva
+  förmågor Fivefold Catastrophe/Five Heads One Will) är fortfarande medvetet
+  förenklade till permanenta — de använder samma gamla mönster som innan och
+  har INTE gjorts om, för att inte ändra balansen på massvis av redan
+  godkända kort utan att fråga användaren först. Flera passiva förmågor är
+  fortsatt rena "(Flavor only)"-texter, inte kopplade alls (Frostmark-
+  stapling på Ferea, kortstöld-från-hand på Twisted Gipsy, däckmanipulation
+  på Ferea, m.fl.) — kan nu göras mer troget med rond-klockan om/när det blir
+  aktuellt.
 - **Ingen automatiserad testsvit i repot.** All verifiering görs manuellt per
   session: en tillfällig `python3 -m http.server` + Playwright-skript i
   `/tmp` (kastas vid sessionsslut). Se avsnitt 9 om ni vill återskapa flödet.
