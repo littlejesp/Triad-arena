@@ -156,8 +156,12 @@ fanns i rostret innan den här sessionen. Fixat: `onWinLineDestroy`
 från källtexten (dokumenterat tydligt, går att backa). Polering del 1
 (klar): rollnamnet döljs på brädets in-play-kort (för långt för de nyaste
 kortens roller, hamnade utanför konstens mörkläggnings-gradient). Polering
-del 2 (tydligare flash-feedback för multi-mål-effekter) undersökt men
-medvetet pausad för avstämning — större refaktorering. Se avsnitt 5:s
+del 2 (klar, byggd efter "Kör på det"): en ny delad `flashStatChange()`
+inkopplad direkt i `SpecialVerbs`s stat-ändrande metoder ger HELA rostret
+(inte bara nya kort) en `+`/`-N Power`-popup per drabbat kort, och nya
+`state.destroyGhosts` låter ett förstört kort tona bort synligt istället
+för att bara försvinna — båda återanvänder befintliga
+1300ms-städnings-timers, ingen ny tajming-mekanik behövdes. Se avsnitt 5:s
 allra sista underrubrik för fullständiga detaljer.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
@@ -1532,30 +1536,60 @@ polerings-möjlighet. Samma "släpp minst nödvändig info först"-princip som
 redan fanns för `.hand-row.enemy .card-role` — hela rollen är fortfarande
 en tryckning bort via info-knappen.
 
-**Polering, del 2 (INTE påbörjad, avsiktligt pausad för avstämning)**:
-"tydligare UI-feedback när flera effekter triggar samtidigt". Undersökt
-men inte kodat: multi-mål-ultimates (destroy-alla, debuff-alla) sätter
-bara `attackFlash`/`bonusFlash` på ETT `targetEntry` (singel-mål-flödet i
-`runSpecialResolution`) — AOE/riktnings-effekter med `targetIndex:null`
-får INGEN visuell flash alls på de faktiskt drabbade rutorna, bara en
-sammanfattande textrad i `state.log`. Att fixa det ordentligt för HELA
-rostret (inte bara de nyaste korten) är ett större jobb: dels lägga
-`attackFlash`/en ny debuff-variant av `bonusFlash` (som idag hårdkodar
-ett `+`-tecken — måste generaliseras för negativa belopp) på varje
-träffad ruta i ett dussintal handlers, dels — för FÖRSTÖRDA kort
-specifikt — inte bara osynligt sätta `state.board[i]=null` utan att
-fördröja den faktiska borttagningen tills en flash hunnit synas (kräver
-ett nytt "väntar på att försvinna"-visuellt tillstånd, inte bara en
-flagga). Pausad här för avstämning med användaren innan den större
-refaktoreringen påbörjas.
+**Polering, del 2 (klar, byggd efter "Kör på det")**: "tydligare
+UI-feedback när flera effekter triggar samtidigt". Löst med två separata
+mekanismer, båda centraliserade i motorns delade lager istället för
+utspridda över ett dussintal handlers (samma arkitektur-princip som
+`isDebuffImmuneNow`/`isDestroyImmune` redan etablerat i tidigare batchar):
 
-**Testat**: två nya tester i `tests/game.test.mjs` — World Shatter/Abyssal
-Grasp förstör linjen vid FÖRSTA vinsten men INTE vid en andra vinst av
-samma kort (verifierar den nya spärren). CSS-ändringen är visuell, ingen
-ny logik-test behövdes (verifierad manuellt via Playwright-skärmdump i
-mobil viewport). Inga `pageerror`. `tests/game.test.mjs`: 37 tester
-totalt (samma antal — två nya tester lades till i befintliga testfall
-snarare än som nya `test()`-block), alla gröna.
+- **`flashStatChange(entry, signedAmount)`** — en ny delad hjälpfunktion,
+  inkopplad direkt i VARENDA `SpecialVerbs`-metod som faktiskt ändrar en
+  Power-siffra (`attackBoost`, `debuff`, `directionalBoost`,
+  `debuffThisRound`, `buffThisRound`, `stealPower` på BÅDA sina kort).
+  Eftersom ALLA stat-ändringar i hela motorn redan går genom just dessa
+  metoder (samma choke-point som debuffImmune/buffLockedUntilTurnCount
+  redan utnyttjar), gav den HÄR ena ändringen automatiskt visuell feedback
+  åt HELA rostret — även gamla, redan mergade kort — inte bara de nyaste
+  bossarna. Sätter samma `bonusFlash`/`bonusAmount` som redan fanns för
+  singel-mål-specialer (via `runSpecialResolution`), fast nu med STÖD FÖR
+  NEGATIVA belopp: `cardFace()`s popup-mall hårdkodade tidigare ett
+  `+`-tecken (`+${amount} Power`), generaliserad till att visa `-N Power` i
+  en ny röd `.skill-pop.bonus-negative`-stil när beloppet är negativt,
+  istället för den gröna `.skill-pop.bonus`. Flashar ALDRIG vid en
+  blockerad ändring (debuffImmune/buffLocked) eftersom `flashStatChange`
+  bara anropas EFTER att `captureBonus` faktiskt uppdaterats — ingen risk
+  för en missvisande popup på ett no-op.
+- **`state.destroyGhosts`** — en ny array av `{index, card, owner}`,
+  fylld av `destroyCard()` INNAN cellen töms. `boardCellHtml()` renderar
+  en tonande "spillra" av det förstörda kortet (`cardFace(ghost.card,
+  {destroyed:true, noInfo:true})`, en ny `.destroy-ghost`-CSS-animation:
+  ~1.2s blekning + lätt rotation/skalning + en färgskiftning mot rött,
+  plus en "💥 Destroyed!"-popup) istället för att bara låta rutan bli tom
+  direkt. Städas av EXAKT samma två redan existerande 1300ms-timeouts som
+  redan rensar `attackFlash`/`bonusFlash`/`shieldFlash` (en i
+  `placeCard()`, en i `runSpecialResolution()`) — ingen ny timer behövdes.
+  Löste alltså det jag ursprungligen trodde skulle kräva "ett nytt
+  väntar-på-att-försvinna-tillstånd": datamodellen (`state.board[i]`)
+  töms fortfarande OMEDELBART (så all annan spellogik som läser brädet
+  direkt efter en destroy förblir korrekt, orörd), men RENDERINGEN har nu
+  ett separat, kortlivat spår av vad som just stod där.
+
+Resultat: en ultimate som slår flera mål samtidigt (destroy + debuff
+blandat, t.ex. Kaeldryx's Dragonslayer) visar nu en tydlig, distinkt
+visuell markering PER RUTA (röd "-N Power" på debuffade kort, en tonande
+spillra + "💥 Destroyed!" på förstörda kort) — inte bara den befintliga
+sammanfattande textraden i `state.log`.
+
+**Testat**: ett nytt test i `tests/game.test.mjs` (två sidor — en snabb
+del för själva flash-logiken, en andra separat sida för att verifiera att
+`destroyGhosts` faktiskt töms efter den riktiga 1300ms-timern utan att
+sakta ner resten av testfilen) plus två nya tester i befintliga testfall
+för World Shatter/Abyssal Grasps engångsspärr (från balanspasset ovan).
+En separat Playwright-skärmdump bekräftade visuellt att en Dragonslayer-
+aktivering samtidigt visar en röd "-3 Power"-popup på två debuffade kort
+OCH en tonande, röd-tonad spillra + "💥 Destroyed!" på det förstörda
+draken, i en och samma rendering. Inga `pageerror`. `tests/game.test.mjs`:
+38 tester totalt, alla gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

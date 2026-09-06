@@ -728,6 +728,21 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   background:rgba(7,10,4,0.88); border:1px solid #8fd15a; color:#c8f2a0;
   box-shadow:0 0 16px rgba(143,209,90,0.5);
 }
+/* The debuff counterpart of .skill-pop.bonus — same popup, red instead of
+   green, used whenever bonusAmount is negative (see cardFace()). Lets any
+   effect that lowers a card's Power via SpecialVerbs (debuff/
+   debuffThisRound/stealPower/directionalBoost, now flashed generically —
+   see flashStatChange) show it just as clearly as a positive bonus does,
+   including on AOE/direction targets that previously got no per-card
+   feedback at all. */
+.skill-pop.bonus-negative{
+  background:rgba(12,5,4,0.88); border:1px solid var(--red-side); color:#ffb8a0;
+  box-shadow:0 0 16px rgba(184,69,46,0.5);
+}
+.skill-pop.destroy{
+  background:rgba(12,5,4,0.9); border:1px solid var(--red-side); color:#ffcfae;
+  box-shadow:0 0 18px rgba(184,69,46,0.65);
+}
 @keyframes popFade{
   0%{ opacity:0; transform:translate(-50%,-15%) scale(0.55); }
   18%{ opacity:1; transform:translate(-50%,-50%) scale(1.1); }
@@ -756,6 +771,25 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   22%{ opacity:1; }
   55%{ transform:rotate(-26deg) scaleX(1); opacity:1; }
   100%{ transform:rotate(-26deg) scaleX(1); opacity:0; }
+}
+
+/* destroy-ghost: a brief fading remnant of a card an AOE/direction effect
+   just destroyed (state.destroyGhosts, see destroyCard()) — the cell is
+   already empty in state.board by the time this renders, so this is
+   purely a visual echo, not an interactive card (no click, no info
+   button — cardFace() is called with noInfo:true for it). Without this,
+   a multi-target destroy special just made cards vanish with no telegraph
+   at all beyond the one summary line in the log. */
+.card.destroy-ghost{
+  pointer-events:none;
+  animation: cardShatter 1.2s cubic-bezier(.4,0,.6,1) forwards;
+}
+.card.destroy-ghost .card-art,
+.card.destroy-ghost .card-glow{ filter:saturate(0.3) brightness(0.6); }
+@keyframes cardShatter{
+  0%{ opacity:1; transform:scale(1) rotate(0deg); filter:brightness(1); }
+  15%{ opacity:1; transform:scale(1.04) rotate(-1deg); filter:brightness(1.3) sepia(0.3) hue-rotate(-20deg); }
+  100%{ opacity:0; transform:scale(0.85) rotate(4deg); filter:brightness(0.6); }
 }
 
 .log{
@@ -2099,6 +2133,7 @@ let state = {
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
   rules: { same:false, plus:false, combo:false, elemental:false, graveyard:false }, // optional Triple-Triad-style rules
   graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
+  destroyGhosts: [],      // { index, card, owner } — brief fade-out visual for a just-destroyed cell, see destroyCard()
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
   wins: { blue: 0, red: 0 },   // accumulated captures — spent to activate special attacks
@@ -2283,10 +2318,11 @@ function cardFace(card, opts={}){
   const bonusClass = opts.bonusFlash ? 'bonus-flash' : '';
   const specialActiveClass = opts.specialActive ? 'special-active' : '';
   const specialReadyClass = (opts.specialInfo && opts.specialInfo.ready) ? 'special-ready' : '';
+  const destroyedClass = opts.destroyed ? 'destroy-ghost' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   const fxDelayStyle = opts.fxDelay ? ` style="--fx-delay:${opts.fxDelay}ms"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -2296,8 +2332,9 @@ function cardFace(card, opts={}){
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
       ${opts.specialInfo ? `<div class="special-diamond ${opts.specialInfo.ready ? 'ready' : 'locked'}" title="${opts.specialInfo.title}${opts.specialInfo.ready ? ' — tap to unleash' : ' (not enough wins yet)'}"></div>` : ''}
       ${opts.shieldFlash ? `<div class="skill-pop shield">🛡 Shield!</div>` : ''}
-      ${opts.bonusFlash ? `<div class="skill-pop bonus">+${opts.bonusAmount||1} Power</div>` : ''}
+      ${opts.bonusFlash ? `<div class="skill-pop bonus ${(opts.bonusAmount||0) < 0 ? 'bonus-negative' : ''}">${(opts.bonusAmount||0) >= 0 ? '+' : ''}${opts.bonusAmount||1} Power</div>` : ''}
       ${opts.attackFlash ? `<div class="slash-fx"><div class="slash-line line1"></div><div class="slash-line line2"></div></div>` : ''}
+      ${opts.destroyed ? `<div class="skill-pop destroy">💥 Destroyed!</div>` : ''}
       <div class="card-inner">
         <div class="card-top">
           <div>
@@ -2501,6 +2538,7 @@ function boardCellHtml(cell, i){
   const specialTargetable = state.specialMode && !state.specialMode.choices && cell && cell.owner === 'red'
     && !(specialSrcEntry && specialSrcEntry.card.id === 'deathblade' && !sharesLine(state.specialMode.sourceIndex, i));
   const cellClass = `${placeTargetable ? 'targetable':''} ${specialTargetable ? 'special-target':''}`;
+  const ghost = !cell && state.destroyGhosts.find(g => g.index === i);
   return `
     <div class="cell ${cellClass}" data-cell="${i}">
       ${cell ? cardFace(cell.card, {
@@ -2508,7 +2546,7 @@ function boardCellHtml(cell, i){
           shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
           attackFlash:cell.attackFlash, fxDelay:cell.fxDelay,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
-        }) : ''}
+        }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : '')}
     </div>
   `;
 }
@@ -3003,6 +3041,14 @@ function destroyCard(index){
     state.graveyard[entry.owner].push(entry.card);
   }
   state.board[index] = null;
+  // Multi-target destroy effects (Vaelira's Infernal Pact, Nexzoth's The
+  // Ending, etc.) previously left the emptied cell with zero visual
+  // feedback the instant the special resolved — the card just vanished,
+  // no different from an ordinary empty square. destroyGhosts keeps a
+  // short-lived record of what stood here so boardCellHtml can render a
+  // fading "shattered" version of it in the same cell; cleared by the same
+  // 1300ms timeouts that already clear attackFlash/bonusFlash elsewhere.
+  state.destroyGhosts.push({ index, card: entry.card, owner: entry.owner });
   // Morvath's King of the Depths: "+1 Power every time an enemy card is
   // removed from the board" — read as a generic hook on the shared destroy
   // path itself rather than duplicating the check into every handler that
@@ -3808,6 +3854,7 @@ function placeCard(cellIndex, cardId, owner){
     state.board.forEach(entry=>{
       if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; }
     });
+    state.destroyGhosts = [];
     render();
   }, 1300);
 
@@ -3906,6 +3953,26 @@ function isDebuffImmuneNow(card){
   return false;
 }
 
+// Every SpecialVerbs.* call below that actually changes a card's Power now
+// marks it with the same bonusFlash/bonusAmount popup the base battle
+// engine already uses for "effective value differed from printed value"
+// (see battleNeighbors) — previously only ever set for a SINGLE targeted
+// card via runSpecialResolution, so AOE/direction effects (multi-target
+// destroys and debuffs) gave no per-card visual feedback at all, just a
+// summary line in state.log. Centralized here rather than added to each
+// of the dozen-plus handlers that call these verbs, since every stat
+// change in the engine already funnels through this one small set of
+// functions (same reasoning as isDebuffImmuneNow/buffLockedUntilTurnCount
+// above) — so this one change retroactively covers the entire roster, not
+// just the newest cards. Skipped when amount is 0 (nothing to show), and
+// naturally skipped whenever a verb returns early (immune/locked) since
+// this only runs after the captureBonus change actually happens.
+function flashStatChange(entry, amount){
+  if(!amount) return;
+  entry.bonusFlash = true;
+  entry.bonusAmount = amount;
+}
+
 const SpecialVerbs = {
   // Kaeldryx's Hunter's Focus ("that card can't get Power bonuses this
   // round") is the first effect that blocks POSITIVE modification rather
@@ -3917,11 +3984,14 @@ const SpecialVerbs = {
   attackBoost(entry, amount){
     if(amount > 0 && entry.buffLockedUntilTurnCount > state.turnCount) return;
     entry.captureBonus += amount;
+    flashStatChange(entry, amount);
   },
   grantShield(entry){ entry.grantedShield = true; },
   stealPower(sourceEntry, targetEntry, amount){
     targetEntry.captureBonus -= amount;
     sourceEntry.captureBonus += amount;
+    flashStatChange(targetEntry, -amount);
+    flashStatChange(sourceEntry, amount);
   },
   extraTurn(owner){ state.extraTurnPending = owner; },
   // Weakens a card with nothing gained in return — for area effects like
@@ -3934,6 +4004,7 @@ const SpecialVerbs = {
   debuff(entry, amount){
     if(isDebuffImmuneNow(entry.card)) return;
     entry.captureBonus -= amount;
+    flashStatChange(entry, -amount);
   },
   // Boosts only the listed sides (e.g. ['top','bottom']) instead of all four —
   // for ultimates like Skybreaker/WorldCleaver that favor one axis of the card.
@@ -3945,6 +4016,7 @@ const SpecialVerbs = {
     if(amount > 0 && entry.buffLockedUntilTurnCount > state.turnCount) return;
     if(!entry.sideBonus) entry.sideBonus = { top:0, right:0, bottom:0, left:0 };
     sides.forEach(s => { entry.sideBonus[s] = (entry.sideBonus[s] || 0) + amount; });
+    flashStatChange(entry, amount);
   },
   // Same as debuff(), but reversed automatically once the round it was cast
   // in has passed — for source text that explicitly says "this round"
@@ -3956,6 +4028,7 @@ const SpecialVerbs = {
     entry.captureBonus -= amount;
     entry.tempEffects = entry.tempEffects || [];
     entry.tempEffects.push({ captureDelta: -amount, expiresAtTurnCount: state.turnCount + 2 });
+    flashStatChange(entry, -amount);
   },
   // Naline's Divine Touch ("+2 Power this round", not permanent) — the
   // positive-and-temporary counterpart to debuffThisRound above.
@@ -3967,6 +4040,7 @@ const SpecialVerbs = {
     entry.captureBonus += amount;
     entry.tempEffects = entry.tempEffects || [];
     entry.tempEffects.push({ captureDelta: amount, expiresAtTurnCount: state.turnCount + 2 });
+    flashStatChange(entry, amount);
   },
 };
 
@@ -4977,6 +5051,7 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
     state.board.forEach(entry=>{
       if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; }
     });
+    state.destroyGhosts = [];
     render();
   }, 1300);
 
@@ -5391,7 +5466,7 @@ function resetGame(){
     log:'Choose the five champions who will carry your banner.', winner:null,
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
-    turnCount: 0, graveyard: { blue: [], red: [] },
+    turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [],
   };
   render();
 }

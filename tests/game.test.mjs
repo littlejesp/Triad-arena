@@ -1337,6 +1337,84 @@ test('Zlaizer: Light of Forgiveness (probabilistic own-side graveyard), Second D
   await page.close();
 });
 
+test('Visual feedback: SpecialVerbs now flash every changed card (not just single-target specials), and destroys leave a fading ghost', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Positive change (attackBoost) flashes green ("+N Power")
+    const posEntry = freshEntry(findCardById('ogre'), 'blue');
+    SpecialVerbs.attackBoost(posEntry, 3);
+    out.positiveFlash = posEntry.bonusFlash === true && posEntry.bonusAmount === 3;
+
+    // Negative change (debuff) flashes with a negative amount
+    const negEntry = freshEntry(findCardById('ogre'), 'blue');
+    SpecialVerbs.debuff(negEntry, 2);
+    out.negativeFlash = negEntry.bonusFlash === true && negEntry.bonusAmount === -2;
+
+    // debuffThisRound / buffThisRound / directionalBoost / stealPower all flash too
+    const dtrEntry = freshEntry(findCardById('ogre'), 'blue');
+    SpecialVerbs.debuffThisRound(dtrEntry, 1);
+    out.debuffThisRoundFlash = dtrEntry.bonusAmount === -1;
+    const btrEntry = freshEntry(findCardById('ogre'), 'blue');
+    SpecialVerbs.buffThisRound(btrEntry, 4);
+    out.buffThisRoundFlash = btrEntry.bonusAmount === 4;
+    const dirEntry = freshEntry(findCardById('ogre'), 'blue');
+    SpecialVerbs.directionalBoost(dirEntry, ['top'], -1);
+    out.directionalBoostFlash = dirEntry.bonusAmount === -1;
+    const stealSrc = freshEntry(findCardById('ogre'), 'blue');
+    const stealTgt = freshEntry(findCardById('ogre'), 'red');
+    SpecialVerbs.stealPower(stealSrc, stealTgt, 2);
+    out.stealPowerFlashesBoth = stealSrc.bonusAmount === 2 && stealTgt.bonusAmount === -2;
+
+    // A blocked change (debuffImmune) does NOT flash — no misleading popup for a no-op
+    const immuneEntry = freshEntry(findCardById('nexzoth'), 'blue');
+    SpecialVerbs.debuff(immuneEntry, 5);
+    out.blockedChangeDoesNotFlash = immuneEntry.bonusFlash !== true;
+
+    // destroyCard() leaves a fading ghost record, cleared by runSpecialResolution's own cleanup timer
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[0] = src;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.playerHand = []; state.enemyHand = [];
+    runSpecialResolution(0, null);
+    out.ghostRecordedImmediately = state.destroyGhosts.length === 1 && state.destroyGhosts[0].index === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.positiveFlash, true);
+  assert.equal(result.negativeFlash, true, 'debuff() flashes with a negative bonusAmount, not the old always-positive popup');
+  assert.equal(result.debuffThisRoundFlash, true);
+  assert.equal(result.buffThisRoundFlash, true);
+  assert.equal(result.directionalBoostFlash, true);
+  assert.equal(result.stealPowerFlashesBoth, true);
+  assert.equal(result.blockedChangeDoesNotFlash, true, "a debuffImmune-blocked change doesn't show a misleading flash");
+  assert.equal(result.ghostRecordedImmediately, true, 'destroyCard() records a destroyGhosts entry for the shattered-card animation');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+
+  // Ghost cleanup happens on a real 1300ms timer — verified in a second,
+  // fresh page so the first page's assertions above aren't slowed down by
+  // waiting for it.
+  const { page: page2, pageErrors: pageErrors2 } = await newPage();
+  const cleared = await page2.evaluate(async () => {
+    function freshEntry(card, owner){ return { card, owner, shieldUsed:false, grantedShield:false, captureBonus:0 }; }
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[0] = src;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.playerHand = []; state.enemyHand = [];
+    runSpecialResolution(0, null);
+    await new Promise(r => setTimeout(r, 1600));
+    return state.destroyGhosts.length;
+  });
+  assert.equal(cleared, 0, 'destroyGhosts is cleared by the existing 1300ms animation-cleanup timer');
+  assert.deepEqual(pageErrors2, []);
+  await page2.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
