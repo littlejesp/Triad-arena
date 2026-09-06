@@ -17,11 +17,10 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Punkt 1 och 2 nedan är MERGADE till `main`** (användaren bekräftade
-explicit, två gånger). **Punkt 3 (de fem speltest-fixarna) är COMMITTAD på
-feature-branchen men väntar på nästa merge-bekräftelse** — fråga
-användaren explicit innan du mergar den, anta INGET från de tidigare
-merge-bekräftelserna ovan.
+**Allt nedan (punkt 1, 2 och 3) är MERGAT till `main`** (användaren
+bekräftade explicit, tre gånger). En ny session kan börja direkt på ett
+rent läge — men fråga alltid explicit innan nästa merge, anta ALDRIG
+tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -52,8 +51,7 @@ primitiven har nu en levande användare igen. Endast `dragon` återstår nu
 från den gamla "inget källtext"-listan.
 
 **3. Fem mindre fixar, direkt från användarens egen speltestning av
-Campaign** (committade på feature-branchen — fråga användaren explicit
-innan merge, som alltid):
+Campaign** (mergade):
 - ✅ **Campaign-retry behåller nu de fem senast valda korten ikryssade**
   istället för att tvinga ett omval varje försök — se avsnitt 5b.
 - ✅ **Stat-siffran `10` visas som `10`, inte `A`** — den gamla
