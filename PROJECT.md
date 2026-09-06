@@ -17,10 +17,10 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Allt nedan (punkt 1–4) är MERGAT till `main`** (användaren bekräftade
-explicit, fyra gånger). En ny session kan börja direkt på ett rent läge —
-men fråga alltid explicit innan nästa merge, anta ALDRIG tillstånd från en
-tidigare bekräftelse.
+**Punkt 1–4 är MERGADE till `main`** (användaren bekräftade explicit, fyra
+gånger). **Punkt 5 (Triune Desire) är COMMITTAD på feature-branchen och
+väntar på nästa merge-bekräftelse** — fråga alltid explicit innan nästa
+merge, anta ALDRIG tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -80,6 +80,16 @@ en bugg — committade på feature-branchen):
   `FULL_CARD_IMAGES` för modalen) sedan de gjordes spelbara — syntes som
   ikon+hue-gradient i hand/bräde/draftrutnät. Beskurna tumnaglar
   genererade från redan sparad konst, se samma underrubrik.
+
+**5. Ett femte, helt NYTT kort** (inte en ombyggnad): **Triune Desire**,
+de tre systrarna smälta ihop till en boss, från en ny poster användaren
+skickade mitt i speltestningen. Tillfrågad om placering
+(`AskUserQuestion`) — valde "spelbart kort också", lät Claude bestämma
+resten (ingen ny etapp byggd). Se avsnitt 5:s sista underrubrik, direkt
+före avsnitt 5b, för alla detaljer — flest genuint NYA motor-mekanismer
+av något enskilt kort hittills (en aura som påverkar ANDRA kort på
+brädet, en lag-omfattande vinst-bonus, en förmågespärr via rond-klockan,
+en generaliserad `freeIfSistersPresent`-tröskel).
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -203,17 +213,21 @@ glöm inte att uppdatera på båda ställena.
 
 ## 5. Specialattack-arkitekturen (viktigast att förstå)
 
-**34 av 44 HEROES-kort har en fungerande ultimate just nu:**
+**38 av 48 HEROES-kort har en fungerande ultimate just nu** (44
+ursprungliga + Vaelira/Seraphine/Nyxara/Triune Desire, alla fyra tillagda i
+senare sessioner — se nedan):
 Graff, Lyrith, Aurelia, Medusa, Maximus, Twisted Gipsy, Darum, Daron, Ifrit,
 Bahamut, Aurelian, Vorlix, Voidqueen, Tahabata, Twin Brothers, Twin Sisters,
 Evil Twist Yang, Evil Twist Yin, Pallis, Tiamat, Astrael, Naline, Deathblade,
 Vorathos, Vayra, Ysara, Torn, Little Jesp, Pallis & Pell, Darien, Sylvarion,
 The Celestial Judgment, The Infinite Seraph, The Eclipse Fenrir (de sista
 tre tillkom i samma senare session som gjorde om Tiamat — se avsnitt 5:s
-sista underrubrik, direkt före avsnitt 5b). **Three Head Dragon** fick sin
-FÖRSTA ultimate i samma batch men räknas inte i "34 av 44" ovan — den
-finns bara i `FOREST_FOES` (ett rent monster, ingen `HEROES`-dubblett,
-till skillnad från de fyra ovan), samma mönster som `dragon`/`ogre`/
+sista underrubrik, direkt före avsnitt 5b), samt **Vaelira, Seraphine,
+Nyxara** (gjorda spelbara i en session efter det) och **Triune Desire**
+(helt nytt kort, samma session som gjorde dem spelbara). **Three Head
+Dragon** fick sin FÖRSTA ultimate i samma batch som Judgment/Seraph/Fenrir
+men räknas inte i "38 av 48" ovan — den finns bara i `FOREST_FOES` (ett
+rent monster, ingen `HEROES`-dubblett), samma mönster som `dragon`/`ogre`/
 `wendigo` m.fl.
 
 **VIKTIGT — den gamla `dariensv`-dubbletten är BORTTAGEN** (kortobjekt,
@@ -876,6 +890,100 @@ kastarens egna, `destroyImmune` överlever Vaelira men blir debuffad av
 Judgment istället för förstörd, ultimatens rond-utgång i två steg) PLUS en
 full slumpad match med kortet tvingat in i fiendehanden — inga `pageerror`.
 Fem nya tester lades till i `tests/game.test.mjs` (totalt 17, alla gröna).
+
+### Triune Desire — ett femte, senare uppladdat kort: de tre systrarna smälta ihop till en boss
+
+Efter att ha bett om förbättringar och fått campaign-svårighetsfixen (se
+avsnitt 5b) skickade användaren ett HELT NYTT kort (inte en ombyggnad av
+något befintligt) — "Triune Desire, The Forbidden Union", numrerat "IV" och
+märkt "BOSS — TRIPLE TRIAD SISTERS", en fusion av Vaelira/Nyxara/Seraphine
+till ett enda ultra-kort. En `AskUserQuestion` ställdes om VAR kortet skulle
+höra hemma (ny etapp 18 som sann slutboss / bara ett bonus-superkort i
+`FOREST_FOES` / spelbart precis som systrarna) — användaren valde
+"Spelbart kort också", och lät sedan Claude bestämma resten (ingen etapp 18
+byggd den här gången — bara kortet själv, i båda arrayerna, samma mönster
+som systrarna).
+
+**Konst**: samma 941×1672-standardformat, standardbeskärningen
+(`y=300`) fungerade direkt (alla tre ansikten synliga, som Tiamat/Three
+Head Dragon innan den).
+
+**Stats**: `top:10, right:10, bottom:10, left:10` — det starkaste kortet i
+hela rostret rent statistiskt (jämsides med Tiamat/Judgment/Seraph/Fenrir
+som alla har minst en 8:a eller 9:a någonstans; Triune Desire har inga
+svaga sidor alls). Inget klassiskt element (som systrarna individuellt
+har fire/wind/water, har fusionen ingen — matchar att käll-bilden bara
+visar de tre systrarnas ikoner tillsammans, ingen egen).
+
+**En genuint ny sorts mekanik krävdes för nästan VARJE förmåga** — mer
+nybygge per kort än något tidigare kort i projektet:
+
+- **`entry.specialLockedUntilTurnCount`** (Crimson Allure) — första gången
+  rond-klockan (avsnitt 6) används för att LÅSA en förmåga istället för
+  att tidsbegränsa en debuff. `specialUsable(card, owner, entry)` fick ett
+  NYTT tredje argument (`entry`, tidigare bara `card, owner`) — alla FEM
+  anropsställen uppdaterade för att skicka med det. Om låst, kan kortet
+  inte använda sin Special Attack förrän låset (`turnCount + 2`, samma
+  "genom motståndarens svarsdrag"-fönster som `debuffThisRound`) har gått
+  ut. Källtexten låter spelaren VÄLJA vilken fiende som låses;
+  förenklat till slumpmässig, samma "ingen platserings-val-UI
+  finns"-motivering som Vaelira/Nyxaras egna placerings-effekter.
+- **`checkTriuneTeamBoost(owner)`** (Void Embrace) — en HELT NY sorts hook,
+  skild från `checkOnWinBonuses`: den senare buffar bara KORTET SOM VANN,
+  men Void Embrace ska buffa HELA LAGET närhelst NÅGOT av lagets kort
+  vinner en strid. Letar upp en `active.onAnyWinTeamBoost`-bärare
+  någonstans på den vinnande sidans bräde (inte nödvändigtvis det kort som
+  just vann) och ger +1 alla sidor till VARJE eget kort på brädet, capat
+  vid 3 staplingar totalt (räknat på Triune Desires egen `entry.teamBoostStacks`,
+  matchar källtextens "(Max +3 Power)"). Anropas i `battleNeighbors` direkt
+  efter `checkOnWinBonuses`. "Dra 1 kort" är flavor only som vanligt (inget
+  däck-system finns).
+- **Divine Temptation (Passive)** — en AURA som påverkar ANDRA kort på
+  brädet, inte bara kortet självt (till skillnad från VARJE annan passiv i
+  hela spelet hittills, som bara någonsin modifierar sitt eget kort).
+  Hårdkodad direkt i `fullEffectiveValue` (samma `card.id`-hårdkodningsstil
+  som `protectedByInfiniteSeraph`, inte en generisk `active`-flagga eftersom
+  inget annat kort behöver samma form än): om ägaren har en Triune Desire
+  på brädet, +1 till alla andra egna kort; om MOTSTÅNDAREN har en, -1 till
+  alla fiendekort (respekterar `debuffImmune`, samma regel som alla andra
+  debuffar).
+- **Sister's Will** — samma `freeIfSistersPresent`-mekanik som Nyxaras
+  Sister's Command, men med tröskel 1 istället för 2 (Triune Desire behöver
+  bara EN av de tre systrarna, inte båda). `special.freeIfSistersPresent`
+  GENERALISERADES från en boolean till ett tröskeltal (`2` för Nyxara, `1`
+  för Triune Desire) på båda de ställen som läser den
+  (`specialUsable`/`runSpecialResolution`) — Nyxaras befintliga beteende
+  verifierat oförändrat med ett eget test. Källtexten säger bokstavligen
+  att kortet kan "placeras" utan Wins-krav, vilket skulle betyda en helt ny
+  "kostar Wins att PLACERA (inte bara att aktivera ultimaten)"-mekanik utan
+  motsvarighet någon annanstans i spelet — **medveten omtolkning**: läst
+  som att det är ULTIMATENS Wins-kostnad som efterskänks (samma
+  bricka-position som alla andra korts ultimate-kostnad visas i, källtextens
+  ordval "placeras" tolkat som en översättnings-/ordvalsglipa snarare än en
+  bokstavlig ny mekanik).
+- **Weakness — Broken Focus** — flavor only (sealing/purification/tvångs-
+  förflyttning finns inte, och ingen state sparas mellan matcher).
+
+Ultimate **"Forbidden Harmony"** (`targets:'aoe'`, kostnad 4, `freeIfSistersPresent:1`):
+"förstör 1 kort i varje riktning" läst som VARJE ANGRÄNSANDE fiendekort
+(samma upp-till-4-grannar-mönster som Pallis & Pells Hunter's Wrath redan
+använder), inte en hel linje-scan som Naline/Judgment/Fenrirs
+riktningsval-ultimates — den här har ingen riktning att välja, den träffar
+bara alla som redan står intill. Respekterar BÅDE
+`protectedByInfiniteSeraph` (hel-sidas immunitet) och `active.destroyImmune`
+(enskilt korts immunitet, t.ex. Three Head Dragon) — om Seraph blockerar
+förstörelsen tystas fiendens förmågor ändå (samma `entry.specialLockedUntilTurnCount`
+som Crimson Allure, fast på ALLA fiendekort samtidigt, inte bara ett
+slumpat).
+
+**Testat**: fem nya tester (state-injicering) — Crimson Allures lås
+respekterar rond-klockan i båda riktningarna, Void Embrace capar vid +3
+trots 4 vinster i en och samma placering, Divine Temptation buffar/debuffar
+korrekt (och Fenrir är fortfarande immun), Sister's Will fungerar med bara
+1 syster medan Nyxaras egen tröskel-2 förblir oförändrad, Forbidden Harmony
+förstör en vanlig granne men inte en `destroyImmune`-granne (som ändå blir
+tystad) — PLUS en full slumpad match med kortet i båda händerna samtidigt.
+Inga `pageerror`. `tests/game.test.mjs`: 26 tester totalt, alla gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

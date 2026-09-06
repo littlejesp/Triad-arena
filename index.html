@@ -1045,6 +1045,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 <script>
 /* ---------------- Character portraits ---------------- */
 const CARD_IMAGES = {
+  triunedesire: 'cards/card-triunedesire.jpg',
   vaelira: 'cards/card-vaelira.jpg',
   seraphine: 'cards/card-seraphine.jpg',
   nyxara: 'cards/card-nyxara.jpg',
@@ -1095,6 +1096,7 @@ const CARD_IMAGES = {
 };
 
 const FULL_CARD_IMAGES = {
+  triunedesire: 'card-triunedesire-full.jpg',
   darien: 'card-darien-full.jpg',
   zaevir: 'BB675F60-3B59-4D78-915B-68013383EACA.jpg',
   sarah: 'D934C648-804F-455D-B4ED-8C56DEB2EAC5.jpg',
@@ -1470,7 +1472,7 @@ const HEROES = [
     top:10, right:10, bottom:9, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#8b3bce', icon:'🌑',
     active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:6} } },
-    special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:true },
+    special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:2 },
     skills: [
       {name:'Void Touch (Passive)', desc:'When Nyxara is placed, she chooses a random enemy card and it loses -2 Power.'},
       {name:'Shadow Rend', desc:'When Nyxara wins a round, she destroys the enemy card with the lowest Power on the board. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
@@ -1478,6 +1480,27 @@ const HEROES = [
       {name:"Sister's Command", desc:'While both Vaelira and Seraphine are on the board, Nyxara gains +4 Power on top of Empress Aura, and her Ultimate costs no Wins (still usable only once per match).'},
       {name:'Weakness — Broken Focus', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses control of the void" text).'},
       {name:'Special Attack: Void Dominion', desc:'Costs 3 wins — free if both sisters are on the board. Destroys every enemy card on the board; Nyxara gains +3 Power on all sides for each card destroyed this way. Usable once per match.'},
+    ] },
+  // Triune Desire — a fourth, later-uploaded card: the three sisters fused
+  // into one boss. Made playable immediately (no "not in HEROES" debate
+  // this time, per the user's own choice). "Sister's Will" reuses Nyxara's
+  // exact freeIfSistersPresent mechanic — read as waiving the ULTIMATE's
+  // Wins cost (not a cost to physically place the card, despite the source
+  // text literally saying "placed"; the badge sits in the same visual slot
+  // every other card's ultimate-cost badge uses, and a real placement-cost
+  // gate would need brand new UI with no precedent anywhere in the engine).
+  { id:'triunedesire', name:'Triune Desire', role:'The Forbidden Union — Boss, Triple Triad Sisters IV',
+    top:10, right:10, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#22091a,#0d0b18 60%)', accent:'#c23bce', icon:'👑',
+    active:{ onAnyWinTeamBoost:true },
+    special:{ name:'Forbidden Harmony', cost:4, once:true, targets:'aoe', freeIfSistersPresent:1 },
+    skills: [
+      {name:'Crimson Allure', desc:"When this card is placed, a random enemy card is chosen — it can't use its Special Attack next round. (Source text lets you choose the target; simplified to random, same as Vaelira/Nyxara's own on-place effects — no on-placement target-choice UI exists.)"},
+      {name:'Void Embrace', desc:"When this card's side wins a battle, every one of your cards on the board gets +1 Power for the rest of the match (max +3 total). (Card draw is flavor only — no deck/draw system exists in the engine.)"},
+      {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power.'},
+      {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
+      {name:'Weakness — Broken Focus', desc:"If this card loses control of its unit, it loses -4 Power next match. (Flavor only — the sealing/purification/forced-movement triggers named in the source don't exist in the engine, and no state persists between matches.)"},
+      {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
     ] },
 ];
 
@@ -1701,7 +1724,7 @@ const FOREST_FOES = [
     top:10, right:10, bottom:9, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#8b3bce', icon:'🌑',
     active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:6} } },
-    special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:true },
+    special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:2 },
     skills: [
       {name:'Void Touch (Passive)', desc:'When Nyxara is placed, she chooses a random enemy card and it loses -2 Power.'},
       {name:'Shadow Rend', desc:'When Nyxara wins a round, she destroys the enemy card with the lowest Power on the board. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
@@ -1709,6 +1732,19 @@ const FOREST_FOES = [
       {name:"Sister's Command", desc:'While both Vaelira and Seraphine are on the board, Nyxara gains +4 Power on top of Empress Aura, and her Ultimate costs no Wins (still usable only once per match).'},
       {name:'Weakness — Broken Focus', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses control of the void" text).'},
       {name:'Special Attack: Void Dominion', desc:'Costs 3 wins — free if both sisters are on the board. Destroys every enemy card on the board; Nyxara gains +3 Power on all sides for each card destroyed this way. Usable once per match.'},
+    ] },
+  { id:'triunedesire', name:'Triune Desire', role:'The Forbidden Union — Boss, Triple Triad Sisters IV',
+    top:10, right:10, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#22091a,#0d0b18 60%)', accent:'#c23bce', icon:'👑',
+    active:{ onAnyWinTeamBoost:true },
+    special:{ name:'Forbidden Harmony', cost:4, once:true, targets:'aoe', freeIfSistersPresent:1 },
+    skills: [
+      {name:'Crimson Allure', desc:"When this card is placed, a random enemy card is chosen — it can't use its Special Attack next round. (Source text lets you choose the target; simplified to random, same as Vaelira/Nyxara's own on-place effects — no on-placement target-choice UI exists.)"},
+      {name:'Void Embrace', desc:"When this card's side wins a battle, every one of your cards on the board gets +1 Power for the rest of the match (max +3 total). (Card draw is flavor only — no deck/draw system exists in the engine.)"},
+      {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power.'},
+      {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
+      {name:'Weakness — Broken Focus', desc:"If this card loses control of its unit, it loses -4 Power next match. (Flavor only — the sealing/purification/forced-movement triggers named in the source don't exist in the engine, and no state persists between matches.)"},
+      {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
     ] },
 ];
 
@@ -2244,7 +2280,7 @@ function boardCellHtml(cell, i){
   if(cell && cell.owner === 'blue' && cell.card.special){
     const key = 'blue:' + cell.card.id;
     if(!(cell.card.special.once && state.specialUsed[key])){
-      const ready = state.turn === 'blue' && state.phase === 'battle' && specialUsable(cell.card, 'blue');
+      const ready = state.turn === 'blue' && state.phase === 'battle' && specialUsable(cell.card, 'blue', cell);
       specialInfo = { cellIndex:i, ready, title: `${cell.card.special.name} — costs ${cell.card.special.cost} wins` };
     }
   }
@@ -2559,7 +2595,7 @@ function attachHandlers(){
         // tap it to activate, tap it again to cancel while targeting.
         const entry = state.board[i];
         if(entry && entry.owner==='blue' && entry.card.special){
-          const ready = state.turn==='blue' && state.phase==='battle' && specialUsable(entry.card, 'blue');
+          const ready = state.turn==='blue' && state.phase==='battle' && specialUsable(entry.card, 'blue', entry);
           if(ready){ executeSpecial(i); return; }
         }
         if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard || state.placedThisTurn) return;
@@ -2785,6 +2821,21 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex){
       if(n && n.owner !== winnerEntry.owner) SpecialVerbs.debuff(n, a.onWinAreaDebuff);
     });
   }
+}
+
+// Triune Desire's Void Embrace: unlike checkOnWinBonuses above (which only
+// ever buffs the specific card that just won), this buffs the WHOLE side's
+// board whenever ANY of that side's cards wins a battle — so it can't live
+// on winnerEntry.card.active, it has to look for a Triune Desire anywhere
+// on the winning side's board. Capped at 3 stacks total (tracked on Triune
+// Desire's own entry), matching the source text's "(Max +3 Power)".
+function checkTriuneTeamBoost(owner){
+  const triune = state.board.find(e => e && e.owner === owner && e.card.active && e.card.active.onAnyWinTeamBoost);
+  if(!triune) return;
+  triune.teamBoostStacks = triune.teamBoostStacks || 0;
+  if(triune.teamBoostStacks >= 3) return;
+  triune.teamBoostStacks++;
+  state.board.forEach(e => { if(e && e.owner === owner) SpecialVerbs.attackBoost(e, 1); });
 }
 
 function rivalryBonusAt(cardId, cellIndex, owner){
@@ -3024,6 +3075,16 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     const immune = card.active && card.active.debuffImmune;
     if(!immune) v -= opponentCard.active.freezeDefenderPenalty;
   }
+  // Triune Desire's Divine Temptation: an aura affecting every OTHER card
+  // on the board, not just itself — unlike every other passive above,
+  // which only ever modifies the card carrying it. Hardcoded to her id
+  // (like protectedByInfiniteSeraph) rather than a generic active flag,
+  // since nothing else needs this shape yet.
+  if(card.id !== 'triunedesire'){
+    if(state.board.some(e => e && e.owner === owner && e.card.id === 'triunedesire')) v += 1;
+    const enemyTriune = state.board.some(e => e && e.owner !== owner && e.card.id === 'triunedesire');
+    if(enemyTriune && !(card.active && card.active.debuffImmune)) v -= 1;
+  }
   return v;
 }
 
@@ -3109,6 +3170,17 @@ const ON_PLACE_HANDLERS = {
       sides.forEach(s => { if(e.card[s] < e.card[weakest]) weakest = s; });
       SpecialVerbs.directionalBoost(e, [weakest], -1);
     });
+  },
+  // Crimson Allure: locks a random enemy's Special Attack for "next round"
+  // — same round-clock window as SpecialVerbs.debuffThisRound (through the
+  // target's own next turn), just gating specialUsable() instead of a
+  // captureBonus. See specialUsable()'s entry.specialLockedUntilTurnCount
+  // check.
+  triunedesire(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    target.specialLockedUntilTurnCount = state.turnCount + 2;
   },
 };
 
@@ -3232,7 +3304,7 @@ function advanceTurn(owner){
 function hasFurtherAction(owner){
   const hand = owner === 'blue' ? state.playerHand : state.enemyHand;
   if(!state.placedThisTurn && hand.length > 0) return true;
-  return state.board.some(e => e && e.owner === owner && specialUsable(e.card, owner));
+  return state.board.some(e => e && e.owner === owner && specialUsable(e.card, owner, e));
 }
 
 function maybeEndTurn(owner){
@@ -3336,14 +3408,21 @@ function rollCrit(chance){ return Math.random() < chance; }
 // `requiresPartner` (e.g. Evil Twist Yang needs Yin on the board) gates a
 // few bonded-pair ultimates the same way pairPresence already gates
 // passive bonuses.
-function specialUsable(card, owner){
+function specialUsable(card, owner, entry){
   const special = card.special;
   if(!special) return false;
+  // Triune Desire's Crimson Allure/Forbidden Harmony: a locked card can't
+  // use its own Special Attack until the lock's round has passed (see
+  // entry.specialLockedUntilTurnCount, set in ON_PLACE_HANDLERS.triunedesire
+  // and SPECIAL_HANDLERS.triunedesire).
+  if(entry && entry.specialLockedUntilTurnCount > state.turnCount) return false;
   const key = owner + ':' + card.id;
   if(special.once && state.specialUsed[key]) return false;
-  // Sister's Command (Nyxara): her Ultimate needs no Wins once both other
-  // sisters are on the board — everyone else still pays the normal cost.
-  const free = special.freeIfSistersPresent && sistersPresentCount(card.id, owner) >= 2;
+  // Sister's Command (Nyxara, threshold 2) / Sister's Will (Triune Desire,
+  // threshold 1): the Ultimate needs no Wins once that many OTHER sisters
+  // are on the board — everyone else still pays the normal cost.
+  // freeIfSistersPresent is a threshold count, not a boolean.
+  const free = special.freeIfSistersPresent && sistersPresentCount(card.id, owner) >= special.freeIfSistersPresent;
   if(!free && state.wins[owner] < special.cost) return false;
   if(special.requiresPartner){
     const present = state.board.some(e => e && e.owner === owner && e.card.id === special.requiresPartner);
@@ -3763,6 +3842,38 @@ const SPECIAL_HANDLERS = {
     enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 3));
     return `${name}'s Apokalyps withers ${enemies.length} enemy ${enemies.length === 1 ? 'card' : 'cards'} for the rest of this round!`;
   },
+  // "Forbidden Harmony": "destroys 1 card in every direction" is read as
+  // the one card immediately adjacent in each of the 4 directions (the
+  // same up-to-4-adjacent-enemies pattern Pallis & Pell's Hunter's Wrath
+  // already uses), not a full line-scan like Naline/Judgment/Fenrir's
+  // direction-choice ultimates — this one has no direction to choose,
+  // it just hits everyone already touching it. Respects both
+  // protectedByInfiniteSeraph (whole-side immunity) and active.destroyImmune
+  // (single-card immunity, e.g. Three Head Dragon), same as every other
+  // destroy-capable handler.
+  triunedesire({ srcEntry, sourceIndex, owner }){
+    const name = srcEntry.card.name;
+    state.board.forEach(e => { if(e && e.owner !== owner) e.specialLockedUntilTurnCount = state.turnCount + 2; });
+    if(protectedByInfiniteSeraph(owner === 'blue' ? 'red' : 'blue')){
+      return `${name}'s Forbidden Harmony cannot destroy anyone — The Infinite Seraph's Eternal Presence holds! (Every enemy Special Attack is still silenced this round.)`;
+    }
+    const row = Math.floor(sourceIndex/3), col = sourceIndex%3;
+    const dirs = [[-1,0],[0,1],[1,0],[0,-1]];
+    let destroyed = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const idx = r*3+c;
+      const entry = state.board[idx];
+      if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
+        state.board[idx] = null;
+        destroyed++;
+      }
+    });
+    return destroyed > 0
+      ? `${name}'s Forbidden Harmony shatters ${destroyed} adjacent ${destroyed === 1 ? 'enemy' : 'enemies'} and silences the rest!`
+      : `${name}'s Forbidden Harmony finds no one adjacent to shatter, but silences every enemy Special Attack this round!`;
+  },
   // "Shadow Assault"'s "win against 3 cards with 27+ power" clause is an
   // unlock condition the engine has no state for (would need a new per-card
   // history tracker) — dropped, same call as Naline's LIGHT threshold. The
@@ -4000,7 +4111,7 @@ function executeSpecial(sourceIndex){
   const srcEntry = state.board[sourceIndex];
   if(!srcEntry || srcEntry.owner !== state.turn) return;
   const special = srcEntry.card.special;
-  if(!special || !specialUsable(srcEntry.card, srcEntry.owner)) return;
+  if(!special || !specialUsable(srcEntry.card, srcEntry.owner, srcEntry)) return;
 
   state.pendingCard = null;
 
@@ -4091,7 +4202,7 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
   const handler = SPECIAL_HANDLERS[srcEntry.card.id];
   if(!handler) return;
 
-  const free = special.freeIfSistersPresent && sistersPresentCount(srcEntry.card.id, owner) >= 2;
+  const free = special.freeIfSistersPresent && sistersPresentCount(srcEntry.card.id, owner) >= special.freeIfSistersPresent;
   if(!free) state.wins[owner] -= special.cost;
   if(special.once) state.specialUsed[owner + ':' + srcEntry.card.id] = true;
   state.specialMode = null;
@@ -4215,6 +4326,7 @@ function battleNeighbors(index, owner, result){
       target.justFlipped = true;
       checkSisterFlip(target);
       checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni);
+      checkTriuneTeamBoost(owner);
       result.flips++;
       newlyFlipped.push(p.ni);
     }
@@ -4282,7 +4394,7 @@ function enemyTryUseSpecial(){
   if(state.turn !== 'red' || state.phase !== 'battle') return false;
   const candidates = [];
   state.board.forEach((entry, i) => {
-    if(!entry || entry.owner !== 'red' || !specialUsable(entry.card, 'red')) return;
+    if(!entry || entry.owner !== 'red' || !specialUsable(entry.card, 'red', entry)) return;
     candidates.push({ sourceIndex:i, entry, special: entry.card.special });
   });
 

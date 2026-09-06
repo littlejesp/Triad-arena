@@ -564,6 +564,129 @@ test('Campaign: every HEROES card is selectable from stage 2 onward, regardless 
   await page.close();
 });
 
+// Triune Desire — a fourth Triple Triad Sisters card (the three fused
+// into one boss), added in a later session from a new source poster,
+// playable from the start (see PROJECT.md section 5).
+test('Triune Desire: Crimson Allure locks a random enemy\'s Special Attack for one round', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.playerHand = [findCardById('triunedesire')];
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.turnCount = 50;
+    placeCard(4, 'triunedesire', 'blue');
+    const target = state.board[1];
+    const withSpecial = { ...target.card, special: { name:'Test', cost:0, once:false, targets:'aoe' } };
+    target.card = withSpecial;
+    const lockedAtCast = specialUsable(withSpecial, 'red', target);
+    state.turnCount++;
+    const lockedAfterOpponentTurn = specialUsable(withSpecial, 'red', target);
+    state.turnCount++;
+    const unlockedAtCasterNextTurn = specialUsable(withSpecial, 'red', target);
+    return { lockedAtCast, lockedAfterOpponentTurn, unlockedAtCasterNextTurn };
+  })()`);
+  assert.equal(result.lockedAtCast, false);
+  assert.equal(result.lockedAfterOpponentTurn, false, 'should still be locked through the opponent\'s reply');
+  assert.equal(result.unlockedAtCasterNextTurn, true, 'should unlock by the caster\'s next turn');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Triune Desire: Void Embrace buffs the whole team on any win, capped at +3', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.playerHand = [findCardById('triunedesire')];
+    const ally = freshEntry({ id:'ally-test', name:'Ally', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[0] = ally;
+    [1,7,3,5].forEach(i => { state.board[i] = freshEntry({ id:'weak'+i, name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red'); });
+    placeCard(4, 'triunedesire', 'blue'); // 4 adjacent captures in one placement
+    return { allyBoost: ally.captureBonus };
+  })()`);
+  assert.equal(result.allyBoost, 3, 'four wins in one placement should still cap the stack at +3');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Triune Desire: Divine Temptation buffs your side and debuffs enemies (except debuffImmune)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(findCardById('triunedesire'), 'blue');
+    const ownCard = { id:'own-test', name:'Own', top:5,right:5,bottom:5,left:5 };
+    const enemyCard = { id:'enemy-test', name:'Enemy', top:5,right:5,bottom:5,left:5 };
+    state.board[1] = freshEntry(ownCard, 'blue');
+    state.board[2] = freshEntry(enemyCard, 'red');
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const fenrirCard = findCardById('fenrir');
+    state.board[3] = freshEntry(fenrirCard, 'red');
+    return {
+      ownBoost: fullEffectiveValue(ownCard, 'top', null, 1, 'blue', 'attack') - ownCard.top,
+      enemyDebuff: fullEffectiveValue(enemyCard, 'top', null, 2, 'red', 'attack') - enemyCard.top,
+      fenrirUnaffected: fullEffectiveValue(fenrirCard, 'top', null, 3, 'red', 'attack') - fenrirCard.top,
+    };
+  })()`);
+  assert.equal(result.ownBoost, 1);
+  assert.equal(result.enemyDebuff, -1);
+  assert.equal(result.fenrirUnaffected, 0, 'Eternal Loyalty should block the aura debuff too');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Triune Desire: Sister\'s Will frees the Ultimate with just 1 sister (Nyxara still needs 2)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    const triuneSrc = freshEntry(findCardById('triunedesire'), 'blue');
+    state.board[0] = triuneSrc;
+    state.board[1] = freshEntry(findCardById('vaelira'), 'blue');
+    state.wins = { blue: 0, red: 0 };
+    state.specialUsed = {};
+    const triuneFree = specialUsable(triuneSrc.card, 'blue', triuneSrc);
+
+    state.board = Array(9).fill(null);
+    const nyxaraSrc = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[0] = nyxaraSrc;
+    state.board[1] = freshEntry(findCardById('vaelira'), 'blue');
+    state.wins = { blue: 0, red: 0 };
+    const nyxaraStillGated = specialUsable(nyxaraSrc.card, 'blue', nyxaraSrc);
+
+    return { triuneFree, nyxaraStillGated };
+  })()`);
+  assert.equal(result.triuneFree, true, 'Triune Desire only needs 1 of the 3 sisters present');
+  assert.equal(result.nyxaraStillGated, false, 'Nyxara still needs both other sisters, unaffected by the generalization');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Triune Desire: Forbidden Harmony destroys adjacent enemies (respecting destroyImmune) and locks the rest', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('triunedesire'), 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[3] = freshEntry(findCardById('threeheaddragon'), 'red'); // destroyImmune
+    state.turnCount = 200;
+    SPECIAL_HANDLERS.triunedesire({ srcEntry: src, sourceIndex: 4, owner: 'blue' });
+    return {
+      normalDestroyed: state.board[1] === null,
+      immuneSurvived: state.board[3] !== null,
+      immuneStillLocked: state.board[3] ? state.board[3].specialLockedUntilTurnCount > state.turnCount : false,
+    };
+  })()`);
+  assert.equal(result.normalDestroyed, true);
+  assert.equal(result.immuneSurvived, true);
+  assert.equal(result.immuneStillLocked, true, 'destroyImmune blocks destruction but not the ability-lock');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
