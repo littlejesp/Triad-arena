@@ -292,6 +292,19 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   font-size:clamp(8px,11cqw,12px); line-height:1;
 }
 
+/* Medusa's Stone Gaze: a persistent badge (unlike the transient skill-pop
+   flashes) for as long as entry.petrifiedUntilTurnCount hasn't expired —
+   mirrors .element-badge's shape but sits bottom-right so the two never
+   collide on a card that's both elemental and Petrified. */
+.petrified-badge{
+  position:absolute; bottom:4px; right:4px; z-index:6;
+  width:clamp(14px,18cqw,20px); height:clamp(14px,18cqw,20px);
+  border-radius:50%; background:rgba(4,3,9,0.75); border:1px solid #a568f2;
+  display:flex; align-items:center; justify-content:center;
+  font-size:clamp(8px,11cqw,12px); line-height:1;
+  box-shadow:0 0 6px rgba(165,104,242,0.5);
+}
+
 .info-btn{
   position:absolute; top:4px; right:4px; z-index:6;
   width:clamp(18px,22cqw,24px); height:clamp(18px,22cqw,24px);
@@ -1201,7 +1214,7 @@ const FULL_CARD_IMAGES = {
   eviltwistyang: '3978FBE9-47C9-4E71-9348-6D2F4B1E0EDC.jpg',
   eviltwistyin: '6F6FDF5D-77C4-4C60-A6C9-C3AA29906068.jpg',
   graff: '29F82ABB-FC19-446B-8983-FEC6D85AA298.jpg',
-  medusa: '8EE51EB2-0D49-4D5F-BF6B-08741371D2A1.jpg',
+  medusa: 'card-medusa-full.jpg',
   lyrith: 'C3CBECC2-FAC3-41A0-9ADE-EACEB2E18EFD.jpg',
   aurelia: '116F7CAB-4465-4BC6-95D4-CE69FA6B4D7F.jpg',
   twistedgipsy: '703ACBDF-6CD3-47A5-91BD-C3464F5E50EF.jpg',
@@ -1469,14 +1482,29 @@ const HEROES = [
     {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
     {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
   ] },
-  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', special:{ name:'Gaze of Medusa', cost:2, once:true, targets:'aoe' }, skills: [
-    {name:'Stone Gaze (Passive)', desc:"Every time Medusa takes control of an enemy card, that card is petrified for 1 round and can't be used to flip other cards. (Flavor only — not currently wired into the battle engine; see notes.)"},
-    {name:'Petrify', desc:'When Medusa flips a card with this skill, that card is petrified for 1 round.'},
-    {name:'Venomous Beauty', desc:'Medusa gets +1 Power on every side for each petrified card on the board.'},
-    {name:"Serpent's Crown", desc:'If Medusa controls 2 or more adjacent cards, all her sides get +1 this round.'},
-    {name:'Queen of Stone', desc:'When Medusa flips a card with this skill, she gets an extra turn after this round.'},
-    {name:'Special Attack: Gaze of Medusa', desc:'Costs 2 wins. Petrifies all enemy cards for 1 round. Medusa gets +3 Power on all sides this round. If the enemy has fewer cards in play than you, Medusa gets an additional extra turn. Usable once per match.'},
-  ] },
+  // Medusa was fully redesigned in a later session from a new poster ("The
+  // Petrified Queen") — same full-rebuild treatment as Tiamat/Naline: id
+  // unchanged, everything else replaced. Notably, the OLD Medusa's
+  // "Petrify" skill was already flavor-only ("not currently wired into
+  // the battle engine") — this redesign is the first time Petrified
+  // becomes a REAL status (entry.petrifiedUntilTurnCount, read by
+  // specialUsable() and Serpent Queen below), not a fresh simplification.
+  // The card's own Faction/Rarity/Type/Alignment corner badges (Shadow
+  // Realm/Legendary/Control/Evil) aren't tracked anywhere in the schema —
+  // no formal faction/type system exists yet (discussed but not built),
+  // so those are flavor-only for now, same as every other card's untracked
+  // metadata.
+  { id:'medusa', name:'Medusa', role:'The Petrified Queen — Legendary Card', element:'earth', top:8, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿',
+    active:{ onWinPetrify:true, marginShieldThreshold:2, auraPerPetrifiedEnemy:{amount:1, max:3}, shield:true, shieldGrantsBonus:1, adjacentAlliesBoost:{minCount:2, amount:2} },
+    special:{ name:"Gorgon's Dominion", cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Stone Gaze (Passive)', desc:"Whenever Medusa wins a battle, the defeated enemy card becomes Petrified until the end of the next round — a Petrified card can't use its Special Attack."},
+      {name:'Curse of the Gorgon', desc:'If an enemy attacks Medusa and wins by 2 Power or less, the battle becomes a draw instead and the attacker gets -1 Power this round.'},
+      {name:'Serpent Queen (Passive)', desc:'Medusa gets +1 Power on all sides for every Petrified enemy card on the board (max +3).'},
+      {name:'Living Statue (Passive)', desc:'The first time Medusa would lose control, the loss is ignored instead and she permanently gains +1 Power on all sides — same shield mechanic as Ancient Wyrmking, spent once it triggers.'},
+      {name:'Throne of Stone', desc:'If Medusa has 2 or more of her own cards adjacent to her, she gets +2 Power on all sides this round.'},
+      {name:"Special Attack: Gorgon's Dominion", desc:'Costs 3 wins. Petrifies every enemy card on the board and hits them all for -2 Power this round. Medusa gets +3 Power on all sides this round. If you control more cards than the opponent, you get an extra turn. Usable once per match.'},
+    ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
     {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
@@ -1719,14 +1747,29 @@ const FOREST_FOES = [
     {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
     {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
   ] },
-  { id:'medusa', name:'Medusa', role:'The Gaze of Stone — Legendary Card', element:'water', top:7, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿', special:{ name:'Gaze of Medusa', cost:2, once:true, targets:'aoe' }, skills: [
-    {name:'Stone Gaze (Passive)', desc:"Every time Medusa takes control of an enemy card, that card is petrified for 1 round and can't be used to flip other cards. (Flavor only — not currently wired into the battle engine; see notes.)"},
-    {name:'Petrify', desc:'When Medusa flips a card with this skill, that card is petrified for 1 round.'},
-    {name:'Venomous Beauty', desc:'Medusa gets +1 Power on every side for each petrified card on the board.'},
-    {name:"Serpent's Crown", desc:'If Medusa controls 2 or more adjacent cards, all her sides get +1 this round.'},
-    {name:'Queen of Stone', desc:'When Medusa flips a card with this skill, she gets an extra turn after this round.'},
-    {name:'Special Attack: Gaze of Medusa', desc:'Costs 2 wins. Petrifies all enemy cards for 1 round. Medusa gets +3 Power on all sides this round. If the enemy has fewer cards in play than you, Medusa gets an additional extra turn. Usable once per match.'},
-  ] },
+  // Medusa was fully redesigned in a later session from a new poster ("The
+  // Petrified Queen") — same full-rebuild treatment as Tiamat/Naline: id
+  // unchanged, everything else replaced. Notably, the OLD Medusa's
+  // "Petrify" skill was already flavor-only ("not currently wired into
+  // the battle engine") — this redesign is the first time Petrified
+  // becomes a REAL status (entry.petrifiedUntilTurnCount, read by
+  // specialUsable() and Serpent Queen below), not a fresh simplification.
+  // The card's own Faction/Rarity/Type/Alignment corner badges (Shadow
+  // Realm/Legendary/Control/Evil) aren't tracked anywhere in the schema —
+  // no formal faction/type system exists yet (discussed but not built),
+  // so those are flavor-only for now, same as every other card's untracked
+  // metadata.
+  { id:'medusa', name:'Medusa', role:'The Petrified Queen — Legendary Card', element:'earth', top:8, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🗿',
+    active:{ onWinPetrify:true, marginShieldThreshold:2, auraPerPetrifiedEnemy:{amount:1, max:3}, shield:true, shieldGrantsBonus:1, adjacentAlliesBoost:{minCount:2, amount:2} },
+    special:{ name:"Gorgon's Dominion", cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Stone Gaze (Passive)', desc:"Whenever Medusa wins a battle, the defeated enemy card becomes Petrified until the end of the next round — a Petrified card can't use its Special Attack."},
+      {name:'Curse of the Gorgon', desc:'If an enemy attacks Medusa and wins by 2 Power or less, the battle becomes a draw instead and the attacker gets -1 Power this round.'},
+      {name:'Serpent Queen (Passive)', desc:'Medusa gets +1 Power on all sides for every Petrified enemy card on the board (max +3).'},
+      {name:'Living Statue (Passive)', desc:'The first time Medusa would lose control, the loss is ignored instead and she permanently gains +1 Power on all sides — same shield mechanic as Ancient Wyrmking, spent once it triggers.'},
+      {name:'Throne of Stone', desc:'If Medusa has 2 or more of her own cards adjacent to her, she gets +2 Power on all sides this round.'},
+      {name:"Special Attack: Gorgon's Dominion", desc:'Costs 3 wins. Petrifies every enemy card on the board and hits them all for -2 Power this round. Medusa gets +3 Power on all sides this round. If you control more cards than the opponent, you get an extra turn. Usable once per match.'},
+    ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
     {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
@@ -2329,6 +2372,7 @@ function cardFace(card, opts={}){
       ${opts.owner ? `<div class="owner-tint tint-${opts.owner}"></div>` : ''}
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
       ${card.element ? `<div class="element-badge" title="${card.element}">${ELEMENT_ICONS[card.element]}</div>` : ''}
+      ${opts.petrified ? `<div class="petrified-badge" title="Petrified — can't use its Special Attack">🗿</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
       ${opts.specialInfo ? `<div class="special-diamond ${opts.specialInfo.ready ? 'ready' : 'locked'}" title="${opts.specialInfo.title}${opts.specialInfo.ready ? ' — tap to unleash' : ' (not enough wins yet)'}"></div>` : ''}
       ${opts.shieldFlash ? `<div class="skill-pop shield">🛡 Shield!</div>` : ''}
@@ -2545,6 +2589,7 @@ function boardCellHtml(cell, i){
           owner:cell.owner, flipping:cell.justFlipped, placing:cell.justPlaced,
           shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
           attackFlash:cell.attackFlash, fxDelay:cell.fxDelay,
+          petrified: cell.petrifiedUntilTurnCount > state.turnCount,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
         }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : '')}
     </div>
@@ -3238,6 +3283,20 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
     const cfg = a.onWinReviveFromOwnGraveyard;
     reviveFromOwnGraveyard(winnerEntry.owner, cfg.count, cfg.powerPenalty);
   }
+  // Medusa's Stone Gaze: "the defeated enemy card is Petrified until the
+  // end of next round; a Petrified card can't use its Card Skills." Read
+  // as "can't use its Special Attack" (specialUsable() checks
+  // petrifiedUntilTurnCount below) — the same simplification Crimson
+  // Allure's specialLockedUntilTurnCount already uses, kept as a
+  // separate field rather than reusing that one so the two flavors of
+  // lock (an enemy ability vs. a status condition read by Medusa's own
+  // other skills, e.g. Serpent Queen counting Petrified enemies) stay
+  // conceptually distinct even though both gate the same check. No
+  // "once per match" cap — a mild status effect, not a board-destroying
+  // one, so it doesn't need the guard the balance pass added elsewhere.
+  if(a.onWinPetrify && loserIndex != null){
+    loserEntry.petrifiedUntilTurnCount = state.turnCount + 2;
+  }
 }
 
 // Shared by Morvath's Ultimate/Drowned Souls and Zalazar's World In Flames:
@@ -3545,6 +3604,31 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
       if(n && n.owner !== owner) enemyNeighbors++;
     });
     if(enemyNeighbors >= ab.minCount) v += ab.amount;
+  }
+  // Medusa's Throne of Stone: the mirror image of adjacentEnemiesBoost
+  // above (own-side neighbors instead of enemy ones), and applies on both
+  // attack and defense — her text says "this round", not "her next
+  // attack" like Tiamat's, so it isn't gated to role==='attack'.
+  if(card.active && card.active.adjacentAlliesBoost){
+    const ab = card.active.adjacentAlliesBoost;
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    let allyNeighbors = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner === owner) allyNeighbors++;
+    });
+    if(allyNeighbors >= ab.minCount) v += ab.amount;
+  }
+  // Medusa's Serpent Queen: +N Power per Petrified enemy on the board,
+  // capped — a live board-count check, same "no state needed" shape as
+  // boardLeadBonus/pairPresence above.
+  if(card.active && card.active.auraPerPetrifiedEnemy){
+    const cfg = card.active.auraPerPetrifiedEnemy;
+    const petrifiedEnemies = state.board.filter(e => e && e.owner !== owner && e.petrifiedUntilTurnCount > state.turnCount).length;
+    v += Math.min(petrifiedEnemies, cfg.max) * cfg.amount;
   }
   // Three Head Dragon's Ice's Breath: "the enemy's opposing side is frozen,
   // -2 Power during this attack" — read off the ATTACKER's active (not this
@@ -4087,6 +4171,9 @@ function specialUsable(card, owner, entry){
   // entry.specialLockedUntilTurnCount, set in ON_PLACE_HANDLERS.triunedesire
   // and SPECIAL_HANDLERS.triunedesire).
   if(entry && entry.specialLockedUntilTurnCount > state.turnCount) return false;
+  // Medusa's Stone Gaze: a Petrified card can't use its Special Attack
+  // either — see checkOnWinBonuses' onWinPetrify hook.
+  if(entry && entry.petrifiedUntilTurnCount > state.turnCount) return false;
   const key = owner + ':' + card.id;
   if(special.once && state.specialUsed[key]) return false;
   // Sister's Command (Nyxara, threshold 2) / Sister's Will (Triune Desire,
@@ -4161,13 +4248,31 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 4);
     return `${srcEntry.card.name}'s Dawn's Reckoning flips ${targetEntry.card.name}!`;
   },
+  // Gorgon's Dominion: petrify every enemy (respects protectedByInfiniteSeraph
+  // — Petrified is a status effect on an enemy card, the same category
+  // Eternal Presence already blocks for Vaelira/Nyxara/Triune Desire),
+  // -2 Power this round to all of them, +3 Power this round to Medusa
+  // herself, and an extra turn if you control more cards afterward (no
+  // capture/destroy happens here, so "afterward" and "right now" are the
+  // same board state — checked once).
   medusa({ srcEntry, owner }){
-    const enemies = state.board.filter(e => e && e.owner !== owner);
-    enemies.forEach(e => SpecialVerbs.stealPower(srcEntry, e, 1));
-    SpecialVerbs.attackBoost(srcEntry, 2);
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    const protectedSide = protectedByInfiniteSeraph(enemyOwner);
+    let petrified = 0;
+    state.board.forEach(e => {
+      if(!e || e.owner !== enemyOwner || protectedSide) return;
+      e.petrifiedUntilTurnCount = state.turnCount + 2;
+      SpecialVerbs.debuffThisRound(e, 2);
+      petrified++;
+    });
+    SpecialVerbs.buffThisRound(srcEntry, 3);
     const mine = state.board.filter(e => e && e.owner === owner).length;
-    if(mine > enemies.length) SpecialVerbs.extraTurn(owner);
-    return `${srcEntry.card.name}'s Gaze of Medusa withers every foe on the board!`;
+    const theirs = state.board.filter(e => e && e.owner === enemyOwner).length;
+    if(mine > theirs) SpecialVerbs.extraTurn(owner);
+    return petrified > 0
+      ? `${name}'s Gorgon's Dominion turns ${petrified} enem${petrified>1?'ies':'y'} to stone!`
+      : `${name}'s Gorgon's Dominion finds no one left to petrify!`;
   },
   maximus({ srcEntry, targetEntry, targetIndex, owner }){
     const basePower = totalPower(srcEntry);
@@ -5139,8 +5244,26 @@ function battleNeighbors(index, owner, result){
     }
 
     if(effOutcome){
-      if(isShielded(target, p.ni)){
-        if(target.card.active && target.card.active.shield) target.shieldUsed = true;
+      const shielded = isShielded(target, p.ni);
+      // Medusa's Curse of the Gorgon: "if an enemy attacks Medusa and wins
+      // by 2 Power or less, the battle becomes a draw and the attacker
+      // gets -1 Power this round" — a margin-conditional block distinct
+      // from the flat always-blocks-once active.shield above, so it's
+      // checked separately here (isShielded has no access to the actual
+      // battle values it would need for a margin check) rather than folded
+      // into isShielded() itself.
+      const marginBlocked = !shielded && target.card.active && target.card.active.marginShieldThreshold != null
+        && (placedVal - targetVal) <= target.card.active.marginShieldThreshold;
+      if(shielded || marginBlocked){
+        if(target.card.active && target.card.active.shield){
+          target.shieldUsed = true;
+          // Medusa's Living Statue: her own shield trigger also grants a
+          // permanent Power bonus, unlike every other shield in the
+          // roster — scoped to her own active.shield specifically (not
+          // externally granted shields), matching the card's own text.
+          if(target.card.active.shieldGrantsBonus) SpecialVerbs.attackBoost(target, target.card.active.shieldGrantsBonus);
+        }
+        if(marginBlocked) SpecialVerbs.debuffThisRound(placedEntry, 1);
         target.shieldFlash = true;
         result.shielded++;
         return;

@@ -18,10 +18,10 @@ fil (t.ex. GitHub Pages).
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
 **Punkt 1–10 är MERGADE till `main`** (användaren bekräftade explicit,
-sex gånger nu — senast "Merga allt till main" för punkt 9–10). Inget
-ocommittat väntar på feature-branchen just nu — fråga alltid explicit
-innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
-en tidigare bekräftelse.
+sex gånger nu — senast "Merga allt till main" för punkt 9–10). **Punkt 11
+(Medusa-ombyggnaden) ligger committad på feature-branchen, INTE mergad
+till `main` än** — fråga alltid explicit innan nästa merge när mer arbete
+samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -162,6 +162,48 @@ inkopplad direkt i `SpecialVerbs`s stat-ändrande metoder ger HELA rostret
 för att bara försvinna — båda återanvänder befintliga
 1300ms-städnings-timers, ingen ny tajming-mekanik behövdes. Se avsnitt 5:s
 allra sista underrubrik för fullständiga detaljer.
+
+**11. Medusa ombyggd till en fullständig ombyggnad** (samma mönster som
+Tiamat/Naline: samma `id`/namn, allt annat utbytt), från en ny poster
+("Medusa, The Petrified Queen") användaren skickade direkt efter
+kortroster-exporten (punkt 10 var redan mergad). **Petrify blir här den
+första riktiga mekaniken i spelet** — tidigare bara smak-text på gamla
+kort. Ny motor-primitiv: `petrifiedUntilTurnCount` (samma rond-klocka-
+konvention som `specialLockedUntilTurnCount`, men ett separat fält
+eftersom det är ett läsbart statuskonditions snarare än en påtvingad
+förmågespärr — Serpent Queen nedan behöver kunna RÄKNA petrifierade
+fiender, inte bara blockera dem), som spärrar `specialUsable()` precis
+som de befintliga låsen. Stone Gaze: varje vinst petrifierar förloraren en
+rond (ny `onWinPetrify`-gren i `checkOnWinBonuses`, MEDVETET inte
+"en gång per match"-cappad som Nexzoth/Morvaths `onWinLineDestroy` —
+Petrify saknar deras permanenta `debuffImmune`-kombo som gjorde den
+cappningen nödvändig, en ren balansbedömning). Curse of the Gorgon: en ny
+marginalbaserad sköld parallellt med den befintliga `isShielded()` —
+tillagd direkt i `battleNeighbors` (inte i `isShielded()` själv, som
+saknar tillgång till de faktiska stridsvärdena en marginal-jämförelse
+kräver) via nya `marginShieldThreshold`/`shieldGrantsBonus`-fält; blockerar
+en förlust med liten marginal (≤2) OCH debuffar angriparen, utan att
+konsumera Living Statues separata engångssköld. Serpent Queen: ny
+`auraPerPetrifiedEnemy`, cappad. Throne of Stone: ny `adjacentAlliesBoost`
+(spegelbild av Tiamats `adjacentEnemiesBoost`, men egna allierade och inte
+rollspärrad). Gorgon's Dominion (ultimate): petrifierar alla fiender,
+debuffar dem, buffar Medusa själv. Element ändrat vatten→sten/jord
+(`element:'earth'`) — passar temat bättre, inget i konsten tvingar ett
+specifikt val. Faction/Rarity/Type/Alignment-hörnbadges på den nya
+posterkonsten är MEDVETET flavor-only, inte inbyggda i motorn — inget
+formellt typ/faktion-system finns än (samma gap som diskuterades när
+användaren delade sin 8-stegs "balans-plan"-idé, se nedan). Ny
+petrifierad-badge (🗿) på brädet. Sex nya permanenta tester i
+`tests/game.test.mjs`, alla 39 testerna gröna. Se avsnitt 5:s allra sista
+underrubrik för fullständiga detaljer.
+
+Parallellt, öppen tråd men INTE påbörjad: användaren delade en 8-stegs
+"balans-plan" (från ChatGPT) för att formalisera Triad Arenas regler
+(korttyper, Graveyard/Wins/Ultimate-system, factions, Arena-effekter,
+kortbalans) och frågade sedan efter en full kortroster-export (levererad,
+se `tests/`-katalogens scratch-skript-mönster) för att skicka till ChatGPT
+för bättre kortdesign. Väntar på att användaren återkommer med explicit
+riktning innan något av detta påbörjas.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -1589,6 +1631,94 @@ aktivering samtidigt visar en röd "-3 Power"-popup på två debuffade kort
 OCH en tonande, röd-tonad spillra + "💥 Destroyed!" på det förstörda
 draken, i en och samma rendering. Inga `pageerror`. `tests/game.test.mjs`:
 38 tester totalt, alla gröna.
+
+### Medusa — fullständig ombyggnad (samma session, efter kortroster-exporten)
+
+Från en ny poster ("Medusa, The Petrified Queen") användaren laddade upp.
+Samma mönster som Tiamat/Naline: `id:'medusa'`, namn oförändrat, ALLT
+annat utbytt (konst, stats, element, skills, ultimate) — duplicerad
+oförändrat i både `HEROES` och `FOREST_FOES` (redan spelbar sedan
+tidigare, förblir det).
+
+**Bildhantering**: ny poster beskuren `(140,y,800,y+431)` → skalad till
+`(640,418)` → `cards/card-medusa.jpg` (tumnagel, skriver över den gamla)
+och `card-medusa-full.jpg` (full bild, repo-rot, ny fil). `FULL_CARD_IMAGES.medusa`
+pekar nu på den nya filen.
+
+**Element**: vatten → `earth`. Inget i den nya konsten tvingar ett
+specifikt element (ingen synlig element-badge), så sten/gorgon-temat fick
+avgöra.
+
+**Petrify blir här spelets FÖRSTA riktiga mekanik av det namnet** —
+tidigare bara smak-text på äldre kort, aldrig kopplad till motorn. Ny
+delad status: `entry.petrifiedUntilTurnCount` (samma rond-klocka-mönster
+som `specialLockedUntilTurnCount`/`buffLockedUntilTurnCount`/
+`destroyImmuneUntilTurnCount`: sätts till `state.turnCount + 2`, "en
+rond"). Medvetet ett EGET fält, inte återanvändning av
+`specialLockedUntilTurnCount`, trots att båda spärrar `specialUsable()` på
+samma sätt — Petrify är en läsbar STATUS andra kort behöver kunna RÄKNA
+(Serpent Queen nedan), inte bara en påtvingad spärr. `specialUsable()`
+fick en tredje lås-koll: `if(entry && entry.petrifiedUntilTurnCount >
+state.turnCount) return false;`, direkt efter den befintliga
+`specialLockedUntilTurnCount`-koden. Ny 🗿-badge (`.petrified-badge`,
+samma placering/stil som `.element-badge`) syns på petrifierade kort på
+brädet (`boardCellHtml()` skickar `petrified: cell.petrifiedUntilTurnCount
+> state.turnCount` till `cardFace()`).
+
+**Skills** (alla nya `active`-flaggor, lästa i `fullEffectiveValue()` om
+inte annat anges):
+
+- **Stone Gaze** (on-win) — ny `onWinPetrify`-gren i `checkOnWinBonuses()`,
+  körs efter en riktig vinst (inte Same/Plus): sätter förlorarens
+  `petrifiedUntilTurnCount = state.turnCount + 2`. MEDVETET INTE
+  "en gång per match"-cappad, till skillnad från Nexzoth/Morvaths
+  `onWinLineDestroy` från balanspasset (punkt 10) — den cappningen fanns
+  för att motverka permanent förstörelse KOMBINERAT med permanent
+  `debuffImmune`; Petrify är tillfälligt (en rond) och saknar den
+  kombinationen, så ingen spärr behövs. En dokumenterad balansbedömning,
+  inte ett förbiseende.
+- **Curse of the Gorgon** — en ny, PARALLELL sköld-mekanism vid sidan av
+  den befintliga `isShielded()` (som INTE ändrades). Ny logik direkt i
+  `battleNeighbors()`s sköld-kontrollblock (där de faktiska stridsvärdena
+  redan finns tillgängliga, till skillnad från `isShielded()` som bara ser
+  korten, inte deras beräknade Power) via två nya fält på kortet:
+  `marginShieldThreshold` och `shieldGrantsBonus`. När Medusa förlorar en
+  strid med liten marginal (`targetVal - placedVal <= marginShieldThreshold`,
+  Medusas fall: `2`) blockeras flippen OCH angriparen debuffas -1 — utan
+  att konsumera Living Statues separata engångs-`active.shield`. En
+  förlust med STÖRRE marginal blockeras inte.
+- **Serpent Queen** — ny `active.auraPerPetrifiedEnemy`-block i
+  `fullEffectiveValue()`: +1 Power per petrifierad fiende på brädet,
+  cappat vid +3.
+- **Living Statue** — Medusas egen `active.shield` (den befintliga,
+  generiska mekanismen `isShielded()` redan hanterar): blockerar sin
+  FÖRSTA förlust, ger permanent +1 Power, konsumeras (`shieldUsed=true`)
+  och skyddar inte igen.
+- **Throne of Stone** — ny `active.adjacentAlliesBoost`-block i
+  `fullEffectiveValue()`, en spegelbild av Tiamats redan existerande
+  `adjacentEnemiesBoost` men för EGNA angränsande allierade och INTE
+  rollspärrad: +2 Power med 2 eller fler angränsande allierade, +0 med
+  bara 1.
+- **Gorgon's Dominion** (ultimate, `SPECIAL_HANDLERS.medusa`) —
+  petrifierar ALLA fiender på brädet (samma `petrifiedUntilTurnCount`-fält
+  som Stone Gaze), debuffar dem -2 vardera, och buffar Medusa själv +3.
+  Respekterar `protectedByInfiniteSeraph` (samma helhets-immunitet som
+  redan blockerar andra destroy/status-effekter från Vaelira m.fl.).
+
+**Faction/Rarity/Type/Alignment**-hörnbadges på den nya posterkonsten är
+MEDVETET INTE inbyggda i motorn — rent flavor-only metadata, precis som
+tidigare kort utan ett formellt typ/faktion-system (ingen sådan motor
+finns än; se punkt 1b:s öppna tråd om användarens 8-stegs "balans-plan").
+
+**Testat**: ett nytt test i `tests/game.test.mjs`
+("Medusa (redesigned): ...") täcker alla sex skills + elementbytet +
+spelbarhet, inklusive marginal-skölden med BÅDE ett blockerat (≤2) och
+ett icke-blockerat (>2) utfall, samt att Living Statues sköld inte
+återanvänds efter första förlusten. `shieldUsed:true` sätts manuellt på
+Medusa i marginal-testerna för att isolera Curse of the Gorgon från
+Living Statues egen, alltid-aktiva engångssköld (annars skulle båda
+blockera samma scenario av olika anledningar, och testet skulle inte
+faktiskt bevisa marginal-logiken). 39 tester totalt i svepet, alla gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

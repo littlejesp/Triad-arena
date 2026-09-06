@@ -1415,6 +1415,134 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
   await page2.close();
 });
 
+test('Medusa (redesigned): Stone Gaze petrify-on-win, Curse of the Gorgon margin-block, Serpent Queen aura, Living Statue shield, Throne of Stone, Gorgon\'s Dominion ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const medusa = findCardById('medusa');
+
+    out.playableAndEnemy = HEROES.some(h => h.id === 'medusa') && FOREST_FOES.some(f => f.id === 'medusa');
+    out.elementEarth = medusa.element === 'earth';
+
+    // Stone Gaze: winning a battle petrifies the loser until end of next round
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    state.turnCount = 10;
+    const winner = freshEntry(medusa, 'blue');
+    state.board[4] = winner;
+    const loser = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.petrifiedAfterWin = loser.petrifiedUntilTurnCount === 12; // turnCount(10) + 2
+    out.petrifiedCantUseSpecial = !specialUsable({ ...findCardById('ogre'), special:{name:'x',cost:0,once:false,targets:'aoe'} }, 'blue', loser);
+    state.turnCount = 12;
+    out.notPetrifiedAfterExpiry = !(loser.petrifiedUntilTurnCount > state.turnCount);
+
+    // Curse of the Gorgon: enemy wins by <=2 margin against Medusa -> the
+    // flip is blocked and the attacker is debuffed. shieldUsed is pre-set
+    // true on Medusa in both cases below to isolate this margin-based check
+    // from her separate, always-on-first-loss Living Statue shield (which
+    // would otherwise also block the exact same scenario, for a different
+    // reason, and pre-empt the OR check before the margin logic even runs).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const medusaDefender = freshEntry(medusa, 'blue'); // top:8
+    medusaDefender.shieldUsed = true;
+    state.board[4] = medusaDefender;
+    const closeAttacker = freshEntry({ id:'close', name:'Close', top:1,right:1,bottom:10,left:1 }, 'red'); // bottom:10 vs medusa's top:8, margin=2
+    state.board[1] = closeAttacker;
+    resolveFlips(1, 'red');
+    out.curseBlockedCloseWin = state.board[4].owner === 'blue';
+    out.curseDebuffedAttacker = closeAttacker.captureBonus === -1;
+
+    // A bigger margin (>2) should NOT be blocked
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const medusaDefender2 = freshEntry(medusa, 'blue');
+    medusaDefender2.shieldUsed = true;
+    state.board[4] = medusaDefender2;
+    const bigAttacker = freshEntry({ id:'big', name:'Big', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.bigMarginNotBlocked = state.board[4].owner === 'red';
+
+    // Serpent Queen: +1 per petrified enemy on the board, capped at 3
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    state.turnCount = 5;
+    for(let i=0;i<5;i++){
+      state.board[i] = freshEntry({ id:'p'+i, name:'P'+i, top:1,right:1,bottom:1,left:1 }, 'red');
+      state.board[i].petrifiedUntilTurnCount = 10;
+    }
+    out.serpentQueenCapped = fullEffectiveValue(medusa, 'top', null, 8, 'blue', 'attack') - medusa.top === 3;
+
+    // Living Statue: a one-time shield blocks a loss and grants a permanent +1
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const medusaShield = freshEntry(medusa, 'blue');
+    state.board[4] = medusaShield;
+    const crusher = freshEntry({ id:'crusher', name:'Crusher', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = crusher;
+    resolveFlips(1, 'red');
+    out.livingStatueBlocked = state.board[4].owner === 'blue';
+    out.livingStatueGrantedBonus = medusaShield.captureBonus === 1;
+    out.livingStatueUsedUp = medusaShield.shieldUsed === true;
+
+    // A second big loss after the shield is used should NOT be blocked again.
+    // crusher2 sits at index3 (left of medusa at index4) — index3's RIGHT
+    // edge is what faces medusa's LEFT edge, so its strong stat is on 'right'.
+    const crusher2 = freshEntry({ id:'crusher2', name:'Crusher2', top:1,right:20,bottom:1,left:1 }, 'red');
+    state.board[3] = crusher2;
+    resolveFlips(3, 'red');
+    out.shieldDoesNotReuse = state.board[4].owner === 'red';
+
+    // Throne of Stone: +2 with 2+ adjacent allies, +0 with only 1
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(medusa, 'blue');
+    state.board[1] = freshEntry({ id:'ally1', name:'A1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[3] = freshEntry({ id:'ally2', name:'A2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.throneOfStoneWithTwoAllies = fullEffectiveValue(medusa, 'top', null, 4, 'blue', 'attack') - medusa.top === 2;
+    state.board[3] = null;
+    out.throneOfStoneWithOnlyOneAlly = fullEffectiveValue(medusa, 'top', null, 4, 'blue', 'attack') - medusa.top === 0;
+
+    // Ultimate: Gorgon's Dominion petrifies all enemies, -2 to them, +3 to self
+    state.board = Array(9).fill(null);
+    state.turnCount = 20;
+    const ultSrc = freshEntry(medusa, 'blue');
+    state.board[4] = ultSrc;
+    const foe1 = freshEntry({ id:'foe1', name:'Foe1', top:5,right:5,bottom:5,left:5 }, 'red');
+    const foe2 = freshEntry({ id:'foe2', name:'Foe2', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = foe1; state.board[2] = foe2;
+    SPECIAL_HANDLERS.medusa({ srcEntry: ultSrc, owner: 'blue' });
+    out.ultimatePetrifiedBoth = foe1.petrifiedUntilTurnCount === 22 && foe2.petrifiedUntilTurnCount === 22;
+    out.ultimateDebuffedBoth = foe1.captureBonus === -2 && foe2.captureBonus === -2;
+    out.ultimateSelfBuffed = ultSrc.captureBonus === 3;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.elementEarth, true);
+  assert.equal(result.petrifiedAfterWin, true);
+  assert.equal(result.petrifiedCantUseSpecial, true, 'a petrified card cannot activate its own Special Attack');
+  assert.equal(result.notPetrifiedAfterExpiry, true);
+  assert.equal(result.curseBlockedCloseWin, true);
+  assert.equal(result.curseDebuffedAttacker, true);
+  assert.equal(result.bigMarginNotBlocked, true, 'a win by more than the margin threshold still flips Medusa normally');
+  assert.equal(result.serpentQueenCapped, true);
+  assert.equal(result.livingStatueBlocked, true);
+  assert.equal(result.livingStatueGrantedBonus, true);
+  assert.equal(result.livingStatueUsedUp, true);
+  assert.equal(result.shieldDoesNotReuse, true, 'Living Statue only blocks the first loss, not every loss');
+  assert.equal(result.throneOfStoneWithTwoAllies, true);
+  assert.equal(result.throneOfStoneWithOnlyOneAlly, true);
+  assert.equal(result.ultimatePetrifiedBoth, true);
+  assert.equal(result.ultimateDebuffedBoth, true);
+  assert.equal(result.ultimateSelfBuffed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
