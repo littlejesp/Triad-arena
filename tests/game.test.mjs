@@ -423,6 +423,73 @@ test('Three Head Dragon: Apokalyps debuffs all enemies for the rest of the round
   await page.close();
 });
 
+// Playtester feedback: retrying a failed Campaign stage forced a full
+// reselect of all five champions every time. resetGame() now preserves
+// state.selected when draftMode is 'campaign' (Random/Choose Your Five
+// still clear it, unchanged — see resetGame() in index.html).
+test('Campaign: retrying a stage keeps the same five champions pre-checked', async () => {
+  const { page, pageErrors } = await newPage();
+
+  await page.evaluate(() => {
+    campaignProgress = { stageIndex: 1, unlocked: ['templaren'], ngPlus: 0 };
+    saveCampaignProgress();
+    state.draftMode = 'campaign';
+    state.selected = ['graff', 'elara', 'sarah', 'zaevir', 'templaren'];
+    startCampaignBattle();
+  });
+  await page.waitForFunction(() => state.phase === 'battle', { timeout: 5000 });
+
+  // Force a loss deterministically rather than playing it out.
+  await page.evaluate(() => {
+    const stage = currentCampaignStage();
+    state.board = stage.enemyIds.slice(0, 5)
+      .map(id => ({ card: findCardById(id), owner: 'red', shieldUsed: false, grantedShield: false, captureBonus: 0 }))
+      .concat(Array(4).fill(null));
+    state.playerHand = [];
+    state.enemyHand = [];
+    finishGame();
+  });
+  await page.waitForFunction(() => state.phase === 'result', { timeout: 5000 });
+
+  await page.click('#campaign-retry-btn');
+  await page.waitForTimeout(200);
+
+  const result = await page.evaluate(() => ({
+    phase: state.phase,
+    selected: state.selected.slice(),
+    checkedCount: document.querySelectorAll('.draft-grid .card.selected').length,
+    beginBtnDisabled: document.getElementById('campaign-begin-btn')?.disabled,
+  }));
+
+  assert.equal(result.phase, 'draft');
+  assert.deepEqual(result.selected.sort(), ['elara', 'graff', 'sarah', 'templaren', 'zaevir']);
+  assert.equal(result.checkedCount, 5, 'all five should render as checked in the picker grid');
+  assert.equal(result.beginBtnDisabled, false, 'Begin Stage should be immediately clickable');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Random Draft / Choose Your Five: resetGame() still clears the selection (unchanged)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    state.draftMode = 'random';
+    state.selected = ['graff', 'elara', 'sarah', 'zaevir', 'templaren'];
+    resetGame();
+    const randomAfter = state.selected.slice();
+
+    state.draftMode = 'manual';
+    state.selected = ['graff', 'elara', 'sarah', 'zaevir', 'templaren'];
+    resetGame();
+    const manualAfter = state.selected.slice();
+
+    return { randomAfter, manualAfter };
+  });
+  assert.deepEqual(result.randomAfter, []);
+  assert.deepEqual(result.manualAfter, []);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

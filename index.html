@@ -4454,8 +4454,16 @@ function finishGame(){
 function resetGame(){
   const keepRules = state.rules;
   const keepMode = state.draftMode || 'random';
+  // Campaign retry/next/retreat all funnel through here — keep whichever
+  // five the player just fielded pre-checked on the way back to the picker
+  // (Stage 1 forces the fixed starters regardless, see startCampaignBattle,
+  // and Reset Campaign/New Game+ set their own fresh selection directly, so
+  // neither is affected by this) instead of forcing a full reselect every
+  // single retry. Random/Choose Your Five keep clearing, unchanged — a
+  // fresh rematch there is still expected to redraft/redraw.
+  const keepSelected = keepMode === 'campaign' ? state.selected.slice() : [];
   state = {
-    phase:'draft', selected:[], board: Array(9).fill(null),
+    phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,

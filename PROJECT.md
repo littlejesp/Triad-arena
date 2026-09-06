@@ -976,6 +976,31 @@ identifierats som en liten skönhetsfläck (ordvalet "Forfeit & Redraft"
 antydde felaktigt att man tappade progress under en campaign-strid, trots
 att beteendet redan var korrekt).
 
+**UPPDATERING, senare session — playtester-feedback:** `resetGame()`
+nollställde ALLTID `state.selected`, oavsett läge — i Campaign innebar det
+att `campaign-retry-btn`/`campaign-next-btn`/`#concede-btn` (samma
+`resetGame()`-anrop som ovan) tvingade spelaren att välja om alla fem kort
+från grunden vid VARJE försök, även när de bara ville köra samma trupp
+igen. Löst genom att `resetGame()` nu behåller `state.selected` när
+`state.draftMode==='campaign'` (kopierar arrayen, rör inget annat) — Random
+Draft/Choose Your Five nollställer fortfarande som förut (en riktig
+"Forfeit & Redraft" ska fortfarande vara ett fräscht val). Stage 1 påverkas
+inte (den tvingar redan `CAMPAIGN_STARTERS` explicit i `startCampaignBattle()`
+oavsett `state.selected`), och varken "Reset Campaign" eller "Start New
+Game+N" går via `resetGame()` (de sätter sin egen färska
+`CAMPAIGN_STARTERS`-selektion direkt), så ingen risk för kvarvarande
+ogiltiga kort-id:n efter en sådan återställning. Löser användarens
+konkreta klagomål ("jag behöver välja om alla kort varje gång ... vill man
+byta så kan man") — de fem senast valda kommer nu förvalda/ikryssade på
+väljarskärmen, `Begin Stage N` är direkt klickbar, och man kan fortfarande
+byta ut enskilda kort om man vill. Testat både direkt (`resetGame()` med
+olika `draftMode`) och genom en riktig UI-klick-sekvens (Playwright:
+starta etapp 2 med fem valda kort → tvinga fram en förlust → klicka på den
+RIKTIGA `#campaign-retry-btn`-knappen → verifiera att draftskärmens rutnät
+visar exakt fem ikryssade kort och att `#campaign-begin-btn` inte är
+`disabled`) — två nya tester i `tests/game.test.mjs` (19 totalt, alla
+gröna).
+
 ### New Game+ (svar på "kör om med tuffare AI-händer / tills vi bygger
 fler nivåer")
 
