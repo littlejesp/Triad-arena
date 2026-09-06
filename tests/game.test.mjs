@@ -770,6 +770,318 @@ test('Graveyard optional rule: every destroy-capable Special routes through dest
   await page.close();
 });
 
+test('Kaeldryx: Dragon Hunter/Scalebreaker passives, Hunter\'s Focus buff-lock, Execution, Dragonslayer ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const kaeldryx = findCardById('kaeldryx');
+
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    // A synthetic dragon with a facing side below 8, so Scalebreaker (+1 vs
+    // 8+ facing) doesn't also kick in here and confound the Dragon Hunter
+    // reading — Scalebreaker gets its own isolated assertions below.
+    const weakDragon = { id:'weak-dragon', name:'WeakDragon', top:1,right:1,bottom:1,left:1, isDragon:true };
+    out.dragonHunterBonus = fullEffectiveValue(kaeldryx, 'top', weakDragon, 0, 'blue', 'attack') - kaeldryx.top;
+    const strongFacing = { id:'s8', name:'S8', top:8,right:1,bottom:1,left:1 };
+    const weakFacing = { id:'s7', name:'S7', top:7,right:1,bottom:1,left:1 };
+    out.scaleBreakerAt8 = fullEffectiveValue(kaeldryx, 'bottom', strongFacing, 0, 'blue', 'attack') - kaeldryx.bottom;
+    out.scaleBreakerBelow8 = fullEffectiveValue(kaeldryx, 'bottom', weakFacing, 0, 'blue', 'attack') - kaeldryx.bottom;
+
+    // Hunter's Focus (called directly, isolated from battle resolution)
+    state.board = Array(9).fill(null);
+    const hfSrc = freshEntry(kaeldryx, 'blue');
+    const hfTarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = hfSrc; state.board[1] = hfTarget;
+    state.turnCount = 50;
+    ON_PLACE_HANDLERS.kaeldryx(hfSrc, 'blue', 4);
+    out.buffLockedAfterPlace = hfTarget.buffLockedUntilTurnCount > state.turnCount;
+    SpecialVerbs.attackBoost(hfTarget, 5);
+    out.buffBlockedWhileLocked = hfTarget.captureBonus === 0;
+    state.turnCount += 2;
+    SpecialVerbs.attackBoost(hfTarget, 5);
+    out.buffWorksAfterLockExpires = hfTarget.captureBonus === 5;
+
+    // Execution: a 10+ power win destroys the loser outright
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    state.board[4] = freshEntry(kaeldryx, 'blue');
+    state.board[1] = freshEntry({ id:'exec-weak', name:'ExecWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.executionDestroyedLoser = state.board[1] === null;
+
+    // Dragonslayer: destroys ALL dragons (both sides, respecting destroyImmune), debuffs remaining enemies
+    state.board = Array(9).fill(null);
+    const ksrc = freshEntry(kaeldryx, 'blue');
+    const allyDragon = freshEntry(findCardById('dragon'), 'blue');
+    const immuneDragon = freshEntry(findCardById('threeheaddragon'), 'red');
+    const plainEnemy = freshEntry(findCardById('ogre'), 'red');
+    state.board[0] = ksrc; state.board[1] = allyDragon; state.board[2] = immuneDragon; state.board[3] = plainEnemy;
+    SPECIAL_HANDLERS.kaeldryx({ srcEntry: ksrc, owner: 'blue' });
+    out.dragonslayerKilledAllyDragon = state.board[1] === null;
+    out.dragonslayerRespectsDestroyImmune = state.board[2] !== null;
+    out.dragonslayerDebuffedRemainingEnemy = plainEnemy.captureBonus === -3;
+
+    return out;
+  })()`);
+  assert.equal(result.dragonHunterBonus, 4, 'Dragon Hunter: +4 vs an isDragon card');
+  assert.equal(result.scaleBreakerAt8, 1, 'Scalebreaker: +1 vs an 8+ facing side');
+  assert.equal(result.scaleBreakerBelow8, 0, 'Scalebreaker: no bonus below 8');
+  assert.equal(result.buffLockedAfterPlace, true);
+  assert.equal(result.buffBlockedWhileLocked, true, "Hunter's Focus blocks positive bonuses while locked");
+  assert.equal(result.buffWorksAfterLockExpires, true);
+  assert.equal(result.executionDestroyedLoser, true);
+  assert.equal(result.dragonslayerKilledAllyDragon, true, 'Dragonslayer hits allied dragons too');
+  assert.equal(result.dragonslayerRespectsDestroyImmune, true);
+  assert.equal(result.dragonslayerDebuffedRemainingEnemy, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const nexzoth = findCardById('nexzoth');
+
+    state.board = Array(9).fill(null);
+    const immuneEntry = freshEntry(nexzoth, 'blue');
+    state.board[0] = immuneEntry;
+    SpecialVerbs.debuff(immuneEntry, 5);
+    out.debuffImmune = immuneEntry.captureBonus === 0;
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const lightCard = { id:'light-test', name:'Light', top:5,right:5,bottom:5,left:5, element:'light' };
+    out.weakVsLight = fullEffectiveValue(nexzoth, 'top', lightCard, 0, 'blue', 'attack') - nexzoth.top;
+
+    // World Shatter: winning destroys enemies further along that same line
+    state.board = Array(9).fill(null);
+    state.board[7] = freshEntry(nexzoth, 'blue');
+    state.board[4] = freshEntry({ id:'near', name:'Near', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'far', name:'Far', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(7, 'blue');
+    out.worldShatterCapturedNear = state.board[4] && state.board[4].owner === 'blue';
+    out.worldShatterDestroyedFar = state.board[1] === null;
+
+    // The Ending: destroys every other card, both sides, except itself; respects destroyImmune
+    state.board = Array(9).fill(null);
+    const nexSrc = freshEntry(nexzoth, 'blue');
+    state.board[4] = nexSrc;
+    state.board[0] = freshEntry(findCardById('ogre'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[8] = freshEntry(findCardById('threeheaddragon'), 'red');
+    SPECIAL_HANDLERS.nexzoth({ srcEntry: nexSrc, sourceIndex: 4, owner: 'blue' });
+    out.endingKeepsSelf = state.board[4] === nexSrc;
+    out.endingDestroysOwnSide = state.board[0] === null;
+    out.endingDestroysEnemySide = state.board[1] === null;
+    out.endingRespectsDestroyImmune = state.board[8] !== null;
+
+    return out;
+  })()`);
+  assert.equal(result.debuffImmune, true);
+  assert.equal(result.weakVsLight, -4);
+  assert.equal(result.worldShatterCapturedNear, true);
+  assert.equal(result.worldShatterDestroyedFar, true, 'World Shatter destroys enemies further along the winning line');
+  assert.equal(result.endingKeepsSelf, true);
+  assert.equal(result.endingDestroysOwnSide, true, 'The Ending hits both sides, not just the enemy');
+  assert.equal(result.endingDestroysEnemySide, true);
+  assert.equal(result.endingRespectsDestroyImmune, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Morvath: King of the Depths buff-on-destroy, threshold-gated Drowned Souls, Endless Tide destroy+revive', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const morvath = findCardById('morvath');
+
+    // King of the Depths: +1 permanent Power whenever ANY enemy card is destroyed
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    const morvathEntry = freshEntry(morvath, 'blue');
+    state.board[0] = morvathEntry;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    destroyCard(1);
+    out.kingOfDepthsBuff = morvathEntry.captureBonus === 1;
+
+    // Drowned Souls: only revives on a 10+ power win
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [findCardById('ogre')] };
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const belowThreshold = freshEntry(morvath, 'blue'); // top:9, no bonus
+    state.board[4] = belowThreshold;
+    state.board[1] = freshEntry({ id:'mv1', name:'MV1', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.noRevoiveBelowThreshold = state.graveyard.red.length === 1;
+
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [], red: [findCardById('ogre')] };
+    const aboveThreshold = freshEntry(morvath, 'blue');
+    aboveThreshold.captureBonus = 2; // push to 11
+    state.board[4] = aboveThreshold;
+    state.board[1] = freshEntry({ id:'mv2', name:'MV2', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.revivedAboveThreshold = state.graveyard.red.length === 0 &&
+      state.board.some(e => e && e.owner === 'blue' && e.card.id === 'ogre' && e.captureBonus === -2);
+
+    // Ultimate: destroys every enemy, then revives up to 2 from the graveyard on Morvath's own side
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [], red: [] };
+    const mSrc = freshEntry(morvath, 'blue');
+    state.board[0] = mSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[2] = freshEntry(findCardById('wendigo'), 'red');
+    SPECIAL_HANDLERS.morvath({ srcEntry: mSrc, owner: 'blue' });
+    out.noneRemainRedOwned = state.board.every(e => !e || e.owner !== 'red');
+    out.revivedTwoWithPenalty = state.board.filter(e => e && e.owner === 'blue' && e.captureBonus === -3).length === 2;
+
+    return out;
+  })()`);
+  assert.equal(result.kingOfDepthsBuff, true);
+  assert.equal(result.noRevoiveBelowThreshold, true, "Drowned Souls doesn't trigger below a 10-power win");
+  assert.equal(result.revivedAboveThreshold, true, 'Drowned Souls revives the just-destroyed graveyard card at a 10+ win');
+  assert.equal(result.noneRemainRedOwned, true, 'The Endless Tide leaves no red-owned cards on the board');
+  assert.equal(result.revivedTwoWithPenalty, true, 'The Endless Tide revives up to 2 cards under Morvath\'s owner with -3 Power');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Vorgrath: debuffImmuneFirstRound expires after round 1, Crushing Weight hits every enemy on win, The Falling World ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vorgrath = findCardById('vorgrath');
+
+    state.board = Array(9).fill(null);
+    const vgEntry = freshEntry(vorgrath, 'blue');
+    state.board[0] = vgEntry;
+    state.turnCount = 0;
+    SpecialVerbs.debuff(vgEntry, 5);
+    out.immuneDuringFirstRound = vgEntry.captureBonus === 0;
+    state.turnCount = 5;
+    SpecialVerbs.debuff(vgEntry, 5);
+    out.notImmuneAfterFirstRound = vgEntry.captureBonus === -5;
+
+    // Crushing Weight: on any win, ALL enemy cards get -1 this round, not just neighbors
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    state.board[4] = freshEntry(vorgrath, 'blue');
+    state.board[1] = freshEntry({ id:'near', name:'Near', top:1,right:1,bottom:1,left:1 }, 'red');
+    const farEnemy = freshEntry({ id:'far', name:'Far', top:9,right:9,bottom:9,left:9 }, 'red');
+    state.board[6] = farEnemy; // not adjacent to index 4
+    resolveFlips(4, 'blue');
+    out.crushingWeightHitNonAdjacentEnemy = farEnemy.captureBonus === -1;
+
+    // The Falling World: direction-choice ultimate destroys the whole line
+    state.board = Array(9).fill(null);
+    const vgSrc = freshEntry(vorgrath, 'blue');
+    state.board[7] = vgSrc;
+    state.board[4] = freshEntry(findCardById('ogre'), 'red');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.vorgrath({ srcEntry: vgSrc, sourceIndex: 7, owner: 'blue', direction: 'up' });
+    out.fallingWorldDestroyedWholeLine = state.board[4] === null && state.board[1] === null;
+
+    // On-place: Ashfall + World Denial both fire from one placement
+    state.board = Array(9).fill(null);
+    const opSrc = freshEntry(vorgrath, 'blue');
+    state.board[4] = opSrc;
+    const t1 = freshEntry(findCardById('ogre'), 'red');
+    const t2 = freshEntry(findCardById('wendigo'), 'red');
+    state.board[0] = t1; state.board[1] = t2;
+    state.turnCount = 50;
+    ON_PLACE_HANDLERS.vorgrath(opSrc, 'blue', 4);
+    // Ashfall and World Denial each independently pick a random enemy and
+    // apply -2 — they may land on the same card (giving it -4 and leaving
+    // the other untouched) or on different cards (-2 each), so the only
+    // invariant that holds regardless of which is: two -2 hits were
+    // applied in total, somewhere across the two possible targets.
+    out.onPlaceTotalDebuff = t1.captureBonus + t2.captureBonus;
+    out.onPlaceLockedExactlyOne = [t1, t2].filter(e => e.specialLockedUntilTurnCount > state.turnCount).length === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.immuneDuringFirstRound, true);
+  assert.equal(result.notImmuneAfterFirstRound, true);
+  assert.equal(result.crushingWeightHitNonAdjacentEnemy, true, 'Crushing Weight hits every enemy card, not just neighbors');
+  assert.equal(result.fallingWorldDestroyedWholeLine, true);
+  assert.equal(result.onPlaceTotalDebuff, -4, 'Ashfall and World Denial together apply two -2 hits');
+  assert.equal(result.onPlaceLockedExactlyOne, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Zalazar: Ashen Resurrection reuses the shield mechanic, World In Flames revives unconditionally, Apocalypse spares allies', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const zalazar = findCardById('zalazar');
+
+    state.board = Array(9).fill(null);
+    const zalEntry = freshEntry(zalazar, 'blue');
+    state.board[4] = zalEntry;
+    out.hasShield = isShielded(zalEntry, 4) === true;
+
+    // World In Flames: revives on ANY win, no power threshold required
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [findCardById('ogre')] };
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    state.board[4] = freshEntry(zalazar, 'blue');
+    state.board[1] = freshEntry({ id:'zv', name:'ZV', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.revivedRegardlessOfPower = state.graveyard.red.length === 0;
+
+    // Apocalypse: destroys every enemy card, spares allies
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = false;
+    const zSrc = freshEntry(zalazar, 'blue');
+    state.board[0] = zSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'blue');
+    state.board[2] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.zalazar({ srcEntry: zSrc, owner: 'blue' });
+    out.apocalypseSparesAlly = state.board[1] !== null;
+    out.apocalypseKillsEnemy = state.board[2] === null;
+
+    return out;
+  })()`);
+  assert.equal(result.hasShield, true);
+  assert.equal(result.revivedRegardlessOfPower, true);
+  assert.equal(result.apocalypseSparesAlly, true);
+  assert.equal(result.apocalypseKillsEnemy, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('AI can now use direction-targeting Ultimates (Vorgrath and friends) — previously always skipped', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'red';
+    state.phase = 'battle';
+    const aiVorgrath = freshEntry(findCardById('vorgrath'), 'red');
+    state.board[4] = aiVorgrath;
+    state.board[1] = freshEntry(findCardById('ogre'), 'blue');
+    state.board[7] = freshEntry(findCardById('ogre'), 'blue');
+    const used = enemyTryUseSpecial();
+    return { used, somethingDied: state.board[1] === null || state.board[7] === null };
+  })()`);
+  assert.equal(result.used, true, 'the AI actually fired a direction-targeting Ultimate');
+  assert.equal(result.somethingDied, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

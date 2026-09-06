@@ -18,10 +18,10 @@ fil (t.ex. GitHub Pages).
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
 **Punkt 1–4 är MERGADE till `main`** (användaren bekräftade explicit, fyra
-gånger). **Punkt 5 (Triune Desire) och punkt 6 (Graveyard) är COMMITTADE på
-feature-branchen och väntar på nästa merge-bekräftelse** — fråga alltid
-explicit innan nästa merge, anta ALDRIG tillstånd från en tidigare
-bekräftelse.
+gånger). **Punkt 5 (Triune Desire), punkt 6 (Graveyard) och punkt 7 (de fem
+nya bossarna) är COMMITTADE på feature-branchen och väntar på nästa
+merge-bekräftelse** — fråga alltid explicit innan nästa merge, anta ALDRIG
+tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -97,8 +97,24 @@ en generaliserad `freeIfSistersPresent`-tröskel).
 kortdesign ("Graveyard Rune") som beskrev exakt beteendet. Byggd som en
 femte togglebar regel bredvid Same/Plus/Combo/Elemental — se avsnitt 5:s
 sista underrubrik för fullständiga detaljer (ny delad `destroyCard()`-helper,
-`state.graveyard`, en 💀-badge + modal i battle-vyn). Just nu bara ett
-synligt register, inget kort läser från det än.
+`state.graveyard`, en 💀-badge + modal i battle-vyn). Vid det här laget bara
+ett synligt register — se punkt 7 nedan för när det fick sina första
+faktiska läsare.
+
+**7. Fem helt nya bosskort i en enda batch**: Kaeldryx, Nexzoth, Morvath,
+Vorgrath, Zalazar — från fem poster-bilder användaren skickade rakt av
+("Lite nya kort kommer fler"), inga omgjorda kort den här gången.
+FOREST_FOES-only (samma bedömning som Three Head Dragon), delar flera helt
+nya generiska motor-primitiver (`vsTagBonus`, `scaleBreaker`,
+`weakVsElement`, `buffLockedUntilTurnCount`, `onWinPowerThresholdDestroy`,
+`onWinLineDestroy`, `buffOnEnemyDestroyed`, `onWinAllEnemiesDebuffThisRound`,
+`onWinReviveFromGraveyard` + delad `reviveFromGraveyard()`,
+`debuffImmuneFirstRound`) — och Morvath/Zalazar's återupplivningsförmågor
+är **Graveyard-regelns första riktiga läsare**. Hittade och fixade även en
+tyst, sedan tidigare befintlig AI-lucka på köpet: fiende-AI:t använde
+ALDRIG `targets:'direction'`-ultimates (Naline/Judgment/Seraph/Fenrir) innan
+den här sessionen. Se avsnitt 5:s sista underrubrik för fullständiga
+detaljer.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -1050,6 +1066,172 @@ bara `destroyCard()` isolerat), plus att `resetGame()` tömmer Graveyard.
 En separat ad-hoc Playwright-körning verifierade UI:t manuellt (badge-text,
 öppna/stänga modal, korrekt antal kort per sida). Inga `pageerror`.
 `tests/game.test.mjs`: 28 tester totalt, alla gröna.
+
+### Fem nya bossar i en enda batch: Kaeldryx, Nexzoth, Morvath, Vorgrath, Zalazar
+
+Användaren skickade fem helt nya poster-bilder på en gång ("Lite nya kort
+kommer fler") — inga omgjorda befintliga kort den här gången, fem
+splitternya Legendary/Mythic/Boss-kort. **FOREST_FOES-only** (INTE
+duplicerade in i HEROES) — samma bedömning som Three Head Dragon fick
+tidigare: 9-10-i-alla-riktningar-stats och ren skurk-/slutboss-framing
+("The Last Dragon Hunter", "The World Eater", "The Abyssal King", "The
+Sister's Bane", "The Ashen Tyrant") läst som fiende-endgame-innehåll,
+till skillnad från Triple Triad Sisters/Triune Desire (uttryckligen gjorda
+spelbara på begäran). Trivialt att duplicera in i HEROES senare om
+användaren vill göra dem spelbara.
+
+Alla fem har `special.cost:3` (kortens egen "Wins 3"-bricka, till skillnad
+från de flesta andra ultimates 2-kostnad) och delar flera HELT NYA,
+generiska motor-primitiver (skrivna generiskt från början eftersom flera
+kort delar samma mekanik-form):
+
+- **`active.vsTagBonus:{tag, amount}`** (Kaeldryx's Dragon Hunter) — +N
+  Power mot vilket kort som helst med `card[tag]` satt till sant. Krävde
+  att `dragon` (Ancient Wyrmking) och `threeheaddragon` (Three Head Dragon,
+  båda kopior där de finns) fick en ny `isDragon:true`-tagg, så Kaeldryx
+  faktiskt har mål att träffa.
+- **`active.scaleBreaker`** (Kaeldryx's Scalebreaker) — +1 Power närhelst
+  motståndarens FACING-sida (motsatt kant av den som jämförs) är 8 eller
+  högre.
+- **`active.weakVsElement:{element, amount}`** (alla fem korts
+  Weakness-förmågor) — en ren, tryckt elementsvaghet, INTE spärrad av
+  `debuffImmune`/`debuffImmuneFirstRound` (till skillnad från alla andra
+  debuff-anrop i motorn) eftersom det är kortets EGEN svaghet, inte en
+  fiendeförmåga som ska kunna blockeras. Just nu HELT VILANDE — inget
+  `'light'`- eller `'magic'`-element finns på något kort ännu, så det här
+  utlöses aldrig förrän ett sådant kort läggs till (samma
+  "byggd-men-sovande"-mönster som Graveyard-regeln hade innan den här
+  batchen gav den en läsare).
+- **`entry.buffLockedUntilTurnCount`** (Kaeldryx's Hunter's Focus) — första
+  effekten som blockerar POSITIVA bonusar istället för att lägga på en
+  negativ. Spärren sitter i själva `SpecialVerbs.attackBoost`/
+  `directionalBoost` (skippar anropet om `amount > 0` och spärren är
+  aktiv) snarare än utspridd över varje bonuskälla, eftersom ALLA bonusar
+  redan går genom just dessa två verb.
+- **`active.onWinPowerThresholdDestroy:N`** (Kaeldryx's Execution) — ny
+  hook i `checkOnWinBonuses`: vinner kortet en runda med `winnerVal >= N`,
+  förstörs förloraren rakt av (respekterar `destroyImmune`). Krävde att
+  `checkOnWinBonuses` fick två nya, valfria parametrar (`winnerIndex`,
+  `winnerVal`) — `battleNeighbors`s enda anropsplats uppdaterad att skicka
+  med dem (den redan uträknade `placedVal`, ingen omräkning).
+- **`active.onWinLineDestroy`** (Nexzoth's World Shatter, Morvath's Abyssal
+  Grasp) — samma nya `winnerIndex`/`winnerVal`-hook: räknar ut riktningen
+  från den vinnande kanten (`myEdge:'top'` → riktning `'up'`, etc.) och
+  återanvänder `enemiesInDirection()` för att förstöra ALLA fiendekort
+  längre bort i just den linjen. Ingen "en gång per match"-spärr, precis
+  som Three Head Dragons `onWinAreaDebuff` sedan tidigare.
+- **`active.buffOnEnemyDestroyed`** (Morvath's King of the Depths) — ny
+  hook direkt i den delade `destroyCard()`-funktionen (byggd för
+  Graveyard-regeln förra sessionen): varje gång NÅGOT förstör ett
+  fiendekort, hittar den en Morvath på motståndarsidan och ger +1 Power
+  permanent. Triggas alltså även av Morvaths EGNA
+  Abyssal Grasp/Ultimate, vilket är avsiktligt (tematiskt "föder sig på
+  förstörelse").
+- **`active.onWinAllEnemiesDebuffThisRound:N`** (Vorgrath's Crushing
+  Weight) — ny hook i `checkOnWinBonuses`: vinner kortet EN runda, får
+  VARJE fiendekort på hela brädet -N Power denna runda (inte bara
+  grannar). Källtextens "nästa runda" (fördröjd start) förenklad till en
+  omedelbar engångs-runda-effekt — samma `debuffThisRound`-primitiv som
+  allt annat rond-begränsat i motorn — eftersom en genuint fördröjd
+  fönster-övergång skulle kräva ett tredje tidstillstånd utöver den
+  befintliga aktiv→utgången-modellen.
+- **`active.onWinReviveFromGraveyard:{count, powerPenalty, minWinValue?}`**
+  (Morvath's Drowned Souls/Ultimate, Zalazar's World In Flames) — ny hook i
+  `checkOnWinBonuses` plus en ny delad funktion **`reviveFromGraveyard(owner,
+  count, powerPenalty)`**: drar upp till `count` slumpade kort ur
+  MOTSTÅNDARENS `state.graveyard`, placerar dem direkt på tomma
+  brädrutor under `owner` med ett permanent `captureBonus:-powerPenalty`.
+  Går INTE genom `placeCard`/`resolveFlips` — ett återupplivat kort
+  dyker bara upp, det anfaller inte sina nya grannar direkt (medveten
+  förenkling, för att undvika att rekursivt trigga hela
+  placerings/flip-pipelinen för en engångseffekt). **Detta är Graveyard-
+  regelns FÖRSTA verkliga läsare** — innan den här batchen var den bara ett
+  synligt register (se föregående underrubrik); hittar naturligtvis
+  ingenting om regeln är avstängd (graveyard alltid tom då).
+- **`active.debuffImmuneFirstRound`** (Vorgrath's Unchained Hatred) —
+  generaliserar det befintliga permanenta `active.debuffImmune`
+  (Fenrir/Nexzoth/Morvath) till ett tidsbegränsat fönster ("state.turnCount
+  < 2") istället för en engångs-id-koll. Ny delad hjälpfunktion
+  `isDebuffImmuneNow(card)` ersatte de fyra tidigare råa
+  `card.active.debuffImmune`-kollarna i `SpecialVerbs.debuff`/
+  `directionalBoost`/`debuffThisRound` samt `fullEffectiveValue`s
+  `freezeDefenderPenalty`-koll.
+
+**Enskilda kort, kort sammanfattat** (fullständig text i kortens `skills`
+i `index.html`):
+- **Kaeldryx** (Legendary, 10/10/9/9): Dragon Hunter, Hunter's Focus,
+  Scalebreaker, Execution. Ultimate **Dragonslayer** (3 wins) — förstör
+  ALLA Dragon-kort på brädet, ALLIERADE ELLER FIENDE (medvetet inte
+  fiende-only, till skillnad från varje annan förstör-allt-ultimate i
+  spelet — källtexten har inget "fiende"-villkor och Kaeldryx är tematiskt
+  en jägare som dödar varje drake han hittar), sen -3 Power denna runda på
+  alla kvarvarande fiender.
+- **Nexzoth** (Mythic, 10/10/10/10): Reality Consume, World Shatter,
+  Endless Void (permanent debuffImmune; "kan inte flyttas" är flavor only
+  — inget kort kan någonsin flytta ett annat korts position i motorn),
+  Omnivore (**flavor only** — "kopiera vilken förmåga som helst" skulle
+  kräva antingen ett fullt förmåge-reflektionslager eller hårdkodning av
+  varje tänkbart mål, orimligt för en enda skill-rad på ett kort — samma
+  kategori som Shadow Rend/Cosmic Insight tidigare). Ultimate **The
+  Ending** (3 wins) — förstör ALLT ANNAT på brädet, båda sidor, UTOM
+  Nexzoth själv (källtextens "alla kort" läst som "utom kastaren" — att
+  spendera 3 wins på att radera sitt eget nyss vunna kort vore en konstig,
+  glädjedödande tolkning).
+- **Morvath** (Mythic, 9/9/10/10, water): Tidal Crush, Abyssal Grasp, King
+  of the Depths (permanent debuffImmune + `buffOnEnemyDestroyed`), Drowned
+  Souls (villkorad återupplivning vid 10+ Power-vinst). Ultimate **The
+  Endless Tide** (3 wins) — förstör alla fiendekort, drar sen upp till 2 av
+  DEM (de precis förstörda hamnar direkt i graveyarden och kan omedelbart
+  dras tillbaka) till egen sida med -3 Power.
+- **Vorgrath** (Boss/Voidborn, "The Sister's Bane", 10/9/8/9, fire):
+  Ashfall + World Denial (BÅDA slås ihop till EN placerings-hook —
+  källtexten ramar World Denial som en separat aktiverbar
+  en-gång-per-match-förmåga, men inget sådant aktiverings-system finns
+  utöver kortets egen Ultimate, så den triggas automatiskt tillsammans med
+  Ashfall istället; ett kort placeras ändå bara en gång per match).
+  Crushing Weight, Unchained Hatred (tidsbegränsad debuffImmune). Ultimate
+  **The Falling World** (3 wins, `targets:'direction'`) — förstör hela den
+  valda linjen. **Vorgraths namn syftar tydligt på Triple Triad Sisters**
+  men ingen ny koppling byggdes utöver flavor-texten — ingen kod refererar
+  systrarna specifikt.
+- **Zalazar** (Legendary, 9/9/10/10, fire): Infernal Reach + Tyrant Aura
+  (samma "två hooks i en placering"-mönster som Vorgrath). Ashen
+  Resurrection återanvänder EXAKT samma `active.shield`-mekanik som Ancient
+  Wyrmking (källtextens "överlever med 1 Power" är flavor only — skölden
+  blockerar hela flippen istället för att sänka hans stats, eftersom
+  motorns Power-värden är additiva, inte ett stat-golv). World In Flames
+  (ovillkorad återupplivning, till skillnad från Morvaths tröskelvärde).
+  Ultimate **Apocalypse** (3 wins) — förstör alla fiendekort (skonar
+  allierade, till skillnad från Nexzoths/Kaeldryx's ultimates).
+
+**Sidofynd, fixat i samma veva**: AI:t (`enemyTryUseSpecial`) hade EN
+generisk gren för `targets:'direction'`-specialer som bara gjorde
+`continue` (hoppade över) om inget kort hade en skräddarsydd AI-gren — vilket
+betydde att Naline, The Celestial Judgment, The Infinite Seraph och The
+Eclipse Fenrir ALDRIG användes av fiende-AI:t innan den här sessionen,
+tyst, utan att någon märkt det. Eftersom Vorgraths hela identitet hänger på
+sin riktnings-ultimatela jag till en generisk fallback (väljer riktningen
+med flest fiendekort i sig, samma "störst utdelning"-heuristik som resten
+av AI:t) — fixar alla fem korten på en gång, kostar inget för de fyra
+gamla.
+
+**Bildhantering**: samma beskärningskonvention som tidigare
+(`crop((140,y,800,y+431)).resize((640,418))`, `y` justerad per bild för att
+träffa ansiktet/motivet), sparade som `cards/card-<id>.jpg` (tumnagel,
+hand/bräde) + `card-<id>-full.jpg` (helposter, info-modalen).
+
+**Testat**: sex nya tester (state-injicering) i `tests/game.test.mjs`, en
+per kort plus en för AI-fixen — passiva bonusar, on-place-hooks isolerade
+från battle-resolution (annars triggar Kaeldryx's egen Execution
+oavsiktligt eftersom hans grundstats redan är 10 på två sidor), villkorad
+kontra ovillkorad återupplivning, `destroyImmune`-respekt genomgående, samt
+en full Playwright-skärmdump som bekräftar att alla fem tumnaglar/helposters
+renderar korrekt i både bräde och info-modal. Två testbuggar hittades och
+fixades UNDER vägen (fel förväntat värde pga Scalebreaker som också
+triggade i Dragon Hunter-testet; fel invariant för Vorgraths två
+oberoende slumpmål som kan träffa samma kort) — inga motorbuggar, bara
+dåliga testantaganden. Inga `pageerror`. `tests/game.test.mjs`: 34 tester
+totalt, alla gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

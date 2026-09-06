@@ -1114,6 +1114,11 @@ const CARD_IMAGES = {
   aurelian: 'cards/card-aurelian.jpg',
   vorlix: 'cards/card-vorlix.jpg',
   astrael: 'cards/card-astrael.jpg',
+  kaeldryx: 'cards/card-kaeldryx.jpg',
+  nexzoth: 'cards/card-nexzoth.jpg',
+  morvath: 'cards/card-morvath.jpg',
+  vorgrath: 'cards/card-vorgrath.jpg',
+  zalazar: 'cards/card-zalazar.jpg',
 };
 
 const FULL_CARD_IMAGES = {
@@ -1165,6 +1170,11 @@ const FULL_CARD_IMAGES = {
   vaelira: 'card-vaelira-full.jpg',
   seraphine: 'card-seraphine-full.jpg',
   nyxara: 'card-nyxara-full.jpg',
+  kaeldryx: 'card-kaeldryx-full.jpg',
+  nexzoth: 'card-nexzoth-full.jpg',
+  morvath: 'card-morvath-full.jpg',
+  vorgrath: 'card-vorgrath-full.jpg',
+  zalazar: 'card-zalazar-full.jpg',
 };
 
 const CARD_BACK_IMAGE = 'card-back-purple.jpg';
@@ -1291,7 +1301,7 @@ const HEROES = [
     {name:'Soul Fuel', desc:'When she loses a card, she immediately gains +2 on all sides next round.'},
     {name:"Special Attack: Oblivion's Call", desc:'Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it get -2 on the sides facing her until your next round.'},
   ] },
-  { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', active:{shield:true}, skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
+  { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
   { id:'shadowking', name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
   { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
@@ -1560,7 +1570,7 @@ const FOREST_FOES = [
   { id:'lich',      name:'Frost Lich',       role:'Undying Sorcerer', top:8, right:6, bottom:9, left:5, element:'water', hue:'linear-gradient(160deg,#10222c,#0d0b18 60%)', accent:'#8fe0ff', active:{shield:true}, icon:'❄️', skills: [{name:'Undying Frost', desc:'The first time this card would lose a battle, the loss is ignored.'}]},
   { id:'direbear',  name:'Dire Bear',        role:'Alpha of the Wilds', top:9, right:8, bottom:5, left:7, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', icon:'🐻'},
   { id:'wendigo',   name:'Wendigo',          role:'Starved Horror', top:7, right:9, bottom:8, left:5, element:'water', hue:'linear-gradient(160deg,#181818,#0d0b18 60%)', accent:'#9c93b8', active:{underdogBonus:2}, icon:'🦴', skills: [{name:'Starved Fury', desc:'Gets +2 Power in any battle where its total value is lower than the opposing card.'}]},
-  { id:'dragon',    name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', active:{shield:true}, icon:'🐉', skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
+  { id:'dragon',    name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, icon:'🐉', skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
   { id:'shadowking',name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, icon:'👑', skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
   { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, icon:'🌌', special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
@@ -1569,7 +1579,7 @@ const FOREST_FOES = [
     {name:'Soul Fuel', desc:'When she loses a card, she immediately gains +2 on all sides next round.'},
     {name:"Special Attack: Oblivion's Call", desc:'Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it get -2 on the sides facing her until your next round.'},
   ] },
-  { id:'threeheaddragon', name:'Three Head Dragon', role:'Mystic Card', element:'fire', top:10, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#1a0a28,#0d0b18 60%)', accent:'#8b6ef2', icon:'🐲', active:{ freezeDefenderPenalty:2, onWinAreaDebuff:1, destroyImmune:true }, special:{ name:'Apokalyps', cost:2, once:true, targets:'aoe' }, skills: [    {name:'Three Souls, One Fury (Passive)', desc:"When Three Head Dragon is placed, every enemy card gets -1 Power on its weakest side."},
+  { id:'threeheaddragon', name:'Three Head Dragon', role:'Mystic Card', element:'fire', top:10, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#1a0a28,#0d0b18 60%)', accent:'#8b6ef2', icon:'🐲', isDragon:true, active:{ freezeDefenderPenalty:2, onWinAreaDebuff:1, destroyImmune:true }, special:{ name:'Apokalyps', cost:2, once:true, targets:'aoe' }, skills: [    {name:'Three Souls, One Fury (Passive)', desc:"When Three Head Dragon is placed, every enemy card gets -1 Power on its weakest side."},
     {name:"Ice's Breath", desc:'When Three Head Dragon attacks, the defending side is frozen and gets -2 Power during that attack.'},
     {name:"Fire's Wrath", desc:'When Three Head Dragon wins a battle, every enemy card around the defeated card gets -1 Power on all sides.'},
     {name:"Poison's Torment", desc:"When Three Head Dragon loses a battle, the winner gets -2 Power on all sides during its next attack. (Flavor only — would need a deferred bonus consumed on a card's next attack, the same category of engine risk avoided for Tiamat's rebuilt ultimate; see PROJECT.md.)"},
@@ -1766,6 +1776,75 @@ const FOREST_FOES = [
       {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
       {name:'Weakness — Broken Focus', desc:"If this card loses control of its unit, it loses -4 Power next match. (Flavor only — the sealing/purification/forced-movement triggers named in the source don't exist in the engine, and no state persists between matches.)"},
       {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
+    ] },
+  // Five new bosses, from posters the user sent in one batch ("Lite nya
+  // kort kommer fler"). FOREST_FOES-only (not duplicated into HEROES) —
+  // same call as Three Head Dragon before them: Legendary/Mythic/Boss-tier
+  // stats (9-10 on every side) and flavor framing ("The Last Dragon
+  // Hunter", "The World Eater", "The Abyssal King", "The Sister's Bane",
+  // "The Ashen Tyrant") read as endgame antagonists rather than
+  // player-recruitable heroes, unlike the Triple Triad Sisters/Triune
+  // Desire above (both explicitly made playable on request). Trivial to
+  // duplicate into HEROES later if the user wants them playable too.
+  { id:'kaeldryx', name:'Kaeldryx', role:'Legendary Card — The Last Dragon Hunter',
+    top:10, right:10, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241005,#0d0b18 60%)', accent:'#c9a227', icon:'⚔️',
+    active:{ vsTagBonus:{tag:'isDragon', amount:4}, scaleBreaker:true, onWinPowerThresholdDestroy:10, weakVsElement:{element:'magic', amount:3} },
+    special:{ name:'Dragonslayer', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Dragon Hunter (Passive)', desc:'Kaeldryx gets +4 Power whenever he faces a Dragon-type card (Ancient Wyrmking, Three Head Dragon).'},
+      {name:"Hunter's Focus", desc:"When Kaeldryx is placed, a random enemy card is chosen — it can't gain any Power bonuses this round. (Source text lets you choose the target; simplified to random, same as every other on-place 'choose 1 enemy' card above.)"},
+      {name:'Scalebreaker (Passive)', desc:'Kaeldryx gets +1 Power in any battle where the opposing side is 8 Power or higher.'},
+      {name:'Execution', desc:'Whenever Kaeldryx wins a round with 10 or higher effective Power, the losing card is destroyed outright instead of just flipped (respects destroyImmune).'},
+      {name:'Special Attack: Dragonslayer', desc:"Costs 3 wins. Destroys every Dragon-type card on the board — allied or enemy alike — then every remaining enemy card gets -3 Power this round."},
+    ] },
+  { id:'nexzoth', name:'Nexzoth', role:'Mythic Card — The World Eater',
+    top:10, right:10, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#a568f2', icon:'🌀',
+    active:{ debuffImmune:true, onWinLineDestroy:true, weakVsElement:{element:'light', amount:4} },
+    special:{ name:'The Ending', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Reality Consume', desc:'When Nexzoth is placed, a random enemy card is chosen — it loses -3 Power this round.'},
+      {name:'World Shatter', desc:'Whenever Nexzoth wins a round, every enemy card further along that same line is destroyed outright and removed from the board.'},
+      {name:'Endless Void (Passive)', desc:"Nexzoth's Power can never be lowered by an opponent's card skills or Special Attacks. (\"Can't be moved by enemy cards\" is flavor only — no card in the engine can ever move another card's position.)"},
+      {name:'Omnivore', desc:"Once per match, Nexzoth can copy any ability from an enemy card. (Flavor only — abilities are bespoke per-card handlers, not composable data; a real 'copy any ability' system would need either a full ability-reflection layer or hardcoding every possible target, disproportionate for one skill line.)"},
+      {name:'Special Attack: The Ending', desc:'Costs 3 wins. Destroys every other card on the board — allied and enemy alike — leaving only Nexzoth behind. Usable once per match.'},
+    ] },
+  { id:'morvath', name:'Morvath', role:'Mythic Card — The Abyssal King', element:'water',
+    top:9, right:9, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#061826,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱',
+    active:{ debuffImmune:true, buffOnEnemyDestroyed:true, onWinLineDestroy:true, onWinReviveFromGraveyard:{count:1, powerPenalty:2, minWinValue:10}, weakVsElement:{element:'light', amount:4} },
+    special:{ name:'The Endless Tide', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Tidal Crush', desc:'When Morvath is placed, a random enemy card is chosen — it loses -2 Power this round.'},
+      {name:'Abyssal Grasp', desc:'Whenever Morvath wins a round, every enemy card further along that same line is destroyed outright and removed from the board.'},
+      {name:'King of the Depths (Passive)', desc:"Morvath's Power can never be lowered by an opponent's card skills or Special Attacks. He also gets +1 Power (permanently) every time any enemy card is removed from the board, by any effect."},
+      {name:'Drowned Souls', desc:'Whenever Morvath wins a round with 10 or higher effective Power, one card is pulled back from the enemy Graveyard onto his own side, weakened by -2 Power. (Only ever finds a card if the Graveyard optional rule is on.)'},
+      {name:'Special Attack: The Endless Tide', desc:'Costs 3 wins. Destroys every enemy card on the board, then pulls up to 2 of them back from the Graveyard onto your own side, each weakened by -3 Power.'},
+    ] },
+  { id:'vorgrath', name:'Vorgrath', role:"Boss Card — The Voidborn, The Sister's Bane", element:'fire',
+    top:10, right:9, bottom:8, left:9,
+    hue:'linear-gradient(160deg,#200806,#0d0b18 60%)', accent:'#b8452e', icon:'💀',
+    active:{ debuffImmuneFirstRound:true, onWinAllEnemiesDebuffThisRound:1, weakVsElement:{element:'light', amount:3} },
+    special:{ name:'The Falling World', cost:3, once:true, targets:'direction' },
+    skills: [
+      {name:'Ashfall', desc:'When Vorgrath is placed, a random enemy card is chosen — it loses -2 Power this round.'},
+      {name:'Crushing Weight', desc:"Whenever Vorgrath wins a round, every one of the opponent's cards gets -1 Power this round. (Source text delays this to \"next round\" — approximated as an immediate one-round penalty, the same primitive every other round-scoped effect in the engine already uses.)"},
+      {name:'Unchained Hatred (Passive)', desc:"During the first round of the match, Vorgrath's Power can't be lowered by an opponent's card skills or Special Attacks."},
+      {name:'World Denial', desc:"Also on placement, a second random enemy card is chosen — its Special Attack is locked for one round and it loses -2 Power this round. (Source text frames this as a separate once-per-match activated ability; no such secondary-activation system exists outside a card's own Ultimate, so it fires automatically alongside Ashfall instead — both land on placement, which only ever happens once per match anyway.)"},
+      {name:'Special Attack: The Falling World', desc:'Costs 3 wins. Choose a direction — every enemy card in that line is destroyed outright and removed from the board.'},
+    ] },
+  { id:'zalazar', name:'Zalazar', role:'Legendary Card — The Ashen Tyrant', element:'fire',
+    top:9, right:9, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#260a06,#0d0b18 60%)', accent:'#d9622b', icon:'🔥',
+    active:{ shield:true, onWinReviveFromGraveyard:{count:1, powerPenalty:2}, weakVsElement:{element:'light', amount:4} },
+    special:{ name:'Apocalypse', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Infernal Reach', desc:'When Zalazar is placed, a random enemy card is chosen — it loses -2 Power this round.'},
+      {name:'Tyrant Aura', desc:'Also on placement, a random direction is chosen — every enemy card in that line permanently loses -1 Power. (Source text lets you choose the direction; simplified to random, same as Fenrir/Three Head Dragon\'s own on-place directional effects.)'},
+      {name:'Ashen Resurrection (Passive)', desc:"The first time Zalazar would lose a battle, the loss is ignored instead — same shield mechanic as Ancient Wyrmking. (The source text's \"survives with 1 Power\" is flavor only — the shield fully blocks the flip rather than reducing his stats, since the engine's Power values are additive, not a stat floor.)"},
+      {name:'World In Flames', desc:'Whenever Zalazar wins a round, one card is pulled back from the enemy Graveyard onto your own side, weakened by -2 Power. (Only ever finds a card if the Graveyard optional rule is on.)'},
+      {name:'Special Attack: Apocalypse', desc:'Costs 3 wins. Destroys every enemy card on the board.'},
     ] },
 ];
 
@@ -2818,10 +2897,19 @@ function protectedByInfiniteSeraph(owner){
 // Graveyard instead of simply vanishing — purely a visible record for now.
 function destroyCard(index){
   const entry = state.board[index];
-  if(entry && state.rules.graveyard){
+  if(!entry) return;
+  if(state.rules.graveyard){
     state.graveyard[entry.owner].push(entry.card);
   }
   state.board[index] = null;
+  // Morvath's King of the Depths: "+1 Power every time an enemy card is
+  // removed from the board" — read as a generic hook on the shared destroy
+  // path itself rather than duplicating the check into every handler that
+  // calls destroyCard, so it fires no matter which effect (his own Abyssal
+  // Grasp/Ultimate included) did the destroying.
+  const beneficiaryOwner = entry.owner === 'blue' ? 'red' : 'blue';
+  const morvath = state.board.find(e => e && e.owner === beneficiaryOwner && e.card.active && e.card.active.buffOnEnemyDestroyed);
+  if(morvath) SpecialVerbs.attackBoost(morvath, 1);
 }
 
 function effectiveValue(card, edgeKey, opponentCard){
@@ -2885,7 +2973,10 @@ function checkSisterFlip(entry){
 // to the loser instead, on the card's very first win of the match,
 // regardless of which side). Both flags live on the winning entry so they
 // reset naturally with a fresh placement.
-function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex){
+// winnerIndex/winnerVal are only needed by the newer hooks below (Kaeldryx's
+// Execution, Nexzoth/Morvath's line-destroys) — every existing caller only
+// ever passed the first four args, so both are optional.
+function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIndex, winnerVal){
   const a = winnerEntry.card.active;
   if(!a) return;
   if(a.onWinDirectionalBoost && !winnerEntry.onWinDirectionalBoostUsed){
@@ -2908,6 +2999,65 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex){
       const n = state.board[r*3+c];
       if(n && n.owner !== winnerEntry.owner) SpecialVerbs.debuff(n, a.onWinAreaDebuff);
     });
+  }
+  // Kaeldryx's Execution: "wins a round with 10+ Power, destroy that enemy
+  // card outright" — no "once per match" cap in the source text either, so
+  // this can trigger on every qualifying win, same as onWinAreaDebuff above.
+  if(a.onWinPowerThresholdDestroy && loserIndex != null && winnerVal != null && winnerVal >= a.onWinPowerThresholdDestroy){
+    if(!(loserEntry.card.active && loserEntry.card.active.destroyImmune)) destroyCard(loserIndex);
+  }
+  // Nexzoth's World Shatter / Morvath's Abyssal Grasp: "destroy every card
+  // further along the line the just-won battle happened on" — read as the
+  // same enemiesInDirection() line-scan every directional ultimate already
+  // uses, with the direction derived from which edge just won (myEdge:'top'
+  // means the loser was above the winner, i.e. direction 'up', etc.). Only
+  // ever hits enemy cards (enemiesInDirection filters by owner), same as
+  // every other directional AOE — including the just-flipped loser's own
+  // cell would be redundant since its owner already flipped to the winner's
+  // side by the time this runs.
+  if(a.onWinLineDestroy && winnerIndex != null){
+    const edgeToDir = { top:'up', bottom:'down', left:'left', right:'right' };
+    enemiesInDirection(winnerIndex, edgeToDir[myEdge], winnerEntry.owner).forEach(p => destroyCard(p.index));
+  }
+  // Vorgrath's Crushing Weight: "-1 Power to all opponent's cards next
+  // round" — approximated as an immediate one-round debuff to every enemy
+  // card on the board (same debuffThisRound primitive as everywhere else),
+  // rather than a genuinely delayed-onset window, which would need a third
+  // temporal state beyond the existing immediate active→expire model.
+  if(a.onWinAllEnemiesDebuffThisRound){
+    state.board.forEach(e => { if(e && e.owner !== winnerEntry.owner) SpecialVerbs.debuffThisRound(e, a.onWinAllEnemiesDebuffThisRound); });
+  }
+  // Morvath's Drowned Souls / Zalazar's World In Flames: place a card back
+  // from the OPPONENT's graveyard onto the winner's own side. Only ever
+  // finds anything if the Graveyard optional rule is on (otherwise the
+  // graveyard is always empty) — see reviveFromGraveyard() below.
+  if(a.onWinReviveFromGraveyard){
+    const cfg = a.onWinReviveFromGraveyard;
+    if(!cfg.minWinValue || (winnerVal != null && winnerVal >= cfg.minWinValue)){
+      reviveFromGraveyard(winnerEntry.owner, cfg.count, cfg.powerPenalty);
+    }
+  }
+}
+
+// Shared by Morvath's Ultimate/Drowned Souls and Zalazar's World In Flames:
+// pulls up to `count` random cards out of the OPPONENT's graveyard and
+// materializes them directly onto empty board cells under `owner`'s
+// control, each permanently weakened by `powerPenalty` (a flat captureBonus,
+// same mechanism as every other permanent stat penalty in the engine).
+// Deliberately does NOT run them through placeCard/resolveFlips — a revived
+// card just appears, it doesn't immediately battle its new neighbors —
+// keeping this a pure board-state effect instead of recursively invoking
+// the full placement pipeline. No-ops harmlessly if the graveyard is empty
+// (Graveyard rule off) or the board is full.
+function reviveFromGraveyard(owner, count, powerPenalty){
+  const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+  const pool = state.graveyard[enemyOwner];
+  for(let n = 0; n < count && pool.length > 0; n++){
+    const emptyIdx = state.board.findIndex(c => !c);
+    if(emptyIdx === -1) break;
+    const pick = Math.floor(Math.random() * pool.length);
+    const card = pool.splice(pick, 1)[0];
+    state.board[emptyIdx] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:-powerPenalty };
   }
 }
 
@@ -3160,8 +3310,35 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   // card it's attacking. Still respects that card's own debuffImmune (e.g.
   // The Eclipse Fenrir), same as every other debuff in the engine.
   if(role === 'defense' && opponentCard && opponentCard.active && opponentCard.active.freezeDefenderPenalty){
-    const immune = card.active && card.active.debuffImmune;
-    if(!immune) v -= opponentCard.active.freezeDefenderPenalty;
+    if(!isDebuffImmuneNow(card)) v -= opponentCard.active.freezeDefenderPenalty;
+  }
+  // Kaeldryx's Dragon Hunter: +N Power whenever the opponent carries a given
+  // tag (currently only isDragon, but written generically in case a future
+  // card wants "vs Undead"/"vs Beast" etc.) — same shape as underdogBonus
+  // above, just keyed off an arbitrary boolean card field instead of a
+  // stat comparison.
+  if(card.active && card.active.vsTagBonus && opponentCard && opponentCard[card.active.vsTagBonus.tag]){
+    v += card.active.vsTagBonus.amount;
+  }
+  // Kaeldryx's Scalebreaker: "takes 1 less damage from cards with 8+ Power" —
+  // read as +1 Power on his own side whenever the opponent's FACING side
+  // (the edge actually being compared against, i.e. the opposite of this
+  // card's own edgeKey) is 8 or higher.
+  if(card.active && card.active.scaleBreaker && opponentCard){
+    const opposite = { top:'bottom', bottom:'top', left:'right', right:'left' };
+    if(opponentCard[opposite[edgeKey]] >= 8) v += 1;
+  }
+  // The five new bosses' "Weakness" clauses (-N Power vs a Light/Magic
+  // -element card): a plain elemental vulnerability printed on the card
+  // itself, not an opponent's active ability — so unlike every debuff()
+  // call above, this is NOT gated by debuffImmune/debuffImmuneFirstRound
+  // (Nexzoth and Morvath are still immune to enemy abilities that lower
+  // their Power, but their own printed elemental weakness still applies).
+  // Dormant today: no 'light' or 'magic' -element card exists yet in the
+  // roster, so this never actually fires until one is added — same as the
+  // Graveyard rule sitting unused until these bosses gave it a reader.
+  if(card.active && card.active.weakVsElement && opponentCard && opponentCard.element === card.active.weakVsElement.element){
+    v -= card.active.weakVsElement.amount;
   }
   // Triune Desire's Divine Temptation: an aura affecting every OTHER card
   // on the board, not just itself — unlike every other passive above,
@@ -3269,6 +3446,64 @@ const ON_PLACE_HANDLERS = {
     if(enemies.length === 0) return;
     const target = enemies[Math.floor(Math.random()*enemies.length)];
     target.specialLockedUntilTurnCount = state.turnCount + 2;
+  },
+  // Kaeldryx's Hunter's Focus: "choose 1 enemy card — it can't get Power
+  // bonuses this round" — random target, same simplification as every other
+  // on-place "choose 1 enemy/direction" ability above with no picker UI.
+  // See SpecialVerbs.attackBoost/directionalBoost for the actual guard.
+  kaeldryx(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    target.buffLockedUntilTurnCount = state.turnCount + 2;
+  },
+  // Nexzoth's Reality Consume.
+  nexzoth(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    SpecialVerbs.debuffThisRound(target, 3);
+  },
+  // Morvath's Tidal Crush.
+  morvath(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    SpecialVerbs.debuffThisRound(target, 2);
+  },
+  // Vorgrath bundles two on-place abilities into one placement (he's only
+  // ever placed once, so "once per match" and "on placement" coincide for
+  // World Denial the same way they do for every other card's on-place hook):
+  // Ashfall (a plain -2-this-round debuff on a random enemy) AND World
+  // Denial ("destroy all abilities on a card this round" — approximated as
+  // locking that card's Special Attack, the exact same mechanism Crimson
+  // Allure already uses, plus a flat -2 Power standing in for its passives
+  // being suppressed; a genuine "silence every active.* bonus" gate would
+  // need touching every single one of fullEffectiveValue's bonus checks for
+  // one card's worth of benefit). The two picks are independent and may
+  // land on the same or different enemies.
+  vorgrath(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const ashfallTarget = enemies[Math.floor(Math.random()*enemies.length)];
+    SpecialVerbs.debuffThisRound(ashfallTarget, 2);
+    const denialTarget = enemies[Math.floor(Math.random()*enemies.length)];
+    denialTarget.specialLockedUntilTurnCount = state.turnCount + 2;
+    SpecialVerbs.debuffThisRound(denialTarget, 2);
+  },
+  // Zalazar bundles Infernal Reach (random enemy, -2 this round) and Tyrant
+  // Aura (random direction, every enemy in that line permanently -1 — same
+  // "no on-place direction-choice UI" simplification as Fenrir's Hunt of
+  // the Eclipse / Three Head Dragon's Three Souls, One Fury above).
+  zalazar(entry, owner, cellIndex){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length > 0){
+      const target = enemies[Math.floor(Math.random()*enemies.length)];
+      SpecialVerbs.debuffThisRound(target, 2);
+    }
+    const dirs = ['up','right','down','left'];
+    const direction = dirs[Math.floor(Math.random()*dirs.length)];
+    enemiesInDirection(cellIndex, direction, owner).forEach(p => SpecialVerbs.debuff(p.entry, 1));
   },
 };
 
@@ -3419,8 +3654,31 @@ function endPlayerTurn(){
    grantedShield, board occupancy) that the base engine already understands.
    Most future ultimates should fit the small verb library below; only a
    signature few need a fully bespoke handler. */
+// Vorgrath's Unchained Hatred ("can't be affected by effects that lower his
+// Power during the first round") generalizes the existing permanent
+// active.debuffImmune (Fenrir, Nexzoth, Morvath) into a time-boxed variant
+// instead of a one-off id check — "the first round" is read the same way
+// every other round-clock window is: before the opponent has even had their
+// first turn, i.e. state.turnCount < 2.
+function isDebuffImmuneNow(card){
+  if(!card.active) return false;
+  if(card.active.debuffImmune) return true;
+  if(card.active.debuffImmuneFirstRound && state.turnCount < 2) return true;
+  return false;
+}
+
 const SpecialVerbs = {
-  attackBoost(entry, amount){ entry.captureBonus += amount; },
+  // Kaeldryx's Hunter's Focus ("that card can't get Power bonuses this
+  // round") is the first effect that blocks POSITIVE modification rather
+  // than applying a negative one — guarded here (and in directionalBoost
+  // below) rather than as a new check scattered across every bonus source,
+  // since every bonus in the engine is already funneled through these two
+  // verbs. entry.buffLockedUntilTurnCount uses the same "+2" one-round
+  // window as entry.specialLockedUntilTurnCount (Crimson Allure) below.
+  attackBoost(entry, amount){
+    if(amount > 0 && entry.buffLockedUntilTurnCount > state.turnCount) return;
+    entry.captureBonus += amount;
+  },
   grantShield(entry){ entry.grantedShield = true; },
   stealPower(sourceEntry, targetEntry, amount){
     targetEntry.captureBonus -= amount;
@@ -3435,7 +3693,7 @@ const SpecialVerbs = {
   // ENEMY target by convention, never on the caster's own card, so a single
   // guard here is equivalent to guarding all of them.
   debuff(entry, amount){
-    if(entry.card.active && entry.card.active.debuffImmune) return;
+    if(isDebuffImmuneNow(entry.card)) return;
     entry.captureBonus -= amount;
   },
   // Boosts only the listed sides (e.g. ['top','bottom']) instead of all four —
@@ -3444,7 +3702,8 @@ const SpecialVerbs = {
   // card; a negative amount is a debuff (e.g. Three Head Dragon's Three
   // Souls, One Fury), so it respects debuffImmune same as debuff() above.
   directionalBoost(entry, sides, amount){
-    if(amount < 0 && entry.card.active && entry.card.active.debuffImmune) return;
+    if(amount < 0 && isDebuffImmuneNow(entry.card)) return;
+    if(amount > 0 && entry.buffLockedUntilTurnCount > state.turnCount) return;
     if(!entry.sideBonus) entry.sideBonus = { top:0, right:0, bottom:0, left:0 };
     sides.forEach(s => { entry.sideBonus[s] = (entry.sideBonus[s] || 0) + amount; });
   },
@@ -3454,7 +3713,7 @@ const SpecialVerbs = {
   // `entry.tempEffects` + `sweepExpiredRoundEffects()` below; see the
   // comment there for what "a round" means here.
   debuffThisRound(entry, amount){
-    if(entry.card.active && entry.card.active.debuffImmune) return;
+    if(isDebuffImmuneNow(entry.card)) return;
     entry.captureBonus -= amount;
     entry.tempEffects = entry.tempEffects || [];
     entry.tempEffects.push({ captureDelta: -amount, expiresAtTurnCount: state.turnCount + 2 });
@@ -4192,6 +4451,127 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, destroyed * 3);
     return `${name}'s Void Dominion swallows ${destroyed} enemy card${destroyed>1?'s':''} whole!`;
   },
+  // Five new bosses. "Aktiveras med 3 Wins"/"Wins 3" badge on every one of
+  // them → special.cost:3, matching the printed cost instead of the usual
+  // 2 most other Ultimates use.
+  //
+  // Dragonslayer: "destroy all Dragon cards on the board" — deliberately
+  // NOT filtered to enemies only, unlike every other AOE destroy-all in the
+  // engine, since the source text has no "enemy" qualifier and Kaeldryx is
+  // thematically a hunter who kills every dragon he finds, allied or not.
+  // Only card.isDragon-tagged cards are hit (Ancient Wyrmking, Three Head
+  // Dragon); everything else just takes the flat -3 Power.
+  kaeldryx({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    const enemyProtected = protectedByInfiniteSeraph(enemyOwner);
+    let dragonsDestroyed = 0, weakened = 0;
+    state.board.forEach((e, i) => {
+      if(!e || !e.card.isDragon) return;
+      if(e.card.active && e.card.active.destroyImmune) return;
+      if(e.owner === enemyOwner && enemyProtected) return;
+      destroyCard(i);
+      dragonsDestroyed++;
+    });
+    state.board.forEach(e => {
+      if(e && e.owner === enemyOwner){
+        SpecialVerbs.debuffThisRound(e, 3);
+        weakened++;
+      }
+    });
+    if(dragonsDestroyed === 0 && weakened === 0){
+      return `${name}'s Dragonslayer finds no dragons or foes left to strike!`;
+    }
+    const parts = [];
+    if(dragonsDestroyed > 0) parts.push(`slays ${dragonsDestroyed} dragon${dragonsDestroyed>1?'s':''}`);
+    if(weakened > 0) parts.push(`weakens ${weakened} more`);
+    return `${name}'s Dragonslayer ${parts.join(' and ')}!`;
+  },
+  // The Ending: "destroy all cards on the board" is read as everything
+  // EXCEPT Nexzoth's own cell — spending 3 Wins to also delete the card
+  // that just earned them would be a strange, anti-fun reading of "The
+  // World Eater consumes everything", so he's the one thing left standing.
+  // Hits both sides indiscriminately (unlike Vaelira/Nyxara's enemy-only
+  // destroy-alls), so protectedByInfiniteSeraph's "blocks the OPPONENT's
+  // effects" framing doesn't cleanly apply to a caster hitting its own side
+  // too — only per-card destroyImmune is honored here.
+  nexzoth({ srcEntry, sourceIndex, owner }){
+    const name = srcEntry.card.name;
+    let destroyed = 0;
+    state.board.forEach((e, i) => {
+      if(!e || i === sourceIndex) return;
+      if(e.card.active && e.card.active.destroyImmune) return;
+      destroyCard(i);
+      destroyed++;
+    });
+    return destroyed > 0
+      ? `${name}'s The Ending consumes ${destroyed} card${destroyed>1?'s':''} — nothing remains but the World Eater!`
+      : `${name}'s The Ending finds an already-empty world!`;
+  },
+  // The Endless Tide: destroy every enemy card, then pull up to 2 of them
+  // back from the graveyard onto Morvath's own side (only ever finds
+  // anything if the Graveyard rule is on — see reviveFromGraveyard).
+  morvath({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    if(protectedByInfiniteSeraph(enemyOwner)){
+      return `${name}'s The Endless Tide crashes against The Infinite Seraph's Eternal Presence!`;
+    }
+    let destroyed = 0;
+    state.board.forEach((e, i) => {
+      if(e && e.owner === enemyOwner && !(e.card.active && e.card.active.destroyImmune)){
+        destroyCard(i);
+        destroyed++;
+      }
+    });
+    reviveFromGraveyard(owner, 2, 3);
+    return destroyed > 0
+      ? `${name}'s The Endless Tide drowns ${destroyed} enemy card${destroyed>1?'s':''} and drags the fallen back from the depths!`
+      : `${name}'s The Endless Tide finds no one left to drown!`;
+  },
+  // The Falling World: choose a direction, destroy every enemy in that
+  // line — same shape as The Celestial Judgment/The Infinite Seraph/The
+  // Eclipse Fenrir's directional Ultimates above, just with an unconditional
+  // destroy instead of a debuff.
+  vorgrath({ srcEntry, sourceIndex, owner, direction }){
+    const name = srcEntry.card.name;
+    if(protectedByInfiniteSeraph(owner === 'blue' ? 'red' : 'blue')){
+      return `${name}'s The Falling World shatters against The Infinite Seraph's Eternal Presence!`;
+    }
+    const enemies = enemiesInDirection(sourceIndex, direction, owner);
+    let destroyed = 0;
+    enemies.forEach(({ index, entry }) => {
+      if(entry.card.active && entry.card.active.destroyImmune) return;
+      destroyCard(index);
+      destroyed++;
+    });
+    const dirLabel = direction[0].toUpperCase() + direction.slice(1);
+    return destroyed > 0
+      ? `${name}'s The Falling World crashes ${dirLabel} — ${destroyed} enem${destroyed>1?'ies':'y'} erased from the board!`
+      : `${name}'s The Falling World crashes ${dirLabel} but finds no enemies in its path!`;
+  },
+  // Apocalypse: destroy every enemy card. The source text's "placed in the
+  // graveyard" clause is just the Graveyard rule's own destroyCard()
+  // behavior described in-flavor, not a special exemption from the global
+  // toggle — keeps one consistent on/off switch instead of some cards
+  // always filling a graveyard nobody enabled.
+  zalazar({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    if(protectedByInfiniteSeraph(enemyOwner)){
+      return `${name}'s Apocalypse burns out against The Infinite Seraph's Eternal Presence!`;
+    }
+    let destroyed = 0;
+    state.board.forEach((e, i) => {
+      if(e && e.owner === enemyOwner && !(e.card.active && e.card.active.destroyImmune)){
+        destroyCard(i);
+        destroyed++;
+      }
+    });
+    return destroyed > 0
+      ? `${name}'s Apocalypse reduces ${destroyed} enemy card${destroyed>1?'s':''} to ash!`
+      : `${name}'s Apocalypse finds no enemies left to burn!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -4271,7 +4651,7 @@ function resolveSpecialChoice(value){
     runSpecialResolution(mode.sourceIndex, null, { element: value });
   } else if(srcEntry.card.id === 'tiamat'){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { power: value });
-  } else if(srcEntry.card.id === 'naline' || srcEntry.card.id === 'celestialjudgment' || srcEntry.card.id === 'infiniteseraph' || srcEntry.card.id === 'fenrir'){
+  } else if(srcEntry.card.id === 'naline' || srcEntry.card.id === 'celestialjudgment' || srcEntry.card.id === 'infiniteseraph' || srcEntry.card.id === 'fenrir' || srcEntry.card.id === 'vorgrath'){
     runSpecialResolution(mode.sourceIndex, null, { direction: value });
   } else if(srcEntry.card.id === 'vorathos'){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { direction: value });
@@ -4413,7 +4793,7 @@ function battleNeighbors(index, owner, result){
       target.owner = owner;
       target.justFlipped = true;
       checkSisterFlip(target);
-      checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni);
+      checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni, index, placedVal);
       checkTriuneTeamBoost(owner);
       result.flips++;
       newlyFlipped.push(p.ni);
@@ -4567,12 +4947,32 @@ function enemyTryUseSpecial(){
 
     // The generic loop below assumes a plain single-board-target special
     // (executeSpecial → resolveSpecialTarget → runSpecialResolution with no
-    // extra choice). 'element' (Pallis) and 'direction' (Naline) specials
-    // need an extra choice-picker answer the AI can't drive without its own
-    // branch (like Voidqueen/Tiamat above) — falling through here crashes
-    // (SPECIAL_HANDLERS.pallis/naline read `element`/`direction` as
-    // undefined). Skip them until they get a dedicated branch.
-    if(c.special.targets === 'element' || c.special.targets === 'direction') continue;
+    // extra choice). 'element' (Pallis) needs an extra choice-picker answer
+    // the AI can't drive without its own branch (like Voidqueen/Tiamat
+    // above) — falling through here crashes (SPECIAL_HANDLERS.pallis reads
+    // `element` as undefined). Skip it until it gets a dedicated branch.
+    if(c.special.targets === 'element') continue;
+
+    // Generic fallback for 'direction' specials with no bespoke branch above
+    // (Naline, The Celestial Judgment, The Infinite Seraph, The Eclipse
+    // Fenrir, and now Vorgrath): picks whichever of the four directions has
+    // the most enemy cards in it, same "biggest bang for the once-per-match
+    // special" heuristic as the plain single-target loop below. Previously
+    // these five cards' Ultimates were silently unusable by the AI (this
+    // branch didn't exist) — worth fixing now that Vorgrath's whole kit
+    // hinges on it, and it costs nothing for the other four.
+    if(c.special.targets === 'direction'){
+      let bestDir = null, bestCount = 0;
+      ['up','down','left','right'].forEach(d => {
+        const count = enemiesInDirection(c.sourceIndex, d, 'red').length;
+        if(count > bestCount){ bestCount = count; bestDir = d; }
+      });
+      if(bestDir){
+        runSpecialResolution(c.sourceIndex, null, { direction: bestDir });
+        return true;
+      }
+      continue;
+    }
 
     // Shadow Assault isn't a power-comparison capture — it's an unconditional
     // swap+debuff restricted to a target sharing Deathblade's row/column, so
