@@ -490,6 +490,51 @@ test('Random Draft / Choose Your Five: resetGame() still clears the selection (u
   await page.close();
 });
 
+// Playtester request: the Triple Triad Sisters (Campaign stage 17's boss
+// trio) were originally FOREST_FOES-only by explicit earlier design. Made
+// playable in a later session — duplicated into HEROES, and stage 17 now
+// hands them out as its unlockIds reward instead of an empty array.
+test('The Triple Triad Sisters are playable: in HEROES, and their mechanics work owned by blue', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    out.inHeroes = ['vaelira','seraphine','nyxara'].every(id => HEROES.some(h => h.id === id));
+    out.stillInForestFoes = ['vaelira','seraphine','nyxara'].every(id => FOREST_FOES.some(f => f.id === id));
+
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[1] = freshEntry(findCardById('seraphine'), 'blue');
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    out.sisterAuraBonusForBlue = fullEffectiveValue(findCardById('vaelira'), 'top', null, 0, 'blue', 'attack') - findCardById('vaelira').top;
+
+    state.board = Array(9).fill(null);
+    state.playerHand = [findCardById('vaelira')];
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    placeCard(4, 'vaelira', 'blue');
+    out.onPlaceBurnByBlue = state.board[1].captureBonus;
+
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('vaelira'), 'blue');
+    const enemy = freshEntry(findCardById('ogre'), 'red');
+    state.board[0] = src;
+    state.board[1] = enemy;
+    SPECIAL_HANDLERS.vaelira({ srcEntry: src, owner: 'blue' });
+    out.blueVaeliraDestroyedEnemy = state.board[1] === null;
+
+    out.stage17UnlockIds = CAMPAIGN_STAGES[16].unlockIds.slice().sort();
+    return out;
+  })()`);
+  assert.equal(result.inHeroes, true);
+  assert.equal(result.stillInForestFoes, true, 'they should still work as Campaign stage 17\'s enemy hand too');
+  assert.equal(result.sisterAuraBonusForBlue, 2, 'sisterAura should apply regardless of which side owns them');
+  assert.equal(result.onPlaceBurnByBlue, -2);
+  assert.equal(result.blueVaeliraDestroyedEnemy, true);
+  assert.deepEqual(result.stage17UnlockIds, ['nyxara', 'seraphine', 'vaelira']);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

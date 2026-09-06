@@ -1063,8 +1063,25 @@ bas `8/5/8/4` → boostat `10/7/10/6`, exakt +2 på varje sida). Inga
 Användaren laddade upp tre färdiga kortdesigner (Vaelira/Seraphine/Nyxara —
 "Triple Triad Sisters", fullständiga bilder med namn/stats/förmågor/ultimate/
 weakness redan inbakade i själva bilden) och bad om en dedikerad boss-etapp,
-INTE spelbara `HEROES`-kort (bekräftat via `AskUserQuestion`). De ligger
+INTE spelbara `HEROES`-kort (bekräftat via `AskUserQuestion`). De låg
 alltså bara i `FOREST_FOES`, inte i `campaignPool()`.
+
+**UPPDATERING, en mycket senare session: OMVÄND.** Användaren bad
+uttryckligen om att göra systrarna spelbara. Alla tre dupplicerades
+verbatim in i `HEROES` (identisk kortdata, samma "signaturkort i båda
+arrayerna"-konvention som resten av rostret) — inget motorarbete behövdes
+alls, eftersom `sisterAura`/`checkSisterFlip`/`ON_PLACE_HANDLERS`/
+`freeIfSistersPresent` redan läser `owner` generiskt istället för att anta
+`'red'`. Etapp 17:s `unlockIds` bytte samtidigt från tomt (`[]`, "inget
+kvar att dela ut") till `['vaelira','seraphine','nyxara']` — att klara
+den riktiga slutbossen är nu vad som faktiskt låser upp att SPELA som den.
+De finns kvar i `FOREST_FOES` precis som förut (etapp 17:s fiendehand
+oförändrad). Testat: `HEROES`/`FOREST_FOES`-medlemskap för alla tre,
+`sisterAura`-bonusen med en BLÅ-ägd Vaelira/Seraphine (inte bara röd),
+Vaeliras placerings-bränning och Infernal Pact fungerar identiskt när
+spelaren äger henne, samt en full match spelad med alla tre systrarna i
+spelarens egen hand — inga `pageerror`. Ett nytt test i
+`tests/game.test.mjs` (20 totalt, alla gröna).
 
 **Kortdata**: `vaelira`/`seraphine`/`nyxara`, element fire/wind/water,
 stats 10/9/10/10, 10/10/10/10 respektive 10/10/9/10 (exakt från
@@ -1138,12 +1155,13 @@ Inga `CARD_IMAGES`-tumnaglar skapades (samma fallback som många andra
 
 **Etapp-data**: `CAMPAIGN_STAGES[16]`, `enemyIds:['vaelira','seraphine',
 'nyxara','shadowking','voidqueen']` (2 redan etablerade starka fiender
-fyller ut till 5), alla regler på, `unlockIds:[]` (tomt — alla 43
-`HEROES`-kort är redan upplåsta vid etapp 16, så det finns inget kvar att
-dela ut; bekräftat säkert eftersom `finishGame()`s
-`stage.unlockIds.filter(...)` och resultatskärmens
-`unlockedNames.length ? ... : ''`-villkor båda hanterar en tom array utan
-problem).
+fyller ut till 5), alla regler på. `unlockIds` var ursprungligen `[]`
+(tomt — alla 43 `HEROES`-kort var redan upplåsta vid etapp 16, inget kvar
+att dela ut; `finishGame()`s `stage.unlockIds.filter(...)` och
+resultatskärmens `unlockedNames.length ? ... : ''`-villkor hanterade det
+utan problem). **Ändrat i en senare session** till
+`['vaelira','seraphine','nyxara']` när systrarna gjordes spelbara (se
+uppdateringen ovan) — nu är de VERKLIGA belöningen för etapp 17.
 
 Testat med Playwright: (1) ett fullständigt spelat AI-mot-AI-liknande parti
 på riktig etapp 17 — inga `pageerror`, on-place-debuffarna syns tydligt i
