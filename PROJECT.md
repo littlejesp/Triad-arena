@@ -18,10 +18,10 @@ fil (t.ex. GitHub Pages).
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
 **Punkt 1–8 är MERGADE till `main`** (användaren bekräftade explicit,
-fem gånger nu — senast för punkt 5–8 i en enda "Do it"). Inget ocommittat
-väntar på feature-branchen just nu — fråga alltid explicit innan nästa
-merge när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
-bekräftelse.
+fem gånger nu — senast för punkt 5–8 i en enda "Do it"). **Punkt 9
+(Zlaizer) är COMMITTAD på feature-branchen, väntar på nästa
+merge-bekräftelse** — fråga alltid explicit innan nästa merge, anta ALDRIG
+tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -131,6 +131,17 @@ batchens opponent-graveyard-med-avdrag-version), en generaliserad
 `destroyImmune`-kollar i hela motorn), `protectedBySanctuary` (skriven men
 medvetet okopplad — se avsnitt 5), och `active.underdogSideBonus`. Se
 avsnitt 5:s allra sista underrubrik för fullständiga detaljer.
+
+**9. Zlaizer, The Redeemer** — nytt kort, skickat direkt efter en fråga om
+mobilkompatibilitet (svaret var ja, verifierat med en riktig mobil-
+viewport-körning, ingen regression). Gjord spelbar (HEROES+FOREST_FOES,
+en egen tolkning eftersom temat är hjälte- inte skurk-kodat, till skillnad
+från punkt 7:s bossar). Hans Light of Forgiveness-passiv gör Graveyard-
+systemet delvis aktivt även när den globala regeln är AV — första kortet
+som gör det. En tredje återupplivningsvariant (`reviveFromOwnGraveyard`,
+egen graveyard + Power-avdrag) tillkom. Hittade och fixade också en redan
+existerande flaky test i Nalines Healing Radiance-test (inte en ny bugg).
+Se avsnitt 5:s allra sista underrubrik.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -1347,6 +1358,84 @@ en starkare sida, inte mot en svagare), det ömsesidiga Light/Dark-
 svaghetsparet mätt i båda riktningarna, och End of All som sparar bara sig
 själv. Inga `pageerror`. `tests/game.test.mjs`: 36 tester totalt, alla
 gröna.
+
+### Zlaizer — nytt kort, skickat direkt efter mobil-frågan ("Funkar allt på mobilen med?")
+
+Användaren frågade om mobilkompatibilitet (svar: ja — verifierat med en
+riktig Playwright-körning i iPhone 13-viewport, ingen overflow, inga
+JS-fel, alla nya kort/paneler renderar identiskt med desktop; det enda som
+sågs var namn/roll-text tätt ovanpå konsten på de minsta bräd-thumbnailsen,
+men det är EXAKT samma på desktop vid samma kortstorlek — inte en
+mobil-regression). Direkt efter det: "Lägg till nya zlaizer", ett nytt kort
+("Zlaizer, The Redeemer", Legendary).
+
+**Placeringsbeslut, en egen bedömning (inte uttryckligen begärd)**: till
+skillnad från förra batchens fem bossar (uttryckligt skurk-kodade —
+Hunter/World Eater/Abyssal King/Sister's Bane/Ashen Tyrant, FOREST_FOES-
+only) läser Zlaizers eget tema — Healer/Revive/Purify/Forgive/Redemption,
+"even the fallen deserve a second dawn" — som en HJÄLTE, inte en
+antagonist, mycket närmare Naline. Gjord **spelbar** (duplicerad i både
+HEROES och FOREST_FOES), dokumenterat som en tolkning, trivialt att flytta
+till FOREST_FOES-only senare om fel gissning.
+
+Stats 9/10/9/8, `special:{name:'Rebirth', cost:3}`. Delade primitiver:
+- **`active.chanceToGraveyardIfRuleOff`** (Light of Forgiveness) — en ny
+  hook direkt i `destroyCard()`: "50% chans att hamna i Graveyard istället
+  för att försvinna" — OBEROENDE av den globala Graveyard-regeln. Är
+  regeln redan PÅ sker inspelning som vanligt (100%, oförändrat); är den
+  AV ger Zlaizer sin EGEN sida ändå ett myntkast-chans att hamna i
+  graveyarden (aldrig motståndarens sida). Detta är alltså det FÖRSTA
+  kortet som gör Graveyard-systemet delvis aktivt även när den globala
+  toggeln är avstängd — ett genuint nytt, inte-vilande beteende (till
+  skillnad från `weakVsElement`-mönstret som ofta varit vilande tills
+  vidare).
+- **`reviveFromOwnGraveyard(owner, count, powerPenalty)`** (Second Dawn) —
+  en TREDJE återupplivningsvariant, syskon till förra sessionens
+  `reviveFromGraveyard` (motståndarens graveyard, `-N Power`-avdrag) och
+  `reviveFromOwnGraveyardAtFixedPower` (egen graveyard, ABSOLUT
+  Power-värde): den här drar från EGEN graveyard men med samma
+  `-N Power`-avdrags-stil som den första, eftersom källtexten säger
+  "-1 Power vardera" (ett avdrag) snarare än Nalines "med 1 Power" (ett
+  absolut värde). Ny hook: `active.onWinReviveFromOwnGraveyard:{count,
+  powerPenalty}` i `checkOnWinBonuses`.
+- Ultimate **Rebirth** återanvänder `reviveFromOwnGraveyardAtFixedPower`
+  rakt av (samma som Nalines Rise Again, `count:3`, ingen
+  destroyImmune-klausul den här gången — "rensa alla negativa effekter"
+  kräver ingen extra kod, en återupplivad kopia har redan `captureBonus:0`
+  och tomma `tempEffects` per konstruktion).
+- Divine Balance + Redemption Touch slogs ihop till EN placerings-hook,
+  samma "ingen sekundär aktiverings-UI"-motivering som Vorgrath/
+  Zalazar/Naline fick.
+- Weakness mot `'shadow'`-element — EN NY, egen sträng, medvetet skild
+  från Umbraels `'dark'` trots snarlik tematik, eftersom källtexterna
+  bokstavligen använder olika ord. Vilande tills ett shadow-element-kort
+  finns.
+
+**Bonus-fynd under test-arbetet**: en redan existerande FLAKY test hittades
+och fixades (inte en ny bugg introducerad av Zlaizer) — Nalines
+Healing Radiance-test lät en riktig strid avgöra vinnaren via
+`resolveFlips`, men eftersom Naline VINNER den striden flippas förloraren
+till hennes egen sida INNAN `onWinCleanseAlly` läses, vilket ger
+slump-valet en andra, felaktig allierad-kandidat 50% av gångerna. Fixat
+genom att anropa `checkOnWinBonuses()` direkt istället för att gå via en
+hel stridsupplösning — samma isolerings-princip som resten av testsviten
+redan använder för att undvika den här klassen av bieffekter.
+
+Även den nu inaktuella texten i Graveyard-regelns egen beskrivning
+("Purely a record for now — no card reads from it yet") uppdaterades —
+stämde inte längre efter förra batchens Morvath/Zalazar och den här
+sessionens Naline/Umbrael/Zlaizer.
+
+**Testat**: ett nytt test i `tests/game.test.mjs` — Light of Forgiveness
+mätt statistiskt över 200 upprepningar (förväntat ~50%, tolerans 30-70%),
+verifierat att den ALDRIG skyddar motståndarsidan, att regeln-PÅ alltid
+ger 100% oavsett Zlaizer, Second Dawns avdrag, Divine Balance/Redemption
+Touch båda slår till (totalt +4 fördelat över de två slumpmålen) med
+exakt en av dem tillfälligt oförstörbar, Rebirth återupplivar alla 3 till
+ett rent 1-Power-tillstånd, samt den vilande shadow-svagheten. Inga
+`pageerror`. `tests/game.test.mjs`: 37 tester totalt, alla gröna (den
+tidigare flaky-testen kördes om flera gånger för att bekräfta att den nu
+är deterministisk).
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

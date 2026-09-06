@@ -1120,6 +1120,7 @@ const CARD_IMAGES = {
   vorgrath: 'cards/card-vorgrath.jpg',
   zalazar: 'cards/card-zalazar.jpg',
   umbrael: 'cards/card-umbrael.jpg',
+  zlaizer: 'cards/card-zlaizer.jpg',
 };
 
 const FULL_CARD_IMAGES = {
@@ -1177,6 +1178,7 @@ const FULL_CARD_IMAGES = {
   vorgrath: 'card-vorgrath-full.jpg',
   zalazar: 'card-zalazar-full.jpg',
   umbrael: 'card-umbrael-full.jpg',
+  zlaizer: 'card-zlaizer-full.jpg',
 };
 
 const CARD_BACK_IMAGE = 'card-back-purple.jpg';
@@ -1282,6 +1284,27 @@ const HEROES = [
       {name:'Healing Radiance', desc:'Whenever Naline wins a round, a random card on her side gets +1 Power (permanent) and has any negative effects on it cleared.'},
       {name:'Special Attack: Rise Again', desc:"Costs 3 wins. Pull up to 2 cards back from Naline's own Graveyard onto the board at 1 Power each — they can't be removed by the opponent's effects for the rest of the round. Usable once per match."},
     ]},
+  // Zlaizer arrived from a poster the user sent right after asking whether
+  // everything works on mobile ("Lägg till nya zlaizer"). Unlike the
+  // Kaeldryx/Nexzoth/Morvath/Vorgrath/Zalazar batch (villain-coded,
+  // FOREST_FOES-only), Zlaizer's own theme — Healer/Revive/Purify/Forgive/
+  // Redemption, "even the fallen deserve a second dawn" — reads as a hero,
+  // not an antagonist, much closer to Naline right above him. Made
+  // playable (duplicated into both HEROES and FOREST_FOES) on that
+  // judgment call rather than an explicit request; trivial to move to
+  // FOREST_FOES-only later if that reading is wrong.
+  { id:'zlaizer', name:'Zlaizer', role:'Legendary Card — The Redeemer',
+    top:9, right:10, bottom:9, left:8,
+    hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f0d879', icon:'💜',
+    active:{ chanceToGraveyardIfRuleOff:true, onWinReviveFromOwnGraveyard:{count:2, powerPenalty:1}, weakVsElement:{element:'shadow', amount:4} },
+    special:{ name:'Rebirth', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Divine Balance', desc:'When Zlaizer is placed, a random card on his side (himself included) gets +2 Power this round.'},
+      {name:'Redemption Touch', desc:"Also on placement, a second random card on his side gets +2 Power this round and temporarily can't be removed by the opponent's effects. (Source text frames these as two separately activated abilities; no such secondary-activation system exists outside a card's own Ultimate, so both fire automatically on placement instead.)"},
+      {name:'Light of Forgiveness (Passive)', desc:"Whenever one of Zlaizer's own cards is destroyed, there's a 50% chance it's placed in his side's Graveyard instead of vanishing completely — even if the Graveyard optional rule is off."},
+      {name:'Second Dawn', desc:"Whenever Zlaizer wins a round, up to 2 cards are pulled back from his own Graveyard onto the board, each weakened by -1 Power."},
+      {name:'Special Attack: Rebirth', desc:"Costs 3 wins. Pull up to 3 cards back from Zlaizer's own Graveyard onto the board at 1 Power each, fully cleansed of any negative effects."},
+    ] },
   { id:'deathblade', name:"Deathblade", role:"Shadow Assassin — Order of the Radiance", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', active: {shield:true}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
     {name:'Night’s Veil (Passive)', desc:"The first time this card would lose a battle, the enemy's bonuses on that battle are ignored."},
     {name:'Silent Hunter', desc:'When Deathblade attacks a card that already lost a battle this round, she gets +1 Power on all directions.'},
@@ -1879,6 +1902,21 @@ const FOREST_FOES = [
       {name:'Beauty in Oblivion', desc:'Whenever Umbrael wins a round, one card is pulled back from the enemy Graveyard onto his own side, weakened by -2 Power. (Only ever finds a card if the Graveyard optional rule is on.)'},
       {name:'Special Attack: End of All', desc:'Costs 3 wins. Destroys every other card on the board — allied and enemy alike — leaving only Umbrael behind. Usable once per match.'},
     ] },
+  // Zlaizer — duplicated here so the Forest can field him too, same as
+  // every other playable signature card. See the HEROES copy above for the
+  // full reasoning on why he's playable rather than FOREST_FOES-only.
+  { id:'zlaizer', name:'Zlaizer', role:'Legendary Card — The Redeemer',
+    top:9, right:10, bottom:9, left:8,
+    hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f0d879', icon:'💜',
+    active:{ chanceToGraveyardIfRuleOff:true, onWinReviveFromOwnGraveyard:{count:2, powerPenalty:1}, weakVsElement:{element:'shadow', amount:4} },
+    special:{ name:'Rebirth', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Divine Balance', desc:'When Zlaizer is placed, a random card on his side (himself included) gets +2 Power this round.'},
+      {name:'Redemption Touch', desc:"Also on placement, a second random card on his side gets +2 Power this round and temporarily can't be removed by the opponent's effects. (Source text frames these as two separately activated abilities; no such secondary-activation system exists outside a card's own Ultimate, so both fire automatically on placement instead.)"},
+      {name:'Light of Forgiveness (Passive)', desc:"Whenever one of Zlaizer's own cards is destroyed, there's a 50% chance it's placed in his side's Graveyard instead of vanishing completely — even if the Graveyard optional rule is off."},
+      {name:'Second Dawn', desc:"Whenever Zlaizer wins a round, up to 2 cards are pulled back from his own Graveyard onto the board, each weakened by -1 Power."},
+      {name:'Special Attack: Rebirth', desc:"Costs 3 wins. Pull up to 3 cards back from Zlaizer's own Graveyard onto the board at 1 Power each, fully cleansed of any negative effects."},
+    ] },
 ];
 
 function drawEnemyHand(){
@@ -2308,7 +2346,7 @@ function renderDraft(){
       </label>
       <label class="rule-toggle">
         <input type="checkbox" id="rule-graveyard" ${state.rules.graveyard ? 'checked' : ''}>
-        <span><b>Graveyard</b> — when a card is destroyed (by a Special Attack, not a normal flip), it's recorded in its owner's Graveyard instead of just vanishing. Purely a record for now — no card reads from it yet.</span>
+        <span><b>Graveyard</b> — when a card is destroyed (by a Special Attack, not a normal flip), it's recorded in its owner's Graveyard instead of just vanishing. Several cards (Morvath, Zalazar, Naline, Umbrael, Zlaizer) can pull cards back out of a Graveyard, so turning this off denies those abilities any targets.</span>
       </label>
     </div>
     ` : ''}
@@ -2894,9 +2932,10 @@ const DIRECTION_CHOICES = [
   { value:'left', icon:'⬅️', label:'Left' },
 ];
 
-// Shared by every "line in a chosen direction" effect (Naline's Thunderstorm
-// Assault, The Celestial Judgment's Eternal Verdict, The Infinite Seraph's
-// All Possibilities, The Eclipse Fenrir's on-place passive and Ragnarök) —
+// Shared by every "line in a chosen direction" effect (The Celestial
+// Judgment's Eternal Verdict, The Infinite Seraph's All Possibilities, The
+// Eclipse Fenrir's on-place passive and Ragnarök, Vorgrath's The Falling
+// World) —
 // every enemy card strictly beyond `index` in that direction, not the whole
 // row/column. Returns {index, entry} pairs (not bare entries) since
 // board-mutating callers like Judgment's destroy branch need the index too.
@@ -2941,11 +2980,17 @@ function protectedBySanctuary(owner){
 // Shared destruction path for every Special that removes a card from the
 // board outright (as opposed to a normal flip/capture). When the Graveyard
 // optional rule is on, the destroyed card is recorded in its owner's
-// Graveyard instead of simply vanishing — purely a visible record for now.
+// Graveyard instead of simply vanishing.
 function destroyCard(index){
   const entry = state.board[index];
   if(!entry) return;
-  if(state.rules.graveyard){
+  // Zlaizer's Light of Forgiveness: "50% chance to place it in your
+  // Graveyard instead" — a per-side safety net independent of the global
+  // Graveyard rule. If the rule is already on, recording happens
+  // unconditionally as normal; if it's off, Zlaizer still gives his OWN
+  // side a coin-flip chance to record anyway (never the opponent's side).
+  const zlaizer = state.board.some(e => e && e.owner === entry.owner && e.card.active && e.card.active.chanceToGraveyardIfRuleOff);
+  if(state.rules.graveyard || (zlaizer && Math.random() < 0.5)){
     state.graveyard[entry.owner].push(entry.card);
   }
   state.board[index] = null;
@@ -3116,6 +3161,15 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
       SpecialVerbs.attackBoost(target, 1);
     }
   }
+  // Zlaizer's Second Dawn: place up to `count` cards back from the
+  // winner's OWN Graveyard, each with a captureBonus penalty (same
+  // "-N Power" shape as reviveFromGraveyard, just sourced from the
+  // caster's own side instead of the opponent's — see
+  // reviveFromOwnGraveyard() below).
+  if(a.onWinReviveFromOwnGraveyard){
+    const cfg = a.onWinReviveFromOwnGraveyard;
+    reviveFromOwnGraveyard(winnerEntry.owner, cfg.count, cfg.powerPenalty);
+  }
 }
 
 // Shared by Morvath's Ultimate/Drowned Souls and Zalazar's World In Flames:
@@ -3131,6 +3185,24 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
 function reviveFromGraveyard(owner, count, powerPenalty){
   const enemyOwner = owner === 'blue' ? 'red' : 'blue';
   const pool = state.graveyard[enemyOwner];
+  for(let n = 0; n < count && pool.length > 0; n++){
+    const emptyIdx = state.board.findIndex(c => !c);
+    if(emptyIdx === -1) break;
+    const pick = Math.floor(Math.random() * pool.length);
+    const card = pool.splice(pick, 1)[0];
+    state.board[emptyIdx] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:-powerPenalty };
+  }
+}
+
+// Zlaizer's Second Dawn: a third revival shape, distinct from both
+// reviveFromGraveyard (opponent's graveyard, -N Power) and
+// reviveFromOwnGraveyardAtFixedPower (own graveyard, absolute Power) below
+// — this one pulls from the caster's OWN graveyard but with a plain
+// captureBonus PENALTY like the opponent-graveyard version, per Second
+// Dawn's "-1 Power vardera" text (not an absolute value like Naline's
+// "with 1 Power").
+function reviveFromOwnGraveyard(owner, count, powerPenalty){
+  const pool = state.graveyard[owner];
   for(let n = 0; n < count && pool.length > 0; n++){
     const emptyIdx = state.board.findIndex(c => !c);
     if(emptyIdx === -1) break;
@@ -3636,6 +3708,19 @@ const ON_PLACE_HANDLERS = {
     if(enemies.length === 0) return;
     const target = enemies[Math.floor(Math.random()*enemies.length)];
     SpecialVerbs.debuffThisRound(target, 2);
+  },
+  // Zlaizer bundles Divine Balance (random ally, +2 this round) and
+  // Redemption Touch (a second independent random ally, +2 this round PLUS
+  // temporarily can't-be-removed) into his one placement — same "no
+  // secondary-activation system" reasoning as Vorgrath/Zalazar/Naline above.
+  zlaizer(entry, owner){
+    const allies = state.board.filter(e => e && e.owner === owner);
+    if(allies.length === 0) return;
+    const balanceTarget = allies[Math.floor(Math.random()*allies.length)];
+    SpecialVerbs.buffThisRound(balanceTarget, 2);
+    const redemptionTarget = allies[Math.floor(Math.random()*allies.length)];
+    SpecialVerbs.buffThisRound(redemptionTarget, 2);
+    redemptionTarget.destroyImmuneUntilTurnCount = state.turnCount + 2;
   },
 };
 
@@ -4729,6 +4814,21 @@ const SPECIAL_HANDLERS = {
     return destroyed > 0
       ? `${name}'s End of All erases ${destroyed} card${destroyed>1?'s':''} from existence — nothing remains but the Void Sovereign!`
       : `${name}'s End of All finds an already-empty world!`;
+  },
+  // Rebirth: up to 3 cards from Zlaizer's OWN graveyard at a flat 1 Power —
+  // same reviveFromOwnGraveyardAtFixedPower() primitive as Naline's Rise
+  // Again, just count:3 and no destroy-immunity clause this time. "Clear
+  // all negative effects" needs no extra code: every revived entry is a
+  // fresh clone with captureBonus:0 and no tempEffects, so it's already
+  // negative-effect-free by construction.
+  zlaizer({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const before = state.graveyard[owner].length;
+    reviveFromOwnGraveyardAtFixedPower(owner, 3, 1, 0);
+    const revived = before - state.graveyard[owner].length;
+    return revived > 0
+      ? `${name}'s Rebirth calls ${revived} fallen champion${revived>1?'s':''} back to the field, cleansed of all harm!`
+      : `${name}'s Rebirth finds no one left in the Graveyard to call back!`;
   },
 };
 

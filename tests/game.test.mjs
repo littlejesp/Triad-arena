@@ -1109,15 +1109,18 @@ test('Naline (redesigned): Divine Touch/Soul Revive on-place, buffThisRound expi
     sweepExpiredRoundEffects();
     out.divineTouchExpiredAfterRound = nSrc.captureBonus === 0;
 
-    // Healing Radiance: on-win, clears a negative captureBonus and adds +1 permanent
+    // Healing Radiance: on-win, clears a negative captureBonus and adds +1
+    // permanent. Calls checkOnWinBonuses directly (not via resolveFlips) —
+    // going through a real battle would flip the loser onto Naline's own
+    // side too, giving onWinCleanseAlly's random pick a second, wrong
+    // candidate and making this assertion flaky.
     state.board = Array(9).fill(null);
-    state.playerHand = [1,2]; state.enemyHand = [1,2];
     const nWinner = freshEntry(naline, 'blue');
     nWinner.captureBonus = -3;
     nWinner.tempEffects = [{ captureDelta: -3, expiresAtTurnCount: 999 }];
     state.board[4] = nWinner;
-    state.board[1] = freshEntry({ id:'hr-loser', name:'HRLoser', top:1,right:1,bottom:1,left:1 }, 'red');
-    resolveFlips(4, 'blue');
+    const hrLoser = freshEntry({ id:'hr-loser', name:'HRLoser', top:1,right:1,bottom:1,left:1 }, 'red');
+    checkOnWinBonuses(nWinner, 'top', hrLoser, null, 4, 10);
     out.healingRadianceCleansed = nWinner.captureBonus === 1 && nWinner.tempEffects.length === 0;
 
     // Rise Again: up to 2 from OWN graveyard, temporarily destroy-immune
@@ -1202,6 +1205,103 @@ test('Umbrael: debuffImmune, Reality Fracture underdog bonus, weakVsElement mutu
   assert.equal(result.endOfAllKeepsSelf, true);
   assert.equal(result.endOfAllDestroysOwnSide, true);
   assert.equal(result.endOfAllDestroysEnemySide, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Zlaizer: Light of Forgiveness (probabilistic own-side graveyard), Second Dawn, Divine Balance/Redemption Touch, Rebirth ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const zlaizer = findCardById('zlaizer');
+    out.playableInHeroes = HEROES.some(h => h.id === 'zlaizer');
+    out.alsoInForestFoes = FOREST_FOES.some(f => f.id === 'zlaizer');
+
+    // Light of Forgiveness: ~50% chance to graveyard on Zlaizer's OWN side even with the rule off
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = false;
+    state.graveyard = { blue: [], red: [] };
+    const zlEntry = freshEntry(zlaizer, 'blue');
+    state.board[0] = zlEntry;
+    let ownHits = 0;
+    for(let i=0;i<200;i++){
+      state.board[1] = freshEntry(findCardById('ogre'), 'blue');
+      destroyCard(1);
+      if(state.graveyard.blue.length > 0){ ownHits++; state.graveyard.blue = []; }
+    }
+    out.roughlyHalfOwnSide = ownHits > 60 && ownHits < 140;
+
+    // Never protects the OPPONENT's side
+    state.graveyard = { blue: [], red: [] };
+    let enemyHits = 0;
+    for(let i=0;i<100;i++){
+      state.board[1] = freshEntry(findCardById('ogre'), 'red');
+      destroyCard(1);
+      if(state.graveyard.red.length > 0){ enemyHits++; state.graveyard.red = []; }
+    }
+    out.neverProtectsEnemySide = enemyHits === 0;
+
+    // Rule ON still always records regardless of Zlaizer
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board[1] = freshEntry(findCardById('ogre'), 'blue');
+    destroyCard(1);
+    out.ruleOnAlwaysRecords = state.graveyard.blue.length === 1;
+
+    // Second Dawn: on-win, revives from OWN graveyard with a -1 penalty
+    state.rules.graveyard = false;
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    state.graveyard = { blue: [findCardById('wendigo')], red: [] };
+    const winner = freshEntry(zlaizer, 'blue');
+    state.board[4] = winner;
+    state.board[1] = freshEntry({ id:'loser', name:'Loser', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.secondDawnRevived = state.graveyard.blue.length === 0;
+    const revivedByWin = state.board.find((e,i) => i!==4 && e && e.owner === 'blue' && e.card.id === 'wendigo');
+    out.secondDawnPenalty = !!revivedByWin && revivedByWin.captureBonus === -1;
+
+    // On-place: Divine Balance + Redemption Touch (two +2-this-round hits, one grants temp immunity)
+    state.board = Array(9).fill(null);
+    const src = freshEntry(zlaizer, 'blue');
+    const ally = freshEntry({ id:'ally', name:'Ally', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = src;
+    state.board[0] = ally;
+    state.turnCount = 40;
+    ON_PLACE_HANDLERS.zlaizer(src, 'blue');
+    out.twoPlusTwoHitsApplied = (src.captureBonus + ally.captureBonus) === 4;
+    out.exactlyOneGrantedImmunity = [src, ally].filter(e => isDestroyImmune(e)).length === 1;
+
+    // Rebirth ultimate: up to 3 from own graveyard, fixed 1 Power, no leftover negative effects
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [findCardById('ogre'), findCardById('wendigo'), findCardById('harpy')], red: [] };
+    const ultSrc = freshEntry(zlaizer, 'blue');
+    state.board[4] = ultSrc;
+    SPECIAL_HANDLERS.zlaizer({ srcEntry: ultSrc, owner: 'blue' });
+    out.rebirthRevivedAllThree = state.graveyard.blue.length === 0;
+    const revivedEntries = state.board.filter(e => e && e.owner === 'blue' && e !== ultSrc);
+    out.rebirthAtFixedCleanPower = revivedEntries.length === 3 && revivedEntries.every(e => e.card.top === 1 && e.captureBonus === 0);
+
+    // Weakness vs a shadow-element card (mechanism works even though dormant today)
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shadowCard = { id:'shadow-test', name:'ShadowTest', top:5,right:5,bottom:5,left:5, element:'shadow' };
+    out.weakVsShadow = fullEffectiveValue(zlaizer, 'top', shadowCard, 0, 'blue', 'attack') - zlaizer.top === -4;
+
+    return out;
+  })()`);
+  assert.equal(result.playableInHeroes, true);
+  assert.equal(result.alsoInForestFoes, true);
+  assert.equal(result.roughlyHalfOwnSide, true, "Light of Forgiveness fires roughly half the time on Zlaizer's own side");
+  assert.equal(result.neverProtectsEnemySide, true);
+  assert.equal(result.ruleOnAlwaysRecords, true);
+  assert.equal(result.secondDawnRevived, true);
+  assert.equal(result.secondDawnPenalty, true);
+  assert.equal(result.twoPlusTwoHitsApplied, true);
+  assert.equal(result.exactlyOneGrantedImmunity, true);
+  assert.equal(result.rebirthRevivedAllThree, true);
+  assert.equal(result.rebirthAtFixedCleanPower, true);
+  assert.equal(result.weakVsShadow, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
