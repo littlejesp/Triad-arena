@@ -1122,6 +1122,12 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 <script>
 /* ---------------- Character portraits ---------------- */
 const CARD_IMAGES = {
+  shiva: 'cards/card-shiva.jpg',
+  leviathan: 'cards/card-leviathan.jpg',
+  omegaweapon: 'cards/card-omegaweapon.jpg',
+  yojimbo: 'cards/card-yojimbo.jpg',
+  chocoboking: 'cards/card-chocoboking.jpg',
+  odin: 'cards/card-odin.jpg',
   triunedesire: 'cards/card-triunedesire.jpg',
   vaelira: 'cards/card-vaelira.jpg',
   seraphine: 'cards/card-seraphine.jpg',
@@ -1180,6 +1186,12 @@ const CARD_IMAGES = {
 };
 
 const FULL_CARD_IMAGES = {
+  shiva: 'card-shiva-full.jpg',
+  leviathan: 'card-leviathan-full.jpg',
+  omegaweapon: 'card-omegaweapon-full.jpg',
+  yojimbo: 'card-yojimbo-full.jpg',
+  chocoboking: 'card-chocoboking-full.jpg',
+  odin: 'card-odin-full.jpg',
   triunedesire: 'card-triunedesire-full.jpg',
   darien: 'card-darien-full.jpg',
   zaevir: 'BB675F60-3B59-4D78-915B-68013383EACA.jpg',
@@ -1505,6 +1517,78 @@ const HEROES = [
       {name:'Throne of Stone', desc:'If Medusa has 2 or more of her own cards adjacent to her, she gets +2 Power on all sides this round.'},
       {name:"Special Attack: Gorgon's Dominion", desc:'Costs 3 wins. Petrifies every enemy card on the board and hits them all for -2 Power this round. Medusa gets +3 Power on all sides this round. If you control more cards than the opponent, you get an extra turn. Usable once per match.'},
     ] },
+  // Six new cards from a single batch of posters (Shiva, Leviathan, Omega
+  // Weapon, Yojimbo, Chocobo King, Odin) — all brand new, not redesigns of
+  // existing cards. Same convention as every prior batch: playable in both
+  // HEROES and FOREST_FOES, Faction/Rarity/Type/Alignment corner badges on
+  // the posters are flavor-only (no formal faction/type system exists yet —
+  // isBeast/isDragon-style boolean tags are the one exception, added only
+  // when a card's own kit needs to check for it).
+  { id:'shiva', name:'Shiva', role:'The Frost Empress — Mythic Card', element:'ice', top:10, right:9, bottom:8, left:9, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#7ec8f2', icon:'❄️',
+    active:{ onWinDebuffLoserThisRound:2, shield:true, flatAttackBonus:2, adjacentEnemyAuraThisRound:{minCount:2, amount:1} },
+    special:{ name:'Diamond Storm', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Frost Aura (Passive)', desc:'When Shiva is placed, every adjacent enemy card gets -1 Power on all sides this round.'},
+      {name:'Diamond Dust', desc:'When Shiva wins a battle, the defeated card gets -2 Power on all sides this round.'},
+      {name:'Frost Barrier', desc:'The first time Shiva would lose a battle, the loss is ignored.'},
+      {name:'Ice Touch', desc:'When Shiva attacks, she gets +2 Power on the attacking side.'},
+      {name:'Eternal Winter', desc:'If 2 or more enemy cards are adjacent to Shiva, she gets +1 Power on all sides this round.'},
+      {name:'Special Attack: Diamond Storm', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Every enemy card adjacent to Shiva is frozen (can't use its Special Attack this round). Shiva gets +3 Power on all sides this round. If Shiva wins a battle this round, the defeated card is destroyed instead of captured if its total Power is 10 or lower. Usable once per match."},
+    ] },
+  { id:'leviathan', name:'Leviathan', role:'The Abyssal Sovereign — Mythic Card', element:'water', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#081824,#0d0b18 60%)', accent:'#4a8fd6', icon:'🌊',
+    active:{ onWinDebuffLoserThisRound:2, adjacentEnemyAuraThisRound:{minCount:2, amount:2}, shield:true, onCaptureBuffSelfThisRound:2 },
+    special:{ name:'Abyssal Deluge', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Abyssal Presence (Passive)', desc:'When Leviathan is placed, every adjacent enemy card gets -1 Power on all sides this round.'},
+      {name:'Crushing Tide', desc:'When Leviathan wins a battle, the defeated card gets -2 Power on all sides this round.'},
+      {name:'Maelstrom', desc:'If Leviathan has 2 or more enemy cards adjacent to him, he gets +2 Power on all sides this round.'},
+      {name:'Abyssal Armor', desc:'The first time Leviathan would lose a battle, the loss is ignored.'},
+      {name:'Call of the Deep', desc:'When Leviathan takes control of an enemy card, he gets +2 Power on all sides this round.'},
+      {name:'Special Attack: Abyssal Deluge', desc:'Costs 3 wins. All enemy cards get -2 Power on all sides this round. Every enemy card adjacent to Leviathan gets an additional -1 Power on all sides. Leviathan gets +3 Power on all sides this round. If Leviathan wins a battle this round after the Special Attack, he gets +1 Power permanently on all sides. Usable once per match.'},
+    ] },
+  { id:'omegaweapon', name:'Omega Weapon', role:'The Ultimate Destroyer — Mythic Card', top:10, right:10, bottom:10, left:9, hue:'linear-gradient(160deg,#1a0808,#0d0b18 60%)', accent:'#e03030', icon:'⚙️',
+    active:{ debuffImmune:true, onWinDebuffLoserThisRound:2, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
+    special:{ name:'Omega Protocol', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Omega Core (Passive)', desc:"Omega Weapon's Power can't be lowered by enemy Card Skills or Special Attacks."},
+      {name:'Hyper Pulse', desc:'When Omega Weapon wins a battle, the defeated card gets -2 Power on all sides this round.'},
+      {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
+      {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
+      {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
+      {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). Usable once per match."},
+    ] },
+  { id:'yojimbo', name:'Yojimbo', role:'The Silent Mercenary — Legendary Card', top:9, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#200a10,#0d0b18 60%)', accent:'#c23b3b', icon:'🗡️',
+    active:{ onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:3}, oncePerMatchAttackBoost:{amount:2}, onCaptureBonus:1 },
+    special:{ name:'Zanmato', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:"Mercenary's Code (Passive)", desc:'When Yojimbo is placed, he gets +1 Power on all sides if the opponent controls more cards than you.'},
+      {name:"Daigoro's Hunt", desc:'When Yojimbo wins a battle, the defeated card gets -1 Power on all sides for the rest of the match.'},
+      {name:'Price of Death', desc:'If Yojimbo attacks an enemy card with higher total Power than his own, he gets +3 Power on the attacking side.'},
+      {name:'Kozuka', desc:'Once per match, Yojimbo attacks with deadly precision and gets +2 Power on all sides during the battle.'},
+      {name:'Wakizashi', desc:'When Yojimbo takes control of an enemy card, he permanently gets +1 Power on the attacking side.'},
+      {name:'Special Attack: Zanmato', desc:"Costs 3 wins. Choose an enemy card. Yojimbo gets +5 Power on the attacking side. The enemy's defensive skills can't be activated. If Yojimbo wins by 3 Power or more, the enemy card is destroyed instead of captured. If the target has higher total Power than Yojimbo, Zanmato only costs 2 wins. Usable once per match."},
+    ] },
+  { id:'chocoboking', name:'Chocobo King', role:'The Golden Sovereign — Legendary Card', top:9, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#241c08,#0d0b18 60%)', accent:'#e0c02f', icon:'🐔', isBeast:true,
+    active:{ flatAttackBonus:2, onCaptureBuffAdjacentAlliesThisRound:1, shield:true, onWinRandomAdjacentEnemyDebuffThisRound:2 },
+    special:{ name:'Royal Choco Meteor', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Golden Feathers (Passive)', desc:'When Chocobo King is placed, he gets +1 Power on all sides this round. If placed next to an allied Beast card, that card also gets +1 Power on all sides this round.'},
+      {name:'Choco Dash', desc:'When Chocobo King attacks, he gets +2 Power on the attacking side.'},
+      {name:'Royal Plumage', desc:'The first time Chocobo King would lose a battle, the loss is ignored.'},
+      {name:'Feather Storm', desc:'When Chocobo King wins a battle, a random adjacent enemy card gets -2 Power on all sides this round.'},
+      {name:'Special Attack: Royal Choco Meteor', desc:'Costs 2 wins. Chocobo King gets +4 Power on the chosen attacking side. If the attack wins: the defeated card gets -2 Power on all sides this round, all adjacent allied cards get +1 Power on all sides this round, and Chocobo King gets an extra attack. Usable once per match.'},
+    ] },
+  { id:'odin', name:'Odin', role:'The Allfather — Mythic Card', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#101010,#0d0b18 60%)', accent:'#d4af37', icon:'⚡',
+    active:{ onCaptureBuffAllAlliesThisRound:1, flatAttackBonus:2, shield:true },
+    special:{ name:'Zantetsuken', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:"Allfather's Gaze (Passive)", desc:"When Odin is placed, you see a random enemy card's sides, and all enemy cards get -1 Power on all sides this round. (The reveal is flavor only — every card's stats are already shown openly in this game.)"},
+      {name:'Gungnir Strike', desc:'When Odin attacks, he gets +2 Power on the attacking side.'},
+      {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
+      {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
+      {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
+      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
+    ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
     {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
@@ -1769,6 +1853,78 @@ const FOREST_FOES = [
       {name:'Living Statue (Passive)', desc:'The first time Medusa would lose control, the loss is ignored instead and she permanently gains +1 Power on all sides — same shield mechanic as Ancient Wyrmking, spent once it triggers.'},
       {name:'Throne of Stone', desc:'If Medusa has 2 or more of her own cards adjacent to her, she gets +2 Power on all sides this round.'},
       {name:"Special Attack: Gorgon's Dominion", desc:'Costs 3 wins. Petrifies every enemy card on the board and hits them all for -2 Power this round. Medusa gets +3 Power on all sides this round. If you control more cards than the opponent, you get an extra turn. Usable once per match.'},
+    ] },
+  // Six new cards from a single batch of posters (Shiva, Leviathan, Omega
+  // Weapon, Yojimbo, Chocobo King, Odin) — all brand new, not redesigns of
+  // existing cards. Same convention as every prior batch: playable in both
+  // HEROES and FOREST_FOES, Faction/Rarity/Type/Alignment corner badges on
+  // the posters are flavor-only (no formal faction/type system exists yet —
+  // isBeast/isDragon-style boolean tags are the one exception, added only
+  // when a card's own kit needs to check for it).
+  { id:'shiva', name:'Shiva', role:'The Frost Empress — Mythic Card', element:'ice', top:10, right:9, bottom:8, left:9, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#7ec8f2', icon:'❄️',
+    active:{ onWinDebuffLoserThisRound:2, shield:true, flatAttackBonus:2, adjacentEnemyAuraThisRound:{minCount:2, amount:1} },
+    special:{ name:'Diamond Storm', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Frost Aura (Passive)', desc:'When Shiva is placed, every adjacent enemy card gets -1 Power on all sides this round.'},
+      {name:'Diamond Dust', desc:'When Shiva wins a battle, the defeated card gets -2 Power on all sides this round.'},
+      {name:'Frost Barrier', desc:'The first time Shiva would lose a battle, the loss is ignored.'},
+      {name:'Ice Touch', desc:'When Shiva attacks, she gets +2 Power on the attacking side.'},
+      {name:'Eternal Winter', desc:'If 2 or more enemy cards are adjacent to Shiva, she gets +1 Power on all sides this round.'},
+      {name:'Special Attack: Diamond Storm', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Every enemy card adjacent to Shiva is frozen (can't use its Special Attack this round). Shiva gets +3 Power on all sides this round. If Shiva wins a battle this round, the defeated card is destroyed instead of captured if its total Power is 10 or lower. Usable once per match."},
+    ] },
+  { id:'leviathan', name:'Leviathan', role:'The Abyssal Sovereign — Mythic Card', element:'water', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#081824,#0d0b18 60%)', accent:'#4a8fd6', icon:'🌊',
+    active:{ onWinDebuffLoserThisRound:2, adjacentEnemyAuraThisRound:{minCount:2, amount:2}, shield:true, onCaptureBuffSelfThisRound:2 },
+    special:{ name:'Abyssal Deluge', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Abyssal Presence (Passive)', desc:'When Leviathan is placed, every adjacent enemy card gets -1 Power on all sides this round.'},
+      {name:'Crushing Tide', desc:'When Leviathan wins a battle, the defeated card gets -2 Power on all sides this round.'},
+      {name:'Maelstrom', desc:'If Leviathan has 2 or more enemy cards adjacent to him, he gets +2 Power on all sides this round.'},
+      {name:'Abyssal Armor', desc:'The first time Leviathan would lose a battle, the loss is ignored.'},
+      {name:'Call of the Deep', desc:'When Leviathan takes control of an enemy card, he gets +2 Power on all sides this round.'},
+      {name:'Special Attack: Abyssal Deluge', desc:'Costs 3 wins. All enemy cards get -2 Power on all sides this round. Every enemy card adjacent to Leviathan gets an additional -1 Power on all sides. Leviathan gets +3 Power on all sides this round. If Leviathan wins a battle this round after the Special Attack, he gets +1 Power permanently on all sides. Usable once per match.'},
+    ] },
+  { id:'omegaweapon', name:'Omega Weapon', role:'The Ultimate Destroyer — Mythic Card', top:10, right:10, bottom:10, left:9, hue:'linear-gradient(160deg,#1a0808,#0d0b18 60%)', accent:'#e03030', icon:'⚙️',
+    active:{ debuffImmune:true, onWinDebuffLoserThisRound:2, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
+    special:{ name:'Omega Protocol', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Omega Core (Passive)', desc:"Omega Weapon's Power can't be lowered by enemy Card Skills or Special Attacks."},
+      {name:'Hyper Pulse', desc:'When Omega Weapon wins a battle, the defeated card gets -2 Power on all sides this round.'},
+      {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
+      {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
+      {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
+      {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). Usable once per match."},
+    ] },
+  { id:'yojimbo', name:'Yojimbo', role:'The Silent Mercenary — Legendary Card', top:9, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#200a10,#0d0b18 60%)', accent:'#c23b3b', icon:'🗡️',
+    active:{ onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:3}, oncePerMatchAttackBoost:{amount:2}, onCaptureBonus:1 },
+    special:{ name:'Zanmato', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:"Mercenary's Code (Passive)", desc:'When Yojimbo is placed, he gets +1 Power on all sides if the opponent controls more cards than you.'},
+      {name:"Daigoro's Hunt", desc:'When Yojimbo wins a battle, the defeated card gets -1 Power on all sides for the rest of the match.'},
+      {name:'Price of Death', desc:'If Yojimbo attacks an enemy card with higher total Power than his own, he gets +3 Power on the attacking side.'},
+      {name:'Kozuka', desc:'Once per match, Yojimbo attacks with deadly precision and gets +2 Power on all sides during the battle.'},
+      {name:'Wakizashi', desc:'When Yojimbo takes control of an enemy card, he permanently gets +1 Power on the attacking side.'},
+      {name:'Special Attack: Zanmato', desc:"Costs 3 wins. Choose an enemy card. Yojimbo gets +5 Power on the attacking side. The enemy's defensive skills can't be activated. If Yojimbo wins by 3 Power or more, the enemy card is destroyed instead of captured. If the target has higher total Power than Yojimbo, Zanmato only costs 2 wins. Usable once per match."},
+    ] },
+  { id:'chocoboking', name:'Chocobo King', role:'The Golden Sovereign — Legendary Card', top:9, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#241c08,#0d0b18 60%)', accent:'#e0c02f', icon:'🐔', isBeast:true,
+    active:{ flatAttackBonus:2, onCaptureBuffAdjacentAlliesThisRound:1, shield:true, onWinRandomAdjacentEnemyDebuffThisRound:2 },
+    special:{ name:'Royal Choco Meteor', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Golden Feathers (Passive)', desc:'When Chocobo King is placed, he gets +1 Power on all sides this round. If placed next to an allied Beast card, that card also gets +1 Power on all sides this round.'},
+      {name:'Choco Dash', desc:'When Chocobo King attacks, he gets +2 Power on the attacking side.'},
+      {name:'Royal Plumage', desc:'The first time Chocobo King would lose a battle, the loss is ignored.'},
+      {name:'Feather Storm', desc:'When Chocobo King wins a battle, a random adjacent enemy card gets -2 Power on all sides this round.'},
+      {name:'Special Attack: Royal Choco Meteor', desc:'Costs 2 wins. Chocobo King gets +4 Power on the chosen attacking side. If the attack wins: the defeated card gets -2 Power on all sides this round, all adjacent allied cards get +1 Power on all sides this round, and Chocobo King gets an extra attack. Usable once per match.'},
+    ] },
+  { id:'odin', name:'Odin', role:'The Allfather — Mythic Card', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#101010,#0d0b18 60%)', accent:'#d4af37', icon:'⚡',
+    active:{ onCaptureBuffAllAlliesThisRound:1, flatAttackBonus:2, shield:true },
+    special:{ name:'Zantetsuken', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:"Allfather's Gaze (Passive)", desc:"When Odin is placed, you see a random enemy card's sides, and all enemy cards get -1 Power on all sides this round. (The reveal is flavor only — every card's stats are already shown openly in this game.)"},
+      {name:'Gungnir Strike', desc:'When Odin attacks, he gets +2 Power on the attacking side.'},
+      {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
+      {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
+      {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
+      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
     ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
@@ -2999,7 +3155,16 @@ function shuffle(arr){
 }
 
 const ELEMENT_BEATS = { fire:'wind', wind:'earth', earth:'water', water:'fire' };
-const ELEMENT_ICONS = { fire:'🔥', wind:'🌪️', earth:'🌍', water:'💧' };
+// fire/wind/earth/water are the only elements the classic Elemental board
+// rule (ELEMENT_BEATS above) understands; light/dark/shadow/magic/ice only
+// ever matter for a specific card's own active.weakVsElement clause, never
+// for that rule — but every element still needs an icon here, since
+// cardFace()'s badge renders ELEMENT_ICONS[card.element] unconditionally
+// whenever card.element is set (Naline/Umbrael/Nexzoth/Morvath's badges
+// were silently printing the literal text "undefined" before this fix —
+// a pre-existing gap from whenever those cards' elements were added,
+// noticed and fixed in passing while giving Shiva her own 'ice').
+const ELEMENT_ICONS = { fire:'🔥', wind:'🌪️', earth:'🌍', water:'💧', ice:'❄️', light:'✨', dark:'🌑', shadow:'🖤', magic:'🔮' };
 function elementBeats(a, b){ return a && b && ELEMENT_BEATS[a] === b; }
 
 // Choice sets for specials whose targets:'element' or two-step flow needs
@@ -3069,6 +3234,26 @@ function protectedBySanctuary(owner){
   return state.board.some(e => e && e.owner === owner && e.card.id === 'naline');
 }
 
+// Shared adjacency lookup: the live board entries (with their index)
+// orthogonally next to cellIndex. fullEffectiveValue's own adjacency checks
+// (adjacentEnemiesBoost/adjacentAlliesBoost/etc.) only ever need a COUNT and
+// inline their own row/col math for that; this is for on-place/on-capture
+// hooks that need the actual ENTRIES to act on (Shiva/Leviathan's Frost
+// Aura, Chocobo King's King's Command), so it's a proper standalone helper.
+function adjacentEntries(cellIndex){
+  const row = Math.floor(cellIndex/3), col = cellIndex%3;
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  const out = [];
+  dirs.forEach(([dr,dc])=>{
+    const r = row+dr, c = col+dc;
+    if(r<0||r>2||c<0||c>2) return;
+    const idx = r*3+c;
+    const entry = state.board[idx];
+    if(entry) out.push({ index: idx, entry });
+  });
+  return out;
+}
+
 // Shared destruction path for every Special that removes a card from the
 // board outright (as opposed to a normal flip/capture). When the Graveyard
 // optional rule is on, the destroyed card is recorded in its owner's
@@ -3102,6 +3287,20 @@ function destroyCard(index){
   const beneficiaryOwner = entry.owner === 'blue' ? 'red' : 'blue';
   const morvath = state.board.find(e => e && e.owner === beneficiaryOwner && e.card.active && e.card.active.buffOnEnemyDestroyed);
   if(morvath) SpecialVerbs.attackBoost(morvath, 1);
+  // Omega Weapon's Destroyer Protocol: the same "+1 per enemy destroyed this
+  // match" hook as King of the Depths above, but CAPPED (his card text says
+  // "max +3", Morvath's doesn't) — tracked via a running stack counter
+  // instead of reusing onWinDebuffOnce's simple used-once boolean shape,
+  // since this can fire more than once but not unboundedly.
+  const omega = state.board.find(e => e && e.owner === beneficiaryOwner && e.card.active && e.card.active.buffOnEnemyDestroyedCapped);
+  if(omega){
+    const cfg = omega.card.active.buffOnEnemyDestroyedCapped;
+    omega.buffOnEnemyDestroyedStacks = omega.buffOnEnemyDestroyedStacks || 0;
+    if(omega.buffOnEnemyDestroyedStacks < cfg.max){
+      SpecialVerbs.attackBoost(omega, cfg.amount);
+      omega.buffOnEnemyDestroyedStacks += cfg.amount;
+    }
+  }
 }
 
 // Generalizes the permanent card-level active.destroyImmune (Three Head
@@ -3296,6 +3495,51 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // one, so it doesn't need the guard the balance pass added elsewhere.
   if(a.onWinPetrify && loserIndex != null){
     loserEntry.petrifiedUntilTurnCount = state.turnCount + 2;
+  }
+  // Shiva's Diamond Dust / Leviathan's Crushing Tide / Omega Weapon's Hyper
+  // Pulse: "the defeated card gets -N Power on all sides this round" — no
+  // "once per match" cap in any of the three cards' text, and unlike
+  // onWinLineDestroy's cap this is a mild, temporary debuff (same category
+  // Vorgrath's already-uncapped onWinAllEnemiesDebuffThisRound sits in), so
+  // it's left uncapped like that one rather than like onWinDebuffOnce.
+  if(a.onWinDebuffLoserThisRound && loserIndex != null){
+    SpecialVerbs.debuffThisRound(loserEntry, a.onWinDebuffLoserThisRound);
+  }
+  // Yojimbo's Daigoro's Hunt: "the defeated card gets -1 Power on all sides
+  // for the REST OF THE MATCH" (permanent, unlike the this-round hooks
+  // above) — no cap in the text either, same "mild uncapped stacking" call
+  // as Ifrit's onCaptureBonus (already shipped, permanent, uncapped).
+  if(a.onWinDebuffLoserPermanent && loserIndex != null){
+    SpecialVerbs.debuff(loserEntry, a.onWinDebuffLoserPermanent);
+  }
+  // Chocobo King's Feather Storm: "a RANDOM adjacent enemy card" (not
+  // necessarily the loser of THIS battle) gets -N Power this round —
+  // distinct from onWinAreaDebuff above (which hits ALL adjacent enemies,
+  // unconditionally, every win) since this one picks only one, at random.
+  if(a.onWinRandomAdjacentEnemyDebuffThisRound && winnerIndex != null){
+    const candidates = adjacentEntries(winnerIndex).filter(p => p.entry.owner !== winnerEntry.owner);
+    if(candidates.length > 0){
+      const pick = candidates[Math.floor(Math.random()*candidates.length)];
+      SpecialVerbs.debuffThisRound(pick.entry, a.onWinRandomAdjacentEnemyDebuffThisRound);
+    }
+  }
+  // Shiva's Diamond Storm ultimate temporarily grants "destroy the loser if
+  // ITS OWN printed total Power is <= threshold" for the rest of the round
+  // the ultimate was cast in. Read from a live entry flag (set by
+  // SPECIAL_HANDLERS.shiva) rather than card.active, since — unlike every
+  // other checkOnWinBonuses hook above — this one isn't a permanent printed
+  // passive, it only exists after the Ultimate fires.
+  if(winnerEntry.executeWeakFoesUntilTurnCount > state.turnCount && loserIndex != null){
+    const loserTotal = loserEntry.card.top + loserEntry.card.right + loserEntry.card.bottom + loserEntry.card.left;
+    if(loserTotal <= winnerEntry.executeWeakFoesThreshold && !isDestroyImmune(loserEntry)) destroyCard(loserIndex);
+  }
+  // Leviathan's Abyssal Deluge ultimate: "if Leviathan wins a battle this
+  // round after the Special Attack, he gains +1 Power permanently" — same
+  // live-flag shape as Shiva's execute-weak-foes grant above, uncapped
+  // within the round (the text has no "once" qualifier, and the grant
+  // naturally expires with the round anyway).
+  if(winnerEntry.onWinPermanentSelfBuffUntilTurnCount > state.turnCount){
+    SpecialVerbs.attackBoost(winnerEntry, winnerEntry.onWinPermanentSelfBuffAmount);
   }
 }
 
@@ -3630,6 +3874,65 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     const petrifiedEnemies = state.board.filter(e => e && e.owner !== owner && e.petrifiedUntilTurnCount > state.turnCount).length;
     v += Math.min(petrifiedEnemies, cfg.max) * cfg.amount;
   }
+  // Shiva's Ice Touch / Chocobo King's Choco Dash / Odin's Gungnir Strike:
+  // "gets +N Power on the attacking side" — a plain, unconditional
+  // attack-role bonus, unlike every adjacency/board-state-gated attack bonus
+  // above. Didn't exist as its own primitive yet because nothing this
+  // simple had shipped before.
+  if(card.active && card.active.flatAttackBonus && role === 'attack'){
+    v += card.active.flatAttackBonus;
+  }
+  // Shiva's Eternal Winter / Leviathan's Maelstrom: "+N Power on all sides
+  // THIS ROUND while 2+ enemy cards are adjacent" — the enemy-counting
+  // mirror of Medusa's adjacentAlliesBoost (not role-gated, since both say
+  // "this round" rather than Tiamat's attack-only "her next attack"), but
+  // counting enemies like Tiamat's adjacentEnemiesBoost instead of allies.
+  // Kept as its own flag rather than reusing Tiamat's (role==='attack' only)
+  // since Shiva/Leviathan's text covers defense too.
+  if(card.active && card.active.adjacentEnemyAuraThisRound){
+    const cfg = card.active.adjacentEnemyAuraThisRound;
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    let enemyNeighbors = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner) enemyNeighbors++;
+    });
+    if(enemyNeighbors >= cfg.minCount) v += cfg.amount;
+  }
+  // Yojimbo's Price of Death: "if attacking a card with higher total Power
+  // than his own, +N Power on the attacking side" — every attack, uncapped,
+  // read off the two cards' PRINTED totals (no captureBonus/sideBonus
+  // available here for the opponent side — opponentCard is raw card data,
+  // not a live entry — same simplification every other opponent-comparison
+  // primitive above already makes).
+  if(card.active && card.active.vsStrongerTotalPowerBoost && role === 'attack' && opponentCard){
+    const ownTotal = card.top + card.right + card.bottom + card.left;
+    const oppTotal = opponentCard.top + opponentCard.right + opponentCard.bottom + opponentCard.left;
+    if(oppTotal > ownTotal) v += card.active.vsStrongerTotalPowerBoost.amount;
+  }
+  // Omega Weapon's Anti-Matter Cannon: the same "vs a stronger total Power"
+  // check as Yojimbo's Price of Death above, but ONCE PER MATCH — consumed
+  // in battleNeighbors right after this value is used for a real attack
+  // (see the comment there), the same recompute-and-mark pattern already
+  // used for Medusa's marginBlocked check.
+  if(card.active && card.active.oncePerMatchVsStrongerBoost && role === 'attack' && opponentCard && cellIndex != null){
+    const liveEntry = state.board[cellIndex];
+    if(liveEntry && !liveEntry.vsStrongerBoostUsed){
+      const ownTotal = card.top + card.right + card.bottom + card.left;
+      const oppTotal = opponentCard.top + opponentCard.right + opponentCard.bottom + opponentCard.left;
+      if(oppTotal > ownTotal) v += card.active.oncePerMatchVsStrongerBoost.amount;
+    }
+  }
+  // Yojimbo's Kozuka: "once per match, +N Power on all sides during an
+  // attack" — no condition beyond "an attack happens", consumed the same
+  // once-per-match way as Anti-Matter Cannon above (see battleNeighbors).
+  if(card.active && card.active.oncePerMatchAttackBoost && role === 'attack' && cellIndex != null){
+    const liveEntry = state.board[cellIndex];
+    if(liveEntry && !liveEntry.oncePerMatchAttackBoostUsed) v += card.active.oncePerMatchAttackBoost.amount;
+  }
   // Three Head Dragon's Ice's Breath: "the enemy's opposing side is frozen,
   // -2 Power during this attack" — read off the ATTACKER's active (not this
   // card's own), only on the defense-role call, so it only ever lowers the
@@ -3873,6 +4176,50 @@ const ON_PLACE_HANDLERS = {
     const redemptionTarget = allies[Math.floor(Math.random()*allies.length)];
     SpecialVerbs.buffThisRound(redemptionTarget, 2);
     redemptionTarget.destroyImmuneUntilTurnCount = state.turnCount + 2;
+  },
+  // Shiva's Frost Aura / Leviathan's Abyssal Presence: identical text on
+  // both cards — "every ADJACENT enemy card gets -1 Power on all sides this
+  // round" — the first on-place hooks that need real adjacency (every
+  // earlier on-place ability above targets either a random enemy anywhere
+  // on the board, or everyone), so both use the shared adjacentEntries()
+  // helper instead of the "pick 1 random enemy" pattern.
+  shiva(entry, owner, cellIndex){
+    adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner !== owner) SpecialVerbs.debuffThisRound(n, 1); });
+  },
+  leviathan(entry, owner, cellIndex){
+    adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner !== owner) SpecialVerbs.debuffThisRound(n, 1); });
+  },
+  // Odin's Allfather's Gaze: "you see a random enemy card's sides, and all
+  // enemy cards get -1 Power this round." The reveal half is flavor only —
+  // every card's stats are already shown openly on both sides in this game
+  // (no hidden-hand/fog-of-war system exists), so there's nothing to wire
+  // up there. The debuff half hits EVERY enemy on the board (not just
+  // adjacent ones, unlike Shiva/Leviathan above), so it's the same
+  // "loop every enemy" shape Nexzoth/Morvath/Zalazar's single-random-target
+  // on-place abilities use, just applied to all of them instead of one.
+  odin(entry, owner){
+    state.board.forEach(e => { if(e && e.owner !== owner) SpecialVerbs.debuffThisRound(e, 1); });
+  },
+  // Yojimbo's Mercenary's Code: "+1 Power on all sides if the opponent
+  // controls more cards than you" — checked once, at the moment of
+  // placement (unlike every live board-count check in fullEffectiveValue
+  // above), since the text describes a placement-time condition ("when
+  // Yojimbo is placed"), not a recomputed-every-battle aura.
+  yojimbo(entry, owner){
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    const theirs = state.board.filter(e => e && e.owner !== owner).length;
+    if(theirs > mine) SpecialVerbs.attackBoost(entry, 1);
+  },
+  // Chocobo King's Golden Feathers: "+1 Power on all sides this round" to
+  // himself, and if placed next to an allied Beast-type card, that card
+  // gets the same +1 too. isBeast is a new, generic tag (same shape as
+  // Kaeldryx's isDragon) — nothing else in the roster carries it yet, so
+  // the ally half stays dormant until a future Beast card exists, same
+  // "dormant until relevant content exists" pattern as several
+  // weakVsElement clauses before their matching element shipped.
+  chocoboking(entry, owner, cellIndex){
+    SpecialVerbs.buffThisRound(entry, 1);
+    adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner === owner && n.card.isBeast) SpecialVerbs.buffThisRound(n, 1); });
   },
 };
 
@@ -4138,7 +4485,18 @@ const SpecialVerbs = {
 // one turn regardless of which side started the clock.
 function sweepExpiredRoundEffects(){
   state.board.forEach(entry => {
-    if(!entry || !entry.tempEffects || entry.tempEffects.length === 0) return;
+    if(!entry) return;
+    // Omega Weapon's Absolute Defense: "the FIRST time he'd lose a battle
+    // EACH ROUND, ignore it" — unlike every other card's active.shield
+    // (which is a single one-time-per-match use, consumed via shieldUsed
+    // and never reset), his explicitly says "each round", so it needs to
+    // reset here — this function already runs on every turn switch, the
+    // same round-clock granularity every other "this round" effect uses.
+    // A genuinely stronger defensive primitive than the rest of the
+    // roster's shields; flagged here in case future balancing wants it
+    // capped further.
+    if(entry.card.active && entry.card.active.shieldResetsEachRound) entry.shieldUsed = false;
+    if(!entry.tempEffects || entry.tempEffects.length === 0) return;
     entry.tempEffects = entry.tempEffects.filter(effect => {
       if(effect.expiresAtTurnCount > state.turnCount) return true;
       entry.captureBonus -= effect.captureDelta;
@@ -5031,6 +5389,156 @@ const SPECIAL_HANDLERS = {
       ? `${name}'s Rebirth calls ${revived} fallen champion${revived>1?'s':''} back to the field, cleansed of all harm!`
       : `${name}'s Rebirth finds no one left in the Graveyard to call back!`;
   },
+  // Diamond Storm: -3 Power this round to every enemy (a plain debuff, so no
+  // protectedByInfiniteSeraph check — same call as Kaeldryx's Dragonslayer
+  // weaken-loop), freeze every ADJACENT enemy (approximated as locking their
+  // Special Attack, same "silence a card" simplification Vorgrath's World
+  // Denial already established, rather than a genuine "can't use Card
+  // Skills" gate touching every fullEffectiveValue check — and DOES respect
+  // Infinite Seraph here, same call as Medusa's petrify since it's a status
+  // lock, not a plain debuff), +3 Power this round to Shiva herself, and
+  // grants a temporary "execute enemies at <=10 total Power" rule for the
+  // rest of the round (see checkOnWinBonuses' executeWeakFoesUntilTurnCount).
+  shiva({ srcEntry, sourceIndex, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    const protectedSide = protectedByInfiniteSeraph(enemyOwner);
+    state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 3); });
+    let frozen = 0;
+    if(!protectedSide){
+      adjacentEntries(sourceIndex).forEach(({ entry: n }) => {
+        if(n.owner === enemyOwner){ n.specialLockedUntilTurnCount = state.turnCount + 2; frozen++; }
+      });
+    }
+    SpecialVerbs.buffThisRound(srcEntry, 3);
+    srcEntry.executeWeakFoesUntilTurnCount = state.turnCount + 2;
+    srcEntry.executeWeakFoesThreshold = 10;
+    return frozen > 0
+      ? `${name}'s Diamond Storm blankets the battlefield in ice, freezing ${frozen} foe${frozen>1?'s':''}!`
+      : `${name}'s Diamond Storm blankets the battlefield in ice!`;
+  },
+  // Abyssal Deluge: -2 Power this round to every enemy, an extra -1 (so -3
+  // total) to enemies adjacent to Leviathan, +3 Power this round to himself,
+  // and a temporary "gain +1 Power permanently on any win this round" grant
+  // (see checkOnWinBonuses' onWinPermanentSelfBuffUntilTurnCount).
+  leviathan({ srcEntry, sourceIndex, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 2); });
+    adjacentEntries(sourceIndex).forEach(({ entry: n }) => { if(n.owner === enemyOwner) SpecialVerbs.debuffThisRound(n, 1); });
+    SpecialVerbs.buffThisRound(srcEntry, 3);
+    srcEntry.onWinPermanentSelfBuffUntilTurnCount = state.turnCount + 2;
+    srcEntry.onWinPermanentSelfBuffAmount = 1;
+    return `${name}'s Abyssal Deluge drowns the battlefield!`;
+  },
+  // Omega Protocol: -3 Power this round to every enemy, +3 Power this round
+  // to Omega Weapon, then destroys every enemy whose weakest side (AFTER the
+  // debuff just applied above, since it's part of the same strike) is 5 or
+  // lower. "Fiendens defensiva skills kan inte aktiveras" needs no code —
+  // AOE debuff/destroy effects in this engine never check isShielded() in
+  // the first place (only normal battleNeighbors flips and single-target
+  // Ultimates via specialBlockedByShield do). Destroyer Protocol's own
+  // capped self-buff (active.buffOnEnemyDestroyedCapped) fires automatically
+  // through destroyCard()'s shared hook for each kill here.
+  omegaweapon({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 3); });
+    SpecialVerbs.buffThisRound(srcEntry, 3);
+    let destroyed = 0;
+    state.board.forEach((e, i) => {
+      if(!e || e.owner !== enemyOwner) return;
+      if(isDestroyImmune(e)) return;
+      const sb = e.sideBonus || {};
+      const sides = ['top','right','bottom','left'].map(s => e.card[s] + (e.captureBonus||0) + (sb[s]||0));
+      if(Math.min(...sides) <= 5){ destroyCard(i); destroyed++; }
+    });
+    return destroyed > 0
+      ? `${name}'s Omega Protocol shatters ${destroyed} weakened card${destroyed>1?'s':''}!`
+      : `${name}'s Omega Protocol devastates the battlefield!`;
+  },
+  // Zanmato: a single-target strike, following the same "compare printed
+  // totalPower, THEN apply the reward on a win" shape every other
+  // single-target Ultimate above uses (graff/aurelia/maximus/etc.) rather
+  // than folding the bonus into the comparison itself. Ignores the target's
+  // defensive skills (no specialBlockedByShield check, same as Lyrith's
+  // Serpent's Wrath) and destroys outright instead of flipping if the
+  // margin is 3+. The "costs only 2 Wins if the target has higher total
+  // Power" clause is implemented as a 1-Win refund after
+  // runSpecialResolution's normal 3-Win deduction already ran — the same
+  // net price, without a dynamic special.cost/specialUsable rewrite for one
+  // card's one conditional clause.
+  yojimbo({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    const basePower = totalPower(srcEntry);
+    const targetPower = totalPower(targetEntry);
+    if(basePower <= targetPower){
+      return `${name}'s Zanmato fails to find an opening!`;
+    }
+    const rawSrcPower = srcEntry.card.top + srcEntry.card.right + srcEntry.card.bottom + srcEntry.card.left;
+    const rawTargetPower = targetEntry.card.top + targetEntry.card.right + targetEntry.card.bottom + targetEntry.card.left;
+    if(rawTargetPower > rawSrcPower) state.wins[owner] += 1;
+    SpecialVerbs.attackBoost(srcEntry, 5);
+    if(basePower - targetPower >= 3){
+      destroyCard(targetIndex);
+      return `${name}'s Zanmato cuts ${targetEntry.card.name} down completely!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name}'s Zanmato flips ${targetEntry.card.name}!`;
+  },
+  // Royal Choco Meteor: single-target, same comparison shape as Zanmato
+  // above, respects the target's shield (specialBlockedByShield) since
+  // nothing in the text says otherwise. On a win: -2 Power this round to
+  // the defeated card, +1 Power this round to Chocobo King's own adjacent
+  // allies, and an extra turn.
+  chocoboking({ srcEntry, sourceIndex, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Royal Choco Meteor is deflected!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Royal Choco Meteor!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 4);
+    SpecialVerbs.debuffThisRound(targetEntry, 2);
+    adjacentEntries(sourceIndex).forEach(({ entry: n }) => { if(n.owner === owner) SpecialVerbs.buffThisRound(n, 1); });
+    SpecialVerbs.extraTurn(owner);
+    return `${name}'s Royal Choco Meteor crashes down on ${targetEntry.card.name}!`;
+  },
+  // Zantetsuken: single-target, same comparison shape as the others above,
+  // respects the target's shield. On a win: permanent -3 to the target
+  // (via SpecialVerbs.debuff, so it still respects the target's own
+  // debuffImmune like every other debuff in the engine), -1 Power this
+  // round to every OTHER enemy, and +3 Power this round to Odin himself.
+  // "Utför sju blixtsnabba slag" ("seven lightning strikes") is pure flavor
+  // for the name/flourish, not a literal seven separate hits.
+  odin({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Zantetsuken finds no opening!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Zantetsuken!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 3);
+    SpecialVerbs.debuff(targetEntry, 3);
+    let weakened = 0;
+    state.board.forEach(e => {
+      if(e && e.owner === enemyOwner && e !== targetEntry){ SpecialVerbs.debuffThisRound(e, 1); weakened++; }
+    });
+    return weakened > 0
+      ? `${name}'s Zantetsuken cuts down ${targetEntry.card.name} and chills ${weakened} more foe${weakened>1?'s':''}!`
+      : `${name}'s Zantetsuken cuts down ${targetEntry.card.name}!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -5234,6 +5742,22 @@ function battleNeighbors(index, owner, result){
 
     const placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     const targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
+    // Omega Weapon's Anti-Matter Cannon / Yojimbo's Kozuka: fullEffectiveValue
+    // above already read these as "not yet used" and folded the bonus into
+    // placedVal if eligible — mark them used now that this is a real attack
+    // resolution (not a hover preview), so they never apply again this
+    // match. Re-derives the same eligibility condition fullEffectiveValue
+    // used rather than having that pure function mutate state itself, same
+    // "recompute outside, mark as a side effect" split as Medusa's
+    // marginBlocked check below.
+    if(placed.active && placed.active.oncePerMatchVsStrongerBoost && !placedEntry.vsStrongerBoostUsed){
+      const oppTotal = target.card.top + target.card.right + target.card.bottom + target.card.left;
+      const ownTotal = placed.top + placed.right + placed.bottom + placed.left;
+      if(oppTotal > ownTotal) placedEntry.vsStrongerBoostUsed = true;
+    }
+    if(placed.active && placed.active.oncePerMatchAttackBoost && !placedEntry.oncePerMatchAttackBoostUsed){
+      placedEntry.oncePerMatchAttackBoostUsed = true;
+    }
     const effOutcome = placedVal > targetVal;
     const baseOutcome = p.myVal > p.theirVal;
 
@@ -5321,6 +5845,29 @@ function resolveFlips(index, owner){
 
   if(result.flips > 0 && placed.active && placed.active.onCaptureBonus){
     placedEntry.captureBonus += placed.active.onCaptureBonus;
+  }
+  // Leviathan's Call of the Deep: "+N Power on a side THIS ROUND" (not
+  // permanent, unlike onCaptureBonus above) whenever he takes control of an
+  // enemy card. No on-capture side-choice UI exists (same "no choice UI"
+  // simplification as every on-place/on-win 'choose 1' ability), so it's
+  // applied to all sides via buffThisRound like every other "this round"
+  // grant in the engine.
+  if(result.flips > 0 && placed.active && placed.active.onCaptureBuffSelfThisRound){
+    SpecialVerbs.buffThisRound(placedEntry, placed.active.onCaptureBuffSelfThisRound);
+  }
+  // Chocobo King's King's Command: "+1 Power on all sides THIS ROUND to all
+  // your ADJACENT allied cards" whenever he takes control of an enemy card —
+  // uses the shared adjacentEntries() helper (see its own comment) since
+  // this needs actual neighbor entries, not just a count.
+  if(result.flips > 0 && placed.active && placed.active.onCaptureBuffAdjacentAlliesThisRound){
+    const amt = placed.active.onCaptureBuffAdjacentAlliesThisRound;
+    adjacentEntries(index).forEach(({ entry: n }) => { if(n.owner === owner) SpecialVerbs.buffThisRound(n, amt); });
+  }
+  // Odin's Valhalla's Call: same trigger, but board-wide instead of just
+  // adjacent — "all YOUR allied cards", not "adjacent" ones.
+  if(result.flips > 0 && placed.active && placed.active.onCaptureBuffAllAlliesThisRound){
+    const amt = placed.active.onCaptureBuffAllAlliesThisRound;
+    state.board.forEach(e => { if(e && e.owner === owner) SpecialVerbs.buffThisRound(e, amt); });
   }
 
   return result;

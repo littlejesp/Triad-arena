@@ -19,9 +19,10 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–10 är MERGADE till `main`** (användaren bekräftade explicit,
 sex gånger nu — senast "Merga allt till main" för punkt 9–10). **Punkt 11
-(Medusa-ombyggnaden) ligger committad på feature-branchen, INTE mergad
-till `main` än** — fråga alltid explicit innan nästa merge när mer arbete
-samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+(Medusa-ombyggnaden) och punkt 12 (sex nya kort: Shiva, Leviathan, Omega
+Weapon, Yojimbo, Chocobo King, Odin) ligger committade på feature-branchen,
+INTE mergade till `main` än** — fråga alltid explicit innan nästa merge när
+mer arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -196,6 +197,30 @@ användaren delade sin 8-stegs "balans-plan"-idé, se nedan). Ny
 petrifierad-badge (🗿) på brädet. Sex nya permanenta tester i
 `tests/game.test.mjs`, alla 39 testerna gröna. Se avsnitt 5:s allra sista
 underrubrik för fullständiga detaljer.
+
+**12. Sex helt nya kort i en enda batch**: Shiva, Leviathan, Omega Weapon,
+Yojimbo, Chocobo King, Odin — från sex poster-bilder användaren skickade
+rakt av (fem i ett meddelande, Odin i ett uppföljande meddelande mitt i
+implementationsarbetet), inga omgjorda kort. Alla sex spelbara i BÅDE
+`HEROES` och `FOREST_FOES`, samma konvention som varje tidigare batch.
+Största nya generiska motor-tillskottet den här sessionen: en delad
+`adjacentEntries(cellIndex)`-hjälpfunktion (de faktiska grann-ENTRIES, inte
+bara en räkning som `adjacentEnemiesBoost`/`adjacentAlliesBoost` redan
+gjorde) samt tio nya `active.*`-primitiver (`flatAttackBonus`,
+`adjacentEnemyAuraThisRound`, `vsStrongerTotalPowerBoost`,
+`oncePerMatchVsStrongerBoost`, `oncePerMatchAttackBoost`,
+`onWinDebuffLoserThisRound`, `onWinDebuffLoserPermanent`,
+`onWinRandomAdjacentEnemyDebuffThisRound`, `onCaptureBuffSelfThisRound`/
+`onCaptureBuffAdjacentAlliesThisRound`/`onCaptureBuffAllAlliesThisRound`,
+`buffOnEnemyDestroyedCapped`, `shieldResetsEachRound`) plus ett nytt
+`isBeast`-tagg-mönster (samma form som `isDragon`). Hittade och fixade
+även en tyst, sedan tidigare befintlig bugg på köpet: `ELEMENT_ICONS`
+saknade `light`/`dark`/`shadow`/`magic` (kort med de elementen visade
+bokstavligen texten "undefined" i sin element-badge sedan Naline/Umbrael/
+Nexzoth/Morvath fick de elementen tilldelade) — fixat i samma veva som
+Shiva fick sitt nya `ice`-element. Se avsnitt 5:s allra sista underrubrik
+för fullständiga detaljer per kort. Sex nya permanenta tester i
+`tests/game.test.mjs` (ett per kort), 45 tester totalt, alla gröna.
 
 Parallellt, öppen tråd men INTE påbörjad: användaren delade en 8-stegs
 "balans-plan" (från ChatGPT) för att formalisera Triad Arenas regler
@@ -1719,6 +1744,217 @@ Medusa i marginal-testerna för att isolera Curse of the Gorgon från
 Living Statues egen, alltid-aktiva engångssköld (annars skulle båda
 blockera samma scenario av olika anledningar, och testet skulle inte
 faktiskt bevisa marginal-logiken). 39 tester totalt i svepet, alla gröna.
+
+### Sex nya kort: Shiva, Leviathan, Omega Weapon, Yojimbo, Chocobo King, Odin
+
+Från sex nya poster-bilder användaren skickade rakt av — inga omgjorda
+kort den här gången, samma bedömning som Kaeldryx/Nexzoth/Morvath/
+Vorgrath/Zalazar-batchen. Fem kort kom i ett meddelande; Odin skickades i
+ett separat uppföljande meddelande mitt i implementationsarbetet på de
+andra fem — hanterat som en sjätte tillökning till samma batch snarare än
+en separat omgång. Alla sex duplicerade oförändrat i både `HEROES` och
+`FOREST_FOES` (spelbara + fiender), Faction/Rarity/Type/Alignment-
+hörnbadges är flavor-only (samma bedömning som alla tidigare kort utan ett
+formellt typ/faktion-system).
+
+**Bildhantering**: samma beskärningspipeline som alltid
+(`crop((140,y,800,y+731)).resize((640,418))`, `y` justerad per bild — de
+flesta använde standard-`y=300`, Chocobo King fick `y=290` för att undvika
+att fånga en synlig "Upp"-statsiffra i beskärningen). Nya filer:
+`cards/card-<id>.jpg` + `card-<id>-full.jpg` för alla sex.
+
+**Ny delad hjälpfunktion**: `adjacentEntries(cellIndex)` — returnerar de
+FAKTISKA angränsande bräd-entries (med index), till skillnad från
+`fullEffectiveValue`s egna adjacency-koll (`adjacentEnemiesBoost`/
+`adjacentAlliesBoost`/`auraPerPetrifiedEnemy`) som bara någonsin behövt en
+RÄKNING och därför inlinear sin egen rad/kolumn-matematik. Behövdes för
+on-place/on-capture-krokar som faktiskt ska PÅVERKA grannarna (Shiva/
+Leviathans Frost Aura/Abyssal Presence, Chocobo Kings King's Command,
+Shivas ultimate-frysning), inte bara räkna dem.
+
+**Shiva, The Frost Empress** (`element:'ice'` — nytt element, se
+ELEMENT_ICONS-fixen nedan):
+- **Frost Aura** (on-place) — alla ANGRÄNSANDE fiender -1 denna runda,
+  första verkliga användningen av `adjacentEntries()`.
+- **Diamond Dust** (on-win) — ny `active.onWinDebuffLoserThisRound:2`:
+  förloraren -2 denna runda, OKAPPAD (samma balansbedömning som Vorgraths
+  redan okappade `onWinAllEnemiesDebuffThisRound` — ett milt, tillfälligt
+  avdrag, inte en snöbolls-risk som de kapade destroy-effekterna).
+- **Frost Barrier** — återanvänder befintlig `active.shield` rakt av.
+- **Ice Touch** — ny `active.flatAttackBonus:2`: platt +2 Power bara vid
+  attack, ovillkorat (den enklaste attack-bonusen i motorn hittills, fanns
+  inte som egen primitiv förut).
+- **Eternal Winter** — ny `active.adjacentEnemyAuraThisRound:{minCount:2,
+  amount:1}`: fiende-räknande spegelbild av Medusas `adjacentAlliesBoost`
+  (INTE rollspärrad, till skillnad från Tiamats `adjacentEnemiesBoost` som
+  bara gäller attack — Shiva/Leviathans text säger "denna runda", inte
+  "nästa attack").
+- **Diamond Storm** (ultimate, 3 wins) — AOE -3 denna runda till alla
+  fiender (ingen `protectedByInfiniteSeraph`-koll, ren debuff, samma
+  bedömning som Kaeldryx's Dragonslayer-försvagning); fryser bara
+  ANGRÄNSANDE fiender (återanvänder `specialLockedUntilTurnCount` — samma
+  "tysta ett kort"-förenkling som Vorgraths World Denial redan etablerat,
+  snarare än en genuin "kan inte använda Card Skills"-spärr som skulle
+  kräva att röra varje enskild bonus-koll i `fullEffectiveValue`; RESPEKTERAR
+  `protectedByInfiniteSeraph` här eftersom det är ett statuslås, samma
+  kategori som Medusas petrify); ger sig själv +3 denna runda; sätter en
+  temporär "avrätta svaga fiender"-regel (`entry.executeWeakFoesUntilTurnCount`
+  + `executeWeakFoesThreshold`) för resten av ronden — en ny, läst direkt
+  i `checkOnWinBonuses` från ett LIVE entry-fält snarare än `card.active`,
+  eftersom den bara existerar efter att ultimaten avfyrats.
+
+**Leviathan, The Abyssal Sovereign** (`element:'water'`):
+- **Abyssal Presence** (on-place) — identisk text som Shivas Frost Aura,
+  samma `adjacentEntries()`-mönster.
+- **Crushing Tide** — samma `onWinDebuffLoserThisRound:2` som Shiva.
+- **Maelstrom** — samma `adjacentEnemyAuraThisRound` som Shivas Eternal
+  Winter, `amount:2`.
+- **Abyssal Armor** — återanvänder `active.shield`.
+- **Call of the Deep** — ny `active.onCaptureBuffSelfThisRound:2`: +2 denna
+  runda på EGET kort vid varje erövring (till skillnad från Ifrit/Bahamut/
+  Graffs redan existerande `onCaptureBonus`, som är PERMANENT — detta är
+  temporärt, samma "denna runda"-mönster som `buffThisRound` överallt
+  annars). Ny krok i `resolveFlips()` bredvid den befintliga
+  `onCaptureBonus`-koden.
+- **Abyssal Deluge** (ultimate, 3 wins) — AOE -2 denna runda till alla
+  fiender, YTTERLIGARE -1 (totalt -3) till angränsande fiender via
+  `adjacentEntries()`, +3 denna runda till sig själv, och en temporär
+  "permanent +1 vid nästa vinst denna runda"-koppling
+  (`onWinPermanentSelfBuffUntilTurnCount`/`Amount`) — samma mönster som
+  Shivas execute-grant. Denna nya bonus samverkar (staplar) legitimt med
+  Call of the Deeps egen on-capture-bonus om Leviathan både använder
+  ultimaten OCH vinner en strid samma runda — verifierat explicit i testet,
+  inte en bugg.
+
+**Omega Weapon, The Ultimate Destroyer** (inget element — ingen synlig
+badge på konsten, robot/void-tema passar inget av de fyra klassiska):
+- **Omega Core** — ren återanvändning av befintlig `active.debuffImmune`.
+- **Hyper Pulse** — samma `onWinDebuffLoserThisRound:2` som Shiva/Leviathan
+  (tredje kortet som delar primitiven).
+- **Anti-Matter Cannon** — ny `active.oncePerMatchVsStrongerBoost:{amount:4}`:
+  +4 Power vid attack mot ett kort med högre TOTAL Power (jämfört på
+  TRYCKTA värden, samma förenkling som alla andra motståndar-jämförelser
+  i `fullEffectiveValue` redan gör), men bara EN GÅNG PER MATCH. Eftersom
+  `fullEffectiveValue` är en ren läsfunktion (anropas även för hover-
+  förhandsvisningar) kan den inte själv markera förmågan som förbrukad —
+  löst genom att `battleNeighbors` räknar om exakt samma villkor direkt
+  efter att ha använt `placedVal` för en RIKTIG attack och sätter
+  `entry.vsStrongerBoostUsed = true` då, samma "räkna om utanför, markera
+  som sidoeffekt"-mönster som Medusas `marginBlocked`-koll redan använder.
+- **Absolute Defense** — ny `active.shieldResetsEachRound:true`: till
+  skillnad från VARJE annat kort i rostret (vars `active.shield` bara
+  blockerar EN gång per match, aldrig återställs), säger Omega Weapons text
+  uttryckligen "varje runda" — löst genom att haka på den redan existerande
+  `sweepExpiredRoundEffects()` (körs redan vid varje turordningsbyte) och
+  nollställa `shieldUsed` där om kortet har flaggan. Genuint starkare
+  försvarsprimitiv än resten av rostret — flaggat i kodkommentaren ifall
+  framtida balansering vill begränsa den ytterligare.
+- **Destroyer Protocol** — ny `active.buffOnEnemyDestroyedCapped:{amount:1,
+  max:3}`: samma krok i `destroyCard()` som Morvaths redan existerande
+  `buffOnEnemyDestroyed` (okappad), men CAPPAD via en ny räknare
+  (`entry.buffOnEnemyDestroyedStacks`) eftersom Omega Weapons text
+  uttryckligen säger "max +3".
+- **Omega Protocol** (ultimate, 3 wins) — AOE -3 denna runda till alla
+  fiender, +3 denna runda till sig själv, förstör sedan varje fiende vars
+  svagaste sida (EFTER debuffen ovan, eftersom den räknas som del av samma
+  attack) är 5 eller lägre. "Fiendens defensiva skills kan inte aktiveras"
+  krävde ingen kod alls — AOE debuff/destroy-effekter i motorn har ALDRIG
+  kollat `isShielded()` (bara vanliga `battleNeighbors`-flippar och
+  enmåls-ultimates via `specialBlockedByShield` gör det). Destroyer
+  Protocols cappade självbuff triggas automatiskt via den delade
+  `destroyCard()`-kroken för varje dödad fiende.
+
+**Yojimbo, The Silent Mercenary** (inget element):
+- **Mercenary's Code** (on-place) — kollas EN GÅNG vid placeringstillfället
+  (inte en levande, omräknad aura som `boardLeadBonus`): +1 permanent om
+  motståndaren har fler kort på brädet just då.
+- **Daigoro's Hunt** (on-win) — ny `active.onWinDebuffLoserPermanent:1`:
+  permanent (inte "denna runda") -1 till förloraren, OKAPPAD — samma
+  "mild, okappad stapling"-bedömning som Ifrits redan skeppade permanenta
+  `onCaptureBonus`.
+- **Price of Death** — ny `active.vsStrongerTotalPowerBoost:{amount:3}`:
+  samma "attackera ett kort med högre total Power"-koll som Omega Weapons
+  Anti-Matter Cannon, men UTAN engångsspärren — gäller varje attack.
+- **Kozuka** — ny `active.oncePerMatchAttackBoost:{amount:2}`: +2 Power på
+  VILKEN attack som helst, en gång per match, samma konsumtionsmönster
+  (räkna om i `battleNeighbors`, markera `oncePerMatchAttackBoostUsed`) som
+  Anti-Matter Cannon.
+- **Wakizashi** — ren återanvändning av `active.onCaptureBonus:1` (samma
+  primitiv som Ifrit/Bahamut/Graff), permanent +1 vid varje erövring.
+- **Zanmato** (ultimate, 3 wins, enmål) — samma "jämför tryckt totalPower,
+  applicera sedan belöningen vid vinst"-mönster som graff/aurelia/maximus
+  m.fl. redan använder (inte inbakat i själva jämförelsen). Ignorerar
+  målets sköld (`specialBlockedByShield` anropas ALDRIG, samma som Lyriths
+  Serpent's Wrath). Förstör istället för att erövra vid 3+ Power-marginal.
+  "Kostar bara 2 Wins om målet har högre total Power"-klausulen är
+  implementerad som en 1-Win-återbetalning EFTER att `runSpecialResolution`
+  redan dragit hela det tryckta priset (3) — medvetet vald istället för en
+  dynamisk `special.cost`/`specialUsable`-omskrivning för en enda klausul
+  på ett enda kort; ger exakt samma nettopris.
+
+**Chocobo King, The Golden Sovereign** (inget element; `isBeast:true` — ny
+generisk tagg, samma form som `isDragon`, vilande tills ett framtida
+Beast-kort finns):
+- **Golden Feathers** (on-place) — sig själv +1 denna runda, OCH om
+  placerad bredvid ett allierat Beast-kort får DET kortet också +1 denna
+  runda (läser den nya `isBeast`-taggen via `adjacentEntries()`).
+- **Choco Dash** — samma `active.flatAttackBonus:2` som Shivas Ice Touch.
+- **Royal Plumage** — återanvänder `active.shield`.
+- **Feather Storm** (on-win) — ny `active.onWinRandomAdjacentEnemyDebuffThisRound:2`:
+  ETT slumpmässigt ANGRÄNSANDE fiendekort (inte nödvändigtvis förloraren av
+  just den striden) -2 denna runda — skiljer sig från den befintliga
+  `onWinAreaDebuff` (som träffar ALLA angränsande fiender, ovillkorat).
+- **Royal Choco Meteor** (ultimate, 2 wins, enmål) — samma jämförelse-
+  mönster som Zanmato ovan, respekterar målets sköld (till skillnad från
+  Zanmato — inget i texten säger att den ignorerar försvar). Vid vinst: -2
+  denna runda till det besegrade kortet, +1 denna runda till alla
+  ANGRÄNSANDE allierade kort (ny `active.onCaptureBuffAdjacentAlliesThisRound`,
+  läser `adjacentEntries()`), och en extra attack.
+
+**Odin, The Allfather** (inget element):
+- **Allfather's Gaze** (on-place) — "se ett slumpmässigt fiendekorts sidor"
+  är ren smak (alla kortstats visas redan öppet i det här spelet, inget
+  dolt-kort-system finns); den mekaniska halvan (-1 denna runda till ALLA
+  fiender, hela brädet — inte bara angränsande, till skillnad från Shiva/
+  Leviathans Frost Aura/Abyssal Presence) implementerad rakt av.
+- **Gungnir Strike** — samma `active.flatAttackBonus:2` som Shiva/Chocobo
+  King.
+- **Raven's Insight** — helt smak, samma anledning som Allfather's Gaze
+  ovan; ingen kod.
+- **Warrior's Soul** — återanvänder `active.shield`.
+- **Valhalla's Call** — ny `active.onCaptureBuffAllAlliesThisRound:1`: +1
+  denna runda till ALLA egna kort på brädet (inte bara angränsande, till
+  skillnad från Chocobo Kings King's Command) vid varje erövring.
+- **Zantetsuken** (ultimate, 3 wins, enmål) — samma jämförelse-mönster som
+  Zanmato/Royal Choco Meteor, respekterar sköld. Vid vinst: permanent -3
+  till målet via `SpecialVerbs.debuff` (respekterar alltså målets egen
+  `debuffImmune`, till skillnad från Aurelias kritträff som skriver
+  `captureBonus` direkt — Odins text har ingen krit-koppling som motiverar
+  den genvägen), -1 denna runda till alla ANDRA fiender, +3 denna runda
+  till sig själv. "Sju blixtsnabba slag" är ren smak för namnet/
+  presentationen, inte sju separata träffar.
+
+**ELEMENT_ICONS-fixen**: en tyst, sedan tidigare befintlig bugg hittades i
+förbifarten — `ELEMENT_ICONS` hade bara `fire`/`wind`/`earth`/`water`
+(de fyra som `state.rules.elemental`s sten-sax-påse-regel faktiskt
+använder), men flera kort har LÄNGE haft `element:'light'`/`'dark'`/
+`'shadow'`/`'magic'` för sina egna `weakVsElement`-klausuler (Naline,
+Umbrael, Nexzoth, Morvath m.fl.) — `cardFace()`s badge läser
+`ELEMENT_ICONS[card.element]` ovillkorat närhelst `card.element` är satt,
+så de kortens badges har bokstavligen visat texten "undefined" sedan de
+elementen tilldelades. Fixat i samma veva som Shiva fick sitt nya
+`element:'ice'` (som annars skulle haft samma problem): alla fem saknade
+element fick nu egna ikoner (❄️/✨/🌑/🖤/🔮). Ren bugfix, ingen
+regeländring — `ELEMENT_BEATS`/den klassiska Elemental-regeln bryr sig
+fortfarande bara om de fyra klassiska elementen, precis som förut.
+
+**Testat**: sex nya permanenta tester i `tests/game.test.mjs`, ett per
+kort, samma mönster som Kaeldryx/Nexzoth/Morvath/Vorgrath/Zalazar-batchen.
+Två av dem (Chocobo Kings Feather Storm, kopplat till samma "flera
+angränsande fiender flippar samtidigt"-problem som redan lösts för Nalines
+Healing Radiance) anropar `checkOnWinBonuses` direkt istället för via
+`resolveFlips`, av exakt samma isoleringsskäl. 45 tester totalt, alla
+gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

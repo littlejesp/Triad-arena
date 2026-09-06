@@ -1543,6 +1543,537 @@ test('Medusa (redesigned): Stone Gaze petrify-on-win, Curse of the Gorgon margin
   await page.close();
 });
 
+test('Shiva: Frost Aura on-place, Diamond Dust/Frost Barrier, Ice Touch, Eternal Winter, Diamond Storm ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const shiva = findCardById('shiva');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'shiva') && FOREST_FOES.some(f => f.id === 'shiva');
+    out.elementIce = shiva.element === 'ice';
+
+    // Frost Aura: only ADJACENT enemies get hit on placement, not the whole board
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shivaEntry = freshEntry(shiva, 'blue');
+    state.board[4] = shivaEntry;
+    const adjFoe = freshEntry({ id:'af', name:'AF', top:1,right:1,bottom:1,left:1 }, 'red');
+    const farFoe = freshEntry({ id:'ff', name:'FF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = adjFoe; state.board[0] = farFoe;
+    ON_PLACE_HANDLERS.shiva(shivaEntry, 'blue', 4);
+    out.frostAuraAdjacentOnly = adjFoe.captureBonus === -1 && farFoe.captureBonus === 0;
+
+    // Diamond Dust (on-win, this round) + Frost Barrier (one-time shield)
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shivaWinner = freshEntry(shiva, 'blue');
+    state.board[4] = shivaWinner;
+    const weak = freshEntry({ id:'w', name:'W', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weak;
+    resolveFlips(4, 'blue');
+    out.diamondDust = weak.captureBonus === -2;
+
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shivaShield = freshEntry(shiva, 'blue');
+    state.board[4] = shivaShield;
+    const crusher = freshEntry({ id:'c', name:'C', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = crusher;
+    resolveFlips(1, 'red');
+    out.frostBarrierBlocked = state.board[4].owner === 'blue';
+    out.frostBarrierUsed = shivaShield.shieldUsed === true;
+
+    // Ice Touch: flat +2 on attack only, never on defense
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(shiva, 'blue');
+    out.iceTouchAttack = fullEffectiveValue(shiva, 'top', null, 4, 'blue', 'attack') - shiva.top === 2;
+    out.iceTouchNotDefense = fullEffectiveValue(shiva, 'top', null, 4, 'blue', 'defense') - shiva.top === 0;
+
+    // Eternal Winter: +1 on all sides with 2+ adjacent enemies, +0 with only 1
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(shiva, 'blue');
+    state.board[1] = freshEntry({ id:'e1', name:'E1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = freshEntry({ id:'e2', name:'E2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.eternalWinterTwo = fullEffectiveValue(shiva, 'top', null, 4, 'blue', 'defense') - shiva.top === 1;
+    state.board[3] = null;
+    out.eternalWinterOne = fullEffectiveValue(shiva, 'top', null, 4, 'blue', 'defense') - shiva.top === 0;
+
+    // Diamond Storm: AOE debuff, freeze ADJACENT enemies only (specialUsable
+    // block), self-buff, and a temporary "execute weak foes" grant that
+    // actually destroys a <=10-total-Power foe on Shiva's next win.
+    state.board = Array(9).fill(null);
+    state.turnCount = 20;
+    const shivaUlt = freshEntry(shiva, 'blue');
+    state.board[4] = shivaUlt;
+    const adjEnemy = freshEntry({ id:'ae', name:'AE', top:5,right:5,bottom:5,left:5 }, 'red');
+    const farEnemy = freshEntry({ id:'fe', name:'FE', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = adjEnemy; state.board[8] = farEnemy;
+    SPECIAL_HANDLERS.shiva({ srcEntry: shivaUlt, sourceIndex: 4, owner: 'blue' });
+    out.ultDebuffAll = adjEnemy.captureBonus === -3 && farEnemy.captureBonus === -3;
+    out.ultFreezeAdjacentOnly = adjEnemy.specialLockedUntilTurnCount === 22 && !(farEnemy.specialLockedUntilTurnCount > 0);
+    out.ultSelfBuff = shivaUlt.captureBonus === 3;
+    state.board[1] = null;
+    const weakFoe = freshEntry({ id:'wk', name:'WK', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    resolveFlips(4, 'blue');
+    out.ultExecutesWeakFoe = state.board[1] === null;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.elementIce, true);
+  assert.equal(result.frostAuraAdjacentOnly, true);
+  assert.equal(result.diamondDust, true);
+  assert.equal(result.frostBarrierBlocked, true);
+  assert.equal(result.frostBarrierUsed, true);
+  assert.equal(result.iceTouchAttack, true);
+  assert.equal(result.iceTouchNotDefense, true);
+  assert.equal(result.eternalWinterTwo, true);
+  assert.equal(result.eternalWinterOne, true);
+  assert.equal(result.ultDebuffAll, true);
+  assert.equal(result.ultFreezeAdjacentOnly, true, "freeze only hits enemies actually adjacent to Shiva");
+  assert.equal(result.ultSelfBuff, true);
+  assert.equal(result.ultExecutesWeakFoe, true, "Diamond Storm's temporary execute-weak-foes grant fires on Shiva's next win");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Leviathan: Abyssal Presence on-place, Crushing Tide/Maelstrom/Abyssal Armor, Call of the Deep, Abyssal Deluge ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const leviathan = findCardById('leviathan');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'leviathan') && FOREST_FOES.some(f => f.id === 'leviathan');
+    out.elementWater = leviathan.element === 'water';
+
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const levEntry = freshEntry(leviathan, 'blue');
+    state.board[4] = levEntry;
+    const levAdj = freshEntry({ id:'la', name:'LA', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = levAdj;
+    ON_PLACE_HANDLERS.leviathan(levEntry, 'blue', 4);
+    out.abyssalPresence = levAdj.captureBonus === -1;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(leviathan, 'blue');
+    state.board[1] = freshEntry({ id:'m1', name:'M1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = freshEntry({ id:'m2', name:'M2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.maelstromTwo = fullEffectiveValue(leviathan, 'top', null, 4, 'blue', 'defense') - leviathan.top === 2;
+
+    // Call of the Deep: +2 this round on any capture (on-capture hook, not on-win)
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const levCap = freshEntry(leviathan, 'blue');
+    state.board[4] = levCap;
+    state.board[1] = freshEntry({ id:'lw', name:'LW', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.callOfDeep = levCap.captureBonus === 2 && levCap.tempEffects && levCap.tempEffects.length === 1;
+
+    // Abyssal Armor: one-time shield
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const levShield = freshEntry(leviathan, 'blue');
+    state.board[4] = levShield;
+    const levCrusher = freshEntry({ id:'lc', name:'LC', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = levCrusher;
+    resolveFlips(1, 'red');
+    out.abyssalArmorBlocked = state.board[4].owner === 'blue';
+
+    // Abyssal Deluge: adjacent enemies take an extra -1 (total -3 vs the
+    // board-wide -2), self-buff, and a temporary "permanent +1 on any win
+    // this round" grant that stacks with Call of the Deep's own on-capture bonus.
+    state.board = Array(9).fill(null);
+    state.turnCount = 30;
+    const levUlt = freshEntry(leviathan, 'blue');
+    state.board[4] = levUlt;
+    const levAdjE = freshEntry({ id:'lae', name:'LAE', top:5,right:5,bottom:5,left:5 }, 'red');
+    const levFarE = freshEntry({ id:'lfe', name:'LFE', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = levAdjE; state.board[8] = levFarE;
+    SPECIAL_HANDLERS.leviathan({ srcEntry: levUlt, sourceIndex: 4, owner: 'blue' });
+    out.ultAdjacentExtra = levAdjE.captureBonus === -3;
+    out.ultFarOnly = levFarE.captureBonus === -2;
+    out.ultSelfBuff = levUlt.captureBonus === 3;
+    state.board[1] = null;
+    state.board[1] = freshEntry({ id:'lt', name:'LT', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    // +3 this-round (ultimate) + Call of the Deep's own +2-this-round (also fires on this capture) + the ultimate's new permanent +1
+    out.ultPermanentOnWin = levUlt.captureBonus === 3 + 2 + 1;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.elementWater, true);
+  assert.equal(result.abyssalPresence, true);
+  assert.equal(result.maelstromTwo, true);
+  assert.equal(result.callOfDeep, true);
+  assert.equal(result.abyssalArmorBlocked, true);
+  assert.equal(result.ultAdjacentExtra, true);
+  assert.equal(result.ultFarOnly, true);
+  assert.equal(result.ultSelfBuff, true);
+  assert.equal(result.ultPermanentOnWin, true, "the ultimate's permanent-on-win grant stacks with Call of the Deep's own on-capture bonus");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Omega Weapon: Omega Core debuffImmune, Anti-Matter Cannon (once/match), Absolute Defense (resets each round), Destroyer Protocol, Omega Protocol ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const omega = findCardById('omegaweapon');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'omegaweapon') && FOREST_FOES.some(f => f.id === 'omegaweapon');
+
+    out.debuffImmune = (() => {
+      state.board = Array(9).fill(null);
+      const o = freshEntry(omega, 'blue');
+      state.board[4] = o;
+      SpecialVerbs.debuff(o, 5);
+      return o.captureBonus === 0;
+    })();
+
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const omegaWinner = freshEntry(omega, 'blue');
+    state.board[4] = omegaWinner;
+    const omegaLoser = freshEntry({ id:'ol', name:'OL', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = omegaLoser;
+    resolveFlips(4, 'blue');
+    out.hyperPulse = omegaLoser.captureBonus === -2;
+
+    // Anti-Matter Cannon: +4 vs a stronger total-Power foe, but only once ever
+    out.antiMatterVsStronger = fullEffectiveValue(omega, 'top', {top:10,right:10,bottom:10,left:10}, 4, 'blue', 'attack') - omega.top === 4;
+    out.antiMatterNotVsWeaker = fullEffectiveValue(omega, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - omega.top === 0;
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const omegaAtk = freshEntry(omega, 'blue');
+    state.board[4] = omegaAtk;
+    state.board[1] = freshEntry({ id:'sf', name:'SF', top:10,right:10,bottom:10,left:10 }, 'red');
+    resolveFlips(4, 'blue');
+    out.antiMatterConsumedAfterRealAttack = omegaAtk.vsStrongerBoostUsed === true;
+
+    // Absolute Defense: unlike every other card's one-time shield, this one
+    // resets via sweepExpiredRoundEffects (called on every turn switch).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const omegaDef = freshEntry(omega, 'blue');
+    state.board[4] = omegaDef;
+    const bigHit = freshEntry({ id:'b1', name:'B1', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigHit;
+    resolveFlips(1, 'red');
+    out.absoluteDefenseBlocksFirst = state.board[4].owner === 'blue';
+    out.shieldUsedAfterFirst = omegaDef.shieldUsed === true;
+    sweepExpiredRoundEffects();
+    out.shieldResetsEachRound = omegaDef.shieldUsed === false;
+
+    // Destroyer Protocol: capped at +3 total, +1 per enemy destroyed
+    state.board = Array(9).fill(null);
+    const omegaDestroyer = freshEntry(omega, 'blue');
+    state.board[4] = omegaDestroyer;
+    state.board[0] = freshEntry({ id:'d0', name:'D0', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'d1', name:'D1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[2] = freshEntry({ id:'d2', name:'D2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = freshEntry({ id:'d3', name:'D3', top:1,right:1,bottom:1,left:1 }, 'red');
+    destroyCard(0); destroyCard(1); destroyCard(2); destroyCard(3);
+    out.destroyerProtocolCapped = omegaDestroyer.captureBonus === 3;
+
+    // Omega Protocol ultimate: destroys only foes whose weakest side is
+    // <=5 AFTER the ultimate's own -3 debuff, spares tankier foes (merely
+    // debuffing them), and Destroyer Protocol's capped self-buff fires
+    // automatically through the shared destroyCard() hook for each kill.
+    state.board = Array(9).fill(null);
+    const omegaUlt = freshEntry(omega, 'blue');
+    state.board[4] = omegaUlt;
+    const weakOmegaFoe = freshEntry({ id:'wof', name:'WOF', top:5,right:5,bottom:5,left:5 }, 'red');
+    const tankyOmegaFoe = freshEntry({ id:'tof', name:'TOF', top:9,right:9,bottom:9,left:9 }, 'red');
+    state.board[1] = weakOmegaFoe; state.board[2] = tankyOmegaFoe;
+    SPECIAL_HANDLERS.omegaweapon({ srcEntry: omegaUlt, owner: 'blue' });
+    out.ultDestroysWeak = state.board[1] === null;
+    out.ultSparesTanky = state.board[2] !== null && tankyOmegaFoe.captureBonus === -3;
+    out.ultSelfBuff = omegaUlt.captureBonus === 3 + 1;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.debuffImmune, true);
+  assert.equal(result.hyperPulse, true);
+  assert.equal(result.antiMatterVsStronger, true);
+  assert.equal(result.antiMatterNotVsWeaker, true);
+  assert.equal(result.antiMatterConsumedAfterRealAttack, true);
+  assert.equal(result.absoluteDefenseBlocksFirst, true);
+  assert.equal(result.shieldUsedAfterFirst, true);
+  assert.equal(result.shieldResetsEachRound, true, "Absolute Defense resets each round, unlike every other card's one-time shield");
+  assert.equal(result.destroyerProtocolCapped, true);
+  assert.equal(result.ultDestroysWeak, true);
+  assert.equal(result.ultSparesTanky, true);
+  assert.equal(result.ultSelfBuff, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Yojimbo: Mercenary's Code, Daigoro's Hunt/Price of Death/Kozuka/Wakizashi, Zanmato ultimate with cost refund", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const yojimbo = findCardById('yojimbo');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'yojimbo') && FOREST_FOES.some(f => f.id === 'yojimbo');
+    state.playerHand = [1,2,3]; state.enemyHand = [1,2,3];
+
+    // Mercenary's Code: checked once, AT placement time, not a live aura
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry({ id:'x0', name:'X0', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'x1', name:'X1', top:1,right:1,bottom:1,left:1 }, 'red');
+    const yojEntry = freshEntry(yojimbo, 'blue');
+    state.board[4] = yojEntry;
+    ON_PLACE_HANDLERS.yojimbo(yojEntry, 'blue');
+    out.mercenaryCodeTriggers = yojEntry.captureBonus === 1;
+    state.board = Array(9).fill(null);
+    const yojEntry2 = freshEntry(yojimbo, 'blue');
+    state.board[4] = yojEntry2;
+    ON_PLACE_HANDLERS.yojimbo(yojEntry2, 'blue');
+    out.mercenaryCodeNoTrigger = yojEntry2.captureBonus === 0;
+
+    // Daigoro's Hunt: permanent -1 on win (uncapped, unlike onWinDebuffOnce)
+    state.board = Array(9).fill(null);
+    const yojWinner = freshEntry(yojimbo, 'blue');
+    state.board[4] = yojWinner;
+    const yojLoser = freshEntry({ id:'yl', name:'YL', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = yojLoser;
+    resolveFlips(4, 'blue');
+    out.daigorosHunt = yojLoser.captureBonus === -1;
+
+    // Price of Death: +3 attacking a stronger-total-power foe, every attack (no cap)
+    state.board = Array(9).fill(null);
+    out.priceOfDeath = fullEffectiveValue(yojimbo, 'top', {top:10,right:10,bottom:10,left:10}, 4, 'blue', 'attack') - yojimbo.top === 3;
+    out.priceOfDeathNotVsWeaker = fullEffectiveValue(yojimbo, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - yojimbo.top === 0;
+
+    // Kozuka: once per match, +2 on any attack regardless of the opponent
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(yojimbo, 'blue');
+    out.kozukaFirstAttack = fullEffectiveValue(yojimbo, 'top', null, 4, 'blue', 'attack') - yojimbo.top === 2;
+    state.board = Array(9).fill(null);
+    const yojKozuka = freshEntry(yojimbo, 'blue');
+    state.board[4] = yojKozuka;
+    const kozTarget = freshEntry({ id:'kt', name:'KT', top:1,right:1,bottom:9,left:1 }, 'red'); // bottom 9 ties yojimbo's top(9) normally — Kozuka's +2 wins it
+    state.board[1] = kozTarget;
+    resolveFlips(4, 'blue');
+    out.kozukaWonTieViaBoost = state.board[1].owner === 'blue';
+    out.kozukaConsumed = yojKozuka.oncePerMatchAttackBoostUsed === true;
+    // Wakizashi's onCaptureBonus (+1 permanent) legitimately persists here too
+    out.kozukaNotReapplied = fullEffectiveValue(yojimbo, 'top', null, 4, 'blue', 'attack') - yojimbo.top === 1;
+
+    // Wakizashi reuses the existing onCaptureBonus primitive directly
+    out.wakizashiIsOnCaptureBonus = yojimbo.active.onCaptureBonus === 1;
+
+    // Zanmato: destroys on a 3+ margin win, and the "costs only 2 Wins vs a
+    // stronger target" clause is a 1-Win refund after the normal deduction
+    // (which happens in runSpecialResolution, not the handler itself — so
+    // calling the handler directly here just checks the refund math).
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 3, red: 0 };
+    const yojUlt = freshEntry(yojimbo, 'blue');
+    state.board[4] = yojUlt;
+    const zanWeak = freshEntry({ id:'zt', name:'ZT', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = zanWeak;
+    SPECIAL_HANDLERS.yojimbo({ srcEntry: yojUlt, targetEntry: zanWeak, targetIndex: 1, owner: 'blue' });
+    out.zanmatoDestroysOnBigMargin = state.board[1] === null;
+    out.zanmatoNoRefundVsWeaker = state.wins.blue === 3;
+
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 3, red: 0 };
+    const yojUlt2 = freshEntry(yojimbo, 'blue');
+    yojUlt2.captureBonus = 10; // gives Yojimbo enough total Power to still win despite the target's higher printed total
+    state.board[4] = yojUlt2;
+    const zanStrong = freshEntry({ id:'zs2', name:'ZS2', top:10,right:10,bottom:10,left:9 }, 'red');
+    state.board[1] = zanStrong;
+    SPECIAL_HANDLERS.yojimbo({ srcEntry: yojUlt2, targetEntry: zanStrong, targetIndex: 1, owner: 'blue' });
+    out.zanmatoRefundVsStrongerRaw = state.wins.blue === 4;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.mercenaryCodeTriggers, true);
+  assert.equal(result.mercenaryCodeNoTrigger, true);
+  assert.equal(result.daigorosHunt, true);
+  assert.equal(result.priceOfDeath, true);
+  assert.equal(result.priceOfDeathNotVsWeaker, true);
+  assert.equal(result.kozukaFirstAttack, true);
+  assert.equal(result.kozukaWonTieViaBoost, true);
+  assert.equal(result.kozukaConsumed, true);
+  assert.equal(result.kozukaNotReapplied, true, "Wakizashi's own permanent onCaptureBonus persists after Kozuka's boost is spent");
+  assert.equal(result.wakizashiIsOnCaptureBonus, true);
+  assert.equal(result.zanmatoDestroysOnBigMargin, true);
+  assert.equal(result.zanmatoNoRefundVsWeaker, true);
+  assert.equal(result.zanmatoRefundVsStrongerRaw, true, "Zanmato's discount vs a stronger target is a 1-Win refund after the normal deduction");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Chocobo King: Golden Feathers (isBeast tag), Choco Dash/Royal Plumage/Feather Storm, Royal Choco Meteor ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const chocobo = findCardById('chocoboking');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'chocoboking') && FOREST_FOES.some(f => f.id === 'chocoboking');
+    out.isBeastTag = chocobo.isBeast === true;
+
+    // Golden Feathers: self +1 this round, PLUS an adjacent allied Beast
+    // card also gets +1 — a non-Beast adjacent ally does not.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const chocoEntry = freshEntry(chocobo, 'blue');
+    const beastAlly = freshEntry({ id:'ba', name:'BA', top:1,right:1,bottom:1,left:1, isBeast:true }, 'blue');
+    const nonBeastAlly = freshEntry({ id:'nba', name:'NBA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[1] = beastAlly; state.board[3] = nonBeastAlly;
+    state.board[4] = chocoEntry;
+    ON_PLACE_HANDLERS.chocoboking(chocoEntry, 'blue', 4);
+    out.selfBuffOnPlace = chocoEntry.captureBonus === 1;
+    out.beastAllyBuffed = beastAlly.captureBonus === 1;
+    out.nonBeastAllyNotBuffed = nonBeastAlly.captureBonus === 0;
+
+    // Choco Dash: flat +2 on attack only
+    state.board = Array(9).fill(null);
+    out.chocoDash = fullEffectiveValue(chocobo, 'top', null, 4, 'blue', 'attack') - chocobo.top === 2;
+    out.chocoDashNotDefense = fullEffectiveValue(chocobo, 'top', null, 4, 'blue', 'defense') - chocobo.top === 0;
+
+    // Royal Plumage: one-time shield
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const chocoShield = freshEntry(chocobo, 'blue');
+    state.board[4] = chocoShield;
+    const chocoCrusher = freshEntry({ id:'cc', name:'CC', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = chocoCrusher;
+    resolveFlips(1, 'red');
+    out.royalPlumageBlocked = state.board[4].owner === 'blue';
+
+    // Feather Storm: a random ADJACENT enemy (not necessarily the loser of
+    // this battle) gets -2 this round. Calls checkOnWinBonuses directly —
+    // same reasoning as Naline's Healing Radiance test: a real battle here
+    // would flip every adjacent enemy Chocobo King's strong stats beat,
+    // leaving no still-enemy-owned bystander for the random pick to land on.
+    state.board = Array(9).fill(null);
+    const chocoWinner = freshEntry(chocobo, 'blue');
+    state.board[4] = chocoWinner;
+    const chocoBystander = freshEntry({ id:'cb', name:'CB', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = chocoBystander;
+    const chocoDetachedLoser = freshEntry({ id:'dl', name:'DL', top:1,right:1,bottom:1,left:1 }, 'blue');
+    checkOnWinBonuses(chocoWinner, 'top', chocoDetachedLoser, null, 4, 10);
+    out.featherStormHitsBystander = chocoBystander.captureBonus === -2;
+
+    // Royal Choco Meteor: target at index0 (a corner, NOT adjacent to
+    // Chocobo King at index4) so King's Command's own adjacent-ally buff
+    // doesn't also land on the just-flipped target and muddy the
+    // -2-this-round assertion; chocoAlly at index1 covers that separately.
+    state.board = Array(9).fill(null);
+    const chocoUlt = freshEntry(chocobo, 'blue');
+    state.board[4] = chocoUlt;
+    const chocoAlly = freshEntry({ id:'ca', name:'CA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[1] = chocoAlly;
+    const chocoTarget = freshEntry({ id:'ct', name:'CT', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[0] = chocoTarget;
+    state.extraTurnPending = null;
+    SPECIAL_HANDLERS.chocoboking({ srcEntry: chocoUlt, sourceIndex: 4, targetEntry: chocoTarget, targetIndex: 0, owner: 'blue' });
+    out.ultCapturesTarget = state.board[0].owner === 'blue';
+    out.ultDebuffsTarget = chocoTarget.captureBonus === -2;
+    out.ultBuffsAdjacentAlly = chocoAlly.captureBonus === 1;
+    out.ultExtraTurn = state.extraTurnPending === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.isBeastTag, true);
+  assert.equal(result.selfBuffOnPlace, true);
+  assert.equal(result.beastAllyBuffed, true);
+  assert.equal(result.nonBeastAllyNotBuffed, true);
+  assert.equal(result.chocoDash, true);
+  assert.equal(result.chocoDashNotDefense, true);
+  assert.equal(result.royalPlumageBlocked, true);
+  assert.equal(result.featherStormHitsBystander, true);
+  assert.equal(result.ultCapturesTarget, true);
+  assert.equal(result.ultDebuffsTarget, true);
+  assert.equal(result.ultBuffsAdjacentAlly, true);
+  assert.equal(result.ultExtraTurn, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const odin = findCardById('odin');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'odin') && FOREST_FOES.some(f => f.id === 'odin');
+
+    // Allfather's Gaze: hits EVERY enemy on the board, not just adjacent
+    // ones (unlike Shiva/Leviathan's Frost Aura/Abyssal Presence).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const odinEntry = freshEntry(odin, 'blue');
+    state.board[4] = odinEntry;
+    const odinAdjFoe = freshEntry({ id:'oaf', name:'OAF', top:1,right:1,bottom:1,left:1 }, 'red');
+    const odinFarFoe = freshEntry({ id:'off', name:'OFF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = odinAdjFoe; state.board[8] = odinFarFoe;
+    ON_PLACE_HANDLERS.odin(odinEntry, 'blue');
+    out.allfathersGazeBoardWide = odinAdjFoe.captureBonus === -1 && odinFarFoe.captureBonus === -1;
+
+    // Gungnir Strike: flat +2 on attack only
+    state.board = Array(9).fill(null);
+    out.gungnirStrike = fullEffectiveValue(odin, 'top', null, 4, 'blue', 'attack') - odin.top === 2;
+
+    // Warrior's Soul: one-time shield
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const odinShield = freshEntry(odin, 'blue');
+    state.board[4] = odinShield;
+    const odinCrusher = freshEntry({ id:'oc', name:'OC', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = odinCrusher;
+    resolveFlips(1, 'red');
+    out.warriorsSoulBlocked = state.board[4].owner === 'blue';
+
+    // Valhalla's Call: buffs EVERY allied card on-capture, board-wide (unlike
+    // Chocobo King's King's Command, which is adjacent-only).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const odinCap = freshEntry(odin, 'blue');
+    state.board[4] = odinCap;
+    const odinFarAlly = freshEntry({ id:'ofa', name:'OFA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[8] = odinFarAlly;
+    state.board[1] = freshEntry({ id:'ow', name:'OW', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.valhallasCallBoardWide = odinFarAlly.captureBonus === 1;
+
+    // Zantetsuken: permanent -3 to the target (respects debuffImmune via
+    // SpecialVerbs.debuff), -1 this round to every OTHER enemy, +3 this
+    // round to Odin himself.
+    state.board = Array(9).fill(null);
+    const odinUlt = freshEntry(odin, 'blue');
+    state.board[4] = odinUlt;
+    const odinTarget = freshEntry({ id:'ot', name:'OT', top:1,right:1,bottom:1,left:1 }, 'red');
+    const odinOther = freshEntry({ id:'oo', name:'OO', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = odinTarget; state.board[8] = odinOther;
+    SPECIAL_HANDLERS.odin({ srcEntry: odinUlt, targetEntry: odinTarget, targetIndex: 1, owner: 'blue' });
+    out.ultCapturesAndDebuffsTarget = state.board[1].owner === 'blue' && odinTarget.captureBonus === -3;
+    out.ultDebuffsOthersThisRound = odinOther.captureBonus === -1;
+    out.ultSelfBuff = odinUlt.captureBonus === 3;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.allfathersGazeBoardWide, true);
+  assert.equal(result.gungnirStrike, true);
+  assert.equal(result.warriorsSoulBlocked, true);
+  assert.equal(result.valhallasCallBoardWide, true);
+  assert.equal(result.ultCapturesAndDebuffsTarget, true);
+  assert.equal(result.ultDebuffsOthersThisRound, true);
+  assert.equal(result.ultSelfBuff, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
