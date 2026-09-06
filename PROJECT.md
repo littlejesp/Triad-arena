@@ -17,9 +17,11 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Klart och MERGAT till `main`** (användaren bekräftade explicit). Två
-delar denna session — som alltid, en ny session kan börja direkt på ett
-rent läge, ingen väntande merge:
+**Punkt 1 och 2 nedan är MERGADE till `main`** (användaren bekräftade
+explicit, två gånger). **Punkt 3 (de fem speltest-fixarna) är COMMITTAD på
+feature-branchen men väntar på nästa merge-bekräftelse** — fråga
+användaren explicit innan du mergar den, anta INGET från de tidigare
+merge-bekräftelserna ovan.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -49,8 +51,9 @@ ombyggnad tog bort dess enda tidigare användare (se punkt 1 ovan) — så
 primitiven har nu en levande användare igen. Endast `dragon` återstår nu
 från den gamla "inget källtext"-listan.
 
-**3. Tre mindre fixar, direkt från användarens egen speltestning av
-Campaign** (alla mergade, samma commit-serie som ovan):
+**3. Fem mindre fixar, direkt från användarens egen speltestning av
+Campaign** (committade på feature-branchen — fråga användaren explicit
+innan merge, som alltid):
 - ✅ **Campaign-retry behåller nu de fem senast valda korten ikryssade**
   istället för att tvinga ett omval varje försök — se avsnitt 5b.
 - ✅ **Stat-siffran `10` visas som `10`, inte `A`** — den gamla
@@ -59,6 +62,10 @@ Campaign** (alla mergade, samma commit-serie som ovan):
   dupplicerade in i `HEROES`, och etapp 17:s `unlockIds` delar nu ut dem
   som belöning istället för en tom array. Se avsnitt 5:s
   Etapp 17-underrubrik.
+- ✅ **"Unlocked so far"-galleriet på etapp 2+ är ihopfällt bakom en knapp**
+  som standard — se avsnitt 5b.
+- ✅ **`Begin Stage N`-knappen flyttad ovanför kortgallret** så den syns
+  utan att scrolla — se avsnitt 5b.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -1018,6 +1025,34 @@ gammal `const num = n => n === 10 ? 'A' : n` (klassiskt Triple
 Triad-spelkortsmönster, aldrig efterfrågat i det här projektet). Borttagen
 helt (funktionen och alla 8 anropsställen bytta mot att skriva `card.top`
 m.fl. direkt) på användarens begäran — `10` visas nu som `10`.
+
+**Samma session, två layout-fixar på etapp 2+-väljarskärmen, båda direkt
+från fortsatt speltestning:**
+1. **"Unlocked so far"-galleriet är nu ihopfällt bakom en knapp** (`📁
+   Unlocked Champions (N)` / `Hide Unlocked Champions`, nytt
+   `state.showUnlockedGallery`-fält, samma "extra fält i båda
+   `state`-konstruktionerna"-mönster som `showSisterLore`, samma
+   klick-hanterare-mönster som `sister-lore-toggle`). Motiverat av att
+   galleriet bara upprepade kort som redan syns, valbara, i väljarrutnätet
+   direkt nedanför (`campaignPool()` innehåller redan alla upplåsta kort)
+   — ren dubblering som bara blev längre för varje etapp. Ihopfällt som
+   standard; expanderar/kollapsar utan sidladdning.
+2. **`Champions chosen`-raden och `Begin Stage N`-knappen flyttade uppåt**,
+   till direkt efter regeltexten/galleri-knappen — FÖRE hela
+   väljarrutnätet istället för efter det. Med förra sessionens
+   retry-fix (kort redan ikryssade från förra försöket) innebar den gamla
+   ordningen att man var tvungen att scrolla förbi hela kortgallret bara
+   för att nå en knapp som oftast redan var klar att klicka. Ren
+   DOM-ordning i den returnerade template-strängen i
+   `renderCampaignPanel()` — `document.getElementById('campaign-begin-btn')`
+   i `attachHandlers()` bryr sig inte om var i DOM:en knappen sitter, så
+   ingen annan kod behövde ändras.
+
+Testat: ett nytt test i `tests/game.test.mjs` (21 totalt, alla gröna) för
+galleri-togglen (kollapsad som standard, `.campaign-unlocked-grid` finns
+inte ens i DOM:en förrän expanderad, expanderar till rätt antal kort,
+knapptexten växlar korrekt) + skärmdumpar som bekräftar att
+`BEGIN STAGE N` nu syns ovanför kortgallret utan att scrolla.
 
 ### New Game+ (svar på "kör om med tuffare AI-händer / tills vi bygger
 fler nivåer")

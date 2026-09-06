@@ -1879,6 +1879,7 @@ let state = {
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
+  showUnlockedGallery: false, // true while Campaign's "Unlocked so far" showcase is expanded (collapsed by default, see renderCampaignPanel)
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
@@ -2172,8 +2173,15 @@ function renderCampaignPanel(){
   const stageNum = campaignProgress.stageIndex + 1;
   const chosen = state.selected.length;
 
-  const unlockedStrip = unlockedCards.length ? `
-    <div class="count-row"><span>Unlocked so far</span><span><b>${unlockedCards.length}</b></span></div>
+  // Collapsed by default — these cards are already shown, selectable, in
+  // the picker grid below (campaignPool() already includes them), so this
+  // is purely a "look what you've earned" showcase. Left expanded every
+  // stage made the screen longer with every unlock; folded away behind a
+  // toggle instead, same collapsible pattern as the sister-lore panel.
+  const unlockedToggle = unlockedCards.length ? `
+    <button class="ghost" id="unlocked-gallery-toggle">${state.showUnlockedGallery ? 'Hide Unlocked Champions' : `📁 Unlocked Champions (${unlockedCards.length})`}</button>
+  ` : '';
+  const unlockedStrip = (unlockedCards.length && state.showUnlockedGallery) ? `
     <div class="draft-grid campaign-unlocked-grid">
       ${unlockedCards.map(h => cardFace(h, { clickable:false })).join('')}
     </div>
@@ -2210,13 +2218,14 @@ function renderCampaignPanel(){
     ${loreToggle}
     ${lorePanel}
     <div class="rules">Choose five champions from your story so far to carry this stage.</div>
+    ${unlockedToggle}
     ${unlockedStrip}
+    <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
+    <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
     <div class="section-label">Choose exactly five champions</div>
     <div class="draft-grid">
       ${poolIds.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true })).join('')}
     </div>
-    <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
-    <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
     <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
   `;
 }
@@ -2505,6 +2514,11 @@ function attachHandlers(){
       const sisterLoreToggle = document.getElementById('sister-lore-toggle');
       if(sisterLoreToggle) sisterLoreToggle.addEventListener('click', ()=>{
         state.showSisterLore = !state.showSisterLore;
+        render();
+      });
+      const unlockedGalleryToggle = document.getElementById('unlocked-gallery-toggle');
+      if(unlockedGalleryToggle) unlockedGalleryToggle.addEventListener('click', ()=>{
+        state.showUnlockedGallery = !state.showUnlockedGallery;
         render();
       });
       const campaignNgPlus = document.getElementById('campaign-ngplus-btn');
@@ -4513,7 +4527,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showUnlockedGallery:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0,
   };
