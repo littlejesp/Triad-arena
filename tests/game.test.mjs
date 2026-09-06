@@ -535,33 +535,31 @@ test('The Triple Triad Sisters are playable: in HEROES, and their mechanics work
   await page.close();
 });
 
-// Playtester feedback: the "Unlocked so far" showcase repeated cards
-// already visible (and selectable) in the picker grid below it, and grew
-// longer with every stage. It's now collapsed behind a toggle by default.
-test('Campaign: the unlocked-champions gallery is collapsed by default and toggles open', async () => {
+// Playtester feedback: Campaign stage 2+ felt too hard with only 5 cards
+// (starters + whatever had been unlocked so far) to choose from. On the
+// user's explicit request, campaignPool() no longer gates card access by
+// progression — every HEROES card is selectable from stage 2 onward.
+// campaignProgress.unlocked / CAMPAIGN_STAGES' unlockIds are unchanged
+// (still tracked, still drive the result screen's "new champions joined
+// your story" beat) — they just no longer restrict the picker.
+test('Campaign: every HEROES card is selectable from stage 2 onward, regardless of unlocked progress', async () => {
   const { page, pageErrors } = await newPage();
 
-  await page.evaluate(() => {
-    campaignProgress = { stageIndex: 3, unlocked: ['templaren', 'naline', 'deathblade'], ngPlus: 0 };
+  const result = await page.evaluate(() => {
+    campaignProgress = { stageIndex: 1, unlocked: [], ngPlus: 0 }; // stage 2, nothing unlocked yet
     saveCampaignProgress();
     state.draftMode = 'campaign';
     state.selected = [];
     render();
+    return {
+      poolSize: campaignPool().length,
+      heroesSize: HEROES.length,
+      draftGridCards: document.querySelectorAll('.draft-grid .card').length,
+    };
   });
 
-  const collapsedGrid = await page.evaluate(() => document.querySelectorAll('.campaign-unlocked-grid').length);
-  const toggleTextCollapsed = await page.evaluate(() => document.getElementById('unlocked-gallery-toggle')?.textContent.trim());
-
-  await page.click('#unlocked-gallery-toggle');
-  await page.waitForTimeout(100);
-
-  const expandedGridCards = await page.evaluate(() => document.querySelectorAll('.campaign-unlocked-grid .card').length);
-  const toggleTextExpanded = await page.evaluate(() => document.getElementById('unlocked-gallery-toggle')?.textContent.trim());
-
-  assert.equal(collapsedGrid, 0, 'the gallery grid should not be in the DOM at all while collapsed');
-  assert.match(toggleTextCollapsed, /Unlocked Champions \(3\)/);
-  assert.equal(expandedGridCards, 3);
-  assert.equal(toggleTextExpanded, 'Hide Unlocked Champions');
+  assert.equal(result.poolSize, result.heroesSize, 'campaignPool() should return every HEROES card');
+  assert.equal(result.draftGridCards, result.heroesSize, 'the picker grid should render every HEROES card');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

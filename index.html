@@ -233,11 +233,6 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
   gap:10px; margin-bottom:16px;
 }
-.campaign-unlocked-grid{
-  grid-template-columns:repeat(auto-fill, minmax(72px,1fr));
-  gap:6px; opacity:0.85;
-}
-
 .card{
   position:relative; border-radius:10px; overflow:hidden; cursor:pointer;
   aspect-ratio:5/7; background:linear-gradient(160deg,#1c1832,#0d0b18);
@@ -1050,6 +1045,9 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 <script>
 /* ---------------- Character portraits ---------------- */
 const CARD_IMAGES = {
+  vaelira: 'cards/card-vaelira.jpg',
+  seraphine: 'cards/card-seraphine.jpg',
+  nyxara: 'cards/card-nyxara.jpg',
   darien: 'cards/card-darien.jpg',
   zaevir: 'cards/card-zaevir.jpg',
   sarah: 'cards/card-sarah.jpg',
@@ -1879,7 +1877,6 @@ let state = {
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
-  showUnlockedGallery: false, // true while Campaign's "Unlocked so far" showcase is expanded (collapsed by default, see renderCampaignPanel)
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
@@ -2152,7 +2149,6 @@ function renderDraft(){
 function renderCampaignPanel(){
   const stage = currentCampaignStage();
   const poolIds = campaignPool();
-  const unlockedCards = campaignProgress.unlocked.map(id => HEROES.find(h=>h.id===id)).filter(Boolean);
   const ngTag = campaignProgress.ngPlus > 0 ? ` (New Game+${campaignProgress.ngPlus})` : '';
 
   if(!stage){
@@ -2172,20 +2168,6 @@ function renderCampaignPanel(){
 
   const stageNum = campaignProgress.stageIndex + 1;
   const chosen = state.selected.length;
-
-  // Collapsed by default — these cards are already shown, selectable, in
-  // the picker grid below (campaignPool() already includes them), so this
-  // is purely a "look what you've earned" showcase. Left expanded every
-  // stage made the screen longer with every unlock; folded away behind a
-  // toggle instead, same collapsible pattern as the sister-lore panel.
-  const unlockedToggle = unlockedCards.length ? `
-    <button class="ghost" id="unlocked-gallery-toggle">${state.showUnlockedGallery ? 'Hide Unlocked Champions' : `📁 Unlocked Champions (${unlockedCards.length})`}</button>
-  ` : '';
-  const unlockedStrip = (unlockedCards.length && state.showUnlockedGallery) ? `
-    <div class="draft-grid campaign-unlocked-grid">
-      ${unlockedCards.map(h => cardFace(h, { clickable:false })).join('')}
-    </div>
-  ` : '';
 
   if(stageNum === 1){
     return `
@@ -2217,9 +2199,7 @@ function renderCampaignPanel(){
     ${banner}
     ${loreToggle}
     ${lorePanel}
-    <div class="rules">Choose five champions from your story so far to carry this stage.</div>
-    ${unlockedToggle}
-    ${unlockedStrip}
+    <div class="rules">Choose five champions to carry this stage.</div>
     <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
     <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
     <div class="section-label">Choose exactly five champions</div>
@@ -2514,11 +2494,6 @@ function attachHandlers(){
       const sisterLoreToggle = document.getElementById('sister-lore-toggle');
       if(sisterLoreToggle) sisterLoreToggle.addEventListener('click', ()=>{
         state.showSisterLore = !state.showSisterLore;
-        render();
-      });
-      const unlockedGalleryToggle = document.getElementById('unlocked-gallery-toggle');
-      if(unlockedGalleryToggle) unlockedGalleryToggle.addEventListener('click', ()=>{
-        state.showUnlockedGallery = !state.showUnlockedGallery;
         render();
       });
       const campaignNgPlus = document.getElementById('campaign-ngplus-btn');
@@ -2962,8 +2937,15 @@ function saveCampaignProgress(){
 }
 let campaignProgress = loadCampaignProgress();
 
+// On the user's explicit request (etapp 2+ felt too hard with only 5
+// cards to choose from), Campaign no longer gates card access by
+// progression — every HEROES card is selectable from stage 2 onward.
+// campaignProgress.unlocked/CAMPAIGN_STAGES' unlockIds are UNCHANGED and
+// still tracked/persisted (finishGame's "new champions joined your story"
+// result-screen beat still fires) — they're just no longer read here, so
+// they're now pure narrative flavor rather than a gameplay gate.
 function campaignPool(){
-  return CAMPAIGN_STARTERS.concat(campaignProgress.unlocked);
+  return HEROES.map(h => h.id);
 }
 function currentCampaignStage(){
   return CAMPAIGN_STAGES[campaignProgress.stageIndex] || null;
@@ -4527,7 +4509,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showUnlockedGallery:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0,
   };

@@ -17,10 +17,10 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Allt nedan (punkt 1, 2 och 3) är MERGAT till `main`** (användaren
-bekräftade explicit, tre gånger). En ny session kan börja direkt på ett
-rent läge — men fråga alltid explicit innan nästa merge, anta ALDRIG
-tillstånd från en tidigare bekräftelse.
+**Punkt 1, 2 och 3 är MERGADE till `main`** (användaren bekräftade
+explicit, tre gånger). **Punkt 4 är COMMITTAD på feature-branchen och
+väntar på nästa merge-bekräftelse** — fråga alltid explicit innan nästa
+merge, anta ALDRIG tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -60,10 +60,26 @@ Campaign** (mergade):
   dupplicerade in i `HEROES`, och etapp 17:s `unlockIds` delar nu ut dem
   som belöning istället för en tom array. Se avsnitt 5:s
   Etapp 17-underrubrik.
-- ✅ **"Unlocked so far"-galleriet på etapp 2+ är ihopfällt bakom en knapp**
-  som standard — se avsnitt 5b.
+- ✅ **"Unlocked so far"-galleriet på etapp 2+ var ihopfällt bakom en
+  knapp** — sen HELT BORTTAGET i punkt 4 nedan (blev överflödigt när
+  poolen slutade vara begränsad). Om du läser detta i git-historiken:
+  funktionen fanns bara i en enda commit innan den togs bort igen.
 - ✅ **`Begin Stage N`-knappen flyttad ovanför kortgallret** så den syns
   utan att scrolla — se avsnitt 5b.
+
+**4. Fortsatt speltestning av Campaign gav två till ändringar** (en balans,
+en bugg — committade på feature-branchen):
+- ✅ **Etapp 2+ spärrar inte längre kortval efter progression** — hela
+  `HEROES`-rostret går att välja från etapp 2 och framåt, på användarens
+  uttryckliga begäran (`AskUserQuestion` med fyra alternativ, användaren
+  valde "ge alla kort direkt"). Se den nya "UPPDATERING"-underrubriken i
+  avsnitt 5b för vad som ändrades och (viktigast) vad som INTE ändrades
+  (`campaignProgress.unlocked`/etapp-`unlockIds` finns kvar, bara som
+  narrativ smak nu, inte en spärr).
+- ✅ **Triple Triad Sisters saknade en `CARD_IMAGES`-tumnagel** (bara
+  `FULL_CARD_IMAGES` för modalen) sedan de gjordes spelbara — syntes som
+  ikon+hue-gradient i hand/bräde/draftrutnät. Beskurna tumnaglar
+  genererade från redan sparad konst, se samma underrubrik.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -874,7 +890,9 @@ en fast/kuraterad fiendehand + valfria-regler-konfiguration per etapp,
 istället för `drawEnemyHand()`s helt slumpade 5-av-34), lås upp fler kort
 vid varje vinst. Förlorar man en etapp: `Retry Stage`, ingen progress
 förloras (etapp-index/upplåsningar ändras bara vid VINST, inte vid förlust
-eller oavgjort).
+eller oavgjort). **("Lås upp fler kort" gäller fortfarande som progress/
+narrativ, men spärrar INTE längre vilka kort som går att VÄLJA på etapp 2+
+— se UPPDATERING längre ner i det här avsnittet, en mycket senare session.)**
 
 **Sparad progression**: `campaignProgress` (`{stageIndex, unlocked, ngPlus}`)
 är en egen modul-nivå-variabel, INTE en del av `state` — `state` byts ut
@@ -889,9 +907,10 @@ localStorage är blockerat, progress sparas bara inte). FÖRSTA gången
 - `renderCampaignPanel()` — draftskärmens tredje gren. Etapp 1 visar bara
   de 5 fasta startkorten (icke-klickbara, ingen väljare — `#campaign-begin-btn`
   går rakt på). Etapp 2+ återanvänder EXAKT samma väljar-UI/interaktion som
-  "Choose Your Five" (`.draft-grid .card.selectable`-klick-toggle), bara
-  begränsat till `campaignPool()` (startkort + `campaignProgress.unlocked`)
-  istället för hela `HEROES`.
+  "Choose Your Five" (`.draft-grid .card.selectable`-klick-toggle) —
+  **ursprungligen** begränsad till `campaignPool()` (startkort +
+  `campaignProgress.unlocked`), **men se UPPDATERING några stycken ner:
+  `campaignPool()` returnerar numera HELA `HEROES` rakt av.**
 - `startCampaignBattle()` → sätter `state.rules` från etappens config, sen
   vanliga `startBattle()`. `startBattle()` självt kollar
   `state.draftMode==='campaign'` och hämtar fiendehanden från
@@ -913,6 +932,67 @@ localStorage är blockerat, progress sparas bara inte). FÖRSTA gången
   — `campaignProgress` är redan uppdaterad (eller medvetet oförändrad vid
   förlust) innan knappen ens visas, så `resetGame()` behöver inget
   campaign-specifikt alls.
+
+### UPPDATERING, en mycket senare session: progressionsspärren på kortval är borttagen
+
+Speltestning avslöjade att etapp 2+ kändes för svårt när valpoolen bara var
+5 startkort + det fåtal man hunnit låsa upp — särskilt tidigt, innan man
+låst upp mycket alls. Detta river medvetet upp en tidigare design-idé
+("gradvis uppläsning är poängen med Campaign") — så innan något kodades
+ställdes en `AskUserQuestion` med fyra alternativ (ge alla kort direkt / fler
+startkort / mjuka upp tidiga fiendehänder / ett separat Free Mode-läge).
+Användaren valde uttryckligen **"Ge alla 46 kort från start"**.
+
+Implementerat som EN rad: `campaignPool()` returnerar nu `HEROES.map(h =>
+h.id)` istället för `CAMPAIGN_STARTERS.concat(campaignProgress.unlocked)`.
+Konsekvenser, medvetet avgränsade till bara det som faktiskt behövde ändras:
+
+- **Etapp 1 är OFÖRÄNDRAD** — fortfarande de 5 fasta narrativa startkorten,
+  icke-klickbar, ingen väljare. Användarens klagomål gällde specifikt
+  "etapp 2+", inte introt.
+- **`campaignProgress.unlocked`/varje etapps `unlockIds` är OFÖRÄNDRADE och
+  fortsätter sparas/räknas precis som förut** — de styr bara inte längre
+  VILKA KORT SOM GÅR ATT VÄLJA. `finishGame()`s "nya kort gick med i din
+  historia"-logik och resultatskärmens text kör exakt samma kod som förut.
+  Läs om som ren narrativ smak ("de här karaktärerna är nu en del av din
+  berättelse") istället för en spelmässig spärr — helt ofarligt att lämna
+  orört, ingen kod bryr sig om skillnaden.
+- **"Unlocked so far"-galleriet (den ihopfällbara `📁 Unlocked
+  Champions`-knappen från förra fixen, se ovan) togs BORT helt** från
+  etapp 2+-skärmen — den visade bara en delmängd av `campaignProgress.unlocked`
+  bredvid ett väljarrutnät som nu redan visar alla 46 kort, vilket hade sett
+  ut som en bugg (varför visas bara några kort som "upplåsta" när jag kan
+  välja bland alla?). `state.showUnlockedGallery`-fältet, dess klick-hanterare
+  och `.campaign-unlocked-grid`-CSS:en togs bort i samma veva — kortlivad
+  funktion, byggd och borttagen i samma session.
+- Regeltexten ändrades från "Choose five champions from your story so far"
+  till bara "Choose five champions" — "so far" antydde felaktigt en
+  begränsad pool.
+- **"Campaign complete"-slutskärmen** (`!stage`-grenen i
+  `renderCampaignPanel()`) visar nu automatiskt hela `HEROES`-rostret istället
+  för bara upplåsta kort — samma `poolIds`-variabel, ingen extra kod behövdes.
+- NG+ (`campaign-ngplus-btn`) och Reset Campaign är OFÖRÄNDRADE — de
+  manipulerar bara `campaignProgress`/`state.selected` direkt, ingen av dem
+  gick via `campaignPool()`s gamla spärr.
+
+Testat: `campaignPool().length === HEROES.length` även med `unlocked:[]`
+(stage 2, inget upplåst än), draftrutnätet renderar alla 46 kort, en full
+match spelad med sena/kraftfulla kort (Tiamat, Three Head Dragon, Infinite
+Seraph m.fl.) valda redan på etapp 2 — inga `pageerror`. Ett test i
+`tests/game.test.mjs` bytt ut mot det nya beteendet (gallery-togglens test
+togs bort eftersom funktionen den testade inte längre finns) — 21 tester
+totalt, alla gröna.
+
+**Samtidigt, en separat bugg-fix:** Triple Triad Sisters (Vaelira/Seraphine/
+Nyxara) hade ingen egen `CARD_IMAGES`-tumnagel (bara `FULL_CARD_IMAGES` för
+modalen) sedan de gjordes spelbara — syntes som ikon+hue-gradient istället
+för en bild i hand/bräde/draftrutnät, vilket användaren upptäckte och
+frågade om. Beskurna tumnaglar genererades från samma redan sparade
+`card-<id>-full.jpg`-filer (ingen ny bild behövdes) och lades till i
+`CARD_IMAGES`. Vaeliras och Seraphines standardbeskärning (`y=300`) klippte
+av ansiktet (samma mönster som Seraph/Judgment/Fenrir tidigare) — justerad
+`y`-startpunkt (150 respektive 90) tills ansiktet/kompositionen satt bra;
+Nyxaras standardbeskärning fungerade direkt.
 
 **Etapp-data** (`CAMPAIGN_STAGES`, `CAMPAIGN_STARTERS`) — alla kort-id:n
 verifierade mot `HEROES`/`FOREST_FOES` innan de skrevs in (ett skript som
