@@ -856,14 +856,27 @@ test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on
     const lightCard = { id:'light-test', name:'Light', top:5,right:5,bottom:5,left:5, element:'light' };
     out.weakVsLight = fullEffectiveValue(nexzoth, 'top', lightCard, 0, 'blue', 'attack') - nexzoth.top;
 
-    // World Shatter: winning destroys enemies further along that same line
+    // World Shatter: winning destroys enemies further along that same line —
+    // BALANCE CAP (deliberate deviation from source text, see PROJECT.md):
+    // only the FIRST such win destroys the line; a second win by the same
+    // Nexzoth must not repeat it, since paired with his permanent
+    // debuffImmune an uncapped version has no counterplay.
     state.board = Array(9).fill(null);
-    state.board[7] = freshEntry(nexzoth, 'blue');
+    const nexShatter = freshEntry(nexzoth, 'blue');
+    state.board[7] = nexShatter;
     state.board[4] = freshEntry({ id:'near', name:'Near', top:1,right:1,bottom:1,left:1 }, 'red');
     state.board[1] = freshEntry({ id:'far', name:'Far', top:1,right:1,bottom:1,left:1 }, 'red');
     resolveFlips(7, 'blue');
     out.worldShatterCapturedNear = state.board[4] && state.board[4].owner === 'blue';
     out.worldShatterDestroyedFar = state.board[1] === null;
+    out.worldShatterMarkedUsed = nexShatter.onWinLineDestroyUsed === true;
+
+    // Second win by the SAME Nexzoth (same 'top' direction, a fresh enemy
+    // now sitting where the first destroyed one used to be): must NOT
+    // destroy again since onWinLineDestroyUsed is now set.
+    state.board[1] = freshEntry({ id:'far2', name:'Far2', top:1,right:1,bottom:1,left:1 }, 'red');
+    checkOnWinBonuses(nexShatter, 'top', state.board[4], 4, 7, 10);
+    out.worldShatterDoesNotRepeat = state.board[1] !== null;
 
     // The Ending: destroys every other card, both sides, except itself; respects destroyImmune
     state.board = Array(9).fill(null);
@@ -884,6 +897,8 @@ test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on
   assert.equal(result.weakVsLight, -4);
   assert.equal(result.worldShatterCapturedNear, true);
   assert.equal(result.worldShatterDestroyedFar, true, 'World Shatter destroys enemies further along the winning line');
+  assert.equal(result.worldShatterMarkedUsed, true);
+  assert.equal(result.worldShatterDoesNotRepeat, true, 'World Shatter is capped to once per match (balance deviation from source text)');
   assert.equal(result.endingKeepsSelf, true);
   assert.equal(result.endingDestroysOwnSide, true, 'The Ending hits both sides, not just the enemy');
   assert.equal(result.endingDestroysEnemySide, true);
@@ -930,6 +945,20 @@ test('Morvath: King of the Depths buff-on-destroy, threshold-gated Drowned Souls
     out.revivedAboveThreshold = state.graveyard.red.length === 0 &&
       state.board.some(e => e && e.owner === 'blue' && e.card.id === 'ogre' && e.captureBonus === -2);
 
+    // Abyssal Grasp: same once-per-match balance cap as Nexzoth's World
+    // Shatter (see PROJECT.md) — Morvath also has permanent debuffImmune,
+    // so an uncapped destroy-on-every-win would be the same snowball risk.
+    state.board = Array(9).fill(null);
+    const morvGrasp = freshEntry(morvath, 'blue');
+    state.board[7] = morvGrasp;
+    state.board[4] = freshEntry({ id:'ag-near', name:'AGNear', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'ag-far', name:'AGFar', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(7, 'blue');
+    out.abyssalGraspDestroyedFar = state.board[1] === null;
+    state.board[1] = freshEntry({ id:'ag-far2', name:'AGFar2', top:1,right:1,bottom:1,left:1 }, 'red');
+    checkOnWinBonuses(morvGrasp, 'top', state.board[4], 4, 7, 10);
+    out.abyssalGraspDoesNotRepeat = state.board[1] !== null;
+
     // Ultimate: destroys every enemy, then revives up to 2 from the graveyard on Morvath's own side
     state.board = Array(9).fill(null);
     state.graveyard = { blue: [], red: [] };
@@ -946,6 +975,8 @@ test('Morvath: King of the Depths buff-on-destroy, threshold-gated Drowned Souls
   assert.equal(result.kingOfDepthsBuff, true);
   assert.equal(result.noRevoiveBelowThreshold, true, "Drowned Souls doesn't trigger below a 10-power win");
   assert.equal(result.revivedAboveThreshold, true, 'Drowned Souls revives the just-destroyed graveyard card at a 10+ win');
+  assert.equal(result.abyssalGraspDestroyedFar, true);
+  assert.equal(result.abyssalGraspDoesNotRepeat, true, 'Abyssal Grasp is capped to once per match (balance deviation from source text)');
   assert.equal(result.noneRemainRedOwned, true, 'The Endless Tide leaves no red-owned cards on the board');
   assert.equal(result.revivedTwoWithPenalty, true, 'The Endless Tide revives up to 2 cards under Morvath\'s owner with -3 Power');
   assert.deepEqual(pageErrors, []);

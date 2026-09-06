@@ -19,9 +19,10 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–8 är MERGADE till `main`** (användaren bekräftade explicit,
 fem gånger nu — senast för punkt 5–8 i en enda "Do it"). **Punkt 9
-(Zlaizer) är COMMITTAD på feature-branchen, väntar på nästa
-merge-bekräftelse** — fråga alltid explicit innan nästa merge, anta ALDRIG
-tillstånd från en tidigare bekräftelse.
+(Zlaizer) och punkt 10 (balanspass + polering) är COMMITTADE på
+feature-branchen, väntar på nästa merge-bekräftelse** — fråga alltid
+explicit innan nästa merge, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -142,6 +143,22 @@ som gör det. En tredje återupplivningsvariant (`reviveFromOwnGraveyard`,
 egen graveyard + Power-avdrag) tillkom. Hittade och fixade också en redan
 existerande flaky test i Nalines Healing Radiance-test (inte en ny bugg).
 Se avsnitt 5:s allra sista underrubrik.
+
+**10. Balanspass + polering**, svar på "Hur ska vi göra spelet bättre" —
+användaren valde balans (1) och polering (3), sköt upp nytt innehåll (2).
+En numerisk (inte simulerings-baserad — självspels-simuleringen visade sig
+ha en stor, omätbar strukturell bias, se avsnitt 5) genomgång av alla 62
+kort hittade ett verkligt mönster: 6 av de 8 senaste bossarna har en
+okapad on-win-effekt, tre av dem (Nexzoth/Morvath/Umbrael) kombinerar det
+med permanent `debuffImmune` — en snöbolls-risk utan motspel som inte
+fanns i rostret innan den här sessionen. Fixat: `onWinLineDestroy`
+(Nexzoth/Morvath) spärrad till en gång per match, en MEDVETEN avvikelse
+från källtexten (dokumenterat tydligt, går att backa). Polering del 1
+(klar): rollnamnet döljs på brädets in-play-kort (för långt för de nyaste
+kortens roller, hamnade utanför konstens mörkläggnings-gradient). Polering
+del 2 (tydligare flash-feedback för multi-mål-effekter) undersökt men
+medvetet pausad för avstämning — större refaktorering. Se avsnitt 5:s
+allra sista underrubrik för fullständiga detaljer.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -1436,6 +1453,109 @@ ett rent 1-Power-tillstånd, samt den vilande shadow-svagheten. Inga
 `pageerror`. `tests/game.test.mjs`: 37 tester totalt, alla gröna (den
 tidigare flaky-testen kördes om flera gånger för att bekräfta att den nu
 är deterministisk).
+
+### Balanspass + polering (svar på "Hur ska vi göra spelet bättre" → "1. Och 2." → "Vänta med nytt innehåll, fokusera bara på balans nu" → "3 också")
+
+Användaren valde att fokusera på balans (punkt 1) och polering (punkt 3)
+från mitt eget tregrenade förslag, INTE nytt innehåll (punkt 2, uttryckligt
+uppskjutet tills vidare).
+
+**Balans — metodik och en verklig fälla värd att komma ihåg**: Försökte
+först bygga en full självspels-simulator (AI mot AI, återanvänder
+`simulateFlips`/`enemyTurn`, monkey-patchad `setTimeout` för att köra hela
+matcher synkront) för att mäta vinstprocent per kort. Detta visade sig
+vara en återvändsgränd — ett skenbart legitimt "baseline vs baseline"-test
+(IDENTISKA kortlekar på båda sidor) gav 100% vinst för "blå" sidan
+konsekvent, vilket avslöjade en STRUKTURELL bias i motorn/heuristiken
+(sannolikt kopplad till att `battleNeighbors`s `effOutcome = placedVal >
+targetVal` är en strikt olikhet som alltid gynnar försvararen vid exakt
+lika värden, kombinerat med identiska deterministiska
+korval-heuristiker) — helt orelaterad till vilket kort som testades. Två
+separata buggar i själva testselen hittades och fixades under vägen
+(dubbel `advanceTurn()`-anrop som lät AI:t spela extra drag; senare ett
+saknat "ingenting kvar att göra"-säkerhetsnät för blå som spegla
+`enemyTurn()`s egen sista rad, vilket orsakade en oändlig loop när ett
+Vorgrath-förstör öppnade en ruta igen efter att båda händerna redan var
+tomma). Även EFTER båda fixarna kvarstod en stor, omätbar bias (`baseline
+avg margin = +3.35` av 9 rutor, i en spegel-match!). **Slutsats: gav upp
+självspels-simuleringen som metod** — bruset från den strukturella biasen
+var större än signalen jag försökte mäta, och att gräva vidare i EXAKT
+varför skulle kosta mer än det är värt just nu. Simulatorn (`balance-sim.mjs`/
+`balance-sim2.mjs` i scratchpaden, inte committad) kan återanvändas senare
+om någon vill fortsätta gräva, men den ska INTE tolkas som en tillförlitlig
+kalla för enskilda korts styrka i sitt nuvarande skick.
+
+**Balans — vad som faktiskt gav en pålitlig signal**: en ren, deterministisk
+numerisk genomgång av alla 62 kort (`top+right+bottom+left`-summa,
+Wins-kostnad, vilka har en okapad on-win-effekt, vilka har permanent
+`debuffImmune`). Slutsats:
+- **Råa stats är INTE problemet** — de åtta nyaste bossarna (36-40 i
+  totalsumma) ligger precis i samma spann som redan existerande,
+  tidigare-mergade toppkort (Bahamut/Tiamat/Darien/Fenrir/Three Head
+  Dragon, alla 37-38) och medianen (36) för hela 62-korts-rostret.
+- **Det verkliga mönstret**: 6 av de 8 senaste korten (Nexzoth, Morvath,
+  Zalazar, Umbrael, Vorgrath, Zlaizer, Naline) har en on-win-effekt UTAN
+  någon "en gång per match"-spärr — ett mönster som INTE fanns i rostret
+  före den här sessionen (enda tidigare exemplet: Three Head Dragons
+  `onWinAreaDebuff`, en mild, tillfällig debuff till bara angränsande
+  fiender — kvalitativt mycket svagare än att permanent förstöra en hel
+  linje). Tre av dem (**Nexzoth, Morvath, Umbrael**) kombinerar detta
+  DESSUTOM med permanent `active.debuffImmune` — kortet kan inte försvagas
+  OCH varje vinst gör brädet permanent värre för motståndaren, utan tak.
+  Ingen tidigare kombination i rostret parade ihop de två egenskaperna.
+
+**Balansfix, en medveten avvikelse från källtexten (inte en
+text-tolkningsförenkling)**: `active.onWinLineDestroy` (Nexzoths World
+Shatter, Morvaths Abyssal Grasp) spärrades till EN gång per match via en
+ny `winnerEntry.onWinLineDestroyUsed`-flagga — exakt samma mönster som de
+redan existerande `onWinDirectionalBoostUsed`/`onWinDebuffOnceUsed`.
+Källtexten har inget sådant tak ("whenever X wins..."), så det här är en
+medveten, dokumenterad speldesign-ändring (inte en "hur mappar vi
+oklar text till motorn"-förenkling som resten av sessionens beslut) —
+flaggad tydligt i både kod-kommentaren och kortens `skills`-text, så
+användaren kan enkelt be om en revert om den känns för sträng efter
+speltestning. `active.onWinAllEnemiesDebuffThisRound` (Vorgrath, mild och
+tillfällig) och `onWinReviveFrom(Own)?Graveyard`/`onWinCleanseAlly`
+(självbegränsade av graveyardens/brädets storlek) lämnades okapade —
+bara den kvalitativt farligaste kombinationen (permanent förstörelse +
+oförstörbarhet) fick en spärr.
+
+**Polering, del 1 (klar)**: in-play-kort på SJÄLVA SPELPLANEN (`.board
+.card-role`) visar inte längre rollnamnet ("Legendary Card — The Last
+Dragon Hunter" etc.) — bara namn + stats. De nyaste kortens längre
+rollnamn radbröts till 2-3 rader och hamnade UTANFÖR `.card-art::after`s
+mörkläggnings-gradient (dimensionerad för kortare, äldre rollnamn),
+rakt ovanpå ren konst, med dålig läsbarhet som följd — samma problem
+syntes lika mycket på desktop som mobil vid samma kortstorlek (bekräftat
+med skärmdumpar), alltså inte en regression i sig men en riktig
+polerings-möjlighet. Samma "släpp minst nödvändig info först"-princip som
+redan fanns för `.hand-row.enemy .card-role` — hela rollen är fortfarande
+en tryckning bort via info-knappen.
+
+**Polering, del 2 (INTE påbörjad, avsiktligt pausad för avstämning)**:
+"tydligare UI-feedback när flera effekter triggar samtidigt". Undersökt
+men inte kodat: multi-mål-ultimates (destroy-alla, debuff-alla) sätter
+bara `attackFlash`/`bonusFlash` på ETT `targetEntry` (singel-mål-flödet i
+`runSpecialResolution`) — AOE/riktnings-effekter med `targetIndex:null`
+får INGEN visuell flash alls på de faktiskt drabbade rutorna, bara en
+sammanfattande textrad i `state.log`. Att fixa det ordentligt för HELA
+rostret (inte bara de nyaste korten) är ett större jobb: dels lägga
+`attackFlash`/en ny debuff-variant av `bonusFlash` (som idag hårdkodar
+ett `+`-tecken — måste generaliseras för negativa belopp) på varje
+träffad ruta i ett dussintal handlers, dels — för FÖRSTÖRDA kort
+specifikt — inte bara osynligt sätta `state.board[i]=null` utan att
+fördröja den faktiska borttagningen tills en flash hunnit synas (kräver
+ett nytt "väntar på att försvinna"-visuellt tillstånd, inte bara en
+flagga). Pausad här för avstämning med användaren innan den större
+refaktoreringen påbörjas.
+
+**Testat**: två nya tester i `tests/game.test.mjs` — World Shatter/Abyssal
+Grasp förstör linjen vid FÖRSTA vinsten men INTE vid en andra vinst av
+samma kort (verifierar den nya spärren). CSS-ändringen är visuell, ingen
+ny logik-test behövdes (verifierad manuellt via Playwright-skärmdump i
+mobil viewport). Inga `pageerror`. `tests/game.test.mjs`: 37 tester
+totalt (samma antal — två nya tester lades till i befintliga testfall
+snarare än som nya `test()`-block), alla gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

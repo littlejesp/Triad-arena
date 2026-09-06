@@ -265,6 +265,15 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .card-name{ font-family:'Cinzel',serif; font-weight:700; font-size:clamp(9px,13cqw,12px); line-height:1.2; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7); }
 .card-role{ font-size:clamp(7px,9cqw,8.5px); color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; margin-top:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
 .hand-row.enemy .card-role{ display:none; }
+/* In-play board cells are the smallest, most-often-seen card size, and the
+   newer signature cards' longer roles ("Legendary Card — The Last Dragon
+   Hunter") wrap to 2-3 lines there — past the card-art gradient's darkened
+   zone (sized for name+role at the OLD, shorter role lengths) and straight
+   onto bare character art, badly hurting legibility of both. Same "drop
+   the least essential info first" call as .hand-row.enemy above: the full
+   role is always one tap away via the info button, so it isn't needed
+   here at all. */
+.board .card-role{ display:none; }
 
 .card{ container-type: inline-size; }
 
@@ -1841,7 +1850,7 @@ const FOREST_FOES = [
     special:{ name:'The Ending', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Reality Consume', desc:'When Nexzoth is placed, a random enemy card is chosen — it loses -3 Power this round.'},
-      {name:'World Shatter', desc:'Whenever Nexzoth wins a round, every enemy card further along that same line is destroyed outright and removed from the board.'},
+      {name:'World Shatter', desc:'The first time Nexzoth wins a round, every enemy card further along that same line is destroyed outright and removed from the board. Once per match. (Source text has no such cap — added deliberately: paired with his permanent debuffImmune, an uncapped version snowballs with no counterplay. See PROJECT.md.)'},
       {name:'Endless Void (Passive)', desc:"Nexzoth's Power can never be lowered by an opponent's card skills or Special Attacks. (\"Can't be moved by enemy cards\" is flavor only — no card in the engine can ever move another card's position.)"},
       {name:'Omnivore', desc:"Once per match, Nexzoth can copy any ability from an enemy card. (Flavor only — abilities are bespoke per-card handlers, not composable data; a real 'copy any ability' system would need either a full ability-reflection layer or hardcoding every possible target, disproportionate for one skill line.)"},
       {name:'Special Attack: The Ending', desc:'Costs 3 wins. Destroys every other card on the board — allied and enemy alike — leaving only Nexzoth behind. Usable once per match.'},
@@ -1853,7 +1862,7 @@ const FOREST_FOES = [
     special:{ name:'The Endless Tide', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Tidal Crush', desc:'When Morvath is placed, a random enemy card is chosen — it loses -2 Power this round.'},
-      {name:'Abyssal Grasp', desc:'Whenever Morvath wins a round, every enemy card further along that same line is destroyed outright and removed from the board.'},
+      {name:'Abyssal Grasp', desc:'The first time Morvath wins a round, every enemy card further along that same line is destroyed outright and removed from the board. Once per match. (Source text has no such cap — added deliberately: paired with his permanent debuffImmune, an uncapped version snowballs with no counterplay. See PROJECT.md.)'},
       {name:'King of the Depths (Passive)', desc:"Morvath's Power can never be lowered by an opponent's card skills or Special Attacks. He also gets +1 Power (permanently) every time any enemy card is removed from the board, by any effect."},
       {name:'Drowned Souls', desc:'Whenever Morvath wins a round with 10 or higher effective Power, one card is pulled back from the enemy Graveyard onto his own side, weakened by -2 Power. (Only ever finds a card if the Graveyard optional rule is on.)'},
       {name:'Special Attack: The Endless Tide', desc:'Costs 3 wins. Destroys every enemy card on the board, then pulls up to 2 of them back from the Graveyard onto your own side, each weakened by -3 Power.'},
@@ -3123,9 +3132,22 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // every other directional AOE — including the just-flipped loser's own
   // cell would be redundant since its owner already flipped to the winner's
   // side by the time this runs.
-  if(a.onWinLineDestroy && winnerIndex != null){
+  //
+  // BALANCE (not a text-fidelity simplification — a deliberate deviation):
+  // capped to once per match via onWinLineDestroyUsed, the same flag shape
+  // as onWinDirectionalBoostUsed/onWinDebuffOnceUsed above. The printed
+  // card text has no such cap ("whenever X wins a round..."), but an
+  // uncapped permanent board-destroy on every win, stacked on top of
+  // permanent active.debuffImmune (both Nexzoth and Morvath have it), is a
+  // genuine snowball risk with no counterplay once the card lands one
+  // favorable trade — nothing in the roster before this session paired
+  // "can't be weakened" with "wins compound by permanently destroying more
+  // of the board", so there's no precedent to defer to here. Revisit if
+  // playtesting shows this cap is too harsh.
+  if(a.onWinLineDestroy && winnerIndex != null && !winnerEntry.onWinLineDestroyUsed){
     const edgeToDir = { top:'up', bottom:'down', left:'left', right:'right' };
     enemiesInDirection(winnerIndex, edgeToDir[myEdge], winnerEntry.owner).forEach(p => destroyCard(p.index));
+    winnerEntry.onWinLineDestroyUsed = true;
   }
   // Vorgrath's Crushing Weight: "-1 Power to all opponent's cards next
   // round" — approximated as an immediate one-round debuff to every enemy
