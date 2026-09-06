@@ -49,6 +49,17 @@ ombyggnad tog bort dess enda tidigare användare (se punkt 1 ovan) — så
 primitiven har nu en levande användare igen. Endast `dragon` återstår nu
 från den gamla "inget källtext"-listan.
 
+**3. Tre mindre fixar, direkt från användarens egen speltestning av
+Campaign** (alla mergade, samma commit-serie som ovan):
+- ✅ **Campaign-retry behåller nu de fem senast valda korten ikryssade**
+  istället för att tvinga ett omval varje försök — se avsnitt 5b.
+- ✅ **Stat-siffran `10` visas som `10`, inte `A`** — den gamla
+  `num()`-hjälparen (klassisk Triple Triad-konvention) är helt borttagen.
+- ✅ **Triple Triad Sisters (Vaelira/Seraphine/Nyxara) är nu spelbara** —
+  dupplicerade in i `HEROES`, och etapp 17:s `unlockIds` delar nu ut dem
+  som belöning istället för en tom array. Se avsnitt 5:s
+  Etapp 17-underrubrik.
+
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
 (bekräftat att varken Ferea eller Twisted Gipsy är bland dem). Inget av
