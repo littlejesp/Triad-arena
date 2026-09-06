@@ -17,11 +17,10 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Punkt 1–4 är MERGADE till `main`** (användaren bekräftade explicit, fyra
-gånger). **Punkt 5 (Triune Desire), punkt 6 (Graveyard), punkt 7 (de fem
-nya bossarna) och punkt 8 (Naline-ombyggnad #2 + Umbrael) är COMMITTADE på
-feature-branchen och väntar på nästa merge-bekräftelse** — fråga alltid
-explicit innan nästa merge, anta ALDRIG tillstånd från en tidigare
+**Punkt 1–8 är MERGADE till `main`** (användaren bekräftade explicit,
+fem gånger nu — senast för punkt 5–8 i en enda "Do it"). Inget ocommittat
+väntar på feature-branchen just nu — fråga alltid explicit innan nästa
+merge när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
 bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
