@@ -17,10 +17,10 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Punkt 1, 2 och 3 är MERGADE till `main`** (användaren bekräftade
-explicit, tre gånger). **Punkt 4 är COMMITTAD på feature-branchen och
-väntar på nästa merge-bekräftelse** — fråga alltid explicit innan nästa
-merge, anta ALDRIG tillstånd från en tidigare bekräftelse.
+**Allt nedan (punkt 1–4) är MERGAT till `main`** (användaren bekräftade
+explicit, fyra gånger). En ny session kan börja direkt på ett rent läge —
+men fråga alltid explicit innan nästa merge, anta ALDRIG tillstånd från en
+tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
