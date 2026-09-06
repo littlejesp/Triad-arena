@@ -17,12 +17,12 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Punkt 1–10 är MERGADE till `main`** (användaren bekräftade explicit,
-sex gånger nu — senast "Merga allt till main" för punkt 9–10). **Punkt 11
-(Medusa-ombyggnaden) och punkt 12 (sex nya kort: Shiva, Leviathan, Omega
-Weapon, Yojimbo, Chocobo King, Odin) ligger committade på feature-branchen,
-INTE mergade till `main` än** — fråga alltid explicit innan nästa merge när
-mer arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+**Punkt 1–12 är MERGADE till `main`** (användaren bekräftade explicit,
+sju gånger nu — senast "Merga allt till main" för punkt 11–12, Medusa-
+ombyggnaden + de sex nya korten Shiva/Leviathan/Omega Weapon/Yojimbo/
+Chocobo King/Odin). Inget ocommittat väntar på feature-branchen just nu —
+fråga alltid explicit innan nästa merge när mer arbete samlats där, anta
+ALDRIG tillstånd från en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
