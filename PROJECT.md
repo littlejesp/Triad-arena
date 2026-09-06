@@ -17,12 +17,11 @@ fil (t.ex. GitHub Pages).
 
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
-**Punkt 1–8 är MERGADE till `main`** (användaren bekräftade explicit,
-fem gånger nu — senast för punkt 5–8 i en enda "Do it"). **Punkt 9
-(Zlaizer) och punkt 10 (balanspass + polering) är COMMITTADE på
-feature-branchen, väntar på nästa merge-bekräftelse** — fråga alltid
-explicit innan nästa merge, anta ALDRIG tillstånd från en tidigare
-bekräftelse.
+**Punkt 1–10 är MERGADE till `main`** (användaren bekräftade explicit,
+sex gånger nu — senast "Merga allt till main" för punkt 9–10). Inget
+ocommittat väntar på feature-branchen just nu — fråga alltid explicit
+innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
+en tidigare bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
