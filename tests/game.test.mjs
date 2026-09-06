@@ -1082,6 +1082,130 @@ test('AI can now use direction-targeting Ultimates (Vorgrath and friends) — pr
   await page.close();
 });
 
+test('Naline (redesigned): Divine Touch/Soul Revive on-place, buffThisRound expiry, Healing Radiance cleanse, Rise Again ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const naline = findCardById('naline');
+    out.stillPlayable = HEROES.some(h => h.id === 'naline');
+    out.isLightElement = naline.element === 'light';
+    out.specialIsAoeNotDirection = naline.special.targets === 'aoe';
+    out.rivalryPairsDropped = !isRivalryPair('ragnar','naline') && !isRivalryPair('naline','deathblade');
+
+    // Divine Touch (temp +2) + Soul Revive (own graveyard, fixed 1 Power) both fire on-place
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [findCardById('ogre')], red: [] };
+    state.turnCount = 20;
+    const nSrc = freshEntry(naline, 'blue');
+    state.board[4] = nSrc;
+    ON_PLACE_HANDLERS.naline(nSrc, 'blue', 4);
+    out.divineTouchTempBuff = nSrc.captureBonus === 2 && nSrc.tempEffects.length === 1;
+    out.soulReviveTookFromOwnGraveyard = state.graveyard.blue.length === 0;
+    const revived = state.board.find((e,i) => i !== 4 && e && e.owner === 'blue');
+    out.soulReviveAtFixedPower = !!revived && revived.card.top === 1 && revived.card.left === 1;
+    state.turnCount += 2;
+    sweepExpiredRoundEffects();
+    out.divineTouchExpiredAfterRound = nSrc.captureBonus === 0;
+
+    // Healing Radiance: on-win, clears a negative captureBonus and adds +1 permanent
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const nWinner = freshEntry(naline, 'blue');
+    nWinner.captureBonus = -3;
+    nWinner.tempEffects = [{ captureDelta: -3, expiresAtTurnCount: 999 }];
+    state.board[4] = nWinner;
+    state.board[1] = freshEntry({ id:'hr-loser', name:'HRLoser', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.healingRadianceCleansed = nWinner.captureBonus === 1 && nWinner.tempEffects.length === 0;
+
+    // Rise Again: up to 2 from OWN graveyard, temporarily destroy-immune
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [findCardById('ogre'), findCardById('wendigo')], red: [] };
+    state.turnCount = 30;
+    const ultSrc = freshEntry(naline, 'blue');
+    state.board[4] = ultSrc;
+    SPECIAL_HANDLERS.naline({ srcEntry: ultSrc, owner: 'blue' });
+    out.riseAgainRevivedBoth = state.graveyard.blue.length === 0;
+    const revivedEntries = state.board.filter(e => e && e.owner === 'blue' && e !== ultSrc);
+    out.riseAgainAtFixedPower = revivedEntries.length === 2 && revivedEntries.every(e => e.card.top === 1);
+    out.riseAgainImmuneThisRound = revivedEntries.every(e => isDestroyImmune(e));
+    state.turnCount += 2;
+    out.riseAgainImmuneExpires = revivedEntries.every(e => !isDestroyImmune(e));
+
+    return out;
+  })()`);
+  assert.equal(result.stillPlayable, true, 'redesign keeps Naline in HEROES, same as Tiamat\'s redesign');
+  assert.equal(result.isLightElement, true);
+  assert.equal(result.specialIsAoeNotDirection, true);
+  assert.equal(result.rivalryPairsDropped, true);
+  assert.equal(result.divineTouchTempBuff, true);
+  assert.equal(result.soulReviveTookFromOwnGraveyard, true);
+  assert.equal(result.soulReviveAtFixedPower, true);
+  assert.equal(result.divineTouchExpiredAfterRound, true);
+  assert.equal(result.healingRadianceCleansed, true);
+  assert.equal(result.riseAgainRevivedBoth, true);
+  assert.equal(result.riseAgainAtFixedPower, true);
+  assert.equal(result.riseAgainImmuneThisRound, true, "Rise Again's revived cards resist destroyCard() this round");
+  assert.equal(result.riseAgainImmuneExpires, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Umbrael: debuffImmune, Reality Fracture underdog bonus, weakVsElement mutual with Naline, End of All spares only itself', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const umbrael = findCardById('umbrael');
+    out.forestFoesOnly = FOREST_FOES.some(f => f.id === 'umbrael') && !HEROES.some(h => h.id === 'umbrael');
+    out.isDarkElement = umbrael.element === 'dark';
+
+    state.board = Array(9).fill(null);
+    const umbraelEntry = freshEntry(umbrael, 'blue');
+    state.board[0] = umbraelEntry;
+    SpecialVerbs.debuff(umbraelEntry, 5);
+    out.debuffImmune = umbraelEntry.captureBonus === 0;
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const stronger = { id:'stronger', name:'Stronger', top:15,right:1,bottom:1,left:1 };
+    out.realityFractureTriggersVsStronger = fullEffectiveValue(umbrael, 'bottom', stronger, 0, 'blue', 'attack') - umbrael.bottom === 2;
+    const weaker = { id:'weaker', name:'Weaker', top:1,right:1,bottom:1,left:1 };
+    out.realityFractureSkipsVsWeaker = fullEffectiveValue(umbrael, 'bottom', weaker, 0, 'blue', 'attack') - umbrael.bottom === 0;
+
+    // Mutual elemental weakness with Naline (light vs dark), both newly-added this batch
+    const naline = findCardById('naline');
+    out.umbraelWeakVsNalinesLight = fullEffectiveValue(umbrael, 'top', naline, 0, 'blue', 'attack') - umbrael.top === -4;
+    out.nalineWeakVsUmbraelsDark = fullEffectiveValue(naline, 'top', umbrael, 0, 'blue', 'attack') - naline.top === -4;
+
+    // End of All: destroys everything except itself, both sides
+    state.board = Array(9).fill(null);
+    const uSrc = freshEntry(umbrael, 'blue');
+    state.board[4] = uSrc;
+    state.board[0] = freshEntry(findCardById('ogre'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.umbrael({ srcEntry: uSrc, sourceIndex: 4, owner: 'blue' });
+    out.endOfAllKeepsSelf = state.board[4] === uSrc;
+    out.endOfAllDestroysOwnSide = state.board[0] === null;
+    out.endOfAllDestroysEnemySide = state.board[1] === null;
+
+    return out;
+  })()`);
+  assert.equal(result.forestFoesOnly, true);
+  assert.equal(result.isDarkElement, true);
+  assert.equal(result.debuffImmune, true);
+  assert.equal(result.realityFractureTriggersVsStronger, true);
+  assert.equal(result.realityFractureSkipsVsWeaker, true);
+  assert.equal(result.umbraelWeakVsNalinesLight, true);
+  assert.equal(result.nalineWeakVsUmbraelsDark, true);
+  assert.equal(result.endOfAllKeepsSelf, true);
+  assert.equal(result.endOfAllDestroysOwnSide, true);
+  assert.equal(result.endOfAllDestroysEnemySide, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

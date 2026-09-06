@@ -18,10 +18,11 @@ fil (t.ex. GitHub Pages).
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
 **Punkt 1–4 är MERGADE till `main`** (användaren bekräftade explicit, fyra
-gånger). **Punkt 5 (Triune Desire), punkt 6 (Graveyard) och punkt 7 (de fem
-nya bossarna) är COMMITTADE på feature-branchen och väntar på nästa
-merge-bekräftelse** — fråga alltid explicit innan nästa merge, anta ALDRIG
-tillstånd från en tidigare bekräftelse.
+gånger). **Punkt 5 (Triune Desire), punkt 6 (Graveyard), punkt 7 (de fem
+nya bossarna) och punkt 8 (Naline-ombyggnad #2 + Umbrael) är COMMITTADE på
+feature-branchen och väntar på nästa merge-bekräftelse** — fråga alltid
+explicit innan nästa merge, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -115,6 +116,22 @@ tyst, sedan tidigare befintlig AI-lucka på köpet: fiende-AI:t använde
 ALDRIG `targets:'direction'`-ultimates (Naline/Judgment/Seraph/Fenrir) innan
 den här sessionen. Se avsnitt 5:s sista underrubrik för fullständiga
 detaljer.
+
+**8. Naline ombyggd en andra gång, plus ett nytt kort Umbrael**, skickade
+mitt i punkt 7:s test-arbete. Naline (samma id, HEROES-only, kvar som
+tidigare) bytte tema helt — nu **det första Light-element-kortet i
+rostret** — vilket gjorde alla fem bossarnas tidigare vilande
+Light-svagheter (punkt 7) levande på samma gång. Umbrael (nytt,
+FOREST_FOES-only, `element:'dark'`) delar nästan samma kit-form som
+Nexzoth. Nya delade primitiver: `active.onWinCleanseAlly`,
+`SpecialVerbs.buffThisRound` (den positiva motsvarigheten till
+`debuffThisRound`), `reviveFromOwnGraveyardAtFixedPower()` (återupplivning
+från EGEN graveyard till ett absolut Power-värde, till skillnad från förra
+batchens opponent-graveyard-med-avdrag-version), en generaliserad
+`isDestroyImmune(entry)` (ersatte alla nio kvarvarande råa
+`destroyImmune`-kollar i hela motorn), `protectedBySanctuary` (skriven men
+medvetet okopplad — se avsnitt 5), och `active.underdogSideBonus`. Se
+avsnitt 5:s allra sista underrubrik för fullständiga detaljer.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -1232,6 +1249,105 @@ triggade i Dragon Hunter-testet; fel invariant för Vorgraths två
 oberoende slumpmål som kan träffa samma kort) — inga motorbuggar, bara
 dåliga testantaganden. Inga `pageerror`. `tests/game.test.mjs`: 34 tester
 totalt, alla gröna.
+
+### Naline — fullständig ombyggnad #2 (samma session, direkt efter de fem bossarna) — plus ett nytt kort: Umbrael
+
+Användaren skickade två poster-bilder till, mitt i test-arbetet för de fem
+bossarna ovan: en HELT ny "Naline, The Soul Healer" (samma
+fullständig-ombyggnad-behandling som Tiamat fick tidigare — id/namn
+oförändrat, allt annat bytt ut) och ett nytt kort "Umbrael, The Void
+Sovereign" ("Nya"). Svarade genom att först färdigställa och committa de
+fem bossarna, sen ta itu med de här två direkt efter — dokumenterat separat
+här eftersom det är en tydlig egen batch.
+
+**Naline** (`id:'naline'`, oförändrat — alla `unlockIds`/etapp-referenser
+fungerar fortfarande): gick från "The Storm's Shadow — Order of the
+Radiance" (vind, riktningsbaserad debuff-ultimate) till "Legendary Card —
+The Soul Healer" (**första Light-element-kortet i hela rostret**),
+8/9/10/7. Hennes två `RIVALRY_PAIRS`-poster (med Ragnar och Deathblade,
+båda "Order of the Radiance"-temat) togs bort — ingen koppling kvar efter
+ombyggnaden.
+
+Nya delade primitiver, skrivna generiskt:
+- **`active.onWinCleanseAlly`** (Healing Radiance) — ny hook i
+  `checkOnWinBonuses`: vinner kortet en runda, väljs ett slumpat kort på
+  EGEN sida (kastaren själv inräknad) — negativ `captureBonus` nollställs,
+  `tempEffects` (pågående rond-effekter) rensas, sen +1 Power permanent.
+- **`SpecialVerbs.buffThisRound`** (Divine Touch) — den positiva
+  motsvarigheten till `debuffThisRound`: en tillfällig +N Power som
+  automatiskt reverseras av den redan befintliga
+  `sweepExpiredRoundEffects()` (den funktionen var redan tecken-agnostisk,
+  `captureDelta` kan vara positiv eller negativ — behövde ingen ändring
+  där, bara en ny "apply"-sida). Respekterar `buffLockedUntilTurnCount`
+  precis som `attackBoost`/`directionalBoost`.
+- **`reviveFromOwnGraveyardAtFixedPower(owner, count, fixedPower,
+  immuneRounds)`** (Soul Revive, Rise Again) — en syskonfunktion till
+  förra batchens `reviveFromGraveyard()`, men med två skillnader: (1) drar
+  från KASTARENS EGEN graveyard, inte motståndarens, och (2) källtexten
+  ber om en ABSOLUT "med 1 Power" istället för "-N Power" — omöjligt att
+  uttrycka som ett `captureBonus`-avdrag mot ett godtyckligt baskort
+  (motorns Power-värden är additiva, inget stat-golv finns), så istället
+  klonas kortet med alla fyra sidor satta till exakt `fixedPower`. Rise
+  Again-klausulen "kan inte tas bort denna runda" gav upphov till...
+- **`isDestroyImmune(entry)`** — generaliserar den tidigare rena
+  kort-nivå-koll (`entry.card.active.destroyImmune`, permanent) till att
+  ÄVEN läsa en ny, tillfällig `entry.destroyImmuneUntilTurnCount`
+  (samma "+2"-fönster som alla andra rond-klocka-flaggor). ALLA NIO
+  tidigare råa `destroyImmune`-kollar i hela motorn (Lyrith, The Celestial
+  Judgment, Triune Desire, Vaelira, Nyxara, Kaeldryx, Nexzoth, Morvath,
+  Vorgrath, Zalazar) konverterades till att anropa den delade funktionen
+  istället — samma refaktorerings-mönster som `isDebuffImmuneNow` fick i
+  förra batchen.
+- **`protectedBySanctuary(owner)`** (Sanctuary passiv) — en parallell
+  helsides-skyddsfunktion till `protectedByInfiniteSeraph`, men **medvetet
+  INTE kopplad till något förstör-ställe än**: kortets egen text undantar
+  uttryckligen Ultimate-effekter, och VARJE förstöreffekt i spelet just nu
+  ÄR en Ultimate — att koppla in den skulle motsäga kortets egen text.
+  Vilande, sparad för en framtida icke-Ultimate-förstöreffekt.
+- **`active.weakVsElement`s `'dark'`-variant blev NU levande** (Shadow
+  Affinity), och det redan skrivna men vilande `'light'`-fallet (från förra
+  batchens fem bossar) blev ockSÅ levande i samma veva — se Umbrael nedan.
+
+Ultimate **Rise Again** (3 wins): drar upp till 2 kort från EGEN graveyard
+till 1 Power vardera, tillfälligt `destroyImmune` i en rond.
+**Soul Revive** (en av de vanliga förmågorna, inte Ultimate) och **Divine
+Touch** slogs ihop till EN placerings-hook, samma "ingen sekundär
+aktiverings-UI"-motivering som Vorgrath/Zalazar fick förra batchen.
+
+**Umbrael** (nytt kort, FOREST_FOES-only, `element:'dark'`): 10/10/9/10 —
+**nästan identisk kit-form som Nexzoth** (on-place enkel-debuff /
+villkorad sido-buff / debuffImmune+"kan inte flyttas"-passiv / on-win
+graveyard-återupplivning från MOTSTÅNDARENS graveyard / förstör-allt-
+ultimate), så handler-koden återanvänder samma mönster rakt av. Enda
+genuint nya primitiven: **`active.underdogSideBonus:N`** (Reality
+Fracture) — +N Power på en specifik sida OM motståndarens FACING-sida i
+just den striden är högre än kortets egna tryckta sida (en live,
+per-strid-underdog-koll, till skillnad från det äldre
+`active.underdogBonus` som jämför HELA kortets stat-summa). `element:'dark'`
+är en tolkning (ingen explicit element-badge syns på kortet) — vald
+medvetet så att Umbraels egen Light-svaghet OCH Nalines nya Dark-svaghet
+blir ett levande, ömsesidigt triggande par så fort båda korten finns.
+Ultimate **End of All** (3 wins): samma "förstör allt utom sig själv, båda
+sidor"-tolkning som Nexzoths The Ending, av samma anledning (att spendera
+3 wins på att radera sig själv vore en konstig tolkning).
+
+**Bildhantering**: Nalines gamla konst (`cards/card-naline.jpg` +
+`card-naline-full.jpg`) skrevs över rakt av med den nya — samma
+"ersätt gammal konst"-hantering som Tiamat fick. Umbrael fick nya filer
+enligt samma namnkonvention som alla tidigare kort.
+
+**Testat**: två nya tester i `tests/game.test.mjs` — Nalines
+Divine Touch/Soul Revive isolerat från battle-resolution, `buffThisRound`s
+utgång via `sweepExpiredRoundEffects()`, Healing Radiance rensar ett
+negativt `captureBonus` OCH lägger på +1 permanent, Rise Again återupplivar
+upp till 2 kort från EGEN graveyard med tillfällig `destroyImmune`
+(verifierat att den faktiskt går ut nästa rond via `isDestroyImmune()`),
+att rivalry-paren är borttagna, och att hennes special nu är `'aoe'` inte
+`'direction'` — plus Umbraels `debuffImmune`, Reality Fracture (triggar mot
+en starkare sida, inte mot en svagare), det ömsesidiga Light/Dark-
+svaghetsparet mätt i båda riktningarna, och End of All som sparar bara sig
+själv. Inga `pageerror`. `tests/game.test.mjs`: 36 tester totalt, alla
+gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 

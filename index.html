@@ -1119,6 +1119,7 @@ const CARD_IMAGES = {
   morvath: 'cards/card-morvath.jpg',
   vorgrath: 'cards/card-vorgrath.jpg',
   zalazar: 'cards/card-zalazar.jpg',
+  umbrael: 'cards/card-umbrael.jpg',
 };
 
 const FULL_CARD_IMAGES = {
@@ -1175,6 +1176,7 @@ const FULL_CARD_IMAGES = {
   morvath: 'card-morvath-full.jpg',
   vorgrath: 'card-vorgrath-full.jpg',
   zalazar: 'card-zalazar-full.jpg',
+  umbrael: 'card-umbrael-full.jpg',
 };
 
 const CARD_BACK_IMAGE = 'card-back-purple.jpg';
@@ -1261,14 +1263,25 @@ const HEROES = [
     {name:"Special Attack: Tempest Volley", desc:"Cost 5 Wins (the card's own text says \"5 Energi\" — mapped onto this engine's one shared special-attack resource since no separate energy system exists). Fires 5 arrows; each independently picks a random enemy card and hits it for -1 Power as true damage — unconditional, ignores shields entirely, no capture attempt. A card can be struck by more than one arrow. Per-arrow damage (-1) is invented; the source gives no number, only \"true damage.\""},
   ]},
   { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:5, bottom:6, left:9, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Double Strike", desc:"When Ragnar wins a battle, he may attack again this round (once per round)."}, {name:"War Breaker", desc:"Choose an enemy card — Ragnar gets +2 Power when attacking it."}, {name:"Blood Rush", desc:"When Ragnar defeats an enemy card, he gets +1 Power for his next battle."}, {name:"Last Fury", desc:"If Ragnar is your only card left on the board, he gets +3 Power until the round ends."}], active: {bonus:{dir:'top',amount:1}}},
-  { id:'naline', name:"Naline", role:"The Storm's Shadow — Order of the Radiance", top:10, right:9, bottom:8, left:8, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#d9622b', active: {bonus:{dir:'top',amount:1}}, special:{ name:'Thunderstorm Assault', cost:2, once:true, targets:'direction' }, skills: [
-    {name:'Storm Blades (Passive)', desc:"+1 Power on all of Naline's UPPER-facing battles."},
-    {name:'Lightning Blades', desc:'Her twin blades crackle with stormlight, striking twice as fast as the eye can follow.'},
-    {name:'Blink', desc:'Vanishes into shadow and reappears behind her foe before they can react.'},
-    {name:'Ambush', desc:'Strikes from concealment — the first blow always lands true.'},
-    {name:'Radiant Strike', desc:"Channels the Order of the Radiance's light through her blade for a devastating final blow."},
-    {name:'Special Attack: Thunderstorm Assault', desc:"Costs 2 wins. Choose a direction — every enemy card in that line from Naline is struck by lightning, permanently losing 3 Power. Unblockable. (Simplified from the card's full text: the LIGHT-affinity threshold and the follow-up chain into Ambush aren't implemented — see PROJECT.md.)"},
-  ]},
+  // Naline was fully redesigned in a later session from a new poster the
+  // user sent ("Naline, The Soul Healer") — same full-rebuild treatment
+  // Tiamat got earlier: name and id unchanged (existing unlockIds/rivalry
+  // references keep working), but role/stats/art/kit are all replaced
+  // outright rather than layered on top of the old Storm's Shadow version.
+  // Her two "Order of the Radiance" RIVALRY_PAIRS entries (with Ragnar and
+  // Deathblade) were removed since neither theme survives the redesign.
+  { id:'naline', name:"Naline", role:"Legendary Card — The Soul Healer", element:'light',
+    top:8, right:9, bottom:10, left:7,
+    hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f0d879', icon:'😇',
+    active:{ onWinCleanseAlly:true, weakVsElement:{element:'dark', amount:4} },
+    special:{ name:'Rise Again', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Divine Touch', desc:'When Naline is placed, a random card on her side (herself included) gets +2 Power this round. (Source text lets you choose the target; simplified to random, same as every other on-place "choose 1 card" ability.)'},
+      {name:'Soul Revive', desc:"Also on placement, one card is pulled back from her own Graveyard onto the board at 1 Power. Usable once per match. (Source text frames this as a separately activated ability; no such secondary-activation system exists outside a card's own Ultimate, so it fires automatically alongside Divine Touch instead — a card is only ever placed once anyway.)"},
+      {name:'Sanctuary (Passive)', desc:"Naline's side's cards can't be removed from the board by the opponent's effects — except Ultimate effects. (Every destroy effect in the game today IS an Ultimate, so this never actually blocks anything yet — reserved for a future non-Ultimate destroy effect, exactly as the card's own exemption text implies.)"},
+      {name:'Healing Radiance', desc:'Whenever Naline wins a round, a random card on her side gets +1 Power (permanent) and has any negative effects on it cleared.'},
+      {name:'Special Attack: Rise Again', desc:"Costs 3 wins. Pull up to 2 cards back from Naline's own Graveyard onto the board at 1 Power each — they can't be removed by the opponent's effects for the rest of the round. Usable once per match."},
+    ]},
   { id:'deathblade', name:"Deathblade", role:"Shadow Assassin — Order of the Radiance", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', active: {shield:true}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
     {name:'Night’s Veil (Passive)', desc:"The first time this card would lose a battle, the enemy's bonuses on that battle are ignored."},
     {name:'Silent Hunter', desc:'When Deathblade attacks a card that already lost a battle this round, she gets +1 Power on all directions.'},
@@ -1845,6 +1858,26 @@ const FOREST_FOES = [
       {name:'Ashen Resurrection (Passive)', desc:"The first time Zalazar would lose a battle, the loss is ignored instead — same shield mechanic as Ancient Wyrmking. (The source text's \"survives with 1 Power\" is flavor only — the shield fully blocks the flip rather than reducing his stats, since the engine's Power values are additive, not a stat floor.)"},
       {name:'World In Flames', desc:'Whenever Zalazar wins a round, one card is pulled back from the enemy Graveyard onto your own side, weakened by -2 Power. (Only ever finds a card if the Graveyard optional rule is on.)'},
       {name:'Special Attack: Apocalypse', desc:'Costs 3 wins. Destroys every enemy card on the board.'},
+    ] },
+  // Umbrael arrived alongside Naline's redesign, from a second new poster
+  // in the same upload ("The Void Sovereign"). FOREST_FOES-only, same call
+  // as the five bosses above — near-identical kit shape to Nexzoth (see
+  // SPECIAL_HANDLERS.umbrael's comment), so most of its mechanics reuse
+  // primitives already built for that batch. element:'dark' is an inference
+  // (the card doesn't show an explicit element badge) — chosen deliberately
+  // so his own Light-element weakness and Naline's Dark-element weakness
+  // become a live, mutually-triggering pair the moment both exist.
+  { id:'umbrael', name:'Umbrael', role:'Legendary Card — The Void Sovereign', element:'dark',
+    top:10, right:10, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#120a1c,#0d0b18 60%)', accent:'#8b6ef2', icon:'🌑',
+    active:{ debuffImmune:true, underdogSideBonus:2, onWinReviveFromGraveyard:{count:1, powerPenalty:2}, weakVsElement:{element:'light', amount:4} },
+    special:{ name:'End of All', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Void Touch', desc:'When Umbrael is placed, a random enemy card is chosen — it loses -2 Power this round.'},
+      {name:'Reality Fracture', desc:"In any battle where the opponent's facing side is higher than Umbrael's own printed side, he gets +2 Power on that side this round."},
+      {name:'Void Sovereign (Passive)', desc:"Umbrael's Power can never be lowered by an opponent's card skills or Special Attacks. (\"Can't be moved by enemy cards\" is flavor only — no card in the engine can ever move another card's position.)"},
+      {name:'Beauty in Oblivion', desc:'Whenever Umbrael wins a round, one card is pulled back from the enemy Graveyard onto his own side, weakened by -2 Power. (Only ever finds a card if the Graveyard optional rule is on.)'},
+      {name:'Special Attack: End of All', desc:'Costs 3 wins. Destroys every other card on the board — allied and enemy alike — leaving only Umbrael behind. Usable once per match.'},
     ] },
 ];
 
@@ -2891,6 +2924,20 @@ function protectedByInfiniteSeraph(owner){
   return state.board.some(e => e && e.owner === owner && e.card.id === 'infiniteseraph');
 }
 
+// Naline's Sanctuary: "your cards can't be removed from the board by the
+// opponent's effects — EXCEPT Ultimate effects." Written as a real,
+// generalizable whole-side guard (parallel to protectedByInfiniteSeraph
+// above) even though nothing calls it yet: every destroy-capable effect in
+// the game today is an Ultimate (SPECIAL_HANDLERS), which the card's own
+// text explicitly carves out — so wiring this into any of those sites
+// would contradict the card, and there's currently no non-Ultimate destroy
+// effect for it to protect against. Reserved for a future on-place/passive
+// destroy effect, same "dormant until relevant content exists" shape as
+// weakVsElement before Naline/Umbrael gave it live triggers.
+function protectedBySanctuary(owner){
+  return state.board.some(e => e && e.owner === owner && e.card.id === 'naline');
+}
+
 // Shared destruction path for every Special that removes a card from the
 // board outright (as opposed to a normal flip/capture). When the Graveyard
 // optional rule is on, the destroyed card is recorded in its owner's
@@ -2910,6 +2957,20 @@ function destroyCard(index){
   const beneficiaryOwner = entry.owner === 'blue' ? 'red' : 'blue';
   const morvath = state.board.find(e => e && e.owner === beneficiaryOwner && e.card.active && e.card.active.buffOnEnemyDestroyed);
   if(morvath) SpecialVerbs.attackBoost(morvath, 1);
+}
+
+// Generalizes the permanent card-level active.destroyImmune (Three Head
+// Dragon) into also covering a temporary PER-ENTRY window — Naline's Rise
+// Again ultimate revives graveyard cards that "can't be removed by the
+// opponent's effects this round" (entry.destroyImmuneUntilTurnCount, same
+// "+2" one-round convention as every other round-clock flag). Every
+// destroy-capable handler now calls this instead of reading
+// entry.card.active.destroyImmune directly.
+function isDestroyImmune(entry){
+  if(!entry) return false;
+  if(entry.card.active && entry.card.active.destroyImmune) return true;
+  if(entry.destroyImmuneUntilTurnCount > state.turnCount) return true;
+  return false;
 }
 
 function effectiveValue(card, edgeKey, opponentCard){
@@ -2933,10 +2994,12 @@ function effectiveValue(card, edgeKey, opponentCard){
 // Lore-linked champions that reward standing side by side.
 const RIVALRY_PAIRS = [
   ['darien', 'elara'],       // The Shadowarden & the Light's Grace
-  ['ragnar', 'naline'],      // Order of the Radiance
-  ['naline', 'deathblade'],  // Order of the Radiance
   ['pallis', 'pallispell'],  // Reunited with Pell's pack
 ];
+// Naline's two "Order of the Radiance" rivalries (with Ragnar and
+// Deathblade) were dropped when she was fully redesigned into The Soul
+// Healer — a standalone angelic reviver with no remaining tie to that
+// group's flavor.
 
 function isRivalryPair(idA, idB){
   return RIVALRY_PAIRS.some(([a,b]) => (a===idA && b===idB) || (a===idB && b===idA));
@@ -3004,7 +3067,7 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // card outright" — no "once per match" cap in the source text either, so
   // this can trigger on every qualifying win, same as onWinAreaDebuff above.
   if(a.onWinPowerThresholdDestroy && loserIndex != null && winnerVal != null && winnerVal >= a.onWinPowerThresholdDestroy){
-    if(!(loserEntry.card.active && loserEntry.card.active.destroyImmune)) destroyCard(loserIndex);
+    if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex);
   }
   // Nexzoth's World Shatter / Morvath's Abyssal Grasp: "destroy every card
   // further along the line the just-won battle happened on" — read as the
@@ -3037,6 +3100,22 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
       reviveFromGraveyard(winnerEntry.owner, cfg.count, cfg.powerPenalty);
     }
   }
+  // Naline's Healing Radiance: "choose 1 card on your side — +1 Power,
+  // clear all negative effects on it." Random ally (winnerEntry included,
+  // same "no on-win target-choice UI" simplification as every other
+  // "choose 1"-on-win ability). "Clear negative effects" reads as: zero out
+  // a negative captureBonus and drop any pending round-scoped debuffs
+  // (tempEffects) — a positive captureBonus/sideBonus is left untouched,
+  // since those aren't "negative effects".
+  if(a.onWinCleanseAlly){
+    const allies = state.board.filter(e => e && e.owner === winnerEntry.owner);
+    if(allies.length > 0){
+      const target = allies[Math.floor(Math.random() * allies.length)];
+      if(target.captureBonus < 0) target.captureBonus = 0;
+      target.tempEffects = [];
+      SpecialVerbs.attackBoost(target, 1);
+    }
+  }
 }
 
 // Shared by Morvath's Ultimate/Drowned Souls and Zalazar's World In Flames:
@@ -3058,6 +3137,29 @@ function reviveFromGraveyard(owner, count, powerPenalty){
     const pick = Math.floor(Math.random() * pool.length);
     const card = pool.splice(pick, 1)[0];
     state.board[emptyIdx] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:-powerPenalty };
+  }
+}
+
+// Naline's Soul Revive / Rise Again: unlike reviveFromGraveyard above (which
+// pulls from the OPPONENT's graveyard with a flat captureBonus penalty),
+// these pull from the caster's OWN graveyard and the source text asks for
+// an absolute "with 1 Power" rather than "-N Power" — impossible to express
+// as a captureBonus subtraction against an arbitrary base card, so instead
+// this clones the card with all four sides overridden to `fixedPower`. Rise
+// Again's "can't be removed by the opponent's effects this round" clause is
+// `immuneRounds` (0 for Soul Revive, 2 turnCount-ticks — one round — for
+// Rise Again), read by isDestroyImmune() via entry.destroyImmuneUntilTurnCount.
+function reviveFromOwnGraveyardAtFixedPower(owner, count, fixedPower, immuneRounds){
+  const pool = state.graveyard[owner];
+  for(let n = 0; n < count && pool.length > 0; n++){
+    const emptyIdx = state.board.findIndex(c => !c);
+    if(emptyIdx === -1) break;
+    const pick = Math.floor(Math.random() * pool.length);
+    const original = pool.splice(pick, 1)[0];
+    const weakened = { ...original, top:fixedPower, right:fixedPower, bottom:fixedPower, left:fixedPower };
+    const entry = { card: weakened, owner, shieldUsed:false, grantedShield:false, captureBonus:0 };
+    if(immuneRounds) entry.destroyImmuneUntilTurnCount = state.turnCount + immuneRounds;
+    state.board[emptyIdx] = entry;
   }
 }
 
@@ -3328,17 +3430,27 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     const opposite = { top:'bottom', bottom:'top', left:'right', right:'left' };
     if(opponentCard[opposite[edgeKey]] >= 8) v += 1;
   }
-  // The five new bosses' "Weakness" clauses (-N Power vs a Light/Magic
-  // -element card): a plain elemental vulnerability printed on the card
-  // itself, not an opponent's active ability — so unlike every debuff()
-  // call above, this is NOT gated by debuffImmune/debuffImmuneFirstRound
-  // (Nexzoth and Morvath are still immune to enemy abilities that lower
-  // their Power, but their own printed elemental weakness still applies).
-  // Dormant today: no 'light' or 'magic' -element card exists yet in the
-  // roster, so this never actually fires until one is added — same as the
-  // Graveyard rule sitting unused until these bosses gave it a reader.
+  // The bosses' "Weakness" clauses (-N Power vs a specific-element card): a
+  // plain elemental vulnerability printed on the card itself, not an
+  // opponent's active ability — so unlike every debuff() call above, this
+  // is NOT gated by debuffImmune/debuffImmuneFirstRound (Nexzoth and
+  // Morvath are still immune to enemy abilities that lower their Power,
+  // but their own printed elemental weakness still applies). The 'magic'
+  // -element clause (Kaeldryx) stays dormant — no such card exists — but
+  // 'light' (Naline) and 'dark' (Umbrael) are both live as of the session
+  // that added those two, so Nexzoth/Morvath/Vorgrath/Zalazar/Umbrael's
+  // Light weaknesses and Naline's Dark weakness now actually fire.
   if(card.active && card.active.weakVsElement && opponentCard && opponentCard.element === card.active.weakVsElement.element){
     v -= card.active.weakVsElement.amount;
+  }
+  // Umbrael's Reality Fracture: "if the opponent has higher Power on the
+  // chosen side, Umbrael gets +2 Power on that side this round" — read as a
+  // live per-battle underdog check (opponent's FACING side beats this
+  // card's own printed side), unlike the existing whole-card-sum
+  // active.underdogBonus (Void Empress/Wendigo) above.
+  if(card.active && card.active.underdogSideBonus && opponentCard){
+    const opposite = { top:'bottom', bottom:'top', left:'right', right:'left' };
+    if(opponentCard[opposite[edgeKey]] > card[edgeKey]) v += card.active.underdogSideBonus;
   }
   // Triune Desire's Divine Temptation: an aura affecting every OTHER card
   // on the board, not just itself — unlike every other passive above,
@@ -3504,6 +3616,26 @@ const ON_PLACE_HANDLERS = {
     const dirs = ['up','right','down','left'];
     const direction = dirs[Math.floor(Math.random()*dirs.length)];
     enemiesInDirection(cellIndex, direction, owner).forEach(p => SpecialVerbs.debuff(p.entry, 1));
+  },
+  // Naline bundles Divine Touch (random ally, herself included, +2 this
+  // round) and Soul Revive (one card back from her OWN Graveyard at 1
+  // Power) into her single placement — same "no secondary-activation
+  // system, so it fires on-place instead" reasoning as Vorgrath/Zalazar's
+  // bundled pairs above.
+  naline(entry, owner){
+    const allies = state.board.filter(e => e && e.owner === owner);
+    if(allies.length > 0){
+      const target = allies[Math.floor(Math.random()*allies.length)];
+      SpecialVerbs.buffThisRound(target, 2);
+    }
+    reviveFromOwnGraveyardAtFixedPower(owner, 1, 1, 0);
+  },
+  // Umbrael's Void Touch.
+  umbrael(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    SpecialVerbs.debuffThisRound(target, 2);
   },
 };
 
@@ -3717,6 +3849,17 @@ const SpecialVerbs = {
     entry.captureBonus -= amount;
     entry.tempEffects = entry.tempEffects || [];
     entry.tempEffects.push({ captureDelta: -amount, expiresAtTurnCount: state.turnCount + 2 });
+  },
+  // Naline's Divine Touch ("+2 Power this round", not permanent) — the
+  // positive-and-temporary counterpart to debuffThisRound above.
+  // sweepExpiredRoundEffects() below already reverses a captureDelta of
+  // either sign, so this just needed the mirrored apply step; respects
+  // buffLockedUntilTurnCount same as attackBoost/directionalBoost.
+  buffThisRound(entry, amount){
+    if(entry.buffLockedUntilTurnCount > state.turnCount) return;
+    entry.captureBonus += amount;
+    entry.tempEffects = entry.tempEffects || [];
+    entry.tempEffects.push({ captureDelta: amount, expiresAtTurnCount: state.turnCount + 2 });
   },
 };
 
@@ -4095,21 +4238,18 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Falling Stars — the strongest bolt lands on ${starSide} — claims ${targetEntry.card.name}!`;
   },
-  // "Thunderstorm Assault" in the source text has a LIGHT-affinity threshold
-  // and a clause that chains into a follow-up Ambush attack — neither fits
-  // the engine's existing mechanics without inventing new systems, so this
-  // is simplified to a direct directional strike: a permanent -3 debuff to
-  // every enemy card in the chosen direction's line from Naline, unblockable
-  // (consistent with eviltwistyin's Yin Resonance, the engine's other
-  // straight-debuff special).
-  naline({ srcEntry, sourceIndex, owner, direction }){
+  // Rise Again: pull up to 2 cards from Naline's OWN graveyard, each at a
+  // flat 1 Power, temporarily immune to removal this round — see
+  // reviveFromOwnGraveyardAtFixedPower for why this can't just be a
+  // captureBonus penalty like Morvath/Zalazar's opponent-graveyard revives.
+  naline({ srcEntry, owner }){
     const name = srcEntry.card.name;
-    const enemies = enemiesInDirection(sourceIndex, direction, owner);
-    enemies.forEach(p => SpecialVerbs.debuff(p.entry, 3));
-    const dirLabel = direction[0].toUpperCase() + direction.slice(1);
-    return enemies.length > 0
-      ? `${name}'s Thunderstorm Assault crashes ${dirLabel} — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} struck down!`
-      : `${name}'s Thunderstorm Assault crashes ${dirLabel} but finds no enemies in its path!`;
+    const before = state.graveyard[owner].length;
+    reviveFromOwnGraveyardAtFixedPower(owner, 2, 1, 2);
+    const revived = before - state.graveyard[owner].length;
+    return revived > 0
+      ? `${name}'s Rise Again calls ${revived} fallen champion${revived>1?'s':''} back to the field!`
+      : `${name}'s Rise Again finds no one left in the Graveyard to call back!`;
   },
   // "Eternal Verdict": choose a direction; every enemy in that line is
   // Weakened (-1 all sides, permanent) — or destroyed outright if their
@@ -4125,7 +4265,7 @@ const SPECIAL_HANDLERS = {
     const enemies = enemiesInDirection(sourceIndex, direction, owner);
     let destroyed = 0, weakened = 0;
     enemies.forEach(({ index, entry }) => {
-      const canDestroy = entry.card[facingSide] <= 3 && !(entry.card.active && entry.card.active.destroyImmune);
+      const canDestroy = entry.card[facingSide] <= 3 && !isDestroyImmune(entry);
       if(canDestroy){
         destroyCard(index);
         destroyed++;
@@ -4212,7 +4352,7 @@ const SPECIAL_HANDLERS = {
       if(r<0||r>2||c<0||c>2) return;
       const idx = r*3+c;
       const entry = state.board[idx];
-      if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
+      if(entry && entry.owner !== owner && !isDestroyImmune(entry)){
         destroyCard(idx);
         destroyed++;
       }
@@ -4411,7 +4551,7 @@ const SPECIAL_HANDLERS = {
     }
     let destroyed = 0;
     state.board.forEach((entry, i) => {
-      if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
+      if(entry && entry.owner !== owner && !isDestroyImmune(entry)){
         destroyCard(i); destroyed++;
       }
     });
@@ -4441,7 +4581,7 @@ const SPECIAL_HANDLERS = {
     }
     let destroyed = 0;
     state.board.forEach((entry, i) => {
-      if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
+      if(entry && entry.owner !== owner && !isDestroyImmune(entry)){
         destroyCard(i); destroyed++;
       }
     });
@@ -4468,7 +4608,7 @@ const SPECIAL_HANDLERS = {
     let dragonsDestroyed = 0, weakened = 0;
     state.board.forEach((e, i) => {
       if(!e || !e.card.isDragon) return;
-      if(e.card.active && e.card.active.destroyImmune) return;
+      if(isDestroyImmune(e)) return;
       if(e.owner === enemyOwner && enemyProtected) return;
       destroyCard(i);
       dragonsDestroyed++;
@@ -4500,7 +4640,7 @@ const SPECIAL_HANDLERS = {
     let destroyed = 0;
     state.board.forEach((e, i) => {
       if(!e || i === sourceIndex) return;
-      if(e.card.active && e.card.active.destroyImmune) return;
+      if(isDestroyImmune(e)) return;
       destroyCard(i);
       destroyed++;
     });
@@ -4519,7 +4659,7 @@ const SPECIAL_HANDLERS = {
     }
     let destroyed = 0;
     state.board.forEach((e, i) => {
-      if(e && e.owner === enemyOwner && !(e.card.active && e.card.active.destroyImmune)){
+      if(e && e.owner === enemyOwner && !isDestroyImmune(e)){
         destroyCard(i);
         destroyed++;
       }
@@ -4541,7 +4681,7 @@ const SPECIAL_HANDLERS = {
     const enemies = enemiesInDirection(sourceIndex, direction, owner);
     let destroyed = 0;
     enemies.forEach(({ index, entry }) => {
-      if(entry.card.active && entry.card.active.destroyImmune) return;
+      if(isDestroyImmune(entry)) return;
       destroyCard(index);
       destroyed++;
     });
@@ -4563,7 +4703,7 @@ const SPECIAL_HANDLERS = {
     }
     let destroyed = 0;
     state.board.forEach((e, i) => {
-      if(e && e.owner === enemyOwner && !(e.card.active && e.card.active.destroyImmune)){
+      if(e && e.owner === enemyOwner && !isDestroyImmune(e)){
         destroyCard(i);
         destroyed++;
       }
@@ -4571,6 +4711,24 @@ const SPECIAL_HANDLERS = {
     return destroyed > 0
       ? `${name}'s Apocalypse reduces ${destroyed} enemy card${destroyed>1?'s':''} to ash!`
       : `${name}'s Apocalypse finds no enemies left to burn!`;
+  },
+  // End of All: same "destroy everything except myself, both sides" reading
+  // as Nexzoth's The Ending above — the two cards share near-identical kits
+  // (on-place single debuff / conditional side buff / debuffImmune+no-move
+  // passive / on-win graveyard revive / destroy-everything ultimate), so
+  // this reuses the exact same simplification for the exact same reason.
+  umbrael({ srcEntry, sourceIndex, owner }){
+    const name = srcEntry.card.name;
+    let destroyed = 0;
+    state.board.forEach((e, i) => {
+      if(!e || i === sourceIndex) return;
+      if(isDestroyImmune(e)) return;
+      destroyCard(i);
+      destroyed++;
+    });
+    return destroyed > 0
+      ? `${name}'s End of All erases ${destroyed} card${destroyed>1?'s':''} from existence — nothing remains but the Void Sovereign!`
+      : `${name}'s End of All finds an already-empty world!`;
   },
 };
 
@@ -4651,7 +4809,7 @@ function resolveSpecialChoice(value){
     runSpecialResolution(mode.sourceIndex, null, { element: value });
   } else if(srcEntry.card.id === 'tiamat'){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { power: value });
-  } else if(srcEntry.card.id === 'naline' || srcEntry.card.id === 'celestialjudgment' || srcEntry.card.id === 'infiniteseraph' || srcEntry.card.id === 'fenrir' || srcEntry.card.id === 'vorgrath'){
+  } else if(srcEntry.card.id === 'celestialjudgment' || srcEntry.card.id === 'infiniteseraph' || srcEntry.card.id === 'fenrir' || srcEntry.card.id === 'vorgrath'){
     runSpecialResolution(mode.sourceIndex, null, { direction: value });
   } else if(srcEntry.card.id === 'vorathos'){
     runSpecialResolution(mode.sourceIndex, mode.targetIndex, { direction: value });
