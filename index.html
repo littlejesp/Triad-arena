@@ -1670,8 +1670,6 @@ function drawEnemyHand(){
   return shuffle(FOREST_FOES.slice()).slice(0, 5);
 }
 
-const num = n => n === 10 ? 'A' : n;
-
 /* ---------------- sound engine ---------------- */
 let soundOn = true;
 let musicOn = true;
@@ -1957,10 +1955,10 @@ function renderModal(){
             <div class="poster-role">${c.role}</div>
             <div class="poster-stars">${'★'.repeat(cardLevel(c))}</div>
           </div>
-          <div class="poster-diamond pd-top"><div class="pd-shape">${num(c.top)}</div><div class="pd-label">Top</div></div>
-          <div class="poster-diamond pd-left"><div class="pd-shape">${num(c.left)}</div><div class="pd-label">Left</div></div>
-          <div class="poster-diamond pd-right"><div class="pd-shape">${num(c.right)}</div><div class="pd-label">Right</div></div>
-          <div class="poster-diamond pd-bottom"><div class="pd-shape">${num(c.bottom)}</div><div class="pd-label">Bottom</div></div>
+          <div class="poster-diamond pd-top"><div class="pd-shape">${c.top}</div><div class="pd-label">Top</div></div>
+          <div class="poster-diamond pd-left"><div class="pd-shape">${c.left}</div><div class="pd-label">Left</div></div>
+          <div class="poster-diamond pd-right"><div class="pd-shape">${c.right}</div><div class="pd-label">Right</div></div>
+          <div class="poster-diamond pd-bottom"><div class="pd-shape">${c.bottom}</div><div class="pd-label">Bottom</div></div>
         </div>`;
 
   const nameBlock = fullArt
@@ -2019,10 +2017,10 @@ function cardFace(card, opts={}){
         </div>
       </div>
       <div class="stat-cluster">
-        <div class="stat-n n-top">${num(card.top)}</div>
-        <div class="stat-n n-left">${num(card.left)}</div>
-        <div class="stat-n n-right">${num(card.right)}</div>
-        <div class="stat-n n-bottom">${num(card.bottom)}</div>
+        <div class="stat-n n-top">${card.top}</div>
+        <div class="stat-n n-left">${card.left}</div>
+        <div class="stat-n n-right">${card.right}</div>
+        <div class="stat-n n-bottom">${card.bottom}</div>
       </div>
     </div>`;
 }

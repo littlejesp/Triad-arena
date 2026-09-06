@@ -1001,6 +1001,13 @@ visar exakt fem ikryssade kort och att `#campaign-begin-btn` inte är
 `disabled`) — två nya tester i `tests/game.test.mjs` (19 totalt, alla
 gröna).
 
+**Samma session, en liten skönhetsfix:** stat-siffran `10` visades som `A`
+överallt (handkort, bräde, draftrutnät, kortmodalens fallback-vy) — en
+gammal `const num = n => n === 10 ? 'A' : n` (klassiskt Triple
+Triad-spelkortsmönster, aldrig efterfrågat i det här projektet). Borttagen
+helt (funktionen och alla 8 anropsställen bytta mot att skriva `card.top`
+m.fl. direkt) på användarens begäran — `10` visas nu som `10`.
+
 ### New Game+ (svar på "kör om med tuffare AI-händer / tills vi bygger
 fler nivåer")
 
