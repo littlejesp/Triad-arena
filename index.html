@@ -405,6 +405,27 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   100%{ opacity:0; transform:translate(-50%,-6px) scale(0.92); }
 }
 
+.graveyard-toggle{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 10px; border-radius:999px; border:1px solid rgba(180,170,150,0.4);
+  background:var(--panel); color:var(--text-dim); font-size:11px; letter-spacing:0.03em;
+  cursor:pointer;
+}
+.graveyard-toggle:hover{ border-color:var(--gold); color:var(--gold-bright); }
+.graveyard-modal{ max-width:520px; padding:22px 20px 20px; }
+.graveyard-modal h3{ font-family:'Cinzel',serif; color:var(--gold-bright); margin:0 0 6px; }
+.graveyard-hint{ font-size:11.5px; color:var(--text-dim); line-height:1.5; margin:0 0 16px; }
+.graveyard-columns{ display:flex; gap:16px; }
+.graveyard-side{ flex:1; min-width:0; }
+.graveyard-side-label{ font-size:12px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:8px; }
+.graveyard-side-label.blue{ color:var(--blue-side); }
+.graveyard-side-label.red{ color:var(--red-side); }
+.graveyard-cards{ display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow-y:auto; }
+.graveyard-card{ display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius:8px; background:rgba(255,255,255,0.03); }
+.graveyard-card-art{ width:28px; height:28px; border-radius:6px; background-size:cover; background-position:center; flex-shrink:0; }
+.graveyard-card span{ font-size:11.5px; color:var(--text-dim); }
+.graveyard-empty{ font-size:11.5px; color:var(--text-dim); opacity:0.6; font-style:italic; }
+
 /* Stat numbers sit right on the edge of the card they belong to — top
    number at the top edge, right number at the right edge, etc. — instead
    of a central cluster, so you can read "which side is strong" at the
@@ -1913,10 +1934,12 @@ let state = {
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
+  showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
-  rules: { same:false, plus:false, combo:false, elemental:false }, // optional Triple-Triad-style rules
+  rules: { same:false, plus:false, combo:false, elemental:false, graveyard:false }, // optional Triple-Triad-style rules
+  graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
   wins: { blue: 0, red: 0 },   // accumulated captures — spent to activate special attacks
@@ -1968,6 +1991,7 @@ function render(){
   let html = state.phase === 'draft' ? renderDraft() : (state.phase === 'coinflip' ? renderCoinflip() : renderBattle());
   html += renderModal();
   html += renderRulebookModal();
+  html += renderGraveyardModal();
   html += renderChoicePicker();
   app.innerHTML = html;
   attachHandlers();
@@ -2006,6 +2030,31 @@ function renderRulebookModal(){
           <button class="rulebook-nav-btn" id="rulebook-prev" ${i===0 ? 'disabled':''}>‹ Prev</button>
           <div class="rulebook-dots">${dots}</div>
           <button class="rulebook-nav-btn" id="rulebook-next" ${i===total-1 ? 'disabled':''}>Next ›</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderGraveyardModal(){
+  if(!state.showGraveyard) return '';
+  const side = (label, cls, cards) => `
+    <div class="graveyard-side">
+      <div class="graveyard-side-label ${cls}">${label} (${cards.length})</div>
+      ${cards.length ? `<div class="graveyard-cards">${cards.map(c => `
+        <div class="graveyard-card">
+          ${CARD_IMAGES[c.id] ? `<div class="graveyard-card-art" style="background-image:url('${CARD_IMAGES[c.id]}')"></div>` : ''}
+          <span>${c.name}</span>
+        </div>`).join('')}</div>` : `<div class="graveyard-empty">No cards here yet.</div>`}
+    </div>`;
+  return `
+    <div class="modal-overlay" id="graveyard-overlay">
+      <div class="modal-poster graveyard-modal">
+        <button class="modal-close" id="graveyard-close">✕</button>
+        <h3>💀 Graveyard</h3>
+        <p class="graveyard-hint">Cards destroyed by a Special Attack are recorded here instead of vanishing. They're gone for the rest of the match — the graveyard clears when the match ends.</p>
+        <div class="graveyard-columns">
+          ${side('Forest', 'red', state.graveyard.red)}
+          ${side('Your Banner', 'blue', state.graveyard.blue)}
         </div>
       </div>
     </div>`;
@@ -2144,6 +2193,10 @@ function renderDraft(){
       <label class="rule-toggle">
         <input type="checkbox" id="rule-elemental" ${state.rules.elemental ? 'checked' : ''}>
         <span><b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup.</span>
+      </label>
+      <label class="rule-toggle">
+        <input type="checkbox" id="rule-graveyard" ${state.rules.graveyard ? 'checked' : ''}>
+        <span><b>Graveyard</b> — when a card is destroyed (by a Special Attack, not a normal flip), it's recorded in its owner's Graveyard instead of just vanishing. Purely a record for now — no card reads from it yet.</span>
       </label>
     </div>
     ` : ''}
@@ -2363,6 +2416,7 @@ function renderBattle(){
     </div>
     <div class="wins-row">
       <span class="wins-chip red">⚡ <b>${state.wins.red}</b> wins</span>
+      ${state.rules.graveyard ? `<button class="graveyard-toggle" id="graveyard-toggle" title="View the Graveyard">💀 ${state.graveyard.blue.length + state.graveyard.red.length}</button>` : ''}
       <span class="wins-chip blue">⚡ <b>${state.wins.blue}</b> wins</span>
       ${state.winsPopup ? `<div class="wins-toast ${state.winsPopup.owner}">+${state.winsPopup.amount} Win${state.winsPopup.amount>1?'s':''}!</div>` : ''}
     </div>
@@ -2452,6 +2506,23 @@ function attachHandlers(){
   if(rulebookPrev) rulebookPrev.addEventListener('click', ()=> rulebookGo(-1));
   const rulebookNext = document.getElementById('rulebook-next');
   if(rulebookNext) rulebookNext.addEventListener('click', ()=> rulebookGo(1));
+
+  const graveyardToggle = document.getElementById('graveyard-toggle');
+  if(graveyardToggle) graveyardToggle.addEventListener('click', ()=>{
+    state.showGraveyard = true;
+    render();
+  });
+  const graveyardOverlay = document.getElementById('graveyard-overlay');
+  if(graveyardOverlay){
+    graveyardOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'graveyard-overlay') { state.showGraveyard = false; render(); }
+    });
+  }
+  const graveyardClose = document.getElementById('graveyard-close');
+  if(graveyardClose) graveyardClose.addEventListener('click', ()=>{
+    state.showGraveyard = false;
+    render();
+  });
 
   const choicePickerOverlay = document.getElementById('choice-picker-overlay');
   if(choicePickerOverlay){
@@ -2570,6 +2641,11 @@ function attachHandlers(){
     const elementalBox = document.getElementById('rule-elemental');
     if(elementalBox) elementalBox.addEventListener('change', ()=>{
       state.rules.elemental = elementalBox.checked;
+      render();
+    });
+    const graveyardBox = document.getElementById('rule-graveyard');
+    if(graveyardBox) graveyardBox.addEventListener('change', ()=>{
+      state.rules.graveyard = graveyardBox.checked;
       render();
     });
   } else {
@@ -2734,6 +2810,18 @@ function enemiesInDirection(index, direction, owner){
 // Nyxara, Deathblade) rather than as a blanket engine-wide guard.
 function protectedByInfiniteSeraph(owner){
   return state.board.some(e => e && e.owner === owner && e.card.id === 'infiniteseraph');
+}
+
+// Shared destruction path for every Special that removes a card from the
+// board outright (as opposed to a normal flip/capture). When the Graveyard
+// optional rule is on, the destroyed card is recorded in its owner's
+// Graveyard instead of simply vanishing — purely a visible record for now.
+function destroyCard(index){
+  const entry = state.board[index];
+  if(entry && state.rules.graveyard){
+    state.graveyard[entry.owner].push(entry.card);
+  }
+  state.board[index] = null;
 }
 
 function effectiveValue(card, edgeKey, opponentCard){
@@ -3464,7 +3552,7 @@ const SPECIAL_HANDLERS = {
       return `${srcEntry.card.name}'s Serpent's Wrath fails to pierce the enemy's guard!`;
     }
     if(rollCrit(0.25)){
-      state.board[targetIndex] = null;
+      destroyCard(targetIndex);
       return `${srcEntry.card.name} lands a critical strike — ${targetEntry.card.name} is destroyed!`;
     }
     targetEntry.owner = owner;
@@ -3780,7 +3868,7 @@ const SPECIAL_HANDLERS = {
     enemies.forEach(({ index, entry }) => {
       const canDestroy = entry.card[facingSide] <= 3 && !(entry.card.active && entry.card.active.destroyImmune);
       if(canDestroy){
-        state.board[index] = null;
+        destroyCard(index);
         destroyed++;
       } else {
         SpecialVerbs.debuff(entry, 1);
@@ -3866,7 +3954,7 @@ const SPECIAL_HANDLERS = {
       const idx = r*3+c;
       const entry = state.board[idx];
       if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
-        state.board[idx] = null;
+        destroyCard(idx);
         destroyed++;
       }
     });
@@ -4028,7 +4116,7 @@ const SPECIAL_HANDLERS = {
     const avgPower = Math.round(totalPower(targetEntry) / 4);
     if(avgPower <= 7){
       const targetName = targetEntry.card.name;
-      state.board[targetIndex] = null;
+      destroyCard(targetIndex);
       return `${name}'s Shadow Breaker shatters ${targetName} to pieces!`;
     }
     SpecialVerbs.debuff(targetEntry, 3);
@@ -4065,7 +4153,7 @@ const SPECIAL_HANDLERS = {
     let destroyed = 0;
     state.board.forEach((entry, i) => {
       if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
-        state.board[i] = null; destroyed++;
+        destroyCard(i); destroyed++;
       }
     });
     if(destroyed === 0){
@@ -4095,7 +4183,7 @@ const SPECIAL_HANDLERS = {
     let destroyed = 0;
     state.board.forEach((entry, i) => {
       if(entry && entry.owner !== owner && !(entry.card.active && entry.card.active.destroyImmune)){
-        state.board[i] = null; destroyed++;
+        destroyCard(i); destroyed++;
       }
     });
     if(destroyed === 0){
@@ -4621,9 +4709,9 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
-    turnCount: 0,
+    turnCount: 0, graveyard: { blue: [], red: [] },
   };
   render();
 }

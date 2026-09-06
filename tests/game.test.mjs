@@ -687,6 +687,89 @@ test('Triune Desire: Forbidden Harmony destroys adjacent enemies (respecting des
   await page.close();
 });
 
+test('Graveyard optional rule: destroyCard() records only when the rule is enabled', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = false;
+    state.graveyard = { blue: [], red: [] };
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    destroyCard(1);
+    const ruleOff = { recorded: state.graveyard.red.length, boardCleared: state.board[1] === null };
+
+    state.board = Array(9).fill(null);
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board[2] = freshEntry(findCardById('ogre'), 'red');
+    destroyCard(2);
+    const ruleOn = { recorded: state.graveyard.red.length, cardId: state.graveyard.red[0] && state.graveyard.red[0].id, boardCleared: state.board[2] === null };
+
+    // destroying an already-empty cell must not throw or push undefined
+    destroyCard(5);
+    const emptyCellSafe = state.graveyard.blue.length === 0 && state.graveyard.red.length === 1;
+
+    return { ruleOff, ruleOn, emptyCellSafe };
+  })()`);
+  assert.equal(result.ruleOff.recorded, 0, 'no record when the rule is off');
+  assert.equal(result.ruleOff.boardCleared, true);
+  assert.equal(result.ruleOn.recorded, 1, 'destroyed card recorded when the rule is on');
+  assert.equal(result.ruleOn.cardId, 'ogre');
+  assert.equal(result.ruleOn.boardCleared, true);
+  assert.equal(result.emptyCellSafe, true, 'destroying an empty cell is a safe no-op');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Graveyard optional rule: every destroy-capable Special routes through destroyCard()', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.rules.graveyard = true;
+
+    // Vaelira's Infernal Pact (aoe destroy-all)
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [], red: [] };
+    const vSrc = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[0] = vSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.vaelira({ srcEntry: vSrc, owner: 'blue' });
+    const vaelira = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'ogre';
+
+    // Nyxara's Void Dominion (aoe destroy-all)
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [], red: [] };
+    const nSrc = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[0] = nSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.nyxara({ srcEntry: nSrc, owner: 'blue' });
+    const nyxara = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'ogre';
+
+    // Triune Desire's Forbidden Harmony (directional adjacent destroy)
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [], red: [] };
+    const tSrc = freshEntry(findCardById('triunedesire'), 'blue');
+    state.board[4] = tSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.turnCount = 200;
+    SPECIAL_HANDLERS.triunedesire({ srcEntry: tSrc, sourceIndex: 4, owner: 'blue' });
+    const triunedesire = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'ogre';
+
+    // resetGame() clears any leftover graveyard between matches
+    state.graveyard.blue.push(findCardById('ogre'));
+    resetGame();
+    const resetClears = state.graveyard.blue.length === 0 && state.graveyard.red.length === 0;
+
+    return { vaelira, nyxara, triunedesire, resetClears };
+  })()`);
+  assert.equal(result.vaelira, true, "Vaelira's Infernal Pact kills land in the graveyard");
+  assert.equal(result.nyxara, true, "Nyxara's Void Dominion kills land in the graveyard");
+  assert.equal(result.triunedesire, true, "Triune Desire's Forbidden Harmony kills land in the graveyard");
+  assert.equal(result.resetClears, true, 'resetGame() clears the graveyard for the next match');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

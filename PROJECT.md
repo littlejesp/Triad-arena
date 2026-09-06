@@ -18,9 +18,10 @@ fil (t.ex. GitHub Pages).
 ## 1b. Nuvarande status (läs detta först — kort version av allt nedan)
 
 **Punkt 1–4 är MERGADE till `main`** (användaren bekräftade explicit, fyra
-gånger). **Punkt 5 (Triune Desire) är COMMITTAD på feature-branchen och
-väntar på nästa merge-bekräftelse** — fråga alltid explicit innan nästa
-merge, anta ALDRIG tillstånd från en tidigare bekräftelse.
+gånger). **Punkt 5 (Triune Desire) och punkt 6 (Graveyard) är COMMITTADE på
+feature-branchen och väntar på nästa merge-bekräftelse** — fråga alltid
+explicit innan nästa merge, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -90,6 +91,14 @@ före avsnitt 5b, för alla detaljer — flest genuint NYA motor-mekanismer
 av något enskilt kort hittills (en aura som påverkar ANDRA kort på
 brädet, en lag-omfattande vinst-bonus, en förmågespärr via rond-klockan,
 en generaliserad `freeIfSistersPresent`-tröskel).
+
+**6. En ny valfri regel: Graveyard**, från användarens eget förslag
+("Vi kanske skulle lägga till en graveyard.") följt av ett konkret
+kortdesign ("Graveyard Rune") som beskrev exakt beteendet. Byggd som en
+femte togglebar regel bredvid Same/Plus/Combo/Elemental — se avsnitt 5:s
+sista underrubrik för fullständiga detaljer (ny delad `destroyCard()`-helper,
+`state.graveyard`, en 💀-badge + modal i battle-vyn). Just nu bara ett
+synligt register, inget kort läser från det än.
 
 Parallellt, INTE en del av något av ovanstående: användaren nämnde också
 att de håller på att göra om 5 andra befintliga kort till bossar
@@ -984,6 +993,63 @@ korrekt (och Fenrir är fortfarande immun), Sister's Will fungerar med bara
 förstör en vanlig granne men inte en `destroyImmune`-granne (som ändå blir
 tystad) — PLUS en full slumpad match med kortet i båda händerna samtidigt.
 Inga `pageerror`. `tests/game.test.mjs`: 26 tester totalt, alla gröna.
+
+### Graveyard — ny valfri regel, från ett kort användaren skickade ("Graveyard Rune")
+
+Användaren föreslog fritt ("Vi kanske skulle lägga till en graveyard.") och
+skickade sedan ett konkret kortdesign, "Graveyard Rune", som beskriver
+regeln: när ett kort tas bort från spelplanen (av en Special/Ultimate, INTE
+en vanlig flip) hamnar det i en Graveyard istället för att bara försvinna;
+Graveyard-kort kan inte användas/påverkas/flyttas; Graveyard töms vid
+matchens slut. Byggd som en **femte valfri regel** (`state.rules.graveyard`),
+bredvid Same/Plus/Combo/Elemental i "Optional rules"-panelen (Random
+Draft/Choose Your Five, inte Campaign) — konsekvent med hur de andra
+regel-togglarna redan fungerar, snarare än ett alltid-på beteende.
+
+**Ny delad state:**
+- `state.rules.graveyard` (boolean, default `false`) — själva togglen.
+- `state.graveyard = { blue: [...], red: [...] }` — arrayer av rå kortobjekt
+  (inte board-entries), en per sida. Återställs till tomma arrayer i
+  `resetGame()` så en ny match aldrig ärver föregående matchs Graveyard.
+- `state.showGraveyard` (boolean) — om Graveyard-modalen (se nedan) är öppen.
+
+**Ny delad funktion, `destroyCard(index)`** (bredvid `protectedByInfiniteSeraph`):
+enda stället i motorn som faktiskt tar bort ett kort från `state.board`.
+Om regeln är på och rutan hade ett kort pushas kortobjektet till
+`state.graveyard[ägare]` INNAN rutan töms; annars beter den sig identiskt
+med den gamla `state.board[i] = null`. Alla sex ställen i motorn som
+tidigare skrev `state.board[i] = null` direkt konverterades till att anropa
+`destroyCard(i)` istället: Lyriths (`lyrith`) kritiska träff, The Celestial
+Judgments Eternal Verdict, Triune Desires Forbidden Harmony, Dariens Shadow
+Breaker, samt Vaeliras och Nyxaras respektive ultimate. Ingen av dessa
+korts EGEN logik ändrades — bara var raderingen av `state.board[i]` sker.
+
+**UI**: en 💀-badge (`#graveyard-toggle`, visar totalt antal döda kort på
+båda sidor) dyker upp i `wins-row` mitt emellan de två wins-chippen, men
+BARA när `state.rules.graveyard` är på. Klick öppnar en modal
+(`renderGraveyardModal()`, samma `modal-overlay`/`modal-poster`-mönster som
+Rulebook-modalen) med två kolumner (Forest/Your Banner) som listar varje
+dött korts tumnagel (`CARD_IMAGES[id]`) + namn, eller "No cards here yet."
+om sidan är tom.
+
+**Medveten begränsning, som checkboxens egen text säger rakt ut**: det här
+är just nu bara ett SYNLIGT REGISTER — inget kort läser från Graveyard än.
+Reglerna "kan inte användas/påverkas/flyttas" är trivialt sanna eftersom
+kortet inte längre finns på `state.board` alls (samma sätt som ett vanligt
+borttaget kort redan var oåtkomligt) — ingen ny spärrlogik behövdes för
+det. Framtida kort som ska INTERAGERA med Graveyard (återuppliva, räkna
+döda kort för en bonus, etc.) är fortfarande obyggt och väntar på att
+användaren definierar ett sådant kort.
+
+**Testat**: två nya tester (state-injicering) i `tests/game.test.mjs` —
+`destroyCard()` registrerar bara när regeln är på (och är en säker no-op på
+en redan tom ruta), samt en fullständig pipeline-test som verifierar att
+Vaeliras, Nyxaras och Triune Desires respektive destroy-ultimates alla
+faktiskt hamnar i `state.graveyard` via sina riktiga Special-handlers (inte
+bara `destroyCard()` isolerat), plus att `resetGame()` tömmer Graveyard.
+En separat ad-hoc Playwright-körning verifierade UI:t manuellt (badge-text,
+öppna/stänga modal, korrekt antal kort per sida). Inga `pageerror`.
+`tests/game.test.mjs`: 28 tester totalt, alla gröna.
 
 ## 5b. Campaign-läge (nytt sidospelläge, användarens idé)
 
