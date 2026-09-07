@@ -896,6 +896,29 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .skill-desc{ font-size:13px; line-height:1.5; color:var(--text-dim); }
 .skill-empty{ font-size:13px; color:var(--text-dim); font-style:italic; padding:0 20px 20px; }
 
+/* Card-info modal, side-by-side on screens with room for it: the skills
+   panel sits directly beside the art instead of underneath it, so reading
+   the skills no longer means scrolling down PAST the poster first — the
+   stacked layout above (art on top, skills below, one shared scrollbar)
+   is kept as the narrow-viewport fallback where there's no room for two
+   columns. Same DOM either way (renderModal()'s markup doesn't change),
+   this only repositions it. */
+@media (min-width:700px){
+  .modal-poster{
+    max-width:780px; max-height:88vh;
+    display:flex; align-items:stretch; overflow:hidden;
+  }
+  .modal-poster > .poster-art-full,
+  .modal-poster > .poster-art{
+    flex:0 0 320px; width:320px; aspect-ratio:auto;
+  }
+  .modal-poster > .poster-art-full{ overflow:hidden; }
+  .modal-poster > .poster-art-full img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .modal-poster .poster-skills{
+    flex:1 1 auto; max-height:88vh; overflow-y:auto;
+  }
+}
+
 /* ---------- rulebook modal: a paged image viewer, one illustrated page
    per rule topic (art generated to match the real rules — see RULEBOOK_PAGES) ---------- */
 .rulebook-pager-img{ width:100%; display:block; border-radius:16px 16px 0 0; }
