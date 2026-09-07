@@ -20,9 +20,11 @@ fil (t.ex. GitHub Pages).
 **Punkt 1–12 är MERGADE till `main`** (användaren bekräftade explicit,
 sju gånger nu — senast "Merga allt till main" för punkt 11–12, Medusa-
 ombyggnaden + de sex nya korten Shiva/Leviathan/Omega Weapon/Yojimbo/
-Chocobo King/Odin). Inget ocommittat väntar på feature-branchen just nu —
-fråga alltid explicit innan nästa merge när mer arbete samlats där, anta
-ALDRIG tillstånd från en tidigare bekräftelse.
+Chocobo King/Odin). **Punkt 13 (info-modalens layout) och punkt 14
+(rond-klockan breddad till 4 ticks) ligger committade på feature-branchen,
+INTE mergade till `main` än** — fråga alltid explicit innan nästa merge
+när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:
@@ -221,6 +223,49 @@ Nexzoth/Morvath fick de elementen tilldelade) — fixat i samma veva som
 Shiva fick sitt nya `ice`-element. Se avsnitt 5:s allra sista underrubrik
 för fullständiga detaljer per kort. Sex nya permanenta tester i
 `tests/game.test.mjs` (ett per kort), 45 tester totalt, alla gröna.
+
+**13. Info-modalens layout** — användaren påpekade att man var tvungen att
+scrolla NER FÖRBI kortkonsten för att läsa skillsen efter att ha tryckt på
+info-ikonen. Löst med en ren CSS-ändring (ingen HTML/JS-ändring —
+`renderModal()`s markup är orörd): på skärmar med tillräckligt om bredd
+(`min-width:700px`) blir `.modal-poster` en flex-rad istället för en
+vertikal stapel — konsten till vänster (fast bredd 320px), skills-panelen
+till höger med sin egen `overflow-y:auto`, så de scrollar oberoende av
+varandra. Smala skärmar (mobil) behåller den gamla staplade layouten
+oförändrad, eftersom det inte finns plats för två kolumner där. Se
+avsnitt 6 för CSS-detaljer.
+
+**14. Rond-klockan breddad från 2 till 4 ticks** — en riktig bugg-rapport,
+inte bara en "gör om"-begäran. Användaren visade en skärmdump: Shivas
+Diamond Storm hade debuffat fiender -3, men en efterföljande attack
+flippade ändå inte de försvagade korten. Grundorsaken: EVERY "denna
+runda"-effekt i spelet (`debuffThisRound`/`buffThisRound` samt alla
+`...UntilTurnCount = state.turnCount + 2`-beviljanden: Petrify,
+specialLocked, buffLocked, destroyImmune, Shivas egna ultimate-flaggor
+osv.) varade bara "+2 ticks" — vilket i praktiken betydde "överlever
+motståndarens NÄSTA svarsdrag, men är redan borta igen precis när det blir
+casterns egen tur igen". För en on-place-passiv (Naline, Tiamat) är detta
+sällan ett problem eftersom kortet oftast attackerar direkt. Men för en
+board-wide-AOE-ULTIMATE (Shiva, och i praktiken alla sex nya kort från
+punkt 12) som INTE alltid kan följas upp med en attack SAMMA tur, betydde
+det att man kunde betala 3 Wins för en effekt som sedan aldrig gick att
+faktiskt utnyttja. Ursprungligen tillfrågad om detta skulle fixas bara för
+Shiva (`AskUserQuestion`, valde till en början "bara Shiva") — men
+användaren ändrade sig direkt efteråt ("Men gör så på alla kort som har
+den funktionen") till en GLOBAL breddning. Implementerat genom att byta
+alla nio hårdkodade `+ 2` till `+ 4` (sed-ersättning, ett enda mönster:
+`UntilTurnCount = state.turnCount + 2` → `+ 4`), plus ett nytt valfritt
+`roundTicks`-argument (default 4) på `SpecialVerbs.debuffThisRound`/
+`buffThisRound` för framtida per-kort-finjustering om det någonsin behövs.
+En genuin, avsiktlig BALANSÄNDRING (inte en text-trohets-förenkling) som
+påverkar praktiskt taget varje kort i rostret som har någon "denna
+runda"-effekt — dokumenterat tydligt i `sweepExpiredRoundEffects()`s
+kodkommentar. Sex befintliga tester hade hårdkodade `+2`-antaganden
+(två dedikerade "round clock"-enhetstester, Three Head Dragons Apokalyps,
+Triune Desires Crimson Allure, Medusas Stone Gaze/ultimate, Shivas eget
+Diamond Storm-test, Nalines Divine Touch/Rise Again) — alla uppdaterade
+till att verifiera HELA det nya 4-tick-fönstret (inte bara start/slut) och
+gröna igen. 45 tester totalt.
 
 Parallellt, öppen tråd men INTE påbörjad: användaren delade en 8-stegs
 "balans-plan" (från ChatGPT) för att formalisera Triad Arenas regler

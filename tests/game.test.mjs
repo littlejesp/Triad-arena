@@ -73,12 +73,19 @@ test('base engine: a stronger card captures a weaker adjacent enemy on placement
 // round-clock primitive directly instead of through a specific card, since
 // no shipped card currently uses it (documented in PROJECT.md as a
 // generic, currently-unused-but-available engine primitive).
-test('round clock: SpecialVerbs.debuffThisRound expires after the target\'s next turn; debuff() stays permanent', async () => {
+test('round clock: SpecialVerbs.debuffThisRound expires after the caster\'s own next turn (4 ticks); debuff() stays permanent', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const dummy = findCardById('ogre');
 
+    // Widened from the original 2-tick window (opponent's reply only) to 4
+    // (through the caster's OWN next turn too) — the original 2-tick window
+    // meant a "this round" grant from something that doesn't itself attack
+    // immediately (e.g. an AOE Ultimate) was usually already gone again by
+    // the caster's very next turn unless they capitalized on it in the same
+    // turn they cast it, which read as "the debuff did nothing" in practice
+    // (reported against Shiva's Diamond Storm). See sweepExpiredRoundEffects().
     state.board = Array(9).fill(null);
     const weaken = freshEntry(dummy, 'red');
     state.board[1] = weaken; // sweepExpiredRoundEffects only scans state.board
@@ -86,19 +93,25 @@ test('round clock: SpecialVerbs.debuffThisRound expires after the target\'s next
     SpecialVerbs.debuffThisRound(weaken, 1);
     const afterCast = weaken.captureBonus;
     state.turnCount++; sweepExpiredRoundEffects();
-    const afterOpponentTurn = weaken.captureBonus; // should still be weakened
+    const afterOpponentTurn = weaken.captureBonus; // tick 1: still weakened
     state.turnCount++; sweepExpiredRoundEffects();
-    const afterOwnNextTurn = weaken.captureBonus; // should be back to 0
+    const afterOwnNextTurn = weaken.captureBonus; // tick 2 (caster's own next turn): still weakened now
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterSecondOpponentTurn = weaken.captureBonus; // tick 3: still weakened
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterExpiry = weaken.captureBonus; // tick 4: back to 0
 
     const permanent = freshEntry(dummy, 'red');
     SpecialVerbs.debuff(permanent, 1);
     state.turnCount += 5; sweepExpiredRoundEffects();
 
-    return { afterCast, afterOpponentTurn, afterOwnNextTurn, permanentAfterSweeps: permanent.captureBonus };
+    return { afterCast, afterOpponentTurn, afterOwnNextTurn, afterSecondOpponentTurn, afterExpiry, permanentAfterSweeps: permanent.captureBonus };
   })()`);
   assert.equal(result.afterCast, -1);
   assert.equal(result.afterOpponentTurn, -1, 'debuffThisRound should still apply through the opponent\'s reply');
-  assert.equal(result.afterOwnNextTurn, 0, 'debuffThisRound should be gone by the caster\'s next turn');
+  assert.equal(result.afterOwnNextTurn, -1, 'debuffThisRound should still apply on the caster\'s own next turn — the whole point of the widened window');
+  assert.equal(result.afterSecondOpponentTurn, -1, 'debuffThisRound should still apply through the opponent\'s second reply');
+  assert.equal(result.afterExpiry, 0, 'debuffThisRound should be gone after 4 ticks');
   assert.equal(result.permanentAfterSweeps, -1, 'plain debuff() has no time limit and must not expire');
   assert.deepEqual(pageErrors, []);
   await page.close();
@@ -118,10 +131,16 @@ test('round clock: a "this round" effect is symmetric regardless of which side c
     const afterOne = target.captureBonus;
     state.turnCount++; sweepExpiredRoundEffects();
     const afterTwo = target.captureBonus;
-    return { afterOne, afterTwo };
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterThree = target.captureBonus;
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterFour = target.captureBonus;
+    return { afterOne, afterTwo, afterThree, afterFour };
   })()`);
   assert.equal(result.afterOne, -1);
-  assert.equal(result.afterTwo, 0);
+  assert.equal(result.afterTwo, -1);
+  assert.equal(result.afterThree, -1);
+  assert.equal(result.afterFour, 0);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -414,11 +433,17 @@ test('Three Head Dragon: Apokalyps debuffs all enemies for the rest of the round
     const afterOneSweep = enemy.captureBonus;
     state.turnCount++; sweepExpiredRoundEffects();
     const afterTwoSweeps = enemy.captureBonus;
-    return { afterCast, afterOneSweep, afterTwoSweeps };
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterThreeSweeps = enemy.captureBonus;
+    state.turnCount++; sweepExpiredRoundEffects();
+    const afterFourSweeps = enemy.captureBonus;
+    return { afterCast, afterOneSweep, afterTwoSweeps, afterThreeSweeps, afterFourSweeps };
   })()`);
   assert.equal(result.afterCast, -3);
   assert.equal(result.afterOneSweep, -3, 'should still apply through the opponent\'s reply');
-  assert.equal(result.afterTwoSweeps, 0, 'should be gone by the caster\'s next turn');
+  assert.equal(result.afterTwoSweeps, -3, 'should still apply on the caster\'s own next turn (widened round window)');
+  assert.equal(result.afterThreeSweeps, -3, 'should still apply through the opponent\'s second reply');
+  assert.equal(result.afterFourSweeps, 0, 'should be gone after 4 ticks');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -567,7 +592,7 @@ test('Campaign: every HEROES card is selectable from stage 2 onward, regardless 
 // Triune Desire — a fourth Triple Triad Sisters card (the three fused
 // into one boss), added in a later session from a new source poster,
 // playable from the start (see PROJECT.md section 5).
-test('Triune Desire: Crimson Allure locks a random enemy\'s Special Attack for one round', async () => {
+test('Triune Desire: Crimson Allure locks a random enemy\'s Special Attack through the caster\'s own next turn', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -583,12 +608,18 @@ test('Triune Desire: Crimson Allure locks a random enemy\'s Special Attack for o
     state.turnCount++;
     const lockedAfterOpponentTurn = specialUsable(withSpecial, 'red', target);
     state.turnCount++;
-    const unlockedAtCasterNextTurn = specialUsable(withSpecial, 'red', target);
-    return { lockedAtCast, lockedAfterOpponentTurn, unlockedAtCasterNextTurn };
+    const lockedAtCasterNextTurn = specialUsable(withSpecial, 'red', target);
+    state.turnCount++;
+    const lockedAfterSecondOpponentTurn = specialUsable(withSpecial, 'red', target);
+    state.turnCount++;
+    const unlockedAfterExpiry = specialUsable(withSpecial, 'red', target);
+    return { lockedAtCast, lockedAfterOpponentTurn, lockedAtCasterNextTurn, lockedAfterSecondOpponentTurn, unlockedAfterExpiry };
   })()`);
   assert.equal(result.lockedAtCast, false);
   assert.equal(result.lockedAfterOpponentTurn, false, 'should still be locked through the opponent\'s reply');
-  assert.equal(result.unlockedAtCasterNextTurn, true, 'should unlock by the caster\'s next turn');
+  assert.equal(result.lockedAtCasterNextTurn, false, 'should still be locked on the caster\'s own next turn (widened round window)');
+  assert.equal(result.lockedAfterSecondOpponentTurn, false, 'should still be locked through the opponent\'s second reply');
+  assert.equal(result.unlockedAfterExpiry, true, 'should unlock after 4 ticks');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -799,7 +830,7 @@ test('Kaeldryx: Dragon Hunter/Scalebreaker passives, Hunter\'s Focus buff-lock, 
     out.buffLockedAfterPlace = hfTarget.buffLockedUntilTurnCount > state.turnCount;
     SpecialVerbs.attackBoost(hfTarget, 5);
     out.buffBlockedWhileLocked = hfTarget.captureBonus === 0;
-    state.turnCount += 2;
+    state.turnCount += 4;
     SpecialVerbs.attackBoost(hfTarget, 5);
     out.buffWorksAfterLockExpires = hfTarget.captureBonus === 5;
 
@@ -1136,7 +1167,7 @@ test('Naline (redesigned): Divine Touch/Soul Revive on-place, buffThisRound expi
     out.soulReviveTookFromOwnGraveyard = state.graveyard.blue.length === 0;
     const revived = state.board.find((e,i) => i !== 4 && e && e.owner === 'blue');
     out.soulReviveAtFixedPower = !!revived && revived.card.top === 1 && revived.card.left === 1;
-    state.turnCount += 2;
+    state.turnCount += 4;
     sweepExpiredRoundEffects();
     out.divineTouchExpiredAfterRound = nSrc.captureBonus === 0;
 
@@ -1165,7 +1196,7 @@ test('Naline (redesigned): Divine Touch/Soul Revive on-place, buffThisRound expi
     const revivedEntries = state.board.filter(e => e && e.owner === 'blue' && e !== ultSrc);
     out.riseAgainAtFixedPower = revivedEntries.length === 2 && revivedEntries.every(e => e.card.top === 1);
     out.riseAgainImmuneThisRound = revivedEntries.every(e => isDestroyImmune(e));
-    state.turnCount += 2;
+    state.turnCount += 4;
     out.riseAgainImmuneExpires = revivedEntries.every(e => !isDestroyImmune(e));
 
     return out;
@@ -1434,9 +1465,9 @@ test('Medusa (redesigned): Stone Gaze petrify-on-win, Curse of the Gorgon margin
     const loser = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
     state.board[1] = loser;
     resolveFlips(4, 'blue');
-    out.petrifiedAfterWin = loser.petrifiedUntilTurnCount === 12; // turnCount(10) + 2
+    out.petrifiedAfterWin = loser.petrifiedUntilTurnCount === 14; // turnCount(10) + 4
     out.petrifiedCantUseSpecial = !specialUsable({ ...findCardById('ogre'), special:{name:'x',cost:0,once:false,targets:'aoe'} }, 'blue', loser);
-    state.turnCount = 12;
+    state.turnCount = 14;
     out.notPetrifiedAfterExpiry = !(loser.petrifiedUntilTurnCount > state.turnCount);
 
     // Curse of the Gorgon: enemy wins by <=2 margin against Medusa -> the
@@ -1515,7 +1546,7 @@ test('Medusa (redesigned): Stone Gaze petrify-on-win, Curse of the Gorgon margin
     const foe2 = freshEntry({ id:'foe2', name:'Foe2', top:5,right:5,bottom:5,left:5 }, 'red');
     state.board[1] = foe1; state.board[2] = foe2;
     SPECIAL_HANDLERS.medusa({ srcEntry: ultSrc, owner: 'blue' });
-    out.ultimatePetrifiedBoth = foe1.petrifiedUntilTurnCount === 22 && foe2.petrifiedUntilTurnCount === 22;
+    out.ultimatePetrifiedBoth = foe1.petrifiedUntilTurnCount === 24 && foe2.petrifiedUntilTurnCount === 24;
     out.ultimateDebuffedBoth = foe1.captureBonus === -2 && foe2.captureBonus === -2;
     out.ultimateSelfBuffed = ultSrc.captureBonus === 3;
 
@@ -1610,7 +1641,7 @@ test('Shiva: Frost Aura on-place, Diamond Dust/Frost Barrier, Ice Touch, Eternal
     state.board[1] = adjEnemy; state.board[8] = farEnemy;
     SPECIAL_HANDLERS.shiva({ srcEntry: shivaUlt, sourceIndex: 4, owner: 'blue' });
     out.ultDebuffAll = adjEnemy.captureBonus === -3 && farEnemy.captureBonus === -3;
-    out.ultFreezeAdjacentOnly = adjEnemy.specialLockedUntilTurnCount === 22 && !(farEnemy.specialLockedUntilTurnCount > 0);
+    out.ultFreezeAdjacentOnly = adjEnemy.specialLockedUntilTurnCount === 24 && !(farEnemy.specialLockedUntilTurnCount > 0);
     out.ultSelfBuff = shivaUlt.captureBonus === 3;
     state.board[1] = null;
     const weakFoe = freshEntry({ id:'wk', name:'WK', top:1,right:1,bottom:1,left:1 }, 'red');

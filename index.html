@@ -3517,7 +3517,7 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // "once per match" cap — a mild status effect, not a board-destroying
   // one, so it doesn't need the guard the balance pass added elsewhere.
   if(a.onWinPetrify && loserIndex != null){
-    loserEntry.petrifiedUntilTurnCount = state.turnCount + 2;
+    loserEntry.petrifiedUntilTurnCount = state.turnCount + 4;
   }
   // Shiva's Diamond Dust / Leviathan's Crushing Tide / Omega Weapon's Hyper
   // Pulse: "the defeated card gets -N Power on all sides this round" — no
@@ -4107,7 +4107,7 @@ const ON_PLACE_HANDLERS = {
     const enemies = state.board.filter(e => e && e.owner !== owner);
     if(enemies.length === 0) return;
     const target = enemies[Math.floor(Math.random()*enemies.length)];
-    target.specialLockedUntilTurnCount = state.turnCount + 2;
+    target.specialLockedUntilTurnCount = state.turnCount + 4;
   },
   // Kaeldryx's Hunter's Focus: "choose 1 enemy card — it can't get Power
   // bonuses this round" — random target, same simplification as every other
@@ -4117,7 +4117,7 @@ const ON_PLACE_HANDLERS = {
     const enemies = state.board.filter(e => e && e.owner !== owner);
     if(enemies.length === 0) return;
     const target = enemies[Math.floor(Math.random()*enemies.length)];
-    target.buffLockedUntilTurnCount = state.turnCount + 2;
+    target.buffLockedUntilTurnCount = state.turnCount + 4;
   },
   // Nexzoth's Reality Consume.
   nexzoth(entry, owner){
@@ -4150,7 +4150,7 @@ const ON_PLACE_HANDLERS = {
     const ashfallTarget = enemies[Math.floor(Math.random()*enemies.length)];
     SpecialVerbs.debuffThisRound(ashfallTarget, 2);
     const denialTarget = enemies[Math.floor(Math.random()*enemies.length)];
-    denialTarget.specialLockedUntilTurnCount = state.turnCount + 2;
+    denialTarget.specialLockedUntilTurnCount = state.turnCount + 4;
     SpecialVerbs.debuffThisRound(denialTarget, 2);
   },
   // Zalazar bundles Infernal Reach (random enemy, -2 this round) and Tyrant
@@ -4198,7 +4198,7 @@ const ON_PLACE_HANDLERS = {
     SpecialVerbs.buffThisRound(balanceTarget, 2);
     const redemptionTarget = allies[Math.floor(Math.random()*allies.length)];
     SpecialVerbs.buffThisRound(redemptionTarget, 2);
-    redemptionTarget.destroyImmuneUntilTurnCount = state.turnCount + 2;
+    redemptionTarget.destroyImmuneUntilTurnCount = state.turnCount + 4;
   },
   // Shiva's Frost Aura / Leviathan's Abyssal Presence: identical text on
   // both cards — "every ADJACENT enemy card gets -1 Power on all sides this
@@ -4476,12 +4476,14 @@ const SpecialVerbs = {
   // in has passed — for source text that explicitly says "this round"
   // (e.g. Tiamat's Weakening) instead of a permanent penalty. Backed by
   // `entry.tempEffects` + `sweepExpiredRoundEffects()` below; see the
-  // comment there for what "a round" means here.
-  debuffThisRound(entry, amount){
+  // comment there for what "a round" means here (roundTicks defaults to 4,
+  // the window every "this round"/"this turn"-style effect in the game now
+  // uses — see that comment for why it was widened from the original 2).
+  debuffThisRound(entry, amount, roundTicks = 4){
     if(isDebuffImmuneNow(entry.card)) return;
     entry.captureBonus -= amount;
     entry.tempEffects = entry.tempEffects || [];
-    entry.tempEffects.push({ captureDelta: -amount, expiresAtTurnCount: state.turnCount + 2 });
+    entry.tempEffects.push({ captureDelta: -amount, expiresAtTurnCount: state.turnCount + roundTicks });
     flashStatChange(entry, -amount);
   },
   // Naline's Divine Touch ("+2 Power this round", not permanent) — the
@@ -4489,20 +4491,38 @@ const SpecialVerbs = {
   // sweepExpiredRoundEffects() below already reverses a captureDelta of
   // either sign, so this just needed the mirrored apply step; respects
   // buffLockedUntilTurnCount same as attackBoost/directionalBoost.
-  buffThisRound(entry, amount){
+  buffThisRound(entry, amount, roundTicks = 4){
     if(entry.buffLockedUntilTurnCount > state.turnCount) return;
     entry.captureBonus += amount;
     entry.tempEffects = entry.tempEffects || [];
-    entry.tempEffects.push({ captureDelta: amount, expiresAtTurnCount: state.turnCount + 2 });
+    entry.tempEffects.push({ captureDelta: amount, expiresAtTurnCount: state.turnCount + roundTicks });
     flashStatChange(entry, amount);
   },
 };
 
-// Reverses any SpecialVerbs.*ThisRound effect whose window has closed.
-// "A round" = one full back-and-forth: the effect survives the rest of the
-// caster's own turn AND the opponent's very next turn, then is undone right
-// as it becomes the caster's turn again (`state.turnCount` ticks once per
-// turn switch in advanceTurn, so +2 turns = "through the opponent's reply").
+// Reverses any SpecialVerbs.*ThisRound effect (and every other
+// `...UntilTurnCount = state.turnCount + 4` grant in the engine — Petrify,
+// specialLocked, buffLocked, destroyImmune, the Ultimate-only "this round"
+// flags, etc.) whose window has closed. "A round" = two full back-and-
+// forths: the effect survives the rest of the caster's own turn, the
+// opponent's reply, the caster's OWN NEXT TURN, and the opponent's reply to
+// THAT, only reverting right as it becomes the caster's turn again after
+// all of that (`state.turnCount` ticks once per turn switch in
+// advanceTurn, so +4 turns = "through my own next turn too", not just the
+// opponent's immediate reply).
+//
+// BALANCE (a deliberate widening, not a text-fidelity default): this used
+// to be +2 (opponent's reply only) — reported as a bug ("Shiva's Diamond
+// Storm debuffs enemies but attacking them still doesn't flip the cards")
+// because a caster who couldn't immediately capitalize on a "this round"
+// grant in the SAME turn they cast it would find it already expired by
+// their very next turn, before they ever got a real chance to use it —
+// especially painful for a 3-Wins Ultimate like Diamond Storm. Widened
+// globally (not just for Shiva) at the user's explicit request, so every
+// card sharing this convention (Naline, Tiamat, Vorgrath, Medusa, Triune
+// Desire, the six newest cards, etc.) gets a genuinely usable window on
+// the caster's own next turn, not just an opponent-facing one.
+//
 // Deliberately symmetric for either side casting it. Call this at every
 // turn switch, not just once per round, so it never runs stale by more than
 // one turn regardless of which side started the clock.
@@ -4643,7 +4663,7 @@ const SPECIAL_HANDLERS = {
     let petrified = 0;
     state.board.forEach(e => {
       if(!e || e.owner !== enemyOwner || protectedSide) return;
-      e.petrifiedUntilTurnCount = state.turnCount + 2;
+      e.petrifiedUntilTurnCount = state.turnCount + 4;
       SpecialVerbs.debuffThisRound(e, 2);
       petrified++;
     });
@@ -5007,7 +5027,7 @@ const SPECIAL_HANDLERS = {
   // destroy-capable handler.
   triunedesire({ srcEntry, sourceIndex, owner }){
     const name = srcEntry.card.name;
-    state.board.forEach(e => { if(e && e.owner !== owner) e.specialLockedUntilTurnCount = state.turnCount + 2; });
+    state.board.forEach(e => { if(e && e.owner !== owner) e.specialLockedUntilTurnCount = state.turnCount + 4; });
     if(protectedByInfiniteSeraph(owner === 'blue' ? 'red' : 'blue')){
       return `${name}'s Forbidden Harmony cannot destroy anyone — The Infinite Seraph's Eternal Presence holds! (Every enemy Special Attack is still silenced this round.)`;
     }
@@ -5430,11 +5450,11 @@ const SPECIAL_HANDLERS = {
     let frozen = 0;
     if(!protectedSide){
       adjacentEntries(sourceIndex).forEach(({ entry: n }) => {
-        if(n.owner === enemyOwner){ n.specialLockedUntilTurnCount = state.turnCount + 2; frozen++; }
+        if(n.owner === enemyOwner){ n.specialLockedUntilTurnCount = state.turnCount + 4; frozen++; }
       });
     }
     SpecialVerbs.buffThisRound(srcEntry, 3);
-    srcEntry.executeWeakFoesUntilTurnCount = state.turnCount + 2;
+    srcEntry.executeWeakFoesUntilTurnCount = state.turnCount + 4;
     srcEntry.executeWeakFoesThreshold = 10;
     return frozen > 0
       ? `${name}'s Diamond Storm blankets the battlefield in ice, freezing ${frozen} foe${frozen>1?'s':''}!`
@@ -5450,7 +5470,7 @@ const SPECIAL_HANDLERS = {
     state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 2); });
     adjacentEntries(sourceIndex).forEach(({ entry: n }) => { if(n.owner === enemyOwner) SpecialVerbs.debuffThisRound(n, 1); });
     SpecialVerbs.buffThisRound(srcEntry, 3);
-    srcEntry.onWinPermanentSelfBuffUntilTurnCount = state.turnCount + 2;
+    srcEntry.onWinPermanentSelfBuffUntilTurnCount = state.turnCount + 4;
     srcEntry.onWinPermanentSelfBuffAmount = 1;
     return `${name}'s Abyssal Deluge drowns the battlefield!`;
   },
