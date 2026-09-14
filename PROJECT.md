@@ -19,10 +19,35 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). Inget
-ocommittat väntar på feature-branchen just nu — fråga alltid explicit
-innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
-en tidigare bekräftelse.
+info-modalens layout + rond-klockan breddad till 4 ticks). **Punkt 15
+(Ancient Wyrmkings första ultimate) ligger committad på feature-branchen,
+INTE mergad till `main` än** — fråga alltid explicit innan nästa merge när
+mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
+
+**15. Ancient Wyrmkings första ultimate, "Conquests Witnessed"** — den enda
+kvarvarande kortet i hela rostret som saknade en special attack (avsnitt 8
+har flaggat det som väntande sedan flera sessioner tillbaka). Byggd efter
+tre föreslagna koncept diskuterades i chatt (inga sparade i det här
+dokumentet — rena PROPOSAL-diskussioner, aldrig canon förrän kod skrevs);
+användaren valde och finjusterade konceptet "räkna befintlig Wins-resurs"
+över "räkna kort på brädet"/"räkna Graveyard" som mer träffsäkert för ett
+uråldrigt, tålmodigt kort. Mekanik: `state.wins.blue + state.wins.red`
+(ingen ny räknare — samma resurs som redan gate:ar varje ultimate i
+spelet) ger Ancient Wyrmking +1 Power permanent per 2 sammanlagda Wins,
+cappat vid +3, applicerat EN gång vid aktivering (`SpecialVerbs.attackBoost`
+— en låst ögonblicksbild, inte en levande formel, så bonusen växer aldrig
+efter aktiveringen även om fler Wins ackumuleras senare i matchen). Alla
+fiendekort får dessutom -1 Power denna runda (`debuffThisRound`, samma
+milda AOE-kontrollnivå som redan finns på flera 37–38-poängskort).
+Grundstats (10/8/9/10, `element:'earth'`, `isDragon:true`), den befintliga
+engångsskölden och alla andra kort/regler är HELT oförändrade — ren
+tillägg av `special`+en ny `SPECIAL_HANDLERS.dragon`-funktion+en ny
+`skills`-rad, i båda `HEROES`- och `FOREST_FOES`-kopiorna. Ett nytt
+permanent test i `tests/game.test.mjs` (46 totalt, alla gröna) verifierar
+0-Wins-fallet (ingen bonus, debuffen appliceras ändå), +2 vid 4 totala
+Wins, cap vid +3 även med 20 totala Wins, att bonusen inte räknas om live
+efter aktivering, och att endast fiender (inte allierade) debuffas.
 
 **1. En liten motor/kvalitet-lista**, vald av användaren efter att ha bett
 om förbättringsförslag:

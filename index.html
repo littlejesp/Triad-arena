@@ -1428,7 +1428,10 @@ const HEROES = [
     {name:'Soul Fuel', desc:'When she loses a card, she immediately gains +2 on all sides next round.'},
     {name:"Special Attack: Oblivion's Call", desc:'Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it get -2 on the sides facing her until your next round.'},
   ] },
-  { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
+  { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, special:{ name:'Conquests Witnessed', cost:3, once:true, targets:'aoe' }, skills: [
+    {name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'},
+    {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
+  ]},
   { id:'shadowking', name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
   { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
@@ -1784,7 +1787,10 @@ const FOREST_FOES = [
   { id:'lich',      name:'Frost Lich',       role:'Undying Sorcerer', top:8, right:6, bottom:9, left:5, element:'water', hue:'linear-gradient(160deg,#10222c,#0d0b18 60%)', accent:'#8fe0ff', active:{shield:true}, icon:'❄️', skills: [{name:'Undying Frost', desc:'The first time this card would lose a battle, the loss is ignored.'}]},
   { id:'direbear',  name:'Dire Bear',        role:'Alpha of the Wilds', top:9, right:8, bottom:5, left:7, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', icon:'🐻'},
   { id:'wendigo',   name:'Wendigo',          role:'Starved Horror', top:7, right:9, bottom:8, left:5, element:'water', hue:'linear-gradient(160deg,#181818,#0d0b18 60%)', accent:'#9c93b8', active:{underdogBonus:2}, icon:'🦴', skills: [{name:'Starved Fury', desc:'Gets +2 Power in any battle where its total value is lower than the opposing card.'}]},
-  { id:'dragon',    name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, icon:'🐉', skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
+  { id:'dragon',    name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, icon:'🐉', special:{ name:'Conquests Witnessed', cost:3, once:true, targets:'aoe' }, skills: [
+    {name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'},
+    {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
+  ]},
   { id:'shadowking',name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, icon:'👑', skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
   { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, icon:'🌌', special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
@@ -5581,6 +5587,26 @@ const SPECIAL_HANDLERS = {
     return weakened > 0
       ? `${name}'s Zantetsuken cuts down ${targetEntry.card.name} and chills ${weakened} more foe${weakened>1?'s':''}!`
       : `${name}'s Zantetsuken cuts down ${targetEntry.card.name}!`;
+  },
+  // Conquests Witnessed: counts total Wins already claimed by BOTH sides at
+  // the moment the Ultimate fires (state.wins.blue + state.wins.red) —
+  // reuses the same resource that gates every Ultimate rather than adding
+  // any new counter. +1 Power permanent for every 2 total conquests,
+  // capped at +3, applied ONCE as a flat SpecialVerbs.attackBoost — a
+  // locked-in snapshot, not a live formula, so it never keeps growing after
+  // activation even as more Wins accumulate later in the match. All enemy
+  // cards also get -1 Power this round (plain debuffThisRound, same as
+  // every other mild AOE control effect in the roster).
+  dragon({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    const totalConquests = state.wins.blue + state.wins.red;
+    const bonus = Math.min(3, Math.floor(totalConquests / 2));
+    if(bonus > 0) SpecialVerbs.attackBoost(srcEntry, bonus);
+    state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 1); });
+    return bonus > 0
+      ? `${name}'s Conquests Witnessed grants +${bonus} Power, remembering ${totalConquests} conquest${totalConquests !== 1 ? 's' : ''} already claimed!`
+      : `${name}'s Conquests Witnessed finds too few conquests yet claimed to grow stronger!`;
   },
 };
 

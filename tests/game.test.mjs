@@ -2105,6 +2105,86 @@ test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's So
   await page.close();
 });
 
+test('Ancient Wyrmking: Conquests Witnessed scales with total Wins claimed, caps at +3, locks in permanently, and mildly debuffs enemies', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const dragon = findCardById('dragon');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'dragon') && FOREST_FOES.some(f => f.id === 'dragon');
+    out.statsUnchanged = dragon.top === 10 && dragon.right === 8 && dragon.bottom === 9 && dragon.left === 10
+      && dragon.element === 'earth' && dragon.isDragon === true;
+    out.shieldStillThere = dragon.active.shield === true;
+    out.specialCost = dragon.special.cost === 3;
+
+    // 0 total Wins claimed -> no self-buff, but the mild AOE debuff still applies
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src0 = freshEntry(dragon, 'blue');
+    state.board[4] = src0;
+    const foe0 = freshEntry({ id:'f0', name:'F0', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = foe0;
+    SPECIAL_HANDLERS.dragon({ srcEntry: src0, owner: 'blue' });
+    out.zeroWinsNoBonus = src0.captureBonus === 0;
+    out.zeroWinsStillDebuffs = foe0.captureBonus === -1;
+
+    // 4 total Wins (2 + 2) -> +2 Power
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 2, red: 2 };
+    const src1 = freshEntry(dragon, 'blue');
+    state.board[4] = src1;
+    SPECIAL_HANDLERS.dragon({ srcEntry: src1, owner: 'blue' });
+    out.fourWinsBonus2 = src1.captureBonus === 2;
+
+    // 20 total Wins -> capped at +3, not +10
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 10, red: 10 };
+    const src2 = freshEntry(dragon, 'blue');
+    state.board[4] = src2;
+    SPECIAL_HANDLERS.dragon({ srcEntry: src2, owner: 'blue' });
+    out.cappedAtThree = src2.captureBonus === 3;
+
+    // Locked in at activation: cast at 4 total Wins (+2), then Wins keep
+    // rising afterward — the bonus must NOT recompute live.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 2, red: 2 };
+    const src3 = freshEntry(dragon, 'blue');
+    state.board[4] = src3;
+    SPECIAL_HANDLERS.dragon({ srcEntry: src3, owner: 'blue' });
+    const bonusAfterCast = src3.captureBonus;
+    state.wins = { blue: 10, red: 10 };
+    out.bonusLockedNotLive = src3.captureBonus === bonusAfterCast && bonusAfterCast === 2;
+
+    // Only enemies are debuffed, allies are untouched
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 4, red: 0 };
+    const src4 = freshEntry(dragon, 'blue');
+    state.board[4] = src4;
+    const ally4 = freshEntry({ id:'a4', name:'A4', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[1] = ally4;
+    const foe4 = freshEntry({ id:'foe4', name:'Foe4', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe4;
+    SPECIAL_HANDLERS.dragon({ srcEntry: src4, owner: 'blue' });
+    out.allyUnaffected = ally4.captureBonus === 0;
+    out.enemyDebuffed = foe4.captureBonus === -1;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.statsUnchanged, true, 'base stats/element/isDragon must be untouched');
+  assert.equal(result.shieldStillThere, true, 'the pre-existing Ancient Shield passive must be untouched');
+  assert.equal(result.specialCost, true);
+  assert.equal(result.zeroWinsNoBonus, true);
+  assert.equal(result.zeroWinsStillDebuffs, true);
+  assert.equal(result.fourWinsBonus2, true);
+  assert.equal(result.cappedAtThree, true, 'the self-buff must never exceed +3 regardless of total Wins');
+  assert.equal(result.bonusLockedNotLive, true, 'the bonus is a one-time snapshot, not a live formula');
+  assert.equal(result.allyUnaffected, true);
+  assert.equal(result.enemyDebuffed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
