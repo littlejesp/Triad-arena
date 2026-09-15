@@ -2558,6 +2558,87 @@ test("Sylvarion: Herald's Gale debuffs every enemy, and self-buff scales with ho
   await page.close();
 });
 
+test('Darien: Umbral Ward margin-block, Elara\'s Bond stacks with the rivalry-pair bonus, and Shadow Breaker is unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const darien = findCardById('darien');
+    out.statsUnchanged = darien.top === 10 && darien.right === 10 && darien.bottom === 9 && darien.left === 9 && darien.element === 'water';
+    out.hasUmbralWard = darien.active.marginShieldThreshold === 2;
+    out.hasElaraBond = darien.active.pairPresence && darien.active.pairPresence.partner === 'elara' && darien.active.pairPresence.amount === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Umbral Ward: enemy wins by <=2 margin -> blocked, attacker debuffed -1.
+    // shieldUsed pre-set true to isolate this from Dark Aegis's own
+    // always-on-first-loss shield, same isolation trick as Medusa's test.
+    state.board = Array(9).fill(null);
+    const darienDefender = freshEntry(darien, 'blue'); // top:10
+    darienDefender.shieldUsed = true;
+    state.board[4] = darienDefender;
+    const closeAttacker = freshEntry({ id:'close', name:'Close', top:1,right:1,bottom:12,left:1 }, 'red'); // bottom:12 vs top:10, margin=2
+    state.board[1] = closeAttacker;
+    resolveFlips(1, 'red');
+    out.wardBlockedCloseWin = state.board[4].owner === 'blue';
+    out.wardDebuffedAttacker = closeAttacker.captureBonus === -1;
+
+    // A bigger margin (>2) should NOT be blocked.
+    state.board = Array(9).fill(null);
+    const darienDefender2 = freshEntry(darien, 'blue');
+    darienDefender2.shieldUsed = true;
+    state.board[4] = darienDefender2;
+    const bigAttacker = freshEntry({ id:'big', name:'Big', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.bigMarginNotBlocked = state.board[4].owner === 'red';
+
+    // Elara's Bond: +2 while Elara is anywhere on the board, on top of the
+    // existing +1 rivalry-pair bonus when actually adjacent to her.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(darien, 'blue');
+    state.board[8] = freshEntry(findCardById('elara'), 'blue'); // far away, not adjacent
+    const farValue = fullEffectiveValue(darien, 'top', null, 0, 'blue', 'attack');
+    out.bondOnlyFar = farValue - darien.top === 2;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(darien, 'blue');
+    state.board[1] = freshEntry(findCardById('elara'), 'blue'); // adjacent this time
+    const adjacentValue = fullEffectiveValue(darien, 'top', null, 4, 'blue', 'attack');
+    out.bondPlusRivalryAdjacent = adjacentValue - darien.top === 3;
+
+    // Shadow Breaker is untouched: still executes weak targets outright and
+    // permanently weakens strong ones by -3, unblockable either way.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(darien, 'blue');
+    state.board[4] = src;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:5,right:5,bottom:5,left:5 }, 'red'); // avg 5 <= 7
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.darien({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.weakTargetDestroyed = state.board[1] === null;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = src;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:10,right:10,bottom:10,left:10 }, 'red'); // avg 10 > 7
+    state.board[1] = strongTarget;
+    SPECIAL_HANDLERS.darien({ srcEntry: src, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.strongTargetWeakened = strongTarget.captureBonus === -3 && state.board[1] === strongTarget;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasUmbralWard, true);
+  assert.equal(result.hasElaraBond, true);
+  assert.equal(result.wardBlockedCloseWin, true, 'a margin-2 loss is blocked by Umbral Ward');
+  assert.equal(result.wardDebuffedAttacker, true, 'the attacker is debuffed -1 when blocked');
+  assert.equal(result.bigMarginNotBlocked, true, 'a margin greater than 2 still flips him normally');
+  assert.equal(result.bondOnlyFar, true, "+2 from Elara's Bond alone when she is on the board but not adjacent");
+  assert.equal(result.bondPlusRivalryAdjacent, true, "+2 from Elara's Bond plus +1 from the existing rivalry-pair adjacency bonus when she is actually adjacent");
+  assert.equal(result.weakTargetDestroyed, true, 'Shadow Breaker still destroys targets with average Power <= 7');
+  assert.equal(result.strongTargetWeakened, true, 'Shadow Breaker still permanently weakens stronger targets by -3 instead of capturing them');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

@@ -19,13 +19,46 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–17
-(Ancient Wyrmkings ultimate + Weight of Ages, samt Little Jesps fullständiga
-ombyggnad, inklusive ny kortkonst för båda) är sedan dess MERGADE till
-`main` också. **Punkt 18 (Sylvarion fullständigt ombyggd — 🔴 REPLACE från
-68-korts-auditen) ligger committad på feature-branchen, INTE mergad till
-`main` än** — fråga alltid explicit innan nästa merge när mer arbete
-samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–18
+(Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps och Sylvarions
+fullständiga ombyggnader, inklusive ny kortkonst för alla tre) är sedan
+dess MERGADE till `main` också. **Punkt 19 (Darien ombyggd — 🟠 REWORK
+från 68-korts-auditen) ligger committad på feature-branchen, INTE mergad
+till `main` än** — fråga alltid explicit innan nästa merge när mer arbete
+samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse. Ferea
+(🔴 REPLACE) är specad men väntar fortfarande på besked om stat-sidorna
+(kod 10/10/9/9 vs bild 10/9/9/10) innan den kan implementeras.
+
+**19. Darien ombyggd (The Shadowward)** — ett 🟠 REWORK, inte REPLACE:
+grundidentiteten (vakt, skölden, den redan fungerande Ultimaten Shadow
+Breaker) behölls, bara de fyra flavor-only-skillsen (Shadow Counter, Void
+Step, Last Stand, Legendary Bond) byttes ut. Last Stand var dessutom
+redan redundant med den globala `lastStandBonus()`-mekaniken som gäller
+alla kort automatiskt. Ny kortkonst godkänd, matchade specen exakt (inga
+avvikelser den här gången — lärdom från Ferea-bildbriefen: alltid
+specificera exakta stat-siffror i bildbriefen).
+
+- **Dark Aegis** — oförändrad (`active.shield`), bara textfixad till att
+  matcha vad koden faktiskt gör.
+- **Umbral Ward** — PROPOSAL, men bara ett nytt fält, ingen ny kod:
+  `active.marginShieldThreshold:2`, exakt samma fält Medusas Curse of
+  the Gorgon redan använder (även attackerar-debuffen vid block ärvs
+  gratis, eftersom den logiken redan är generisk sedan Weight of Ages-
+  arbetet).
+- **Elara's Bond** — PROPOSAL, samma mönster: `active.pairPresence:
+  {partner:'elara', amount:2}`, exakt samma fält Little Jesp/Pallispell
+  och Twin Brothers/Sisters redan använder. Lägger sig OVANPÅ den redan
+  existerande `RIVALRY_PAIRS`-bonusen (+1 vid angränsning, global regel,
+  gällde redan innan denna ändring) — två lager av samma relation.
+- **Special Attack: Shadow Breaker** — HELT oförändrad kod, bara städad
+  text (borttagna dev-kommentarer som redan var inaktuella).
+
+Ett nytt permanent test i `tests/game.test.mjs` (52 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Umbral Ward
+blockerar margin-2-förluster och debuffar angriparen, margin 3+ flippar
+fortfarande normalt, Elara's Bond ger +2 på egen hand och +3 tillsammans
+med den befintliga rivalitetsbonusen vid angränsning, samt att Shadow
+Breaker fortfarande avrättar/försvagar exakt som förut.
 
 **18. Sylvarion fullständigt ombyggd (Herald of the Wild Hunt)** —
 nästa kort ur 68-korts-auditen (🔴 REPLACE): 8 av 9 skills var 100%
