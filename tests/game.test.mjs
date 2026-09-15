@@ -3250,6 +3250,57 @@ test('Voidqueen (renamed The Hungering Void): title collision with Nyxara resolv
   await page.close();
 });
 
+test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, and her first-ever Ultimate Aion's Last Light", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const sarah = findCardById('sarah');
+    out.statsUnchanged = sarah.top === 10 && sarah.right === 10 && sarah.bottom === 10 && sarah.left === 10 && sarah.element === 'wind';
+    out.hasLightShield = sarah.active.shield === true;
+    out.hasFearedHuntress = sarah.active.vsStrongerTotalPowerBoost && sarah.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.specialName = sarah.special.name === "Aion's Last Light";
+    out.specialCost = sarah.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Feared Huntress: +3 attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.fearedVsStronger = fullEffectiveValue(sarah, 'top', {top:20,right:20,bottom:20,left:20}, 4, 'blue', 'attack') - sarah.top === 3;
+    out.fearedVsWeaker = fullEffectiveValue(sarah, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - sarah.top === 0;
+
+    // Aion's Last Light: her first-ever Ultimate, same shape as Vayra's
+    // Eclipse / Ysara's Eternal Eclipse (+3 temp threshold, +1 permanent
+    // all-sides on a win).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(sarah, 'blue');
+    state.board[4] = src;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.sarah({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.capturedAndBuffed = weakTarget.owner === 'blue' && src.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(sarah, 'blue'); // total 40
+    state.board[4] = src2;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, 40+3 <= 80
+    state.board[1] = strongTarget;
+    SPECIAL_HANDLERS.sarah({ srcEntry: src2, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.noEffectVsMuchStronger = strongTarget.owner === 'red' && src2.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasLightShield, true, "Light Shield's tie to her title is kept unchanged");
+  assert.equal(result.hasFearedHuntress, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.fearedVsStronger, true, 'Feared Huntress grants +3 when attacking a card with higher total Power');
+  assert.equal(result.fearedVsWeaker, true, 'Feared Huntress grants nothing against an equal-or-weaker foe');
+  assert.equal(result.capturedAndBuffed, true, "Aion's Last Light captures and grants +1 permanent on a win");
+  assert.equal(result.noEffectVsMuchStronger, true, "Aion's Last Light fails against a target whose total power exceeds the +3 threshold");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

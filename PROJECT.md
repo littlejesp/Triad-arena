@@ -25,12 +25,43 @@ Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
 Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
-MERGADE till `main` också. **Punkt 25–28 (Ysara, Torn, Graff och
-Voidqueen ombyggda — 🟠 REWORK/POLISH-upptrappning från 68-korts-
-auditen, all kortkonst inkluderad) ligger committade på feature-
-branchen, INTE mergade till `main` än** — fråga alltid explicit innan
-nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från en
-tidigare bekräftelse.
+MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
+Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
+till `main` också. **Punkt 29 (Sarah ombyggd, hennes första Ultimate
+någonsin) ligger committad på feature-branchen, INTE mergad till
+`main` än** — fråga alltid explicit innan nästa merge när mer arbete
+samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+
+**29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
+POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
+av 4 skills hade backing (Light Shield, `active.shield`), och hon
+saknade Ultimate helt. Personlig betydelse för användaren — "Aion's
+Last Light" är en hyllning till deras bästa karaktär från spelet Aion,
+INTE en lore-lucka att fylla — behölls uttryckligen orörd, ingen ny
+tolkning påklistrad.
+
+- **Light Shield (Passiv)** — HELT oförändrad (`active.shield:true`).
+- **Feared Huntress (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, samma fält Yojimbo/
+  Ysara redan använder.
+- **Special Attack: "Aion's Last Light"** — hennes FÖRSTA Ultimate
+  någonsin, ny `SPECIAL_HANDLERS.sarah`, byggd i exakt samma form som
+  Vayras Eclipse/Ysaras Eternal Eclipse (total-power-tröskel +3, permanent
+  +1 alla sidor på vinst via `attackBoost`) — fjärde kortet med detta
+  mönster nu, inget nytt uppfunnet.
+
+Bort: Shadow Step, Direction Focus, Last Arrow — alla flavor-only, Last
+Arrow redundant mot den globala `lastStandBonus()`.
+
+Ny kortkonst höll sig medvetet nära hennes redan existerande bild
+(samma siluett, färgpalett, ställning) snarare än en ny tolkning, med
+snöflingedetaljer tillagda i klänningen som efterfrågat.
+
+Ett nytt permanent test i `tests/game.test.mjs` (62 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Light
+Shield orörd, Feared Huntress bara mot starkare mål, och Aion's Last
+Light erövrar/buffar på vinst men misslyckas mot ett mål vars
+totalstyrka överstiger tröskeln.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
