@@ -2446,6 +2446,118 @@ test('Little Jesp: Scales of Judgment scales inversely with the Wins gap, debuff
   await page.close();
 });
 
+test('Sylvarion: Windrush and Vanguard of the Hunt only apply on attack, and Vanguard requires being behind on board count', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const sylvarion = findCardById('sylvarion');
+    out.statsUnchanged = sylvarion.top === 10 && sylvarion.right === 8 && sylvarion.bottom === 10 && sylvarion.left === 9 && sylvarion.element === 'wind';
+    out.specialCost = sylvarion.special.cost === 2;
+    out.specialName = sylvarion.special.name === "Herald's Gale";
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Behind on board count (1 vs 2): both Windrush and Vanguard apply on attack.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(sylvarion, 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[2] = freshEntry(findCardById('ogre'), 'red');
+    const behindAttack = fullEffectiveValue(sylvarion, 'top', null, 0, 'blue', 'attack');
+    out.behindAttackBonus = behindAttack - sylvarion.top;
+
+    // Same behind-on-board state, but on DEFENSE: only Windrush's flatAttackBonus
+    // is attack-only, and boardUnderdogAttackBonus is also attack-only, so
+    // NEITHER should apply while defending.
+    const behindDefense = fullEffectiveValue(sylvarion, 'top', null, 0, 'blue', 'defense');
+    out.behindDefenseBonus = behindDefense - sylvarion.top;
+
+    // Even on board count (1 vs 1): only Windrush (unconditional flat +2)
+    // applies on attack, not Vanguard of the Hunt (requires being behind).
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(sylvarion, 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    const evenAttack = fullEffectiveValue(sylvarion, 'top', null, 0, 'blue', 'attack');
+    out.evenAttackBonus = evenAttack - sylvarion.top;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.specialCost, true, 'Ultimate cost normalized from 5 to 2');
+  assert.equal(result.specialName, true);
+  assert.equal(result.behindAttackBonus, 4, 'Windrush (+2) and Vanguard of the Hunt (+2) both apply while attacking and behind on board count');
+  assert.equal(result.behindDefenseBonus, 0, 'both bonuses are attack-only and must not apply on defense');
+  assert.equal(result.evenAttackBonus, 2, 'only Windrush applies when board counts are even (Vanguard requires being behind)');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Sylvarion: Herald's Gale debuffs every enemy, and self-buff scales with how far behind his side is on board count, capped at +3", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const sylvarion = findCardById('sylvarion');
+
+    // Even board count (1 vs 1): no deficit, so no self-buff, but the AOE
+    // debuff still lands on every enemy.
+    state.board = Array(9).fill(null);
+    const src0 = freshEntry(sylvarion, 'blue');
+    state.board[4] = src0;
+    const foe0 = freshEntry({ id:'f0', name:'F0', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = foe0;
+    SPECIAL_HANDLERS.sylvarion({ srcEntry: src0, owner: 'blue' });
+    out.evenNoBonus = src0.captureBonus === 0;
+    out.evenStillDebuffsEnemy = foe0.captureBonus === -2;
+
+    // Behind by 2 (1 vs 3): self-buff +2, allies untouched, enemies debuffed.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src1 = freshEntry(sylvarion, 'blue');
+    state.board[4] = src1;
+    const foe1a = freshEntry({ id:'f1a', name:'F1A', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = foe1a;
+    const foe1b = freshEntry({ id:'f1b', name:'F1B', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe1b;
+    const foe1c = freshEntry({ id:'f1c', name:'F1C', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[3] = foe1c;
+    SPECIAL_HANDLERS.sylvarion({ srcEntry: src1, owner: 'blue' });
+    out.behindByTwoBonus = src1.captureBonus === 2;
+    out.bothEnemiesDebuffed = foe1a.captureBonus === -2 && foe1b.captureBonus === -2 && foe1c.captureBonus === -2;
+
+    // Deeply behind (1 vs 5): capped at +3, not +4.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(sylvarion, 'blue');
+    state.board[4] = src2;
+    [0,1,2,3,8].forEach(i => { state.board[i] = freshEntry({ id:'x'+i, name:'X'+i, top:5,right:5,bottom:5,left:5 }, 'red'); });
+    SPECIAL_HANDLERS.sylvarion({ srcEntry: src2, owner: 'blue' });
+    out.cappedAtThree = src2.captureBonus === 3;
+
+    // Locked in at cast time: deficit shrinks afterward (an ally joins the
+    // board), the already-granted bonus must not recompute live.
+    state.board = Array(9).fill(null);
+    const src3 = freshEntry(sylvarion, 'blue');
+    state.board[4] = src3;
+    const foe3 = freshEntry({ id:'f3', name:'F3', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = foe3;
+    const foe3b = freshEntry({ id:'f3b', name:'F3B', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe3b;
+    SPECIAL_HANDLERS.sylvarion({ srcEntry: src3, owner: 'blue' });
+    const bonusAfterCast = src3.captureBonus;
+    state.board[3] = freshEntry({ id:'ally3', name:'Ally3', top:5,right:5,bottom:5,left:5 }, 'blue'); // board now even, 2 vs 2
+    out.bonusLockedNotLive = src3.captureBonus === bonusAfterCast && bonusAfterCast === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.evenNoBonus, true, 'no self-buff when board counts are already even');
+  assert.equal(result.evenStillDebuffsEnemy, true, 'the AOE debuff applies regardless of board count');
+  assert.equal(result.behindByTwoBonus, true, 'self-buff equals the deficit (2 fewer cards -> +2)');
+  assert.equal(result.bothEnemiesDebuffed, true, 'every enemy card is hit, not just one');
+  assert.equal(result.cappedAtThree, true, 'the self-buff never exceeds +3 regardless of how large the deficit is');
+  assert.equal(result.bonusLockedNotLive, true, 'the bonus is a one-time snapshot at cast time, not a live formula');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
