@@ -2114,7 +2114,8 @@ test('Ancient Wyrmking: Conquests Witnessed scales with total Wins claimed, caps
     out.playableAndEnemy = HEROES.some(h => h.id === 'dragon') && FOREST_FOES.some(f => f.id === 'dragon');
     out.statsUnchanged = dragon.top === 10 && dragon.right === 8 && dragon.bottom === 9 && dragon.left === 10
       && dragon.element === 'earth' && dragon.isDragon === true;
-    out.shieldStillThere = dragon.active.shield === true;
+    out.hasWeightOfAges = dragon.active.weightOfAges === true;
+    out.oldShieldGone = !dragon.active.shield;
     out.specialCost = dragon.special.cost === 3;
 
     // 0 total Wins claimed -> no self-buff, but the mild AOE debuff still applies
@@ -2172,7 +2173,8 @@ test('Ancient Wyrmking: Conquests Witnessed scales with total Wins claimed, caps
   })()`);
   assert.equal(result.playableAndEnemy, true);
   assert.equal(result.statsUnchanged, true, 'base stats/element/isDragon must be untouched');
-  assert.equal(result.shieldStillThere, true, 'the pre-existing Ancient Shield passive must be untouched');
+  assert.equal(result.hasWeightOfAges, true, 'Ancient Shield was replaced by Weight of Ages');
+  assert.equal(result.oldShieldGone, true, 'the old active.shield flag must be gone, not just supplemented');
   assert.equal(result.specialCost, true);
   assert.equal(result.zeroWinsNoBonus, true);
   assert.equal(result.zeroWinsStillDebuffs, true);
@@ -2181,6 +2183,128 @@ test('Ancient Wyrmking: Conquests Witnessed scales with total Wins claimed, caps
   assert.equal(result.bonusLockedNotLive, true, 'the bonus is a one-time snapshot, not a live formula');
   assert.equal(result.allyUnaffected, true);
   assert.equal(result.enemyDebuffed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Ancient Wyrmking: Weight of Ages raises the flip margin the longer he stands unbroken, caps at +2, and resets on capture or move', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const dragon = findCardById('dragon');
+    // A fresh page's default hands are empty, which makes lastStandBonus()
+    // add +2 to whichever side has 0 cards left — that would silently
+    // pollute every carefully calibrated margin check below. Set once,
+    // up front, for the whole test.
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Fresh placement: turnsStanding is undefined/0, so the margin wall is
+    // 0 — any winning margin flips him normally, exactly like before.
+    state.board = Array(9).fill(null);
+    const fresh = freshEntry(dragon, 'blue');
+    state.board[4] = fresh;
+    const margin1Attacker = freshEntry({ id:'m1', name:'M1', top:1,right:1,bottom:11,left:1 }, 'red'); // beats top:10 by 1
+    state.board[1] = margin1Attacker;
+    resolveFlips(1, 'red');
+    out.freshPlacementFlipsNormally = state.board[4].owner === 'red';
+
+    // After 2 ticks (sweepExpiredRoundEffects called twice, same owner and
+    // cell throughout): +1 to the margin wall. A margin-1 win is now
+    // blocked (draw); a margin-2 win still flips him.
+    state.board = Array(9).fill(null);
+    const twoTicks = freshEntry(dragon, 'blue');
+    twoTicks.turnsStanding = 0; twoTicks.turnsStandingOwner = 'blue'; twoTicks.turnsStandingCell = 4; // placeCard() sets these; freshEntry() doesn't
+    state.board[4] = twoTicks;
+    sweepExpiredRoundEffects();
+    sweepExpiredRoundEffects();
+    out.turnsStandingAfterTwoTicks = twoTicks.turnsStanding === 2;
+    const margin1AttackerB = freshEntry({ id:'m1b', name:'M1B', top:1,right:1,bottom:11,left:1 }, 'red');
+    state.board[1] = margin1AttackerB;
+    resolveFlips(1, 'red');
+    out.marginOneBlockedAtTwoTicks = state.board[4].owner === 'blue';
+    out.noAttackerDebuffFromWeightOfAges = margin1AttackerB.captureBonus === 0;
+    state.board[1] = null;
+    const margin2AttackerB = freshEntry({ id:'m2b', name:'M2B', top:1,right:1,bottom:12,left:1 }, 'red'); // beats top:10 by 2
+    state.board[1] = margin2AttackerB;
+    resolveFlips(1, 'red');
+    out.marginTwoStillFlipsAtTwoTicks = state.board[1].owner === 'red';
+
+    // After 4 ticks: +2 (the cap). A margin-2 win is now also blocked; a
+    // margin-3 win still flips him.
+    state.board = Array(9).fill(null);
+    const fourTicks = freshEntry(dragon, 'blue');
+    fourTicks.turnsStanding = 0; fourTicks.turnsStandingOwner = 'blue'; fourTicks.turnsStandingCell = 4;
+    state.board[4] = fourTicks;
+    sweepExpiredRoundEffects(); sweepExpiredRoundEffects(); sweepExpiredRoundEffects(); sweepExpiredRoundEffects();
+    out.turnsStandingAfterFourTicks = fourTicks.turnsStanding === 4;
+    const margin2AttackerC = freshEntry({ id:'m2c', name:'M2C', top:1,right:1,bottom:12,left:1 }, 'red');
+    state.board[1] = margin2AttackerC;
+    resolveFlips(1, 'red');
+    out.marginTwoBlockedAtFourTicks = state.board[4].owner === 'blue';
+    state.board[1] = null;
+    const margin3AttackerC = freshEntry({ id:'m3c', name:'M3C', top:1,right:1,bottom:13,left:1 }, 'red'); // beats top:10 by 3
+    state.board[1] = margin3AttackerC;
+    resolveFlips(1, 'red');
+    out.marginThreeStillFlipsAtFourTicks = state.board[1].owner === 'red';
+
+    // Cap holds: 6 ticks is still only +2, not +3 — a margin-2 win must
+    // stay blocked, not suddenly flip.
+    state.board = Array(9).fill(null);
+    const sixTicks = freshEntry(dragon, 'blue');
+    sixTicks.turnsStanding = 0; sixTicks.turnsStandingOwner = 'blue'; sixTicks.turnsStandingCell = 4;
+    state.board[4] = sixTicks;
+    for(let i=0;i<6;i++) sweepExpiredRoundEffects();
+    out.turnsStandingAfterSixTicks = sixTicks.turnsStanding === 6;
+    const margin2AttackerD = freshEntry({ id:'m2d', name:'M2D', top:1,right:1,bottom:12,left:1 }, 'red');
+    state.board[1] = margin2AttackerD;
+    resolveFlips(1, 'red');
+    out.capHoldsAtSixTicks = state.board[4].owner === 'blue';
+
+    // Resets to 0 the instant he's actually flipped (captured by the
+    // enemy) — verified by reading the tracked fields directly right
+    // after the capture, before any further sweep has a chance to run.
+    state.board = Array(9).fill(null);
+    const toFlip = freshEntry(dragon, 'blue');
+    toFlip.turnsStanding = 0; toFlip.turnsStandingOwner = 'blue'; toFlip.turnsStandingCell = 4;
+    state.board[4] = toFlip;
+    sweepExpiredRoundEffects(); sweepExpiredRoundEffects(); sweepExpiredRoundEffects(); sweepExpiredRoundEffects();
+    const bigAttacker = freshEntry({ id:'big', name:'Big', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.capturedByEnemy = state.board[4].owner === 'red';
+    sweepExpiredRoundEffects();
+    out.resetsAfterCapture = state.board[4].turnsStanding === 0 && state.board[4].turnsStandingOwner === 'red';
+
+    // Resets to 0 if moved to a different cell even under the SAME owner
+    // (e.g. a position-swap effect) — the mountain "moving" breaks the vigil.
+    state.board = Array(9).fill(null);
+    const toMove = freshEntry(dragon, 'blue');
+    toMove.turnsStanding = 0; toMove.turnsStandingOwner = 'blue'; toMove.turnsStandingCell = 4;
+    state.board[4] = toMove;
+    sweepExpiredRoundEffects(); sweepExpiredRoundEffects();
+    out.turnsStandingBeforeMove = toMove.turnsStanding === 2;
+    state.board[4] = null;
+    state.board[7] = toMove; // same owner, different cell — simulates a swap
+    sweepExpiredRoundEffects();
+    out.resetsAfterMove = toMove.turnsStanding === 0 && toMove.turnsStandingCell === 7;
+
+    return out;
+  })()`);
+  assert.equal(result.freshPlacementFlipsNormally, true, 'a freshly placed Ancient Wyrmking has no margin wall yet');
+  assert.equal(result.turnsStandingAfterTwoTicks, true);
+  assert.equal(result.marginOneBlockedAtTwoTicks, true, '+1 margin wall blocks a margin-1 loss after 2 ticks');
+  assert.equal(result.noAttackerDebuffFromWeightOfAges, true, "Weight of Ages must NOT apply Curse of the Gorgon's attacker debuff");
+  assert.equal(result.marginTwoStillFlipsAtTwoTicks, true, 'a margin-2 win still flips him at only +1 wall');
+  assert.equal(result.turnsStandingAfterFourTicks, true);
+  assert.equal(result.marginTwoBlockedAtFourTicks, true, '+2 margin wall (the cap) blocks a margin-2 loss after 4 ticks');
+  assert.equal(result.marginThreeStillFlipsAtFourTicks, true, 'a margin-3 win still flips him even at the +2 cap');
+  assert.equal(result.turnsStandingAfterSixTicks, true);
+  assert.equal(result.capHoldsAtSixTicks, true, 'the wall never exceeds +2 no matter how long he stands');
+  assert.equal(result.capturedByEnemy, true);
+  assert.equal(result.resetsAfterCapture, true, 'turnsStanding resets to 0 the moment ownership changes');
+  assert.equal(result.turnsStandingBeforeMove, true);
+  assert.equal(result.resetsAfterMove, true, 'turnsStanding resets to 0 if moved to a different cell, even under the same owner');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
