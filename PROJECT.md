@@ -19,11 +19,64 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). **Punkt 15
-(Ancient Wyrmkings ultimate) och punkt 16 (Ancient Shield ersatt av Weight
-of Ages) ligger committade på feature-branchen, INTE mergade till `main`
-än** — fråga alltid explicit innan nästa merge när mer arbete samlats där,
-anta ALDRIG tillstånd från en tidigare bekräftelse.
+info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–16
+(Ancient Wyrmkings ultimate + Weight of Ages, inklusive ny kortkonst) är
+sedan dess MERGADE till `main` också. **Punkt 17 (Little Jesp fullständigt
+ombyggd — 🔴 REPLACE från 68-korts-auditen) ligger committad på
+feature-branchen, INTE mergad till `main` än** — fråga alltid explicit
+innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
+en tidigare bekräftelse.
+
+**17. Little Jesp fullständigt ombyggd (Order of the Balance)** — resultatet
+av en fullständig 68-korts Tier-audit (🟢 KEEP / 🟡 POLISH / 🟠 REWORK /
+🔴 REPLACE, ren PROPOSAL-övning, aldrig sparad i detta dokument) där Little
+Jesp landade på 🔴 REPLACE: högst totalstat i hela rostret (44, 10/11/12/11)
+men bara 1 av 5 skills faktiskt motorbärd — resten (Balance Mastery, Twin
+Dominance, Champion's Command) var ren flavor-text, och statlinjen var
+dessutom den MINST jämna i rostret trots att kortet bär namnet "Champion
+of Balance". Ny kortkonst godkänd av användaren (samma Mythic/Legendary-
+serie som Ancient Wyrmking) väglede den slutliga specen.
+
+Ny design — stats sänkta till **9/9/9/9 = 36** (en bokstavlig, symmetrisk
+representation av "Balance" istället för den gamla skeva linjen; en sänkning
+från 44, inte en höjning, per explicit instruktion om att inte bara göra
+honom starkare):
+- **Guardian's Aura** och **Divine Bond** (Pallispell-relationen,
+  `pairPresence`) — HELT oförändrade i mekanik. Guardian's Aura-texten
+  rättades från "each round" till "once per match" för att matcha vad
+  `active.shield` (utan `shieldResetsEachRound`) faktiskt alltid gjort —
+  ren textfix, ingen beteendeändring.
+- **Even Ground (Passive)** — NY. +2 Power på alla sidor så länge du och
+  motståndaren kontrollerar exakt lika många kort på brädet. Implementerad
+  som en enda ny valfri flagga (`tieOnly`) på det redan existerande
+  `active.boardLeadBonus`-fältet (samma fält Tiamat och The Celestial
+  Judgment redan läser i `fullEffectiveValue()`) — inte en ny primitiv,
+  bara en tredje jämförelse-gren (`mine === theirs`) bredvid de befintliga
+  `>` och `>=`-grenarna. Påverkar inga andra kort (deras objekt saknar
+  `tieOnly`).
+- **Special Attack: Scales of Judgment** (ersätter "Divine Arrow", kostar
+  2 wins) — NY `SPECIAL_HANDLERS.littlejesp`-funktion. Jämför
+  `state.wins.blue`/`state.wins.red` (samma delade resurs som redan
+  gate:ar varje Ultimate, ingen ny räknare): `gap = |blue-red|`,
+  permanent `+max(0, 3-gap)` Power via `SpecialVerbs.attackBoost` (gap 0 →
+  +3, gap 3+ → +0), låst vid aktivering som Conquests Witnessed. Sedan får
+  VARJE kort på sidan som just nu leder i Wins -1 Power denna runda via
+  `SpecialVerbs.debuffThisRound` — medvetet INTE fiende-bara som alla
+  andra AOE-debuffar i rostret; om Little Jesps egen sida leder träffas
+  hans egen sida, honom själv inräknad (ingen undantags-logik för
+  källkortet). Vid exakt oavgjort körs ingen debuff alls.
+- Borttagna helt: Balance Mastery, Twin Dominance, Champion's Command
+  (100% flavor-only, gav ingen identitet).
+
+En verklig konsekvens upptäckt under testandet, inte en bugg: eftersom
+debuff-loopen inte undantar källkortet, äter Little Jesp SJÄLV både
+self-buffen och leading-side-debuffen när hans egen sida leder (netto
++1 istället för +2 vid gap 1) — exakt vad kortets egen text säger
+("Not even his own side is exempt from his judgment"). Två nya permanenta
+tester i `tests/game.test.mjs` (49 totalt, alla gröna) verifierar Even
+Ground (tie-only, inte lead-or-tie) och Scales of Judgment (skalning,
+cap, låsning vid aktivering, självdebuff vid egen ledning, fiendedebuff
+vid fiendens ledning, ingen debuff vid oavgjort).
 
 **16. Ancient Wyrmkings "Ancient Shield" ersatt av "Weight of Ages"** — en
 lore-driven omgörning av hans enda passiv (`active.shield` var den mest
