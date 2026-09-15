@@ -1315,26 +1315,19 @@ const HEROES = [
     {name:'Silent Strike (Passive)', desc:'Each time Vayra takes control of an enemy card, she permanently gains +1 Power.'},
     {name:'Special Attack: Eclipse', desc:"Costs 2 wins. Choose an enemy card — Vayra gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
   ]},
-  { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{shield:true}, special:{ name:'Eternal Eclipse', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Time Stop (Passive)', desc:'Stops time in an instant, freezing all enemies while she moves freely. Duration depends on her focus.'},
-    {name:'Future Sight', desc:'Sees multiple futures, revealing enemy moves, weaknesses, and outcomes before they happen.'},
-    {name:'Temporal Shift', desc:'Rewinds time for herself or an ally, undoing damage and resetting their state.'},
-    {name:'Void Crush', desc:'Compresses a burst of void energy, crushing everything in the area.'},
-    {name:'Paradox Veil', desc:'Creates an illusion of multiple Ysaras, confusing enemies and misguiding attacks.'},
-    {name:'Starborn Core', desc:'Channels the power of stars, increasing her magic to its absolute limit for a short time.'},
-    {name:'Special Attack: Eternal Eclipse', desc:"Costs 2 wins. Choose an enemy card — Ysara gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently. (Invented numbers: the source text describes the effect with no concrete values — see PROJECT.md.)"},
+  { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{vsStrongerTotalPowerBoost:{amount:3}, debuffImmune:true}, special:{ name:'Eternal Eclipse', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Future Sight (Passive)', desc:'If Ysara attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
+    {name:'Paradox Veil (Passive)', desc:"Ysara's Power can never be lowered by an opponent's card skills or Special Attacks."},
+    {name:'Special Attack: Eternal Eclipse', desc:"Costs 2 wins. Choose an enemy card — Ysara gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
   ]},
   // Torn is a brand-new card — her source art has no stat diamonds, no
   // element icon, and no faction/rarity/alignment footer at all (unlike
   // Naline/Deathblade/Vorathos/Vayra), so top/right/bottom/left below are
   // an invented, Legendary-tier estimate, not a transcription — see PROJECT.md.
-  { id:'torn', name:"Torn", role:"Shadowhuntress — Ranger. Assassin. Ghost in the Night.", top:9, right:8, bottom:7, left:9, hue:'linear-gradient(160deg,#182410,#0d0b18 60%)', accent:'#9fd15a', special:{ name:'Lethal Volley', cost:2, once:true, targets:'aoe' }, skills: [
-    {name:'Shadow Blink', desc:'Disappears in a swirl of leaves and shadows, reappearing where none expect.'},
-    {name:'Windstep', desc:'Moves like the wind — unseen, unheard, untraceable.'},
-    {name:'Silent Arrow', desc:'A single arrow. No sound. Ignores armor. Finds the weakness.'},
-    {name:'Poisoned Edge', desc:'Coats her arrows and blades with deadly venom — slow death, certain death.'},
-    {name:"Predator's Mark", desc:'Marks the target, increasing all damage dealt. The mark cannot be hidden.'},
-    {name:'Special Attack: Lethal Volley', desc:"Costs 2 wins. Unleashes a storm of arrows across the whole board — every enemy card permanently loses 2 Power, unblockable. (Invented numbers: the source text has no concrete values — see PROJECT.md.)"},
+  { id:'torn', name:"Torn", role:"Shadowhuntress — Ranger. Assassin. Ghost in the Night.", element:'earth', top:9, right:8, bottom:7, left:9, hue:'linear-gradient(160deg,#182410,#0d0b18 60%)', accent:'#9fd15a', active:{underdogSideBonus:2, onWinDebuffLoserPermanent:1}, special:{ name:'Lethal Volley', cost:2, once:true, targets:'aoe' }, skills: [
+    {name:"Predator's Mark (Passive)", desc:"In any battle where the opponent's facing side is higher than Torn's own printed side, she gets +2 Power on that side."},
+    {name:'Poisoned Edge (Passive)', desc:'The defeated card gets -1 Power on all sides for the rest of the match.'},
+    {name:'Special Attack: Lethal Volley', desc:"Costs 2 wins. Unleashes a storm of arrows across the whole board — every enemy card permanently loses 2 Power, unblockable."},
   ]},
   { id:'vorathos', name:"Vorathos", role:"The Timelancer — Order of the Timekeepers", top:7, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#1a1440,#0d0b18 60%)', accent:'#8b6ef2', active: {shield:true}, special:{ name:'Time Collapse', cost:2, once:true, targets:'single' }, skills: [
     {name:'Time Barrier (Passive)', desc:'When Vorathos wins a battle, he gains +1 Power on the direction that battle was fought, for the rest of the round.'},
@@ -1413,12 +1406,10 @@ const HEROES = [
     {name:'Special Attack: Scales of Judgment', desc:"Costs 2 wins. Compares total Wins claimed by each side. Little Jesp permanently gains +1 Power on all sides for every point the gap is under 3 (max +3, locked in at activation — a gap of 0 means the sides are perfectly tied). Then, every card belonging to whichever side currently has more Wins gets -1 Power this round — even if that's your own side. If the two sides are exactly tied, no debuff is applied. Usable once per match."},
   ]},
   { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', special:{ name:'Hunter\'s Wrath', cost:2, once:true, targets:'aoe' }, skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}, {name:"Special Attack: Hunter's Wrath", desc:"Cost 2 Wins. Immediately battles up to 2 adjacent enemy cards (no attack bonus, just their raw Power). If both are defeated, Pallis and Pell gain +1 Power on all sides for the rest of the match."}]},
-  { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
-    {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
-    {name:'Veil of Emptiness', desc:"When attacked by a stronger card, the attacker's facing side is lowered by -2 this round."},
-    {name:'Dominance', desc:'If she controls at least 2 cards, she gets +2 on a chosen side until the end of the round.'},
-    {name:'Soul Fuel', desc:'When she loses a card, she immediately gains +2 on all sides next round.'},
-    {name:"Special Attack: Oblivion's Call", desc:'Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it get -2 on the sides facing her until your next round.'},
+  { id:'voidqueen', name:'The Hungering Void', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3, onCaptureBonus:1}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [
+    {name:'Hunger of the Void (Passive)', desc:'While she controls fewer cards than her opponent, she gets +3 Power on all sides.'},
+    {name:'Insatiable (Passive)', desc:'Each time she takes control of an enemy card, she permanently gains +1 Power.'},
+    {name:"Special Attack: Oblivion's Call", desc:"Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it permanently lose 2 Power."},
   ] },
   { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{weightOfAges:true}, special:{ name:'Conquests Witnessed', cost:3, once:true, targets:'aoe' }, skills: [
     {name:'Weight of Ages', desc:'For every 2 full turns Ancient Wyrmking stands unbroken on the same cell under the same owner, the Power margin an attacker needs to flip him increases by 1 (max +2). Capturing him, moving him, or replacing him on that cell resets the count to zero.'},
@@ -1504,13 +1495,10 @@ const HEROES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yin Resonance', desc:'Costs 3 wins. Unites with Yang — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
-    {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
-    {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
-    {name:'Tiger Strike', desc:'When Graff attacks and wins, he gets +2 attack on the opposite side this round.'},
-    {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
-    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1, adjacentEnemiesBoost:{minCount:2, amount:2}}, special:{ name:'Whirlwind Assault', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+    {name:'Behind Enemy Lines (Passive)', desc:'While Graff has 2 or more enemy cards adjacent to him, he gets +2 Power on his next attack.'},
+    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card. Graff's whirlwind tears through every other enemy card, hitting them for -2 Power this round, unblockable. He then strikes the chosen card with both weapons — if he wins, it's flipped and he permanently gains +3 Power on all sides. Usable once per match."},
   ] },
   // Medusa was fully redesigned in a later session from a new poster ("The
   // Petrified Queen") — same full-rebuild treatment as Tiamat/Naline: id
@@ -1784,12 +1772,10 @@ const FOREST_FOES = [
     {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
   ]},
   { id:'shadowking',name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, icon:'👑', skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
-  { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, icon:'🌌', special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
-    {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
-    {name:'Veil of Emptiness', desc:"When attacked by a stronger card, the attacker's facing side is lowered by -2 this round."},
-    {name:'Dominance', desc:'If she controls at least 2 cards, she gets +2 on a chosen side until the end of the round.'},
-    {name:'Soul Fuel', desc:'When she loses a card, she immediately gains +2 on all sides next round.'},
-    {name:"Special Attack: Oblivion's Call", desc:'Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it get -2 on the sides facing her until your next round.'},
+  { id:'voidqueen', name:'The Hungering Void', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3, onCaptureBonus:1}, icon:'🌌', special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [
+    {name:'Hunger of the Void (Passive)', desc:'While she controls fewer cards than her opponent, she gets +3 Power on all sides.'},
+    {name:'Insatiable (Passive)', desc:'Each time she takes control of an enemy card, she permanently gains +1 Power.'},
+    {name:"Special Attack: Oblivion's Call", desc:"Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it permanently lose 2 Power."},
   ] },
   { id:'threeheaddragon', name:'Three Head Dragon', role:'Mystic Card', element:'fire', top:10, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#1a0a28,#0d0b18 60%)', accent:'#8b6ef2', icon:'🐲', isDragon:true, active:{ freezeDefenderPenalty:2, onWinAreaDebuff:1, destroyImmune:true }, special:{ name:'Apokalyps', cost:2, once:true, targets:'aoe' }, skills: [    {name:'Three Souls, One Fury (Passive)', desc:"When Three Head Dragon is placed, every enemy card gets -1 Power on its weakest side."},
     {name:"Ice's Breath", desc:'When Three Head Dragon attacks, the defending side is frozen and gets -2 Power during that attack.'},
@@ -1844,13 +1830,10 @@ const FOREST_FOES = [
     {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
-  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
-    {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
-    {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
-    {name:'Tiger Strike', desc:'When Graff attacks and wins, he gets +2 attack on the opposite side this round.'},
-    {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
-    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1, adjacentEnemiesBoost:{minCount:2, amount:2}}, special:{ name:'Whirlwind Assault', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+    {name:'Behind Enemy Lines (Passive)', desc:'While Graff has 2 or more enemy cards adjacent to him, he gets +2 Power on his next attack.'},
+    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card. Graff's whirlwind tears through every other enemy card, hitting them for -2 Power this round, unblockable. He then strikes the chosen card with both weapons — if he wins, it's flipped and he permanently gains +3 Power on all sides. Usable once per match."},
   ] },
   // Medusa was fully redesigned in a later session from a new poster ("The
   // Petrified Queen") — same full-rebuild treatment as Tiamat/Naline: id
@@ -4661,18 +4644,27 @@ function specialBlockedByShield(targetEntry, targetIndex){
 }
 
 const SPECIAL_HANDLERS = {
+  // Whirlwind Assault merges the two things the approved card art and the
+  // original single-target capture design each wanted: a guaranteed AOE
+  // splash (debuffThisRound, same verb Shiva/Leviathan/Torn use) hits every
+  // OTHER enemy unconditionally, while the chosen target keeps the original
+  // capture-on-win behavior untouched (threshold check, shield check, flip,
+  // permanent +3 via attackBoost).
   graff({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    state.board.forEach(e => { if(e && e.owner === enemyOwner && e !== targetEntry) SpecialVerbs.debuffThisRound(e, 2); });
     if(totalPower(srcEntry) <= totalPower(targetEntry)){
-      return `${srcEntry.card.name}'s Shadow Assault is repelled!`;
+      return `${name}'s Whirlwind Assault tears through the enemy line, but ${targetEntry.card.name} holds firm!`;
     }
     if(specialBlockedByShield(targetEntry, targetIndex)){
-      return `${targetEntry.card.name}'s shield holds against Shadow Assault!`;
+      return `${targetEntry.card.name}'s shield holds against Whirlwind Assault!`;
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 3);
-    return `${srcEntry.card.name}'s Shadow Assault flips ${targetEntry.card.name} and surges with power!`;
+    return `${name}'s Whirlwind Assault tears through the enemy line and flips ${targetEntry.card.name}!`;
   },
   lyrith({ srcEntry, targetEntry, targetIndex, owner }){
     // Serpent's Wrath explicitly ignores the enemy's defensive skills — no shield check here.

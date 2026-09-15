@@ -3024,6 +3024,232 @@ test("Vorlix: Horizon's Reach only boosts Left/Right while attacking, Celestial 
   await page.close();
 });
 
+test('Ysara: Future Sight vs a stronger foe, Paradox Veil debuff immunity, and Eternal Eclipse is unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ysara = findCardById('ysara');
+    out.statsUnchanged = ysara.top === 9 && ysara.right === 7 && ysara.bottom === 10 && ysara.left === 8 && ysara.element === 'wind';
+    out.oldShieldGone = !ysara.active.shield;
+    out.hasFutureSight = ysara.active.vsStrongerTotalPowerBoost && ysara.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.hasParadoxVeil = ysara.active.debuffImmune === true;
+    out.specialName = ysara.special.name === 'Eternal Eclipse';
+    out.specialCost = ysara.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2]; // avoid lastStandBonus() polluting the comparisons below
+
+    // Future Sight: +3 attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.futureSightVsStronger = fullEffectiveValue(ysara, 'top', {top:10,right:10,bottom:10,left:10}, 4, 'blue', 'attack') - ysara.top === 3;
+    out.futureSightVsWeaker = fullEffectiveValue(ysara, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - ysara.top === 0;
+
+    // Paradox Veil: debuffThisRound and debuff both do nothing to her.
+    state.board = Array(9).fill(null);
+    const guarded = freshEntry(ysara, 'blue');
+    state.board[4] = guarded;
+    SpecialVerbs.debuffThisRound(guarded, 3);
+    SpecialVerbs.debuff(guarded, 3);
+    out.paradoxVeilBlocksDebuffs = guarded.captureBonus === 0;
+
+    // Eternal Eclipse: unchanged, still a total-power threshold check
+    // (+3) with a permanent +1 all-sides buff on a win.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(ysara, 'blue');
+    state.board[4] = src;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.ysara({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.eclipseCapturedAndBuffed = weakTarget.owner === 'blue' && src.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.oldShieldGone, true, 'the old plain active.shield must be gone, replaced by Future Sight/Paradox Veil');
+  assert.equal(result.hasFutureSight, true);
+  assert.equal(result.hasParadoxVeil, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.futureSightVsStronger, true, 'Future Sight grants +3 when attacking a card with higher total Power');
+  assert.equal(result.futureSightVsWeaker, true, 'Future Sight grants nothing against an equal-or-weaker foe');
+  assert.equal(result.paradoxVeilBlocksDebuffs, true, "Paradox Veil blocks both debuff() and debuffThisRound()");
+  assert.equal(result.eclipseCapturedAndBuffed, true, 'Eternal Eclipse still captures and grants +1 permanent on a win, unchanged from before');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Torn: Predator's Mark vs a stronger facing side, Poisoned Edge permanent debuff on a win, and Lethal Volley is unchanged", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const torn = findCardById('torn');
+    out.hasElement = torn.element === 'earth';
+    out.hasPredatorsMark = torn.active.underdogSideBonus === 2;
+    out.hasPoisonedEdge = torn.active.onWinDebuffLoserPermanent === 1;
+    out.specialName = torn.special.name === 'Lethal Volley';
+    out.specialCost = torn.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Predator's Mark: +2 when the opponent's facing side beats Torn's own
+    // printed side on that edge, nothing when it doesn't.
+    const stronger = { top:9, right:8, bottom:20, left:9 }; // bottom(20) faces Torn's top(9) when placed above her
+    const weaker = { top:9, right:8, bottom:1, left:9 };
+    out.markTriggersVsStronger = fullEffectiveValue(torn, 'top', stronger, 4, 'blue', 'defense') - torn.top === 2;
+    out.markSkipsVsWeaker = fullEffectiveValue(torn, 'top', weaker, 4, 'blue', 'defense') - torn.top === 0;
+
+    // Poisoned Edge: winning a battle permanently weakens the loser by -1,
+    // via a real capture (resolveFlips), not just checkOnWinBonuses directly.
+    state.board = Array(9).fill(null);
+    const winner = freshEntry(torn, 'blue');
+    state.board[4] = winner;
+    const loser = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.poisonedEdgeAppliedOnWin = loser.captureBonus === -1;
+
+    // Lethal Volley: unchanged, AOE permanent -2 to every enemy, unblockable
+    // (no shield check at all).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(torn, 'blue');
+    state.board[4] = src;
+    const shieldedFoe = freshEntry({ id:'sf', name:'SF', top:5,right:5,bottom:5,left:5, active:{shield:true} }, 'red');
+    state.board[1] = shieldedFoe;
+    const plainFoe = freshEntry({ id:'pf', name:'PF', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = plainFoe;
+    SPECIAL_HANDLERS.torn({ srcEntry: src, owner: 'blue' });
+    out.volleyHitsEvenShielded = shieldedFoe.captureBonus === -2 && plainFoe.captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.hasElement, true, 'Torn now has an element (Earth), filling a previously empty field');
+  assert.equal(result.hasPredatorsMark, true);
+  assert.equal(result.hasPoisonedEdge, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.markTriggersVsStronger, true, "Predator's Mark grants +2 when the opponent's facing side is higher");
+  assert.equal(result.markSkipsVsWeaker, true, "Predator's Mark grants nothing when the opponent's facing side is lower");
+  assert.equal(result.poisonedEdgeAppliedOnWin, true, 'Poisoned Edge permanently weakens the loser by -1 after a real win');
+  assert.equal(result.volleyHitsEvenShielded, true, 'Lethal Volley is unblockable, hitting every enemy including shielded ones');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Graff: Behind Enemy Lines requires 2+ adjacent enemies, Shadowplay is unchanged, and Whirlwind Assault combines a guaranteed AOE splash with the original single-target capture', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const graff = findCardById('graff');
+    out.hasShadowplay = graff.active.onCaptureBonus === 1;
+    out.hasBehindEnemyLines = graff.active.adjacentEnemiesBoost && graff.active.adjacentEnemiesBoost.minCount === 2 && graff.active.adjacentEnemiesBoost.amount === 2;
+    out.specialName = graff.special.name === 'Whirlwind Assault';
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Behind Enemy Lines: +2 on attack with 2+ adjacent enemies, nothing with only 1.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(graff, 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[3] = freshEntry(findCardById('ogre'), 'red');
+    const twoAdjacent = fullEffectiveValue(graff, 'top', null, 4, 'blue', 'attack');
+    out.behindEnemyLinesTwoAdjacent = twoAdjacent - graff.top === 2;
+    state.board[3] = null;
+    const oneAdjacent = fullEffectiveValue(graff, 'top', null, 4, 'blue', 'attack');
+    out.behindEnemyLinesOneAdjacent = oneAdjacent - graff.top === 0;
+
+    // Whirlwind Assault: the AOE splash hits every OTHER enemy (-2 this
+    // round) unconditionally -- even when the chosen target is too strong
+    // for the single-target capture to succeed. The chosen target itself
+    // is excluded from the splash (it gets the capture-or-nothing outcome
+    // instead).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(graff, 'blue');
+    state.board[4] = src;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red');
+    state.board[1] = strongTarget;
+    const splashFoe = freshEntry({ id:'splash', name:'Splash', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = splashFoe;
+    SPECIAL_HANDLERS.graff({ srcEntry: src, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.splashHitsOtherEnemies = splashFoe.captureBonus === -2;
+    out.targetExcludedFromSplash = strongTarget.captureBonus === 0;
+    out.failedCaptureVsStronger = strongTarget.owner === 'red';
+
+    // Against a weak target, the capture still succeeds and grants the
+    // permanent +3 all-sides buff, same as before this change.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(graff, 'blue');
+    state.board[4] = src2;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.graff({ srcEntry: src2, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.capturedAndBuffed = weakTarget.owner === 'blue' && src2.captureBonus === 3;
+
+    return out;
+  })()`);
+  assert.equal(result.hasShadowplay, true, 'Shadowplay must be untouched');
+  assert.equal(result.hasBehindEnemyLines, true);
+  assert.equal(result.specialName, true, 'the Ultimate name is now consistent (was "Shadow Assault" in special vs "Whirlwind Assault" in the skill text)');
+  assert.equal(result.behindEnemyLinesTwoAdjacent, true, 'Behind Enemy Lines grants +2 with 2+ adjacent enemies');
+  assert.equal(result.behindEnemyLinesOneAdjacent, true, 'Behind Enemy Lines grants nothing with only 1 adjacent enemy');
+  assert.equal(result.splashHitsOtherEnemies, true, 'the AOE splash lands on other enemies even when the chosen target resists capture');
+  assert.equal(result.targetExcludedFromSplash, true, 'the chosen target is not double-hit by the splash');
+  assert.equal(result.failedCaptureVsStronger, true, 'the single-target capture still fails against a much stronger target');
+  assert.equal(result.capturedAndBuffed, true, 'the single-target capture still succeeds and grants the permanent +3 buff against a weaker target');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Voidqueen (renamed The Hungering Void): title collision with Nyxara resolved, Hunger of the Void and Oblivion\'s Call unchanged, Insatiable is new', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const voidqueen = findCardById('voidqueen');
+    const nyxara = findCardById('nyxara');
+    out.nameChanged = voidqueen.name === 'The Hungering Void';
+    out.noLongerCollidesWithNyxara = voidqueen.name !== nyxara.name;
+    out.hasHungerOfTheVoid = voidqueen.active.underdogBonus === 3;
+    out.hasInsatiable = voidqueen.active.onCaptureBonus === 1;
+    out.specialName = voidqueen.special.name === "Oblivion's Call";
+    out.specialCost = voidqueen.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Insatiable: winning a battle (taking control of an enemy card) grants
+    // a permanent +1 via the existing onCaptureBonus field, same as Vayra's
+    // Silent Strike / Graff's Shadowplay.
+    state.board = Array(9).fill(null);
+    const winner = freshEntry(voidqueen, 'blue');
+    state.board[4] = winner;
+    const weakFoe = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    resolveFlips(4, 'blue');
+    out.insatiableGrantedPermanentBonus = winner.captureBonus === 1;
+
+    // Oblivion's Call: unchanged, still hits every enemy adjacent to the
+    // chosen target with a PERMANENT -2 (SpecialVerbs.debuff, not
+    // debuffThisRound -- matches the approved card art's "(permanent)" text).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(voidqueen, 'blue');
+    state.board[4] = src;
+    const target = freshEntry({ id:'t', name:'T', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = target;
+    const adjacentFoe = freshEntry({ id:'af', name:'AF', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = adjacentFoe;
+    SPECIAL_HANDLERS.voidqueen({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.oblivionsCallHitAdjacent = adjacentFoe.captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.nameChanged, true, 'the printed name must no longer be "The Void Empress"');
+  assert.equal(result.noLongerCollidesWithNyxara, true, 'the only real lore contradiction in the roster is now resolved');
+  assert.equal(result.hasHungerOfTheVoid, true);
+  assert.equal(result.hasInsatiable, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.insatiableGrantedPermanentBonus, true, 'Insatiable grants a permanent +1 on capturing an enemy card');
+  assert.equal(result.oblivionsCallHitAdjacent, true, "Oblivion's Call still permanently weakens cards adjacent to the chosen target");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

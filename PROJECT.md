@@ -23,10 +23,146 @@ info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–21
 (Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps, Sylvarions,
 Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
-**Punkt 22–24 (Vayra, Aurelian och Vorlix ombyggda — 🟠 REWORK från
-68-korts-auditen) ligger committade på feature-branchen, INTE mergade
-till `main` än** — fråga alltid explicit innan nästa merge när mer
-arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
+inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
+MERGADE till `main` också. **Punkt 25–28 (Ysara, Torn, Graff och
+Voidqueen ombyggda — 🟠 REWORK/POLISH-upptrappning från 68-korts-
+auditen, all kortkonst inkluderad) ligger committade på feature-
+branchen, INTE mergade till `main` än** — fråga alltid explicit innan
+nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från en
+tidigare bekräftelse.
+
+**28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
+ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
+("The Void Empress" delades ordagrant med Nyxara — enda konkreta
+lore-motsägelsen i hela rostret), men samtidigt felaktigt kallad "100%
+wired". Vid närmare granskning: bara Hunger of the Void
+(`underdogBonus:3`) och Ultimate Oblivion's Call hade faktisk backing —
+Vacuum's Grip, Veil of Emptiness, Dominance och Soul Fuel saknade allt,
+trots att de (ovanligt) inte var märkta "(Flavor only)" i koden. Samma
+missbedömning som Graff, rättad nu.
+
+Namnbyte (PROPOSAL): **"The Hungering Void"**, härlett direkt från
+hennes egen redan existerande skill "Hunger of the Void" — löser
+namnkollisionen med Nyxara utan att röra Nyxaras etablerade identitet
+alls. Role-undertexten ("Hunger of the Void") oförändrad.
+
+- **Hunger of the Void (Passiv)** — HELT oförändrad (`active.
+  underdogBonus:3`, redan fungerande). Text förenklad, samma betydelse.
+- **Insatiable (Passiv)** — PROPOSAL, helt befintligt fält: `active.
+  onCaptureBonus:1`, samma fält Ifrit/Bahamut/Graff/Vayra redan
+  använder.
+- **Special Attack: Oblivion's Call** — HELT oförändrad kod (permanent
+  `SpecialVerbs.debuff`, inte rond-begränsad). Text rättad från
+  "until your next round" till "permanently" för att matcha vad koden
+  faktiskt alltid gjort — samma sorts textfix som Little Jesps Guardian's
+  Aura fick.
+
+Bort: Vacuum's Grip, Veil of Emptiness, Dominance, Soul Fuel — alla
+utan backing.
+
+Ett nytt permanent test i `tests/game.test.mjs` (61 totalt, alla gröna,
+grönt på första körningen) verifierar: namnet är ändrat och skiljer sig
+nu från Nyxaras, Hunger of the Void och Oblivion's Call oförändrade,
+Insatiable ger permanent +1 vid erövring.
+
+**27. Graff ombyggd (The Darkrunner)** — ursprungligen bedömd 🟡 POLISH
+i 68-korts-auditen ("bra kit, bara ett namnfel"), men en närmare
+läsning av den faktiska korttexten visade att 4 av 5 skills var ren
+flavor utan mekanik — samma mönster som de andra REWORK-korten. Kört
+som REWORK på användarens begäran, min ursprungliga POLISH-bedömning
+var för snäll.
+
+- **Shadowplay (Passiv)** — HELT oförändrad (`active.onCaptureBonus:1`,
+  redan fungerande).
+- **Behind Enemy Lines (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.adjacentEnemiesBoost:{minCount:2, amount:2}`, samma fält
+  Tiamats Five Heads, One Will redan använder.
+- **Special Attack: Whirlwind Assault** — namnet rättat (`special.name`
+  sa "Shadow Assault", skill-texten sa redan "Whirlwind Assault").
+  Mekaniken slogs samman efter en riktig bildkonst-avvikelse: den
+  godkända bilden visade en AOE-variant (-2 alla fiender, obstoppbar)
+  istället för den ursprungliga singel-målsvarianten (gripa+flippa,
+  permanent +3). Användaren valde att **kombinera båda** istället för
+  att välja ett: en garanterad AOE-splash (`debuffThisRound`, samma verb
+  Shiva/Leviathan/Torn redan använder) träffar alla ÖVRIGA fiender
+  ovillkorligt, medan det valda målet behåller den ursprungliga
+  gripa-vid-vinst-mekaniken helt orörd (tröskelkoll, sköldkoll, flip,
+  permanent +3 via `attackBoost`). Det valda målet exkluderas från
+  splashen (det får fångst-eller-inget istället).
+
+Ett nytt permanent test i `tests/game.test.mjs` (60 totalt, alla gröna,
+grönt på första körningen) verifierar: Behind Enemy Lines kräver
+verkligen 2+ angränsande fiender (inte bara 1), Shadowplay orörd,
+splashen träffar övriga fiender även när det valda målet är för starkt
+för att gripas, det valda målet dubbel-träffas inte, och den ursprungliga
+gripa/permanent-buff-mekaniken fungerar fortfarande mot ett svagare mål.
+
+**26. Torn ombyggd (The Shadowhuntress)** — 🟠 REWORK: 5 skills ren
+poesi, bara Ultimate (Lethal Volley) fungerade. Saknade dessutom
+`element` helt — ett riktigt datahål, inte bara flavor-only (fixat med
+**Earth**, PROPOSAL, fyller tomt fält snarare än ändrar befintlig data).
+
+Medvetet differentierad från Deathblade/Graff/Vayra (redan tre
+melee-fokuserade "skugg"-kort med olika mekaniker) genom att luta sig
+mot det hon redan hade: Lethal Volley är redan ranged AOE, inte
+melee-singel — den enda av de fyra skugg-korten som aldrig går in i
+närstrid. Fraktion (PROPOSAL): **The Wild Hunt**, förstärker en redan
+etablerad tråd från Pallispell/Sylvarion istället för en fjärde ny
+fraktion.
+
+- **Predator's Mark (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.underdogSideBonus:2`, samma fält Umbrael redan använder.
+- **Poisoned Edge (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.onWinDebuffLoserPermanent:1`, samma fält Yojimbo redan
+  använder.
+- **Special Attack: Lethal Volley** — HELT oförändrad kod, bara
+  textstädad (borttagen "invented numbers"-not).
+
+Bort: Shadow Blink, Windstep, Silent Arrow — alla flavor-only, och
+Windstep/Silent Arrow upprepade idéer Graff/Zaevir redan äger bättre.
+
+Ett nytt permanent test i `tests/game.test.mjs` (59 totalt, alla gröna,
+grönt på första körningen) verifierar: nytt element satt, Predator's
+Mark bara mot starkare motstående sida, Poisoned Edge permanent -1 efter
+en riktig vinst (via `resolveFlips`, inte bara direkt handler-anrop),
+och Lethal Volley fortfarande obstoppbar (träffar även sköldade fiender).
+
+**25. Ysara ombyggd (The Timeweaver)** — 🟠 REWORK: tredje "tid"-kortet
+i rostret (utöver Vayra/Vorathos) utan egen fraktion, svagast
+underbyggd av alla tre — 6 skills, ren poesi, ingen mekanik utöver
+Ultimate. Ultimate Eternal Eclipse fungerade redan (samma dolda mönster
+som Vayras Eclipse — påhittade siffror, aldrig påhittad funktion) och
+lämnades helt orörd, bara textstädad (borttagen "invented numbers"-not).
+
+Medvetet differentierad från BÅDA de andra tidskorten samtidigt:
+Vorathos äger redan taktisk tidsmanipulation, Vayra äger redan ordens
+blad. Ysara fick INTE en tredje fraktion — hon fick INGEN fraktion
+alls, medvetet: **"The Unwoven"**, en siare som inte tillhör någon
+orden, vilket är poängen snarare än en brist. Kuriosum upptäckt under
+arbetet: hennes gamla skill "Starborn Core" krockade i namn med Astraels
+redan existerande riktiga "Starborn"-skill — ännu ett skäl att ta bort
+den.
+
+- **Future Sight (Passiv)** — PROPOSAL, men bara ett existerande fält:
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, samma fält Yojimbos
+  Price of Death redan använder.
+- **Paradox Veil (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.debuffImmune:true`, samma fält Omega Weapon/Nexzoth/Fenrir/
+  Umbrael redan använder.
+- **Special Attack: Eternal Eclipse** — HELT oförändrad kod.
+
+Bort: Time Stop, Temporal Shift, Void Crush, Starborn Core — alla ren
+flavor utan substans.
+
+Ett nytt permanent test i `tests/game.test.mjs` (58 totalt, alla gröna
+efter en liten egen testbugg — glömde sätta `playerHand`/`enemyHand`
+för att undvika att `lastStandBonus()` förorenade jämförelserna, samma
+kända fallgrop som flaggats flera gånger tidigare i det här dokumentet,
+upptäckt och rättad direkt) verifierar: stats/element orörda, gamla
+skölden borta, Future Sight bara mot starkare mål, Paradox Veil
+blockerar både `debuff()` och `debuffThisRound()`, och Eternal Eclipse
+fortfarande erövrar/buffar exakt som förut.
 
 **24. Vorlix ombyggd (The Horizon Blade)** — 🟠 REWORK, spegelbilden av
 Aurelian (punkt 23): samma "Celestial Siblings"-problem (en rad
