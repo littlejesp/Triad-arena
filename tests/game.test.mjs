@@ -1107,6 +1107,69 @@ test('Twisted Gipsy: card trimmed to The House Always Wins/Loaded Deck/House of 
   await page.close();
 });
 
+test('Astrael: element added, new Cosmic Ward shield, Starborn unchanged, Falling Stars now also debuffs the target', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const astrael = findCardById('astrael');
+    out.statsUnchanged = astrael.top === 8 && astrael.right === 8 && astrael.bottom === 8 && astrael.left === 8;
+    out.hasElement = astrael.element === 'magic';
+    out.hasStarborn = astrael.active.onPlaceBoost === 2;
+    out.hasCosmicWard = astrael.active.shield === true;
+    out.skillCount = astrael.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Starborn (unchanged): placing Astrael grants +2 Power on exactly one
+    // random side.
+    state.board = Array(9).fill(null);
+    state.playerHand = [astrael, {id:'filler1'}];
+    placeCard(4, 'astrael', 'blue');
+    const placed = state.board[4];
+    const sb = placed.sideBonus || {};
+    const boostedSides = ['top','right','bottom','left'].filter(s => (sb[s]||0) === 2);
+    out.starbornBoostedExactlyOneSide = boostedSides.length === 1;
+    out.starbornTotalIsTwo = (sb.top||0)+(sb.right||0)+(sb.bottom||0)+(sb.left||0) === 2;
+
+    // Cosmic Ward: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shieldedDefender = freshEntry(astrael, 'blue'); // top:8
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'ast-attacker', name:'AstAttacker', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Falling Stars: on win, the target is flipped AND permanently loses 2
+    // Power on all sides, while Astrael permanently gains +1 (combining
+    // both the pre-existing self-buff and the art's target-debuff).
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(astrael, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.astrael({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.starsFlippedTarget = wtarget.owner === 'blue';
+    out.starsDebuffedTarget = wtarget.captureBonus === -2;
+    out.starsBoostedSelf = wsrc.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasElement, true, 'element:magic added, no CANON conflict since the field was previously empty');
+  assert.equal(result.hasStarborn, true);
+  assert.equal(result.hasCosmicWard, true);
+  assert.equal(result.skillCount, 3, 'the printed card now carries Starborn, Cosmic Ward, and Falling Stars');
+  assert.equal(result.starbornBoostedExactlyOneSide, true);
+  assert.equal(result.starbornTotalIsTwo, true);
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.starsFlippedTarget, true);
+  assert.equal(result.starsDebuffedTarget, true, 'combining both interpretations: the target is now also permanently debuffed -2 all sides');
+  assert.equal(result.starsBoostedSelf, true, 'the pre-existing self-buff (+1 permanent) is kept');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

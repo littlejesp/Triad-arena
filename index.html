@@ -1651,9 +1651,10 @@ const HEROES = [
     {name:'Celestial Bond (Passive)', desc:'Vorlix gets +2 Power on all sides while Aurelian is anywhere on your board.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
-  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
+  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', element:'magic', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2, shield:true}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
     {name:'Starborn (Passive)', desc:'When Astrael is placed on the field, a random direction gains +2 Power (applies for the rest of the match).'},
-    {name:'Special Attack: Falling Stars', desc:'Costs 2 wins. Choose an enemy card — three stars strike at random, and the strongest bolt gives Astrael +5 Power on a random side during this attack. If the attack wins, Astrael gains +1 Power on all sides for the rest of the match.'},
+    {name:'Cosmic Ward (Passive)', desc:'The first time Astrael would lose a round, the loss is ignored — her form dissolves into starlight and is reborn.'},
+    {name:'Special Attack: Falling Stars', desc:'When Astrael wins, falling stars rain upon the target, permanently reducing all its sides by 2, and Astrael permanently gains +1 Power on all sides.'},
   ] },
   // The Triple Triad Sisters — originally FOREST_FOES-only (Campaign stage
   // 17's dedicated boss trio, deliberately kept out of HEROES per an
@@ -1977,9 +1978,10 @@ const FOREST_FOES = [
     {name:'Celestial Bond (Passive)', desc:'Vorlix gets +2 Power on all sides while Aurelian is anywhere on your board.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
-  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
+  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', element:'magic', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2, shield:true}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
     {name:'Starborn (Passive)', desc:'When Astrael is placed on the field, a random direction gains +2 Power (applies for the rest of the match).'},
-    {name:'Special Attack: Falling Stars', desc:'Costs 2 wins. Choose an enemy card — three stars strike at random, and the strongest bolt gives Astrael +5 Power on a random side during this attack. If the attack wins, Astrael gains +1 Power on all sides for the rest of the match.'},
+    {name:'Cosmic Ward (Passive)', desc:'The first time Astrael would lose a round, the loss is ignored — her form dissolves into starlight and is reborn.'},
+    {name:'Special Attack: Falling Stars', desc:'When Astrael wins, falling stars rain upon the target, permanently reducing all its sides by 2, and Astrael permanently gains +1 Power on all sides.'},
   ] },
   // The Triple Triad Sisters — a 3-card boss trio for Campaign stage 17.
   // Also duplicated into HEROES (see there) so they're playable — added in
@@ -4964,6 +4966,7 @@ const SPECIAL_HANDLERS = {
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
+    SpecialVerbs.debuff(targetEntry, 2);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Falling Stars — the strongest bolt lands on ${starSide} — claims ${targetEntry.card.name}!`;
   },

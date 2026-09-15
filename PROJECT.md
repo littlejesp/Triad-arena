@@ -27,11 +27,11 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29–33 (Sarah, Deathblade, Lyrith, Aurelia
-och Twisted Gipsy ombyggda) ligger committade på feature-branchen,
-INTE mergade till `main` än** — fråga alltid explicit innan nästa
-merge när mer arbete samlats där, anta ALDRIG tillstånd från en
-tidigare bekräftelse.
+till `main` också. **Punkt 29–34 (Sarah, Deathblade, Lyrith, Aurelia,
+Twisted Gipsy och Astrael ombyggda) ligger committade på
+feature-branchen, INTE mergade till `main` än** — fråga alltid
+explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
+tillstånd från en tidigare bekräftelse.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -158,6 +158,37 @@ Card, Sleight of Hand och Steal the Fortune ströks helt.
 Inga nya primitives — båda passiva skills återanvänder befintliga,
 redan testade engine-hooks. Bort: Pick a Card, Sleight of Hand, Steal
 the Fortune — alla flavor-only.
+
+**34. Astrael utökad (Cosmic Ward, element, Falling Stars kombinerad)**
+— TILL SKILLNAD FRÅN de sex senaste korten var Astrael redan HELT
+wired (Starborn + Falling Stars, 2/2 skills, inget flavor-only) —
+ingen felaktig auditbedömning den här gången. Användaren valde ändå
+att utöka henne (alternativ 2: liten utökning + element + ny konst)
+istället för att lämna henne orörd.
+
+Viktigt bevarat: hennes etablerade konst är medvetet KÖNLÖS OCH
+ANSIKTSLÖS ("No gender. No time. Only the stars.") — en kosmisk
+entitet, INTE en mänsklig Legendary-hjältinna som resten av rostern.
+Den nya bildbriefen byggde medvetet vidare på den identiteten istället
+för att bryta den; rarity-bandet är "COSMIC ENTITY", inte "Legendary
+Card".
+
+- **Element: `magic`** (PROPOSAL, nytt fält — inget CANON-brott, fältet
+  var tomt sedan tidigare).
+- **Starborn (Passiv)** — HELT oförändrad (`active.onPlaceBoost:2`,
+  slumpad sida).
+- **Cosmic Ward (Passiv, NY)** — helt befintligt fält
+  `active.shield:true`.
+- **Special Attack: "Falling Stars"** — kod-vs-bild-konflikt löst genom
+  att KOMBINERA båda (användarens val "C", samma lösning som Graffs
+  Whirlwind Assault): bilden sa att målet permanent försvagas -2 alla
+  sidor (nytt, `SpecialVerbs.debuff(targetEntry, 2)` tillagt i
+  `SPECIAL_HANDLERS.astrael`), koden gav redan Astrael permanent +1
+  till sig själv (`attackBoost(srcEntry, 1)`, oförändrad) — nu gör
+  Ultimaten båda delarna.
+
+Inga nya primitives utöver ren återanvändning av `debuff()`, redan
+befintlig `SpecialVerbs`-funktion.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
