@@ -19,13 +19,55 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–18
-(Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps och Sylvarions
-fullständiga ombyggnader, inklusive ny kortkonst för alla tre) är sedan
-dess MERGADE till `main` också. **Punkt 19 (Darien ombyggd — 🟠 REWORK
-från 68-korts-auditen) ligger committad på feature-branchen, INTE mergad
-till `main` än** — fråga alltid explicit innan nästa merge när mer arbete
-samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–20
+(Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps, Sylvarions,
+Dariens och Fereas fullständiga om/nybyggnader, inklusive ny kortkonst
+för alla fem) är sedan dess MERGADE till `main` också. **Punkt 21 (Elara
+ombyggd — 🟠 REWORK från 68-korts-auditen) ligger committad på
+feature-branchen, INTE mergad till `main` än** — fråga alltid explicit
+innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
+en tidigare bekräftelse.
+
+**21. Elara ombyggd (Healer of the Frozen Light)** — 🟠 REWORK: kallades
+"Healer" men hade noll läkningsmekanik (starkast identitets-glapp i
+rostret), och saknade dessutom Ultimate helt. Speglar Dariens ombyggnad
+(punkt 19) rakt av — de är redan CANON-kopplade via `RIVALRY_PAIRS`
+("The Shadowarden & the Light's Grace") och får nu en riktig, ömsesidig
+`pairPresence`-relation ovanpå den befintliga rivalitetsbonusen.
+Medvetet skild från Naline/Zlaizers död-och-återfödelse-nisch: Elara rör
+aldrig Graveyard, hennes identitet är skydd/renande för de som redan
+står på brädet.
+
+- **Frostbloom (Passiv)** — PROPOSAL, men bara ett existerande fält:
+  `active.onWinCleanseAlly:true`, exakt samma som Nalines Healing
+  Radiance redan använder. Ersätter hennes gamla vaga `active.shield`
+  helt (inte en extra sköld ovanpå — hennes enda kvarvarande försvar är
+  Crystal Sanctuary nedan).
+- **Crystal Sanctuary (Passiv)** — PROPOSAL: `active.
+  marginShieldThreshold:2`, samma fält Medusa och Darien redan använder
+  (tredje kortet nu). Fungerar helt oberoende av `active.shield` (verifierat
+  i `battleNeighbors()` — `marginBlocked` är en egen OR-gren, kräver inte
+  skölden), så ingen sköld behövdes kvar alls.
+- **Darien's Grace (Passiv)** — PROPOSAL: `active.pairPresence:
+  {partner:'darien', amount:2}`, spegelbilden av Dariens "Elara's Bond"
+  från punkt 19. Samma fält, ingen ny kod.
+- **Special Attack: Requiem of Light** (2 wins, hennes FÖRSTA Ultimate
+  någonsin) — ny `SPECIAL_HANDLERS.elara`. Återanvänder exakt samma
+  rensnings-logik som `onWinCleanseAlly` (nolla negativ captureBonus +
+  töm tempEffects), applicerad på hela egna sidan istället för ett
+  slumpat kort — men bara kort som faktiskt HADE något att rensa får
+  +1 Power (skiljer sig medvetet från Frostblooms ovillkorliga +1, för
+  att matcha kortets egen text "each one that had negative effects
+  cleared").
+
+Ett nytt permanent test i `tests/game.test.mjs` (54 totalt, alla gröna
+efter en liten testbugg — jag skrev själv fel förväntat värde, -1
+istället för +1, i "cleansed to 0 then +1"-scenariot, upptäckt och
+rättat direkt) verifierar: stats/element orörda, gamla skölden borta,
+Frostbloom rensar+buffar vid vinst, Crystal Sanctuary blockerar margin-2
+och debuffar angriparen, Darien's Grace staplar med rivalitetsbonusen,
+och Requiem of Light bara belönar allierade som faktiskt hade något att
+läka (fiender och redan friska allierade orörda).
 
 **20. Ferea fullständigt ombyggd (Grand Queen & Enchantress of the North)**
 — 🔴 REPLACE: enda kortet i spelet vars Ultimate var 100% flavor-only

@@ -1304,7 +1304,12 @@ const HEROES = [
   ]},
   { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{bonus:{dir:'right',amount:1}}, skills:[{name:"Eternal Aim", desc:"On placement, choose a direction — Zaevir's attack there gets +2 for the next battle."}, {name:"Forest's Path", desc:"Once per match, Zaevir may attack a card one space away in a straight line, if the path is clear."}, {name:"Focus", desc:"If Zaevir hasn't lost a battle yet, he gets +1 on his next attack."}, {name:"Eternal Arrow", desc:"When Zaevir defeats a card, he may keep attacking in the same direction if another card borders it."}]},
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', skills:[{name:"Shadow Step", desc:"When Sarah loses a battle, you may swap her with a card in an adjacent empty square."}, {name:"Direction Focus", desc:"Once per match, change Sarah's direction on her next attack before the battle resolves."}, {name:"Light Shield", desc:"The first time Sarah would lose a battle, the loss is ignored and the battle counts as a draw."}, {name:"Last Arrow", desc:"If Sarah is your last card on the board, she gets +1 to all her directions."}], active: {shield:true}},
-  { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', skills:[{name:"Frostbloom", desc:"Heals allies with the pure light of ice, restoring body, mind and spirit."}, {name:"Crystal Sanctuary", desc:"Creates a sanctuary that protects and cleanses all who stand within."}, {name:"Souls' Embrace", desc:"A wave of light that heals the wounded and purifies curses and poisons."}, {name:"Requiem of Light", desc:"Calls upon an ancient melody that soothes souls and restores hope."}, {name:"Returned by Light", desc:"Even death is not the end — Elara can call a soul back from the veil between worlds."}], active: {shield:true}},
+  { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', active: {onWinCleanseAlly:true, marginShieldThreshold:2, pairPresence:{partner:'darien', amount:2}}, special:{ name:'Requiem of Light', cost:2, once:true, targets:'aoe' }, skills:[
+    {name:'Frostbloom (Passive)', desc:'Whenever Elara wins a round, a random allied card is cleansed of negative effects and gains +1 Power (permanent).'},
+    {name:'Crystal Sanctuary (Passive)', desc:'If an enemy wins against Elara by 2 Power or less, the attack is blocked instead and the attacker gets -1 Power this round.'},
+    {name:"Darien's Grace (Passive)", desc:"Elara gets +2 Power on all sides while Darien is anywhere on your board. (Stacks with the existing +1 when adjacent, from the game's rivalry-pair rule.)"},
+    {name:'Special Attack: Requiem of Light', desc:'Costs 2 wins. Every allied card is cleansed of negative effects; each one that had negative effects cleared also gains +1 Power permanently. Usable once per match.'},
+  ]},
   { id:'vayra', name:"Vayra", role:"The Shadowblade — The Wardens of Time", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', active: {shield:true}, special:{ name:'Eclipse', cost:2, once:true, targets:'single' }, skills: [
     {name:'Shadow Step (Passive)', desc:'Moves through shadows, where least expected.'},
     {name:'Silent Strike', desc:'One strike. No sound. Only death remains.'},
@@ -5685,6 +5690,30 @@ const SPECIAL_HANDLERS = {
     const bonus = Math.min(3, marked);
     if(bonus > 0) SpecialVerbs.attackBoost(srcEntry, bonus);
     return `${name}'s The Frozen Crown Frostmarks ${marked} enem${marked !== 1 ? 'ies' : 'y'} and grants +${bonus} Power!`;
+  },
+  // Elara's Requiem of Light: the board-wide version of her own Frostbloom
+  // passive (active.onWinCleanseAlly) — same "zero out negative captureBonus,
+  // clear tempEffects" cleanse logic, just applied to every ally instead of
+  // one random one, and only the allies that actually had something to
+  // clear get the +1 (per the card's own "each one that had negative
+  // effects cleared" wording, unlike Frostbloom's unconditional +1).
+  elara({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    let cleansed = 0;
+    state.board.forEach(e => {
+      if(e && e.owner === owner){
+        const hadNegative = e.captureBonus < 0 || (e.tempEffects && e.tempEffects.length > 0);
+        if(e.captureBonus < 0) e.captureBonus = 0;
+        e.tempEffects = [];
+        if(hadNegative){
+          SpecialVerbs.attackBoost(e, 1);
+          cleansed++;
+        }
+      }
+    });
+    return cleansed > 0
+      ? `${name}'s Requiem of Light cleanses ${cleansed} allied card${cleansed !== 1 ? 's' : ''} and grants +1 Power each!`
+      : `${name}'s Requiem of Light finds no wounds left to heal!`;
   },
 };
 
