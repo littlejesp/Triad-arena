@@ -23,10 +23,40 @@ info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–21
 (Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps, Sylvarions,
 Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
-**Punkt 22–23 (Vayra och Aurelian ombyggda — 🟠 REWORK från
+**Punkt 22–24 (Vayra, Aurelian och Vorlix ombyggda — 🟠 REWORK från
 68-korts-auditen) ligger committade på feature-branchen, INTE mergade
 till `main` än** — fråga alltid explicit innan nästa merge när mer
 arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+
+**24. Vorlix ombyggd (The Horizon Blade)** — 🟠 REWORK, spegelbilden av
+Aurelian (punkt 23): samma "Celestial Siblings"-problem (en rad
+flavor-prosa, ingen riktig parmekanik), samma lösning i speglad form.
+
+- **Horizon's Reach (Passiv)** — PROPOSAL, samma `active.axisBonus`-fält
+  Aurelian fick, bara `dirs:['left','right']` istället för
+  `['top','bottom']`. Ingen ny kod — fältet fanns redan från Aurelians
+  ombyggnad.
+- **Celestial Bond (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.pairPresence:{partner:'aurelian', amount:2}`. Gör relationen
+  ömsesidig — nu har BÅDA syskonen bonden (Aurelian fick sin, en-sidig,
+  i punkt 23).
+- **Special Attack: WorldCleaver** — **HELT oförändrad**, varken text
+  eller kod rörd. Viktig medveten asymmetri: när Aurelians Skybreaker
+  gjordes generisk (se punkt 23-ändringen samma dag) valde användaren
+  uttryckligen att INTE göra samma ändring på WorldCleaver — Vorlix nya
+  kortkonst visar fortfarande den ursprungliga axel-specifika texten
+  ("+4 Power on Left and Right this attack only... +1 Power on Left and
+  Right permanently"), och koden matchade redan den exakt utan någon
+  ändring alls. Syskonen har nu olika Ultimate-format (generisk vs
+  axel-specifik) — ett medvetet val ("få in båda"), inte en olöst
+  inkonsekvens.
+
+Ett nytt permanent test i `tests/game.test.mjs` (57 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Horizon's
+Reach bara på attack och bara Left/Right, Celestial Bond ger +2 när
+Aurelian finns på brädet och 0 annars, och WorldCleaver fortfarande bara
+boostar Left/Right (inte alla sidor) permanent vid vinst — till skillnad
+från Aurelians nu generiska Skybreaker.
 
 **23. Aurelian ombyggd (The Skyward Spear)** — 🟠 REWORK: tunnaste
 kittet av alla "riktiga" legendarer — bara en rad flavor-prosa

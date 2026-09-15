@@ -2959,6 +2959,71 @@ test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bon
   await page.close();
 });
 
+test("Vorlix: Horizon's Reach only boosts Left/Right while attacking, Celestial Bond mirrors Aurelian's, and WorldCleaver is unchanged (axis-specific, unlike Aurelian's now-generic Skybreaker)", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vorlix = findCardById('vorlix');
+    out.statsUnchanged = vorlix.top === 10 && vorlix.right === 9 && vorlix.bottom === 6 && vorlix.left === 9 && vorlix.element === 'water';
+    out.hasHorizonsReach = vorlix.active.axisBonus && vorlix.active.axisBonus.amount === 1 && vorlix.active.axisBonus.dirs.includes('left') && vorlix.active.axisBonus.dirs.includes('right');
+    out.hasCelestialBond = vorlix.active.pairPresence && vorlix.active.pairPresence.partner === 'aurelian' && vorlix.active.pairPresence.amount === 2;
+    out.specialName = vorlix.special.name === 'WorldCleaver';
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Horizon's Reach: +1 on Left/Right while attacking, nothing on
+    // Up/Down, and nothing at all while defending.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(vorlix, 'blue');
+    const leftAttack = fullEffectiveValue(vorlix, 'left', null, 4, 'blue', 'attack');
+    out.leftAttackBonus = leftAttack - vorlix.left === 1;
+    const rightAttack = fullEffectiveValue(vorlix, 'right', null, 4, 'blue', 'attack');
+    out.rightAttackBonus = rightAttack - vorlix.right === 1;
+    const topAttack = fullEffectiveValue(vorlix, 'top', null, 4, 'blue', 'attack');
+    out.topAttackUnaffected = topAttack - vorlix.top === 0;
+    const leftDefense = fullEffectiveValue(vorlix, 'left', null, 4, 'blue', 'defense');
+    out.leftDefenseUnaffected = leftDefense - vorlix.left === 0;
+
+    // Celestial Bond: +2 while Aurelian is anywhere on the board.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(vorlix, 'blue');
+    state.board[8] = freshEntry(findCardById('aurelian'), 'blue');
+    const withAurelian = fullEffectiveValue(vorlix, 'top', null, 0, 'blue', 'defense');
+    out.celestialBondBonus = withAurelian - vorlix.top === 2;
+    state.board[8] = null;
+    const withoutAurelian = fullEffectiveValue(vorlix, 'top', null, 0, 'blue', 'defense');
+    out.noBondWithoutAurelian = withoutAurelian - vorlix.top === 0;
+
+    // WorldCleaver: fully unchanged -- still axis-specific (Left/Right
+    // only), unlike Aurelian's Skybreaker which became generic per the
+    // user's explicit choice for that card alone.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vorlix, 'blue');
+    state.board[4] = src;
+    const target = freshEntry({ id:'t', name:'T', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = target;
+    SPECIAL_HANDLERS.vorlix({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.worldCleaverCaptured = target.owner === 'blue';
+    out.worldCleaverBoostedLeftRightOnly = src.sideBonus && src.sideBonus.left === 1 && src.sideBonus.right === 1 && !src.sideBonus.top && !src.sideBonus.bottom;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasHorizonsReach, true);
+  assert.equal(result.hasCelestialBond, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.leftAttackBonus, true, "Horizon's Reach grants +1 on Left while attacking");
+  assert.equal(result.rightAttackBonus, true, "Horizon's Reach grants +1 on Right while attacking");
+  assert.equal(result.topAttackUnaffected, true, "Horizon's Reach does not apply to Up/Down");
+  assert.equal(result.leftDefenseUnaffected, true, "Horizon's Reach is attack-only, even on Left/Right");
+  assert.equal(result.celestialBondBonus, true, '+2 on all sides while Aurelian is anywhere on the board');
+  assert.equal(result.noBondWithoutAurelian, true, 'no bonus once Aurelian leaves the board');
+  assert.equal(result.worldCleaverCaptured, true, 'WorldCleaver still captures on a win');
+  assert.equal(result.worldCleaverBoostedLeftRightOnly, true, 'WorldCleaver still only permanently boosts Left/Right, fully unchanged from before');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
