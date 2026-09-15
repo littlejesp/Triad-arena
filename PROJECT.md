@@ -23,10 +23,46 @@ info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–21
 (Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps, Sylvarions,
 Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
-**Punkt 22 (Vayra ombyggd — 🟠 REWORK från 68-korts-auditen) ligger
-committad på feature-branchen, INTE mergad till `main` än** — fråga
-alltid explicit innan nästa merge när mer arbete samlats där, anta
-ALDRIG tillstånd från en tidigare bekräftelse.
+**Punkt 22–23 (Vayra och Aurelian ombyggda — 🟠 REWORK från
+68-korts-auditen) ligger committade på feature-branchen, INTE mergade
+till `main` än** — fråga alltid explicit innan nästa merge när mer
+arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+Aurelians kortkonst är mottagen men INTE sparad än — texten på bilden
+för Skybreaker (Ultimate) matchar inte den faktiska koden (bilden säger
+generiskt "+3 denna attack, +1 alla sidor permanent"; koden är
+oförändrad axel-specifik "+4 Up/Down denna attack, +1 Up/Down
+permanent") — väntar på besked om vilken som ska gälla innan bilden
+sparas.
+
+**23. Aurelian ombyggd (The Skyward Spear)** — 🟠 REWORK: tunnaste
+kittet av alla "riktiga" legendarer — bara en rad flavor-prosa
+("The Celestial Siblings") och en redan fungerande Ultimate (Skybreaker,
+rörd EJ av denna ombyggnad — bara siffrorna var påhittade, inte
+funktionen). Auditen flaggade explicit att "Celestial Siblings" antydde
+en parmekanik mot **Vorlix** som aldrig byggdes — jämfört med Twin
+Brothers/Sisters som redan har en riktig `pairPresence`.
+
+- **Skyward Reach (Passiv)** — PROPOSAL, en liten ny primitiv:
+  `active.axisBonus:{dirs:['top','bottom'], amount:1}`. Naturlig
+  generalisering av det äldre `active.bonus:{dir,amount}`-fältet (som
+  bara stödjer EN riktning, används av Ragnar/Zaevir/Harpy) till en
+  lista av riktningar — samma sorts motiverade lilla utökning som Little
+  Jesps `boardLeadBonus.tieOnly`. Ny läsning i `fullEffectiveValue()`,
+  attack-only, gated på `edgeKey`.
+- **Celestial Bond (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.pairPresence:{partner:'vorlix', amount:2}`, samma fält Twin
+  Brothers/Sisters och nu Darien/Elara redan använder. En-sidig i denna
+  ändring (Vorlix rörs inte) — kan speglas tillbaka när han får sin egen
+  REWORK.
+- **Special Attack: Skybreaker** — HELT oförändrad kod. Se status-raden
+  ovan om den olösta bildkonst-avvikelsen.
+
+Ett nytt permanent test i `tests/game.test.mjs` (56 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Skyward
+Reach bara på attack och bara Up/Down, Celestial Bond ger +2 när Vorlix
+finns på brädet och 0 annars, och Skybreaker fortfarande bara boostar
+Up/Down (inte alla sidor) permanent vid vinst — vilket är precis den
+kod-verkligheten som just nu skiljer sig från bildens text.
 
 **22. Vayra ombyggd (The Shadowblade)** — 🟠 REWORK: bär spelets
 viktigaste fraktionsnamn (**The Wardens of Time**, redan CANON) men var

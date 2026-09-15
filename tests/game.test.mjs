@@ -2884,6 +2884,70 @@ test('Vayra: Shadow Step margin-block, Silent Strike permanent capture bonus, an
   await page.close();
 });
 
+test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bond mirrors the Twin pattern, and Skybreaker is unchanged", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const aurelian = findCardById('aurelian');
+    out.statsUnchanged = aurelian.top === 10 && aurelian.right === 7 && aurelian.bottom === 10 && aurelian.left === 6 && aurelian.element === 'wind';
+    out.hasSkywardReach = aurelian.active.axisBonus && aurelian.active.axisBonus.amount === 1 && aurelian.active.axisBonus.dirs.includes('top') && aurelian.active.axisBonus.dirs.includes('bottom');
+    out.hasCelestialBond = aurelian.active.pairPresence && aurelian.active.pairPresence.partner === 'vorlix' && aurelian.active.pairPresence.amount === 2;
+    out.specialName = aurelian.special.name === 'Skybreaker';
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Skyward Reach: +1 on Up/Down while attacking, nothing on Left/Right,
+    // and nothing at all while defending (even on Up/Down).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(aurelian, 'blue');
+    const topAttack = fullEffectiveValue(aurelian, 'top', null, 4, 'blue', 'attack');
+    out.topAttackBonus = topAttack - aurelian.top === 1;
+    const bottomAttack = fullEffectiveValue(aurelian, 'bottom', null, 4, 'blue', 'attack');
+    out.bottomAttackBonus = bottomAttack - aurelian.bottom === 1;
+    const rightAttack = fullEffectiveValue(aurelian, 'right', null, 4, 'blue', 'attack');
+    out.rightAttackUnaffected = rightAttack - aurelian.right === 0;
+    const topDefense = fullEffectiveValue(aurelian, 'top', null, 4, 'blue', 'defense');
+    out.topDefenseUnaffected = topDefense - aurelian.top === 0;
+
+    // Celestial Bond: +2 while Vorlix is anywhere on the board.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(aurelian, 'blue');
+    state.board[8] = freshEntry(findCardById('vorlix'), 'blue');
+    const withVorlix = fullEffectiveValue(aurelian, 'left', null, 0, 'blue', 'defense');
+    out.celestialBondBonus = withVorlix - aurelian.left === 2;
+    state.board[8] = null;
+    const withoutVorlix = fullEffectiveValue(aurelian, 'left', null, 0, 'blue', 'defense');
+    out.noBondWithoutVorlix = withoutVorlix - aurelian.left === 0;
+
+    // Skybreaker: unchanged, still captures and grants +1 permanent on
+    // Up/Down (not all sides) on a win.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(aurelian, 'blue');
+    state.board[4] = src;
+    const target = freshEntry({ id:'t', name:'T', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = target;
+    SPECIAL_HANDLERS.aurelian({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.skybreakerCaptured = target.owner === 'blue';
+    out.skybreakerBoostedTopBottomOnly = src.sideBonus && src.sideBonus.top === 1 && src.sideBonus.bottom === 1 && !src.sideBonus.left && !src.sideBonus.right;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasSkywardReach, true);
+  assert.equal(result.hasCelestialBond, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.topAttackBonus, true, 'Skyward Reach grants +1 on Up while attacking');
+  assert.equal(result.bottomAttackBonus, true, 'Skyward Reach grants +1 on Down while attacking');
+  assert.equal(result.rightAttackUnaffected, true, 'Skyward Reach does not apply to Left/Right');
+  assert.equal(result.topDefenseUnaffected, true, 'Skyward Reach is attack-only, even on Up/Down');
+  assert.equal(result.celestialBondBonus, true, '+2 on all sides while Vorlix is anywhere on the board');
+  assert.equal(result.noBondWithoutVorlix, true, 'no bonus once Vorlix leaves the board');
+  assert.equal(result.skybreakerCaptured, true, 'Skybreaker still captures on a win');
+  assert.equal(result.skybreakerBoostedTopBottomOnly, true, 'Skybreaker still only permanently boosts Up/Down, unchanged from before');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

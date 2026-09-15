@@ -1661,8 +1661,9 @@ const HEROES = [
     {name:'Glacial Barrier (Passive)', desc:'The first time Ferea would lose a battle, that loss is ignored.'},
     {name:'Special Attack: The Frozen Crown', desc:"Costs 3 wins. Every enemy card becomes Frostmarked and gets -2 Power this round. Ferea permanently gains +1 Power on all sides for every enemy Frostmarked this way (max +3), locked in at activation. Usable once per match."},
   ] },
-  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
+    {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
     {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
   ] },
   { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
@@ -1999,8 +2000,9 @@ const FOREST_FOES = [
     {name:'Glacial Barrier (Passive)', desc:'The first time Ferea would lose a battle, that loss is ignored.'},
     {name:'Special Attack: The Frozen Crown', desc:"Costs 3 wins. Every enemy card becomes Frostmarked and gets -2 Power this round. Ferea permanently gains +1 Power on all sides for every enemy Frostmarked this way (max +3), locked in at activation. Usable once per match."},
   ] },
-  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
+    {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
     {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
   ] },
   { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
@@ -3918,6 +3920,14 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   // simple had shipped before.
   if(card.active && card.active.flatAttackBonus && role === 'attack'){
     v += card.active.flatAttackBonus;
+  }
+  // Aurelian's Skyward Reach: the same shape as flatAttackBonus above, but
+  // restricted to specific sides instead of all four — a natural
+  // generalization of the older single-direction active.bonus field
+  // (bonus.dir/bonus.amount, used by Ragnar/Zaevir/Harpy) to a list of
+  // directions, since nothing needed more than one side until now.
+  if(card.active && card.active.axisBonus && role === 'attack' && card.active.axisBonus.dirs.includes(edgeKey)){
+    v += card.active.axisBonus.amount;
   }
   // Shiva's Eternal Winter / Leviathan's Maelstrom: "+N Power on all sides
   // THIS ROUND while 2+ enemy cards are adjacent" — the enemy-counting
