@@ -1227,7 +1227,7 @@ test('Vaelira: new capped Crimson Surge, all other mechanics (Undying Flame/Sist
   await page.close();
 });
 
-test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
+test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter now destroys every win outright (no revive), Devourer, The Ending now spares allies (no revive)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -1244,29 +1244,40 @@ test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on
     const lightCard = { id:'light-test', name:'Light', top:5,right:5,bottom:5,left:5, element:'light' };
     out.weakVsLight = fullEffectiveValue(nexzoth, 'top', lightCard, 0, 'blue', 'attack') - nexzoth.top;
 
-    // World Shatter: winning destroys enemies further along that same line —
-    // BALANCE CAP (deliberate deviation from source text, see PROJECT.md):
-    // only the FIRST such win destroys the line; a second win by the same
-    // Nexzoth must not repeat it, since paired with his permanent
-    // debuffImmune an uncapped version has no counterplay.
+    // World Shatter, simplified per the approved art: every win destroys the
+    // direct target outright (no capture), uncapped (no once-per-match flag
+    // this time — that cap is exclusive to Morvath's line-AOE
+    // onWinLineDestroy), and skips the Graveyard even with the rule on.
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
     state.board = Array(9).fill(null);
     const nexShatter = freshEntry(nexzoth, 'blue');
-    state.board[7] = nexShatter;
-    state.board[4] = freshEntry({ id:'near', name:'Near', top:1,right:1,bottom:1,left:1 }, 'red');
-    state.board[1] = freshEntry({ id:'far', name:'Far', top:1,right:1,bottom:1,left:1 }, 'red');
-    resolveFlips(7, 'blue');
-    out.worldShatterCapturedNear = state.board[4] && state.board[4].owner === 'blue';
-    out.worldShatterDestroyedFar = state.board[1] === null;
-    out.worldShatterMarkedUsed = nexShatter.onWinLineDestroyUsed === true;
+    state.board[4] = nexShatter;
+    state.board[1] = freshEntry({ id:'ws-target', name:'WSTarget', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.worldShatterDestroyedTarget = state.board[1] === null;
+    out.worldShatterSkippedGraveyard = state.graveyard.red.length === 0;
 
-    // Second win by the SAME Nexzoth (same 'top' direction, a fresh enemy
-    // now sitting where the first destroyed one used to be): must NOT
-    // destroy again since onWinLineDestroyUsed is now set.
-    state.board[1] = freshEntry({ id:'far2', name:'Far2', top:1,right:1,bottom:1,left:1 }, 'red');
-    checkOnWinBonuses(nexShatter, 'top', state.board[4], 4, 7, 10);
-    out.worldShatterDoesNotRepeat = state.board[1] !== null;
+    // A second, independent win by the same Nexzoth also destroys — uncapped.
+    state.board[1] = freshEntry({ id:'ws-target2', name:'WSTarget2', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.worldShatterRepeatsEveryWin = state.board[1] === null;
 
-    // The Ending: destroys every other card, both sides, except itself; respects destroyImmune
+    // Devourer: +1 Power permanent every time ANY enemy card is destroyed,
+    // by any effect (reuses active.buffOnEnemyDestroyed, same as Morvath).
+    state.board = Array(9).fill(null);
+    const devSrc = freshEntry(nexzoth, 'blue');
+    state.board[4] = devSrc;
+    const devTarget = freshEntry({ id:'dev-target', name:'DevTarget', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = devTarget;
+    destroyCard(1);
+    out.devourerGainedPower = devSrc.captureBonus === 1;
+
+    // The Ending, simplified per the approved art: enemy-only now (spares
+    // allies, unlike before), still respects destroyImmune, skips the
+    // Graveyard entirely.
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
     state.board = Array(9).fill(null);
     const nexSrc = freshEntry(nexzoth, 'blue');
     state.board[4] = nexSrc;
@@ -1275,22 +1286,24 @@ test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on
     state.board[8] = freshEntry(findCardById('threeheaddragon'), 'red');
     SPECIAL_HANDLERS.nexzoth({ srcEntry: nexSrc, sourceIndex: 4, owner: 'blue' });
     out.endingKeepsSelf = state.board[4] === nexSrc;
-    out.endingDestroysOwnSide = state.board[0] === null;
+    out.endingSparesOwnSide = state.board[0] !== null;
     out.endingDestroysEnemySide = state.board[1] === null;
     out.endingRespectsDestroyImmune = state.board[8] !== null;
+    out.endingSkippedGraveyard = state.graveyard.red.length === 0;
 
     return out;
   })()`);
   assert.equal(result.debuffImmune, true);
   assert.equal(result.weakVsLight, -4);
-  assert.equal(result.worldShatterCapturedNear, true);
-  assert.equal(result.worldShatterDestroyedFar, true, 'World Shatter destroys enemies further along the winning line');
-  assert.equal(result.worldShatterMarkedUsed, true);
-  assert.equal(result.worldShatterDoesNotRepeat, true, 'World Shatter is capped to once per match (balance deviation from source text)');
+  assert.equal(result.worldShatterDestroyedTarget, true);
+  assert.equal(result.worldShatterSkippedGraveyard, true, "World Shatter's destroy cannot be revived, even with the Graveyard rule on");
+  assert.equal(result.worldShatterRepeatsEveryWin, true, 'World Shatter is uncapped now (no once-per-match flag, unlike Morvath\'s line-AOE)');
+  assert.equal(result.devourerGainedPower, true);
   assert.equal(result.endingKeepsSelf, true);
-  assert.equal(result.endingDestroysOwnSide, true, 'The Ending hits both sides, not just the enemy');
+  assert.equal(result.endingSparesOwnSide, true, 'The Ending now spares allies, matching the approved art');
   assert.equal(result.endingDestroysEnemySide, true);
   assert.equal(result.endingRespectsDestroyImmune, true);
+  assert.equal(result.endingSkippedGraveyard, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

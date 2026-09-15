@@ -2068,14 +2068,14 @@ const FOREST_FOES = [
   { id:'nexzoth', name:'Nexzoth', role:'Mythic Card — The World Eater',
     top:10, right:10, bottom:10, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#a568f2', icon:'🌀',
-    active:{ debuffImmune:true, onWinLineDestroy:true, weakVsElement:{element:'light', amount:4} },
+    active:{ debuffImmune:true, onWinDestroyLoserAlways:true, buffOnEnemyDestroyed:true, weakVsElement:{element:'light', amount:4} },
     special:{ name:'The Ending', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Reality Consume', desc:'When Nexzoth is placed, a random enemy card is chosen — it loses -3 Power this round.'},
-      {name:'World Shatter', desc:'The first time Nexzoth wins a round, every enemy card further along that same line is destroyed outright and removed from the board. Once per match. (Source text has no such cap — added deliberately: paired with his permanent debuffImmune, an uncapped version snowballs with no counterplay. See PROJECT.md.)'},
-      {name:'Endless Void (Passive)', desc:"Nexzoth's Power can never be lowered by an opponent's card skills or Special Attacks. (\"Can't be moved by enemy cards\" is flavor only — no card in the engine can ever move another card's position.)"},
-      {name:'Omnivore', desc:"Once per match, Nexzoth can copy any ability from an enemy card. (Flavor only — abilities are bespoke per-card handlers, not composable data; a real 'copy any ability' system would need either a full ability-reflection layer or hardcoding every possible target, disproportionate for one skill line.)"},
-      {name:'Special Attack: The Ending', desc:'Costs 3 wins. Destroys every other card on the board — allied and enemy alike — leaving only Nexzoth behind. Usable once per match.'},
+      {name:'World Shatter (Passive)', desc:'Whenever Nexzoth wins a round, the target card is destroyed outright instead of captured — it cannot be revived.'},
+      {name:'Endless Void (Passive)', desc:"Nexzoth's Power can never be lowered by an opponent's card skills or Special Attacks."},
+      {name:'Devourer (Passive)', desc:'Whenever an enemy card is destroyed, by any effect, Nexzoth permanently gains +1 Power.'},
+      {name:'Special Attack: The Ending', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Usable once per match.'},
     ] },
   { id:'morvath', name:'Morvath', role:'Mythic Card — The Abyssal King', element:'water',
     top:9, right:9, bottom:10, left:10,
@@ -3247,7 +3247,7 @@ function adjacentEntries(cellIndex){
 // board outright (as opposed to a normal flip/capture). When the Graveyard
 // optional rule is on, the destroyed card is recorded in its owner's
 // Graveyard instead of simply vanishing.
-function destroyCard(index){
+function destroyCard(index, opts){
   const entry = state.board[index];
   if(!entry) return;
   // Zlaizer's Light of Forgiveness: "50% chance to place it in your
@@ -3255,8 +3255,12 @@ function destroyCard(index){
   // Graveyard rule. If the rule is already on, recording happens
   // unconditionally as normal; if it's off, Zlaizer still gives his OWN
   // side a coin-flip chance to record anyway (never the opponent's side).
+  // Nexzoth's World Shatter/The Ending are explicitly "cannot be revived"
+  // (unlike every other destroy effect, which is fine going to the
+  // Graveyard like normal) — opts.noRevive skips the recording entirely,
+  // even with the Graveyard rule on.
   const zlaizer = state.board.some(e => e && e.owner === entry.owner && e.card.active && e.card.active.chanceToGraveyardIfRuleOff);
-  if(state.rules.graveyard || (zlaizer && Math.random() < 0.5)){
+  if(!(opts && opts.noRevive) && (state.rules.graveyard || (zlaizer && Math.random() < 0.5))){
     state.graveyard[entry.owner].push(entry.card);
   }
   state.board[index] = null;
@@ -3433,6 +3437,14 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
     const edgeToDir = { top:'up', bottom:'down', left:'left', right:'right' };
     enemiesInDirection(winnerIndex, edgeToDir[myEdge], winnerEntry.owner).forEach(p => destroyCard(p.index));
     winnerEntry.onWinLineDestroyUsed = true;
+  }
+  // Nexzoth's World Shatter, simplified per the approved art: no longer a
+  // line-AOE (that stays exclusive to Morvath's Abyssal Grasp via
+  // onWinLineDestroy above) — every win outright destroys the direct
+  // target instead of capturing it, uncapped, and skips the Graveyard
+  // (noRevive) per the art's explicit "cannot be revived".
+  if(a.onWinDestroyLoserAlways && loserIndex != null && !isDestroyImmune(loserEntry)){
+    destroyCard(loserIndex, { noRevive: true });
   }
   // Vorgrath's Crushing Weight: "-1 Power to all opponent's cards next
   // round" — approximated as an immediate one-round debuff to every enemy
@@ -5365,21 +5377,17 @@ const SPECIAL_HANDLERS = {
     if(weakened > 0) parts.push(`weakens ${weakened} more`);
     return `${name}'s Dragonslayer ${parts.join(' and ')}!`;
   },
-  // The Ending: "destroy all cards on the board" is read as everything
-  // EXCEPT Nexzoth's own cell — spending 3 Wins to also delete the card
-  // that just earned them would be a strange, anti-fun reading of "The
-  // World Eater consumes everything", so he's the one thing left standing.
-  // Hits both sides indiscriminately (unlike Vaelira/Nyxara's enemy-only
-  // destroy-alls), so protectedByInfiniteSeraph's "blocks the OPPONENT's
-  // effects" framing doesn't cleanly apply to a caster hitting its own side
-  // too — only per-card destroyImmune is honored here.
+  // The Ending, simplified per the approved art: enemy-only now (matching
+  // Vaelira/Nyxara's own destroy-alls), no longer hits allies too, and
+  // skips the Graveyard entirely (noRevive) per the art's explicit
+  // "cannot be revived".
   nexzoth({ srcEntry, sourceIndex, owner }){
     const name = srcEntry.card.name;
     let destroyed = 0;
     state.board.forEach((e, i) => {
-      if(!e || i === sourceIndex) return;
+      if(!e || i === sourceIndex || e.owner === owner) return;
       if(isDestroyImmune(e)) return;
-      destroyCard(i);
+      destroyCard(i, { noRevive: true });
       destroyed++;
     });
     return destroyed > 0

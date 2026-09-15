@@ -27,11 +27,16 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29–35 (Sarah, Deathblade, Lyrith, Aurelia,
-Twisted Gipsy, Astrael och Vaelira ombyggda) ligger committade på
-feature-branchen, INTE mergade till `main` än** — fråga alltid
-explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
-tillstånd från en tidigare bekräftelse.
+till `main` också. **Punkt 29–36 (Sarah, Deathblade, Lyrith, Aurelia,
+Twisted Gipsy, Astrael, Vaelira och Nexzoth ombyggda) ligger
+committade på feature-branchen, INTE mergade till `main` än** — fråga
+alltid explicit innan nästa merge när mer arbete samlats där, anta
+ALDRIG tillstånd från en tidigare bekräftelse. **OBS: Nexzoths bild är
+INTE genererad/godkänd än** — bara Devourer, World Shatter och The
+Ending är implementerade (alternativ A, matcha kod till bild för de
+tre säkra delarna). Reality Consume och Endless Void väntar
+fortfarande på svar om ny motorlogik (se punkt 36 nedan) innan bilden
+beställs.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -223,6 +228,42 @@ rörd.
   ändringar så den lämnades orörd.
 
 Inga andra gameplay-, lore- eller balansändringar.
+
+**36. Nexzoth — delvis matchad till godkänd bild (alternativ A)** —
+Nexzoth var redan mestadels wired (Reality Consume, World Shatter,
+Endless Void, The Ending), men den nya bilden beskrev en ANNAN
+mekanik på nästan alla skills. Användaren valde alternativ A (matcha
+kod till bild), men bara för de delar som gick att göra säkert utan
+att uppfinna helt nya motorsystem:
+
+- **Devourer** (ersätter Omnivore, redan beslutat tidigare) — helt
+  befintligt fält `active.buffOnEnemyDestroyed:true`, samma som
+  Morvath.
+- **World Shatter** — förenklad från linje-AOE (`onWinLineDestroy`,
+  som Morvath fortfarande använder oförändrad) till en NY, egen
+  primitive `active.onWinDestroyLoserAlways:true`: varje vinst
+  förstör nu målet direkt istället för att erövra det, okapad (ingen
+  once-per-match-spärr som förut — den spärren hör bara till Morvaths
+  linje-AOE), och kan inte återupplivas.
+- **The Ending** — förenklad till att bara träffa fiender (som
+  Vaelira/Nyxaras egna förstör-allt-effekter), sparar allierade nu.
+- **NY generell motorfunktion**: `destroyCard(index, {noRevive:true})`
+  — ett nytt valfritt andra argument som hoppar över
+  Graveyard-registreringen helt, även med Graveyard-regeln på. Används
+  av World Shatter och The Ending för att matcha bildens "cannot be
+  revived". Påverkar INGA andra kort — standardanropet `destroyCard(i)`
+  fungerar exakt som förut.
+
+**VÄNTAR PÅ SVAR** (inte implementerat än, bilden inte heller
+beställd): **Reality Consume** (bilden säger en permanent aura som
+försvagar alla angränsande fiender — skulle kräva en helt ny
+"granne-försvagar-fiende"-primitive, motsatsen till befintliga
+`adjacentEnemiesBoost`) och **Endless Void** (bilden säger "vid varje
+rondstart förlorar alla fiender -1 Power" — skulle kräva ett
+rondstart-triggersystem som inte finns alls i motorn idag). Två öppna
+frågor till användaren: ska Endless Void vara permanent-staplande
+eller tillfällig per runda, och ska den gälla alla fiender eller bara
+de som redan fanns vid rondstart.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
