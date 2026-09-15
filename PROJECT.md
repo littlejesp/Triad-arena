@@ -19,13 +19,45 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–16
-(Ancient Wyrmkings ultimate + Weight of Ages, inklusive ny kortkonst) är
-sedan dess MERGADE till `main` också. **Punkt 17 (Little Jesp fullständigt
-ombyggd — 🔴 REPLACE från 68-korts-auditen) ligger committad på
-feature-branchen, INTE mergad till `main` än** — fråga alltid explicit
-innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
-en tidigare bekräftelse.
+info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–17
+(Ancient Wyrmkings ultimate + Weight of Ages, samt Little Jesps fullständiga
+ombyggnad, inklusive ny kortkonst för båda) är sedan dess MERGADE till
+`main` också. **Punkt 18 (Sylvarion fullständigt ombyggd — 🔴 REPLACE från
+68-korts-auditen) ligger committad på feature-branchen, INTE mergad till
+`main` än** — fråga alltid explicit innan nästa merge när mer arbete
+samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+
+**18. Sylvarion fullständigt ombyggd (Herald of the Wild Hunt)** —
+nästa kort ur 68-korts-auditen (🔴 REPLACE): 8 av 9 skills var 100%
+flavor-only (energi-resurs, card-draw, osynlighet — inget existerar i
+motorn), flest flavor-only-flaggor av alla 68 kort. Ny kortkonst godkänd
+(samma Mythic/Legendary-serie). Fraktion **PROPOSAL**: "The Wild Hunt",
+byggt på Pallispells redan existerande CANON-roll "Wardens of the Wild
+Hunt" — Sylvarion blir härolden/spanaren snarare än ännu en bågskytt
+(rostret hade redan gott om ranger-arketyper enligt auditen).
+
+Stats/element oförändrade (10/8/10/9, Wind) — auditen flaggade aldrig
+siffrorna som problemet. Ultimate-kostnaden sänkt från 5 wins (högst i
+hela rostret, onåbar i praktiken) till 2.
+
+- **Windrush** — `active.flatAttackBonus:2`, samma befintliga fält Shiva/
+  Chocobo King/Odin redan använder. Inget nytt.
+- **Vanguard of the Hunt** — `active.boardUnderdogAttackBonus:2`, samma
+  befintliga fält Fenrir redan använder. Inget nytt.
+- **Special Attack: Herald's Gale** (2 wins, ersätter "Tempest Volley") —
+  ny `SPECIAL_HANDLERS.sylvarion`-funktion. AOE -2 Power på alla
+  fiendekort (`debuffThisRound`, samma verb som Shiva/Leviathan) plus ett
+  permanent self-buff via `attackBoost` som motsvarar hur många kort
+  färre hans sida kontrollerar just vid aktivering (cappat +3, låst som
+  Conquests Witnessed/Scales of Judgment). Ingen ny data-primitiv på
+  kortet — bara en handler-funktion som återanvänder samma
+  `mine`/`theirs`-avläsning som Vanguard of the Hunt-passiven redan gör.
+
+Tre nya permanenta tester i `tests/game.test.mjs` (51 totalt, alla gröna):
+Windrush/Vanguard endast på attack (inte försvar), Vanguard kräver
+underläge, Herald's Gale debuffar alla fiender oavsett brädeläge,
+self-buff skalar exakt med underskottet, cap vid +3, och låsning vid
+aktivering (ombräknas inte live om brädeläget ändras efteråt).
 
 **17. Little Jesp fullständigt ombyggd (Order of the Balance)** — resultatet
 av en fullständig 68-korts Tier-audit (🟢 KEEP / 🟡 POLISH / 🟠 REWORK /

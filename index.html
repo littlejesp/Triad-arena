@@ -1343,17 +1343,10 @@ const HEROES = [
     {name:'Special Attack: Time Collapse', desc:"Costs 2 wins. Choose an enemy card, then a direction — Vorathos gains +4 Power for this attack only. If the attack wins, that direction keeps +1 Power permanently."},
   ]},
   { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Shield Wall", desc:"If Templaren wins against a dark or monster-type card, you take control regardless of the numbers."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2'}},
-  { id:'sylvarion', name:"Sylvarion", role:"The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', active: {bonus:{dir:'top',amount:1}}, special:{ name:'Tempest Volley', cost:5, once:true, targets:'aoe' }, skills:[
-    {name:"Windstep", desc:"Swap position with a left- or right-adjacent allied card, then draw 1 card. (Flavor only — no positional swap-with-ally or card-draw system exists in the engine.)"},
-    {name:"Piercing Arrow", desc:"Fire 1 arrow at the enemy on the opposing side, ignoring 1 point of defense. (Flavor only — describes a placement-battle mechanic with no hook in the grundmotor; the one piece of \"ignores defense\" that IS wired in lives in Tempest Volley below.)"},
-    {name:"Silent Hunter", desc:"Your next arrow this round costs 1 less energy and deals +2 damage. (Flavor only — no per-turn energy resource or round tracking exists; the engine's one shared resource is Wins.)"},
-    {name:"Nature's Veil", desc:"Turn invisible this round; your next attack can't be blocked. (Flavor only — no round tracking or unblockable-attack flag exists for placement battles.)"},
-    {name:"Gust Precision", desc:"If your next attack hits, draw 2 cards. (Flavor only — no card-draw system exists.)"},
-    {name:"Wind's Embrace (Passive)", desc:"Gain +1 energy when you attack. (Flavor only — no energy resource exists.)"},
-    {name:"Forest's Guard (Passive)", desc:"Reduce damage taken by 1. (Flavor only — not wired into battle resolution.)"},
-    {name:"Hunter's Sense (Passive)", desc:"See the enemy's hand at the start of the round. (Flavor only — no hand-reveal system exists.)"},
-    {name:"Adaptive Strike (Passive)", desc:"Your arrows adapt — ignore 1 defense every 2nd attack. (Flavor only — no attack-counter tracking exists.)"},
-    {name:"Special Attack: Tempest Volley", desc:"Cost 5 Wins (the card's own text says \"5 Energi\" — mapped onto this engine's one shared special-attack resource since no separate energy system exists). Fires 5 arrows; each independently picks a random enemy card and hits it for -1 Power as true damage — unconditional, ignores shields entirely, no capture attempt. A card can be struck by more than one arrow. Per-arrow damage (-1) is invented; the source gives no number, only \"true damage.\""},
+  { id:'sylvarion', name:"Sylvarion", role:"Herald of the Wild Hunt — The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', active: {flatAttackBonus:2, boardUnderdogAttackBonus:2}, special:{ name:"Herald's Gale", cost:2, once:true, targets:'aoe' }, skills:[
+    {name:'Windrush', desc:'Sylvarion gets +2 Power on the attacking side.'},
+    {name:'Vanguard of the Hunt (Passive)', desc:'While your side controls fewer cards than your opponent, Sylvarion gets +2 Power on the attacking side.'},
+    {name:"Special Attack: Herald's Gale", desc:"Costs 2 wins. A gale sweeps the board: every enemy card gets -2 Power this round. Sylvarion permanently gains +1 Power on all sides for every card fewer his side controls compared to the opponent at the moment of casting (max +3), locked in at activation. Usable once per match."},
   ]},
   { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:5, bottom:6, left:9, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Double Strike", desc:"When Ragnar wins a battle, he may attack again this round (once per round)."}, {name:"War Breaker", desc:"Choose an enemy card — Ragnar gets +2 Power when attacking it."}, {name:"Blood Rush", desc:"When Ragnar defeats an enemy card, he gets +1 Power for his next battle."}, {name:"Last Fury", desc:"If Ragnar is your only card left on the board, he gets +3 Power until the round ends."}], active: {bonus:{dir:'top',amount:1}}},
   // Naline was fully redesigned in a later session from a new poster the
@@ -5661,6 +5654,26 @@ const SPECIAL_HANDLERS = {
     return leadingOwner
       ? `${name}'s Scales of Judgment grants +${bonus} Power and weighs down the leading side by -1!`
       : `${name}'s Scales of Judgment grants +${bonus} Power — the scales are already perfectly balanced!`;
+  },
+  // Sylvarion's Herald's Gale: a plain AOE debuff (debuffThisRound on every
+  // enemy, same verb Shiva/Leviathan already use) plus a self-buff that
+  // scales with how far BEHIND his own side is on board count at the
+  // moment of casting — the same live "mine vs theirs" read his own
+  // boardUnderdogAttackBonus passive already does, just read once here and
+  // locked in via attackBoost instead of live, same snapshot pattern as
+  // Conquests Witnessed/Scales of Judgment above. No new card-data
+  // primitive; the deficit math lives entirely in this handler.
+  sylvarion({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 2); });
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    const theirs = state.board.filter(e => e && e.owner !== owner).length;
+    const deficit = Math.min(3, Math.max(0, theirs - mine));
+    if(deficit > 0) SpecialVerbs.attackBoost(srcEntry, deficit);
+    return deficit > 0
+      ? `${name}'s Herald's Gale sweeps the board and grants +${deficit} Power, rallying the outnumbered vanguard!`
+      : `${name}'s Herald's Gale sweeps the board!`;
   },
 };
 
