@@ -23,10 +23,48 @@ info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–21
 (Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps, Sylvarions,
 Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
-**Punkt 22–24 (Vayra, Aurelian och Vorlix ombyggda — 🟠 REWORK från
-68-korts-auditen) ligger committade på feature-branchen, INTE mergade
+Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
+inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
+MERGADE till `main` också. **Punkt 25 (Ysara ombyggd — 🟠 REWORK från
+68-korts-auditen) ligger committad på feature-branchen, INTE mergad
 till `main` än** — fråga alltid explicit innan nästa merge när mer
 arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+
+**25. Ysara ombyggd (The Timeweaver)** — 🟠 REWORK: tredje "tid"-kortet
+i rostret (utöver Vayra/Vorathos) utan egen fraktion, svagast
+underbyggd av alla tre — 6 skills, ren poesi, ingen mekanik utöver
+Ultimate. Ultimate Eternal Eclipse fungerade redan (samma dolda mönster
+som Vayras Eclipse — påhittade siffror, aldrig påhittad funktion) och
+lämnades helt orörd, bara textstädad (borttagen "invented numbers"-not).
+
+Medvetet differentierad från BÅDA de andra tidskorten samtidigt:
+Vorathos äger redan taktisk tidsmanipulation, Vayra äger redan ordens
+blad. Ysara fick INTE en tredje fraktion — hon fick INGEN fraktion
+alls, medvetet: **"The Unwoven"**, en siare som inte tillhör någon
+orden, vilket är poängen snarare än en brist. Kuriosum upptäckt under
+arbetet: hennes gamla skill "Starborn Core" krockade i namn med Astraels
+redan existerande riktiga "Starborn"-skill — ännu ett skäl att ta bort
+den.
+
+- **Future Sight (Passiv)** — PROPOSAL, men bara ett existerande fält:
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, samma fält Yojimbos
+  Price of Death redan använder.
+- **Paradox Veil (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.debuffImmune:true`, samma fält Omega Weapon/Nexzoth/Fenrir/
+  Umbrael redan använder.
+- **Special Attack: Eternal Eclipse** — HELT oförändrad kod.
+
+Bort: Time Stop, Temporal Shift, Void Crush, Starborn Core — alla ren
+flavor utan substans.
+
+Ett nytt permanent test i `tests/game.test.mjs` (58 totalt, alla gröna
+efter en liten egen testbugg — glömde sätta `playerHand`/`enemyHand`
+för att undvika att `lastStandBonus()` förorenade jämförelserna, samma
+kända fallgrop som flaggats flera gånger tidigare i det här dokumentet,
+upptäckt och rättad direkt) verifierar: stats/element orörda, gamla
+skölden borta, Future Sight bara mot starkare mål, Paradox Veil
+blockerar både `debuff()` och `debuffThisRound()`, och Eternal Eclipse
+fortfarande erövrar/buffar exakt som förut.
 
 **24. Vorlix ombyggd (The Horizon Blade)** — 🟠 REWORK, spegelbilden av
 Aurelian (punkt 23): samma "Celestial Siblings"-problem (en rad

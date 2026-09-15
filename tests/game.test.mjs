@@ -3024,6 +3024,58 @@ test("Vorlix: Horizon's Reach only boosts Left/Right while attacking, Celestial 
   await page.close();
 });
 
+test('Ysara: Future Sight vs a stronger foe, Paradox Veil debuff immunity, and Eternal Eclipse is unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ysara = findCardById('ysara');
+    out.statsUnchanged = ysara.top === 9 && ysara.right === 7 && ysara.bottom === 10 && ysara.left === 8 && ysara.element === 'wind';
+    out.oldShieldGone = !ysara.active.shield;
+    out.hasFutureSight = ysara.active.vsStrongerTotalPowerBoost && ysara.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.hasParadoxVeil = ysara.active.debuffImmune === true;
+    out.specialName = ysara.special.name === 'Eternal Eclipse';
+    out.specialCost = ysara.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2]; // avoid lastStandBonus() polluting the comparisons below
+
+    // Future Sight: +3 attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.futureSightVsStronger = fullEffectiveValue(ysara, 'top', {top:10,right:10,bottom:10,left:10}, 4, 'blue', 'attack') - ysara.top === 3;
+    out.futureSightVsWeaker = fullEffectiveValue(ysara, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - ysara.top === 0;
+
+    // Paradox Veil: debuffThisRound and debuff both do nothing to her.
+    state.board = Array(9).fill(null);
+    const guarded = freshEntry(ysara, 'blue');
+    state.board[4] = guarded;
+    SpecialVerbs.debuffThisRound(guarded, 3);
+    SpecialVerbs.debuff(guarded, 3);
+    out.paradoxVeilBlocksDebuffs = guarded.captureBonus === 0;
+
+    // Eternal Eclipse: unchanged, still a total-power threshold check
+    // (+3) with a permanent +1 all-sides buff on a win.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(ysara, 'blue');
+    state.board[4] = src;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.ysara({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.eclipseCapturedAndBuffed = weakTarget.owner === 'blue' && src.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.oldShieldGone, true, 'the old plain active.shield must be gone, replaced by Future Sight/Paradox Veil');
+  assert.equal(result.hasFutureSight, true);
+  assert.equal(result.hasParadoxVeil, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.futureSightVsStronger, true, 'Future Sight grants +3 when attacking a card with higher total Power');
+  assert.equal(result.futureSightVsWeaker, true, 'Future Sight grants nothing against an equal-or-weaker foe');
+  assert.equal(result.paradoxVeilBlocksDebuffs, true, "Paradox Veil blocks both debuff() and debuffThisRound()");
+  assert.equal(result.eclipseCapturedAndBuffed, true, 'Eternal Eclipse still captures and grants +1 permanent on a win, unchanged from before');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
