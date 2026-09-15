@@ -2815,6 +2815,75 @@ test("Elara: Frostbloom cleanse-on-win, Crystal Sanctuary margin-block, Darien's
   await page.close();
 });
 
+test('Vayra: Shadow Step margin-block, Silent Strike permanent capture bonus, and Eclipse is unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vayra = findCardById('vayra');
+    out.statsUnchanged = vayra.top === 10 && vayra.right === 8 && vayra.bottom === 8 && vayra.left === 9 && vayra.element === 'earth';
+    out.oldShieldGone = !vayra.active.shield;
+    out.hasShadowStep = vayra.active.marginShieldThreshold === 2;
+    out.hasSilentStrike = vayra.active.onCaptureBonus === 1;
+    out.specialName = vayra.special.name === 'Eclipse';
+    out.specialCost = vayra.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Shadow Step: enemy wins by <=2 margin -> blocked, attacker debuffed -1.
+    state.board = Array(9).fill(null);
+    const defender = freshEntry(vayra, 'blue'); // top:10
+    state.board[4] = defender;
+    const closeAttacker = freshEntry({ id:'close', name:'Close', top:1,right:1,bottom:12,left:1 }, 'red'); // bottom:12 vs top:10, margin=2
+    state.board[1] = closeAttacker;
+    resolveFlips(1, 'red');
+    out.shadowStepBlockedCloseWin = state.board[4].owner === 'blue';
+    out.shadowStepDebuffedAttacker = closeAttacker.captureBonus === -1;
+
+    state.board = Array(9).fill(null);
+    const defender2 = freshEntry(vayra, 'blue');
+    state.board[4] = defender2;
+    const bigAttacker = freshEntry({ id:'big', name:'Big', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.bigMarginNotBlocked = state.board[4].owner === 'red';
+
+    // Silent Strike: winning a battle (taking control of an enemy card)
+    // grants a permanent +1 Power via the existing onCaptureBonus field.
+    state.board = Array(9).fill(null);
+    const winner = freshEntry(vayra, 'blue');
+    state.board[4] = winner;
+    const weakFoe = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    resolveFlips(4, 'blue');
+    out.silentStrikeGrantedPermanentBonus = winner.captureBonus === 1;
+
+    // Eclipse: unchanged, still requires beating the target's total power by
+    // at least 3 (the temp boost), and grants +1 permanent on all sides if it wins.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vayra, 'blue');
+    state.board[4] = src;
+    const target = freshEntry({ id:'t', name:'T', top:5,right:5,bottom:5,left:5 }, 'red'); // total 20
+    state.board[1] = target;
+    SPECIAL_HANDLERS.vayra({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.eclipseCapturedAndBuffed = target.owner === 'blue' && src.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.oldShieldGone, true, 'the old plain active.shield must be gone, replaced by Shadow Step');
+  assert.equal(result.hasShadowStep, true);
+  assert.equal(result.hasSilentStrike, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.shadowStepBlockedCloseWin, true, 'a margin-2 loss is blocked by Shadow Step');
+  assert.equal(result.shadowStepDebuffedAttacker, true, 'the attacker is debuffed -1 when blocked');
+  assert.equal(result.bigMarginNotBlocked, true, 'a margin greater than 2 still flips her normally');
+  assert.equal(result.silentStrikeGrantedPermanentBonus, true, 'capturing an enemy card grants a permanent +1 via Silent Strike');
+  assert.equal(result.eclipseCapturedAndBuffed, true, 'Eclipse still captures and grants +1 permanent on a win, unchanged from before');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

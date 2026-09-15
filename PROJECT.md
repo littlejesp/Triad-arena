@@ -19,14 +19,49 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–20
+info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–21
 (Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps, Sylvarions,
-Dariens och Fereas fullständiga om/nybyggnader, inklusive ny kortkonst
-för alla fem) är sedan dess MERGADE till `main` också. **Punkt 21 (Elara
-ombyggd — 🟠 REWORK från 68-korts-auditen) ligger committad på
-feature-branchen, INTE mergad till `main` än** — fråga alltid explicit
-innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
-en tidigare bekräftelse.
+Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
+kortkonst för alla sex) är sedan dess MERGADE till `main` också.
+**Punkt 22 (Vayra ombyggd — 🟠 REWORK från 68-korts-auditen) ligger
+committad på feature-branchen, INTE mergad till `main` än** — fråga
+alltid explicit innan nästa merge när mer arbete samlats där, anta
+ALDRIG tillstånd från en tidigare bekräftelse.
+
+**22. Vayra ombyggd (The Shadowblade)** — 🟠 REWORK: bär spelets
+viktigaste fraktionsnamn (**The Wardens of Time**, redan CANON) men var
+mekaniskt tunnast beskriven av alla "riktiga" legendarer — 4 skills var
+ren poesi utan mekanik. Ultimate Eclipse fungerade redan (bara påhittade
+tal, ingen påhittad FUNKTION) och lämnades därför helt orörd —
+REWORK betyder laga glappet, inte bygga om det som redan funkar.
+
+Medvetet differentierad från två håll: **Vorathos** (Order of the
+Timekeepers) äger redan "manipulera tid mekaniskt"-nischen fullt
+utbyggd, så Vayra fick INTE en till tidsmekanik — hon är ordens blad,
+inte dess teoretiker. **Deathblade/Graff/Torn** äger redan "skugg-
+lönnmördare"-arketypen mekaniskt, så differentieringen sker främst
+visuellt i den godkända kortkonsten (frusna tidssprickor, ekon av sig
+själv, klockverks-filigran) snarare än genom en ny mekanisk nisch.
+
+- **Shadow Step (Passiv)** — PROPOSAL, men bara ett existerande fält:
+  `active.marginShieldThreshold:2`, samma fält Medusa/Darien/Elara redan
+  använder (fjärde kortet nu). Ersätter hennes gamla ovillkorliga
+  `active.shield` helt.
+- **Silent Strike (Passiv)** — PROPOSAL: `active.onCaptureBonus:1`,
+  samma fält Ifrit/Bahamut/Graff/Yojimbo redan använder. Permanent +1
+  Power varje gång hon tar ett fiendekort.
+- **Special Attack: Eclipse** — HELT oförändrad kod (`SPECIAL_HANDLERS.
+  vayra`), bara städad text (borttagen "invented numbers"-dev-not som
+  inte längre behövs).
+
+Bort: "Shadow Shell" och "Dagger Dance" — båda upprepade samma
+flavor-idé som Shadow Step redan täcker, ingen egen substans.
+
+Ett nytt permanent test i `tests/game.test.mjs` (55 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, gamla
+skölden borta, Shadow Step blockerar margin-2 och debuffar angriparen,
+Silent Strike ger permanent +1 vid erövring, och Eclipse fortfarande
+erövrar/buffar exakt som förut.
 
 **21. Elara ombyggd (Healer of the Frozen Light)** — 🟠 REWORK: kallades
 "Healer" men hade noll läkningsmekanik (starkast identitets-glapp i
