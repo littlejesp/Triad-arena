@@ -2919,16 +2919,26 @@ test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bon
     const withoutVorlix = fullEffectiveValue(aurelian, 'left', null, 0, 'blue', 'defense');
     out.noBondWithoutVorlix = withoutVorlix - aurelian.left === 0;
 
-    // Skybreaker: unchanged, still captures and grants +1 permanent on
-    // Up/Down (not all sides) on a win.
+    // Skybreaker: rebuilt to match the approved card art -- a total-power
+    // threshold check (+3) rather than an Up/Down-specific temp boost, and
+    // a generic +1 all-sides permanent buff via attackBoost on a win,
+    // same shape as Vayra's Eclipse / Ysara's Eternal Eclipse.
     state.board = Array(9).fill(null);
     const src = freshEntry(aurelian, 'blue');
     state.board[4] = src;
-    const target = freshEntry({ id:'t', name:'T', top:1,right:1,bottom:1,left:1 }, 'red');
-    state.board[1] = target;
-    SPECIAL_HANDLERS.aurelian({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
-    out.skybreakerCaptured = target.owner === 'blue';
-    out.skybreakerBoostedTopBottomOnly = src.sideBonus && src.sideBonus.top === 1 && src.sideBonus.bottom === 1 && !src.sideBonus.left && !src.sideBonus.right;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red'); // total 4, easily beaten
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.aurelian({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.skybreakerCaptured = weakTarget.owner === 'blue';
+    out.skybreakerBoostedAllSides = src.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(aurelian, 'blue'); // total 33
+    state.board[4] = src2;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, 33+3 <= 80
+    state.board[1] = strongTarget;
+    SPECIAL_HANDLERS.aurelian({ srcEntry: src2, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.skybreakerNoEffectVsMuchStronger = strongTarget.owner === 'red' && src2.captureBonus === 0;
 
     return out;
   })()`);
@@ -2942,8 +2952,9 @@ test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bon
   assert.equal(result.topDefenseUnaffected, true, 'Skyward Reach is attack-only, even on Up/Down');
   assert.equal(result.celestialBondBonus, true, '+2 on all sides while Vorlix is anywhere on the board');
   assert.equal(result.noBondWithoutVorlix, true, 'no bonus once Vorlix leaves the board');
-  assert.equal(result.skybreakerCaptured, true, 'Skybreaker still captures on a win');
-  assert.equal(result.skybreakerBoostedTopBottomOnly, true, 'Skybreaker still only permanently boosts Up/Down, unchanged from before');
+  assert.equal(result.skybreakerCaptured, true, 'Skybreaker still captures a much weaker target');
+  assert.equal(result.skybreakerBoostedAllSides, true, 'Skybreaker now grants a generic +1 on all sides, matching the approved card art');
+  assert.equal(result.skybreakerNoEffectVsMuchStronger, true, 'Skybreaker fails against a target whose total power exceeds the +3 threshold');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

@@ -27,19 +27,12 @@ kortkonst för alla sex) är sedan dess MERGADE till `main` också.
 68-korts-auditen) ligger committade på feature-branchen, INTE mergade
 till `main` än** — fråga alltid explicit innan nästa merge när mer
 arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
-Aurelians kortkonst är mottagen men INTE sparad än — texten på bilden
-för Skybreaker (Ultimate) matchar inte den faktiska koden (bilden säger
-generiskt "+3 denna attack, +1 alla sidor permanent"; koden är
-oförändrad axel-specifik "+4 Up/Down denna attack, +1 Up/Down
-permanent") — väntar på besked om vilken som ska gälla innan bilden
-sparas.
 
 **23. Aurelian ombyggd (The Skyward Spear)** — 🟠 REWORK: tunnaste
 kittet av alla "riktiga" legendarer — bara en rad flavor-prosa
-("The Celestial Siblings") och en redan fungerande Ultimate (Skybreaker,
-rörd EJ av denna ombyggnad — bara siffrorna var påhittade, inte
-funktionen). Auditen flaggade explicit att "Celestial Siblings" antydde
-en parmekanik mot **Vorlix** som aldrig byggdes — jämfört med Twin
+("The Celestial Siblings") och en redan fungerande Ultimate (Skybreaker).
+Auditen flaggade explicit att "Celestial Siblings" antydde en
+parmekanik mot **Vorlix** som aldrig byggdes — jämfört med Twin
 Brothers/Sisters som redan har en riktig `pairPresence`.
 
 - **Skyward Reach (Passiv)** — PROPOSAL, en liten ny primitiv:
@@ -54,15 +47,22 @@ Brothers/Sisters som redan har en riktig `pairPresence`.
   Brothers/Sisters och nu Darien/Elara redan använder. En-sidig i denna
   ändring (Vorlix rörs inte) — kan speglas tillbaka när han får sin egen
   REWORK.
-- **Special Attack: Skybreaker** — HELT oförändrad kod. Se status-raden
-  ovan om den olösta bildkonst-avvikelsen.
+- **Special Attack: Skybreaker** — den godkända kortkonsten visade en
+  generisk beskrivning ("+3 denna attack, +1 alla sidor permanent")
+  som inte matchade den ursprungliga axel-specifika koden ("+4 Up/Down
+  denna attack, +1 Up/Down permanent"). Användaren valde uttryckligen
+  att ändra KODEN till bildens version snarare än tvärtom. Ombyggd till
+  exakt samma form som Vayras Eclipse/Ysaras Eternal Eclipse
+  (total-power-tröskel + `SpecialVerbs.attackBoost` för permanent
+  +1 alla sidor) istället för `directionalBoost` — återanvänder ett
+  redan tre gånger etablerat mönster snarare än att uppfinna ett fjärde.
+  Hans axel-identitet lever kvar i Skyward Reach ovan, orörd.
 
-Ett nytt permanent test i `tests/game.test.mjs` (56 totalt, alla gröna,
-grönt på första körningen) verifierar: stats/element orörda, Skyward
-Reach bara på attack och bara Up/Down, Celestial Bond ger +2 när Vorlix
-finns på brädet och 0 annars, och Skybreaker fortfarande bara boostar
-Up/Down (inte alla sidor) permanent vid vinst — vilket är precis den
-kod-verkligheten som just nu skiljer sig från bildens text.
+Ett nytt permanent test i `tests/game.test.mjs` (56 totalt, alla gröna)
+verifierar: stats/element orörda, Skyward Reach bara på attack och bara
+Up/Down, Celestial Bond ger +2 när Vorlix finns på brädet och 0 annars,
+och Skybreaker nu ger ett generiskt +1 på alla sidor (inte bara Up/Down)
+och misslyckas mot mål vars totalstyrka överstiger +3-tröskeln.
 
 **22. Vayra ombyggd (The Shadowblade)** — 🟠 REWORK: bär spelets
 viktigaste fraktionsnamn (**The Wardens of Time**, redan CANON) men var

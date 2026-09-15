@@ -1664,7 +1664,7 @@ const HEROES = [
   { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
     {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
     {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
-    {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
+    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
   ] },
   { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
     {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
@@ -2003,7 +2003,7 @@ const FOREST_FOES = [
   { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
     {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
     {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
-    {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
+    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
   ] },
   { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
     {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
@@ -4820,12 +4820,16 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s Megaflare overwhelms ${targetEntry.card.name}, defenses and all!`;
   },
+  // Rebuilt to match the approved card art's generic wording ("+3 this
+  // attack only, +1 all sides permanent on a win") instead of the original
+  // axis-specific Up/Down version — same shape as Vayra's Eclipse and
+  // Ysara's Eternal Eclipse (total-power threshold check + attackBoost),
+  // reused directly rather than inventing a third pattern. His axis
+  // identity still lives on in the separate Skyward Reach passive above.
   aurelian({ srcEntry, targetEntry, targetIndex, owner }){
-    const sides = ['top', 'bottom']; // Up / Down
-    const basePower = totalPower(srcEntry);
-    const targetPower = totalPower(targetEntry);
-    if(basePower + 4*sides.length <= targetPower){
-      return `${srcEntry.card.name}'s Skybreaker crashes down without effect!`;
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Skybreaker crashes down without effect!`;
     }
     if(specialBlockedByShield(targetEntry, targetIndex)){
       return `${targetEntry.card.name}'s shield holds against Skybreaker!`;
@@ -4833,8 +4837,8 @@ const SPECIAL_HANDLERS = {
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
-    SpecialVerbs.directionalBoost(srcEntry, sides, 1);
-    return `${srcEntry.card.name}'s Skybreaker splits the sky over ${targetEntry.card.name}!`;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Skybreaker splits the sky over ${targetEntry.card.name}!`;
   },
   vorlix({ srcEntry, targetEntry, targetIndex, owner }){
     const sides = ['left', 'right'];
