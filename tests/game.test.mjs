@@ -3197,6 +3197,59 @@ test('Graff: Behind Enemy Lines requires 2+ adjacent enemies, Shadowplay is unch
   await page.close();
 });
 
+test('Voidqueen (renamed The Hungering Void): title collision with Nyxara resolved, Hunger of the Void and Oblivion\'s Call unchanged, Insatiable is new', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const voidqueen = findCardById('voidqueen');
+    const nyxara = findCardById('nyxara');
+    out.nameChanged = voidqueen.name === 'The Hungering Void';
+    out.noLongerCollidesWithNyxara = voidqueen.name !== nyxara.name;
+    out.hasHungerOfTheVoid = voidqueen.active.underdogBonus === 3;
+    out.hasInsatiable = voidqueen.active.onCaptureBonus === 1;
+    out.specialName = voidqueen.special.name === "Oblivion's Call";
+    out.specialCost = voidqueen.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Insatiable: winning a battle (taking control of an enemy card) grants
+    // a permanent +1 via the existing onCaptureBonus field, same as Vayra's
+    // Silent Strike / Graff's Shadowplay.
+    state.board = Array(9).fill(null);
+    const winner = freshEntry(voidqueen, 'blue');
+    state.board[4] = winner;
+    const weakFoe = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    resolveFlips(4, 'blue');
+    out.insatiableGrantedPermanentBonus = winner.captureBonus === 1;
+
+    // Oblivion's Call: unchanged, still hits every enemy adjacent to the
+    // chosen target with a PERMANENT -2 (SpecialVerbs.debuff, not
+    // debuffThisRound -- matches the approved card art's "(permanent)" text).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(voidqueen, 'blue');
+    state.board[4] = src;
+    const target = freshEntry({ id:'t', name:'T', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = target;
+    const adjacentFoe = freshEntry({ id:'af', name:'AF', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = adjacentFoe;
+    SPECIAL_HANDLERS.voidqueen({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.oblivionsCallHitAdjacent = adjacentFoe.captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.nameChanged, true, 'the printed name must no longer be "The Void Empress"');
+  assert.equal(result.noLongerCollidesWithNyxara, true, 'the only real lore contradiction in the roster is now resolved');
+  assert.equal(result.hasHungerOfTheVoid, true);
+  assert.equal(result.hasInsatiable, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.insatiableGrantedPermanentBonus, true, 'Insatiable grants a permanent +1 on capturing an enemy card');
+  assert.equal(result.oblivionsCallHitAdjacent, true, "Oblivion's Call still permanently weakens cards adjacent to the chosen target");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

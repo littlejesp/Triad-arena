@@ -25,12 +25,46 @@ Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
 Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
-MERGADE till `main` också. **Punkt 25–27 (Ysara, Torn och Graff
-ombyggda — 🟠 REWORK från 68-korts-auditen, Ysaras och Torns kortkonst
-inkluderad) ligger committade på feature-branchen, INTE mergade till
-`main` än** — fråga alltid explicit innan nästa merge när mer arbete
-samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse. Graffs
-kortkonst är ännu inte sparad.
+MERGADE till `main` också. **Punkt 25–28 (Ysara, Torn, Graff och
+Voidqueen ombyggda — 🟠 REWORK/POLISH-upptrappning från 68-korts-
+auditen, all kortkonst inkluderad) ligger committade på feature-
+branchen, INTE mergade till `main` än** — fråga alltid explicit innan
+nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från en
+tidigare bekräftelse.
+
+**28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
+ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
+("The Void Empress" delades ordagrant med Nyxara — enda konkreta
+lore-motsägelsen i hela rostret), men samtidigt felaktigt kallad "100%
+wired". Vid närmare granskning: bara Hunger of the Void
+(`underdogBonus:3`) och Ultimate Oblivion's Call hade faktisk backing —
+Vacuum's Grip, Veil of Emptiness, Dominance och Soul Fuel saknade allt,
+trots att de (ovanligt) inte var märkta "(Flavor only)" i koden. Samma
+missbedömning som Graff, rättad nu.
+
+Namnbyte (PROPOSAL): **"The Hungering Void"**, härlett direkt från
+hennes egen redan existerande skill "Hunger of the Void" — löser
+namnkollisionen med Nyxara utan att röra Nyxaras etablerade identitet
+alls. Role-undertexten ("Hunger of the Void") oförändrad.
+
+- **Hunger of the Void (Passiv)** — HELT oförändrad (`active.
+  underdogBonus:3`, redan fungerande). Text förenklad, samma betydelse.
+- **Insatiable (Passiv)** — PROPOSAL, helt befintligt fält: `active.
+  onCaptureBonus:1`, samma fält Ifrit/Bahamut/Graff/Vayra redan
+  använder.
+- **Special Attack: Oblivion's Call** — HELT oförändrad kod (permanent
+  `SpecialVerbs.debuff`, inte rond-begränsad). Text rättad från
+  "until your next round" till "permanently" för att matcha vad koden
+  faktiskt alltid gjort — samma sorts textfix som Little Jesps Guardian's
+  Aura fick.
+
+Bort: Vacuum's Grip, Veil of Emptiness, Dominance, Soul Fuel — alla
+utan backing.
+
+Ett nytt permanent test i `tests/game.test.mjs` (61 totalt, alla gröna,
+grönt på första körningen) verifierar: namnet är ändrat och skiljer sig
+nu från Nyxaras, Hunger of the Void och Oblivion's Call oförändrade,
+Insatiable ger permanent +1 vid erövring.
 
 **27. Graff ombyggd (The Darkrunner)** — ursprungligen bedömd 🟡 POLISH
 i 68-korts-auditen ("bra kit, bara ett namnfel"), men en närmare
