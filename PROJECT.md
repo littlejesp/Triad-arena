@@ -25,9 +25,48 @@ fullständiga ombyggnader, inklusive ny kortkonst för alla tre) är sedan
 dess MERGADE till `main` också. **Punkt 19 (Darien ombyggd — 🟠 REWORK
 från 68-korts-auditen) ligger committad på feature-branchen, INTE mergad
 till `main` än** — fråga alltid explicit innan nästa merge när mer arbete
-samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse. Ferea
-(🔴 REPLACE) är specad men väntar fortfarande på besked om stat-sidorna
-(kod 10/10/9/9 vs bild 10/9/9/10) innan den kan implementeras.
+samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+
+**20. Ferea fullständigt ombyggd (Grand Queen & Enchantress of the North)**
+— 🔴 REPLACE: enda kortet i spelet vars Ultimate var 100% flavor-only
+("Memory of Her Stolen Scepter" — deckmanipulation finns inte i motorn),
+plus en flavor-only Frostmark-stapling i passiverna. Stat-sidorna (kod
+hade 10/10/9/9, den godkända bildkonsten visade 10/9/9/10 — mitt eget
+missat att specificera exakta siffror i bildbriefen) löstes genom att
+låta koden matcha den redan godkända, färdiga bildkonsten snarare än
+tvärtom (totalen 38 oförändrad, ingen balanspåverkan — bara en
+höger/vänster-omkastning).
+
+- **Frostmark (Passiv)** — PROPOSAL, ny permanent boolean-status
+  `entry.frostmarked` (till skillnad från Medusas tidsbegränsade
+  `petrifiedUntilTurnCount`), satt i `checkOnWinBonuses()` via ett nytt
+  `active.onWinFrostmark`-fält — direkt modellerad på Medusas redan
+  existerande Stone Gaze/`onWinPetrify`-mönster.
+- **Queen's Blessing (Passiv)** — PROPOSAL, ny `active.
+  auraPerFrostmarkedEnemy:{amount:1,max:3}`, exakt samma beräkningsform
+  som Medusas redan existerande `auraPerPetrifiedEnemy`, bara kopplad
+  till den nya statusen ovan istället.
+- **Glacial Barrier (Passiv)** — `active.shield:true`, helt befintligt,
+  ingen ny kod.
+- **Special Attack: The Frozen Crown** (3 wins, ersätter "Memory of Her
+  Stolen Scepter") — ny `SPECIAL_HANDLERS.ferea`. Frostmärker varje
+  fiendekort + `debuffThisRound(e,2)` (samma verb som Shiva/Leviathan),
+  plus ett permanent self-buff via `attackBoost` som motsvarar antalet
+  märkta fiender (cappat +3), låst vid aktivering som alla tidigare
+  Ultimates i den här serien.
+
+Ett verkligt städfynd under arbetet, inte relaterat till Ferea: den
+GAMLA `SPECIAL_HANDLERS.sylvarion`-funktionen (Tempest Volley) hade
+aldrig tagits bort när Sylvarion byggdes om förra punkten — död kod,
+harmlös eftersom JS-objektlitteraler låter senare nycklar vinna (den nya
+Herald's Gale-funktionen stod redan sist och körde korrekt), men
+förvirrande att ha kvar. Borttagen i samma commit.
+
+Ett nytt permanent test i `tests/game.test.mjs` (53 totalt, alla gröna,
+grönt på första körningen) verifierar: stats matchar den godkända
+bildkonsten, Frostmark sätts permanent vid vinst, Queen's Blessing
+skalar per märkt fiende och cappar vid +3, samt The Frozen Crown märker/
+debuffar alla fiender och ger korrekt self-buff utan att röra allierade.
 
 **19. Darien ombyggd (The Shadowward)** — ett 🟠 REWORK, inte REPLACE:
 grundidentiteten (vakt, skölden, den redan fungerande Ultimaten Shadow

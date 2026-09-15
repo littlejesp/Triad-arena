@@ -2639,6 +2639,81 @@ test('Darien: Umbral Ward margin-block, Elara\'s Bond stacks with the rivalry-pa
   await page.close();
 });
 
+test('Ferea: Frostmark on win, Queen\'s Blessing aura scales with Frostmarked enemies, and The Frozen Crown ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ferea = findCardById('ferea');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'ferea') && FOREST_FOES.some(f => f.id === 'ferea');
+    out.statsMatchArt = ferea.top === 10 && ferea.right === 9 && ferea.bottom === 9 && ferea.left === 10 && ferea.element === 'water';
+    out.specialCost = ferea.special.cost === 3;
+    out.specialName = ferea.special.name === 'The Frozen Crown';
+
+    // Frostmark: winning a battle marks the loser, permanently (no expiry,
+    // unlike Medusa's temporary petrify).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const winner = freshEntry(ferea, 'blue');
+    state.board[4] = winner;
+    const loser = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.frostmarkedAfterWin = loser.frostmarked === true;
+
+    // Queen's Blessing: +1 per Frostmarked enemy on the board, capped at +3.
+    state.board = Array(9).fill(null);
+    const src1 = freshEntry(ferea, 'blue');
+    state.board[4] = src1;
+    const marked1 = freshEntry({ id:'m1', name:'M1', top:5,right:5,bottom:5,left:5 }, 'red');
+    marked1.frostmarked = true;
+    state.board[1] = marked1;
+    const unmarked1 = freshEntry({ id:'u1', name:'U1', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = unmarked1;
+    const oneMarkedValue = fullEffectiveValue(ferea, 'top', null, 4, 'blue', 'attack');
+    out.oneMarkedBonus = oneMarkedValue - ferea.top === 1;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(ferea, 'blue');
+    state.board[4] = src2;
+    [0,1,2,3].forEach(i => { const e = freshEntry({ id:'m'+i, name:'M'+i, top:5,right:5,bottom:5,left:5 }, 'red'); e.frostmarked = true; state.board[i] = e; });
+    const fourMarkedValue = fullEffectiveValue(ferea, 'top', null, 4, 'blue', 'attack');
+    out.cappedAtThree = fourMarkedValue - ferea.top === 3;
+
+    // The Frozen Crown: marks every enemy, debuffs them -2 this round, and
+    // grants a permanent self-buff equal to how many were marked (capped at 3).
+    state.board = Array(9).fill(null);
+    const src3 = freshEntry(ferea, 'blue');
+    state.board[4] = src3;
+    const foe3a = freshEntry({ id:'f3a', name:'F3A', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = foe3a;
+    const foe3b = freshEntry({ id:'f3b', name:'F3B', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe3b;
+    const ally3 = freshEntry({ id:'a3', name:'A3', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[3] = ally3;
+    SPECIAL_HANDLERS.ferea({ srcEntry: src3, owner: 'blue' });
+    out.bothEnemiesFrostmarked = foe3a.frostmarked === true && foe3b.frostmarked === true;
+    out.bothEnemiesDebuffed = foe3a.captureBonus === -2 && foe3b.captureBonus === -2;
+    out.selfBuffEqualsCount = src3.captureBonus === 2;
+    out.allyUntouched = ally3.frostmarked !== true && ally3.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.statsMatchArt, true, 'stats must match the approved card art (10/9/9/10, water)');
+  assert.equal(result.specialCost, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.frostmarkedAfterWin, true, 'winning a battle Frostmarks the defeated enemy permanently');
+  assert.equal(result.oneMarkedBonus, true, "Queen's Blessing grants +1 per Frostmarked enemy on the board");
+  assert.equal(result.cappedAtThree, true, "Queen's Blessing never exceeds +3 regardless of how many enemies are marked");
+  assert.equal(result.bothEnemiesFrostmarked, true, 'The Frozen Crown Frostmarks every enemy');
+  assert.equal(result.bothEnemiesDebuffed, true, 'The Frozen Crown debuffs every enemy -2 this round');
+  assert.equal(result.selfBuffEqualsCount, true, 'the self-buff equals the number of enemies marked (2 here)');
+  assert.equal(result.allyUntouched, true, 'allies are never Frostmarked or debuffed by the ultimate');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
