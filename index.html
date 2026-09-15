@@ -1412,13 +1412,11 @@ const HEROES = [
   // adjacency-aware code path (see PROJECT.md's "handle grundmotorn
   // carefully" rule). "Pallis & Pell" is a single existing card,
   // id:'pallispell', not two separate board entries.
-  { id:'littlejesp', name:"Little Jesp", role:"Champion of Balance — Order of the Balance", top:10, right:11, bottom:12, left:11, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#c9a227', active: {shield:true, pairPresence:{partner:'pallispell', amount:2}}, special:{ name:'Divine Arrow', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Balance Mastery', desc:"When Little Jesp wins a battle by exactly 1 point margin, he gains +2 Power on a chosen direction on this card. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Twin Dominance', desc:'Once per round, when this card wins an attack, it may immediately make an extra attack against an adjacent enemy card. (Flavor only — not currently wired into the battle engine.)'},
-    {name:"Guardian's Aura (Passive)", desc:"The first time Little Jesp would lose a battle each round, the loss is ignored (simplified from also granting +3 Power — see PROJECT.md)."},
-    {name:'Divine Bond (Passive)', desc:"While Pallis & Pell are anywhere on your board, Little Jesp gets +2 Power on all sides (simplified from requiring adjacency, and his card skills activating an extra time per round isn't implemented — see PROJECT.md)."},
-    {name:"Champion's Command", desc:'When this card takes control of an enemy card, choose an adjacent ally — it gains +2 Power facing the enemy. (Flavor only — not currently wired into the battle engine.)'},
-    {name:'Special Attack: Divine Arrow', desc:"Costs 2 wins. Choose an enemy card — Little Jesp gains +5 Power for this attack only, and it cannot be blocked by a shield. If the attack wins while Pallis & Pell are anywhere on your board, he keeps +2 Power on all sides permanently."},
+  { id:'littlejesp', name:"Little Jesp", role:"Champion of Balance — Order of the Balance", top:9, right:9, bottom:9, left:9, element:'wind', hue:'linear-gradient(160deg,#2a2010,#0d0b18 60%)', accent:'#c9a227', active: {shield:true, pairPresence:{partner:'pallispell', amount:2}, boardLeadBonus:{amount:2, tieOnly:true}}, special:{ name:'Scales of Judgment', cost:2, once:true, targets:'aoe' }, skills: [
+    {name:"Guardian's Aura (Passive)", desc:"The first time Little Jesp would lose a battle, the loss is ignored. Usable once per match."},
+    {name:'Divine Bond (Passive)', desc:"While Pallis & Pell are anywhere on your board, Little Jesp gets +2 Power on all sides."},
+    {name:'Even Ground (Passive)', desc:"While you and your opponent control an equal number of cards on the board, Little Jesp gets +2 Power on all sides."},
+    {name:'Special Attack: Scales of Judgment', desc:"Costs 2 wins. Compares total Wins claimed by each side. Little Jesp permanently gains +1 Power on all sides for every point the gap is under 3 (max +3, locked in at activation — a gap of 0 means the sides are perfectly tied). Then, every card belonging to whichever side currently has more Wins gets -1 Power this round — even if that's your own side. If the two sides are exactly tied, no debuff is applied. Usable once per match."},
   ]},
   { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', special:{ name:'Hunter\'s Wrath', cost:2, once:true, targets:'aoe' }, skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}, {name:"Special Attack: Hunter's Wrath", desc:"Cost 2 Wins. Immediately battles up to 2 adjacent enemy cards (no attack bonus, just their raw Power). If both are defeated, Pallis and Pell gain +1 Power on all sides for the rest of the match."}]},
   { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
@@ -3854,7 +3852,11 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     const bl = card.active.boardLeadBonus;
     const mine = state.board.filter(e => e && e.owner === owner).length;
     const theirs = state.board.filter(e => e && e.owner !== owner).length;
-    if(bl.orEqual ? mine >= theirs : mine > theirs) v += bl.amount;
+    // Little Jesp's Even Ground: the tie-only mirror of the lead/orEqual
+    // checks above (mine === theirs instead of ahead-or-equal) — same field,
+    // same live "no state needed" read, one more branch.
+    const meetsThreshold = bl.tieOnly ? mine === theirs : (bl.orEqual ? mine >= theirs : mine > theirs);
+    if(meetsThreshold) v += bl.amount;
   }
   if(card.active && card.active.boardUnderdogAttackBonus && role === 'attack'){
     const mine = state.board.filter(e => e && e.owner === owner).length;
@@ -5638,6 +5640,27 @@ const SPECIAL_HANDLERS = {
     return bonus > 0
       ? `${name}'s Conquests Witnessed grants +${bonus} Power, remembering ${totalConquests} conquest${totalConquests !== 1 ? 's' : ''} already claimed!`
       : `${name}'s Conquests Witnessed finds too few conquests yet claimed to grow stronger!`;
+  },
+  // Little Jesp's Scales of Judgment: compares state.wins.blue vs
+  // state.wins.red (same shared resource every Ultimate already gates on,
+  // no new counter). Permanent +1 Power per point the gap is under 3 (gap 0
+  // = perfectly tied = +3, gap 3+ = +0), applied once as a flat
+  // SpecialVerbs.attackBoost — locked in at activation, same snapshot
+  // pattern as Conquests Witnessed above. Then whichever side currently
+  // holds MORE Wins gets -1 Power this round via debuffThisRound —
+  // deliberately NOT enemy-only like every other AOE debuff in the roster:
+  // "even if that's your own side" is the entire point of a Balance card.
+  // An exact tie skips the debuff step — nothing to correct.
+  littlejesp({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const gap = Math.abs(state.wins.blue - state.wins.red);
+    const bonus = Math.max(0, 3 - gap);
+    if(bonus > 0) SpecialVerbs.attackBoost(srcEntry, bonus);
+    const leadingOwner = state.wins.blue === state.wins.red ? null : (state.wins.blue > state.wins.red ? 'blue' : 'red');
+    if(leadingOwner) state.board.forEach(e => { if(e && e.owner === leadingOwner) SpecialVerbs.debuffThisRound(e, 1); });
+    return leadingOwner
+      ? `${name}'s Scales of Judgment grants +${bonus} Power and weighs down the leading side by -1!`
+      : `${name}'s Scales of Judgment grants +${bonus} Power — the scales are already perfectly balanced!`;
   },
 };
 

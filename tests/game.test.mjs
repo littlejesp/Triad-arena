@@ -2309,6 +2309,143 @@ test('Ancient Wyrmking: Weight of Ages raises the flip margin the longer he stan
   await page.close();
 });
 
+test('Little Jesp: Even Ground grants +2 Power only while board counts are exactly tied', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const littlejesp = findCardById('littlejesp');
+    out.statsAreEven = littlejesp.top === 9 && littlejesp.right === 9 && littlejesp.bottom === 9 && littlejesp.left === 9;
+    out.hasEvenGround = littlejesp.active.boardLeadBonus && littlejesp.active.boardLeadBonus.tieOnly === true;
+    out.divineBondUnchanged = littlejesp.active.pairPresence && littlejesp.active.pairPresence.partner === 'pallispell' && littlejesp.active.pairPresence.amount === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Tied board count (1 vs 1): Even Ground applies.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(littlejesp, 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    const tied = fullEffectiveValue(littlejesp, 'top', null, 0, 'blue', 'attack');
+    out.tiedBonus = tied - littlejesp.top;
+
+    // A strict lead (2 vs 1) must NOT apply Even Ground (it's tie-only, unlike Tiamat's strict-lead or Judgment's lead-or-tie).
+    state.board[2] = freshEntry(findCardById('ogre'), 'blue');
+    const leading = fullEffectiveValue(littlejesp, 'top', null, 0, 'blue', 'attack');
+    out.leadingBonus = leading - littlejesp.top;
+
+    // Falling behind (1 vs 2) must also NOT apply.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(littlejesp, 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[2] = freshEntry(findCardById('ogre'), 'red');
+    const behind = fullEffectiveValue(littlejesp, 'top', null, 0, 'blue', 'attack');
+    out.behindBonus = behind - littlejesp.top;
+
+    return out;
+  })()`);
+  assert.equal(result.statsAreEven, true, 'Little Jesp must be 9/9/9/9 after the Balance rework');
+  assert.equal(result.hasEvenGround, true);
+  assert.equal(result.divineBondUnchanged, true, 'the Pallispell relationship must be untouched by the rework');
+  assert.equal(result.tiedBonus, 2, 'Even Ground grants +2 when board counts are exactly equal');
+  assert.equal(result.leadingBonus, 0, 'Even Ground must not apply while Little Jesp is ahead, only when exactly tied');
+  assert.equal(result.behindBonus, 0, 'Even Ground must not apply while Little Jesp is behind, only when exactly tied');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Little Jesp: Scales of Judgment scales inversely with the Wins gap, debuffs whichever side currently leads (even his own), and skips the debuff on an exact tie', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const littlejesp = findCardById('littlejesp');
+    out.specialName = littlejesp.special.name === 'Scales of Judgment';
+    out.specialCost = littlejesp.special.cost === 2;
+
+    // Perfectly tied (0-0): maximum bonus (+3), and no debuff to anyone since there is nothing to correct.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src0 = freshEntry(littlejesp, 'blue');
+    state.board[4] = src0;
+    const ally0 = freshEntry({ id:'a0', name:'A0', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[1] = ally0;
+    const foe0 = freshEntry({ id:'f0', name:'F0', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe0;
+    SPECIAL_HANDLERS.littlejesp({ srcEntry: src0, owner: 'blue' });
+    out.tiedBonus3 = src0.captureBonus === 3;
+    out.tiedNoDebuffAlly = ally0.captureBonus === 0;
+    out.tiedNoDebuffFoe = foe0.captureBonus === 0;
+
+    // Gap of 1 (3 vs 2, blue leading): bonus +2, and the LEADING side (blue,
+    // his own side here) gets debuffed -- not the trailing enemy.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 3, red: 2 };
+    const src1 = freshEntry(littlejesp, 'blue');
+    state.board[4] = src1;
+    const ally1 = freshEntry({ id:'a1', name:'A1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[1] = ally1;
+    const foe1 = freshEntry({ id:'foe1', name:'Foe1', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe1;
+    SPECIAL_HANDLERS.littlejesp({ srcEntry: src1, owner: 'blue' });
+    // src1 is ON the leading (blue) side himself, so he receives BOTH the
+    // +2 self-buff AND the -1 leading-side debuff (net +1) -- "not even his
+    // own side is exempt from his judgment" per the card's own flavor text.
+    out.gapOneNetBonus1 = src1.captureBonus === 1;
+    out.ownLeadingSideDebuffed = ally1.captureBonus === -1;
+    out.trailingEnemyUntouched = foe1.captureBonus === 0;
+
+    // Gap of 3 or more (5 vs 0): no self-buff (bonus would be 0, so
+    // attackBoost is skipped entirely) -- but the leading side, himself
+    // included, still eats the -1 debuff since his side still leads.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 5, red: 0 };
+    const src2 = freshEntry(littlejesp, 'blue');
+    state.board[4] = src2;
+    SPECIAL_HANDLERS.littlejesp({ srcEntry: src2, owner: 'blue' });
+    out.gapThreeNoBonusStillSelfDebuffed = src2.captureBonus === -1;
+
+    // Locked in at activation: cast at a gap of 1 (net +1, same self-
+    // inclusion as src1 above), then the gap widens afterward -- the
+    // result must not recompute live.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 3, red: 2 };
+    const src3 = freshEntry(littlejesp, 'blue');
+    state.board[4] = src3;
+    SPECIAL_HANDLERS.littlejesp({ srcEntry: src3, owner: 'blue' });
+    const bonusAfterCast = src3.captureBonus;
+    state.wins = { blue: 10, red: 0 };
+    out.bonusLockedNotLive = src3.captureBonus === bonusAfterCast && bonusAfterCast === 1;
+
+    // The enemy side leading (0 vs 3): the ENEMY gets debuffed instead, own side untouched.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 3 };
+    const src4 = freshEntry(littlejesp, 'blue');
+    state.board[4] = src4;
+    const ally4 = freshEntry({ id:'a4', name:'A4', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[1] = ally4;
+    const foe4 = freshEntry({ id:'foe4', name:'Foe4', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe4;
+    SPECIAL_HANDLERS.littlejesp({ srcEntry: src4, owner: 'blue' });
+    out.enemyLeadingSideDebuffed = foe4.captureBonus === -1;
+    out.ownTrailingSideUntouched = ally4.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.tiedBonus3, true, 'a perfectly tied score grants the maximum +3');
+  assert.equal(result.tiedNoDebuffAlly, true, 'an exact tie must skip the debuff step entirely');
+  assert.equal(result.tiedNoDebuffFoe, true);
+  assert.equal(result.gapOneNetBonus1, true, 'the +2 self-buff and the -1 leading-side self-debuff both land, netting +1');
+  assert.equal(result.ownLeadingSideDebuffed, true, "whichever side currently leads is debuffed, even the caster's own side");
+  assert.equal(result.trailingEnemyUntouched, true);
+  assert.equal(result.gapThreeNoBonusStillSelfDebuffed, true, 'no self-buff at a gap of 3+, but the leading side (himself included) still eats the -1');
+  assert.equal(result.bonusLockedNotLive, true, 'the bonus is a one-time snapshot, not a live formula');
+  assert.equal(result.enemyLeadingSideDebuffed, true, 'when the ENEMY leads, the debuff correctly targets them instead');
+  assert.equal(result.ownTrailingSideUntouched, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
