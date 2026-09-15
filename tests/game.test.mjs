@@ -3076,6 +3076,63 @@ test('Ysara: Future Sight vs a stronger foe, Paradox Veil debuff immunity, and E
   await page.close();
 });
 
+test("Torn: Predator's Mark vs a stronger facing side, Poisoned Edge permanent debuff on a win, and Lethal Volley is unchanged", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const torn = findCardById('torn');
+    out.hasElement = torn.element === 'earth';
+    out.hasPredatorsMark = torn.active.underdogSideBonus === 2;
+    out.hasPoisonedEdge = torn.active.onWinDebuffLoserPermanent === 1;
+    out.specialName = torn.special.name === 'Lethal Volley';
+    out.specialCost = torn.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Predator's Mark: +2 when the opponent's facing side beats Torn's own
+    // printed side on that edge, nothing when it doesn't.
+    const stronger = { top:9, right:8, bottom:20, left:9 }; // bottom(20) faces Torn's top(9) when placed above her
+    const weaker = { top:9, right:8, bottom:1, left:9 };
+    out.markTriggersVsStronger = fullEffectiveValue(torn, 'top', stronger, 4, 'blue', 'defense') - torn.top === 2;
+    out.markSkipsVsWeaker = fullEffectiveValue(torn, 'top', weaker, 4, 'blue', 'defense') - torn.top === 0;
+
+    // Poisoned Edge: winning a battle permanently weakens the loser by -1,
+    // via a real capture (resolveFlips), not just checkOnWinBonuses directly.
+    state.board = Array(9).fill(null);
+    const winner = freshEntry(torn, 'blue');
+    state.board[4] = winner;
+    const loser = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.poisonedEdgeAppliedOnWin = loser.captureBonus === -1;
+
+    // Lethal Volley: unchanged, AOE permanent -2 to every enemy, unblockable
+    // (no shield check at all).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(torn, 'blue');
+    state.board[4] = src;
+    const shieldedFoe = freshEntry({ id:'sf', name:'SF', top:5,right:5,bottom:5,left:5, active:{shield:true} }, 'red');
+    state.board[1] = shieldedFoe;
+    const plainFoe = freshEntry({ id:'pf', name:'PF', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = plainFoe;
+    SPECIAL_HANDLERS.torn({ srcEntry: src, owner: 'blue' });
+    out.volleyHitsEvenShielded = shieldedFoe.captureBonus === -2 && plainFoe.captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.hasElement, true, 'Torn now has an element (Earth), filling a previously empty field');
+  assert.equal(result.hasPredatorsMark, true);
+  assert.equal(result.hasPoisonedEdge, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.markTriggersVsStronger, true, "Predator's Mark grants +2 when the opponent's facing side is higher");
+  assert.equal(result.markSkipsVsWeaker, true, "Predator's Mark grants nothing when the opponent's facing side is lower");
+  assert.equal(result.poisonedEdgeAppliedOnWin, true, 'Poisoned Edge permanently weakens the loser by -1 after a real win');
+  assert.equal(result.volleyHitsEvenShielded, true, 'Lethal Volley is unblockable, hitting every enemy including shielded ones');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

@@ -25,10 +25,42 @@ Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
 Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
-MERGADE till `main` också. **Punkt 25 (Ysara ombyggd — 🟠 REWORK från
-68-korts-auditen) ligger committad på feature-branchen, INTE mergad
-till `main` än** — fråga alltid explicit innan nästa merge när mer
-arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+MERGADE till `main` också. **Punkt 25–26 (Ysara och Torn ombyggda —
+🟠 REWORK från 68-korts-auditen) ligger committade på feature-branchen,
+INTE mergade till `main` än** — fråga alltid explicit innan nästa merge
+när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
+bekräftelse. Ysaras kortkonst är fortfarande inte sparad (ingen
+filsökväg följde med uppladdningen — väntar på att bilden skickas om).
+
+**26. Torn ombyggd (The Shadowhuntress)** — 🟠 REWORK: 5 skills ren
+poesi, bara Ultimate (Lethal Volley) fungerade. Saknade dessutom
+`element` helt — ett riktigt datahål, inte bara flavor-only (fixat med
+**Earth**, PROPOSAL, fyller tomt fält snarare än ändrar befintlig data).
+
+Medvetet differentierad från Deathblade/Graff/Vayra (redan tre
+melee-fokuserade "skugg"-kort med olika mekaniker) genom att luta sig
+mot det hon redan hade: Lethal Volley är redan ranged AOE, inte
+melee-singel — den enda av de fyra skugg-korten som aldrig går in i
+närstrid. Fraktion (PROPOSAL): **The Wild Hunt**, förstärker en redan
+etablerad tråd från Pallispell/Sylvarion istället för en fjärde ny
+fraktion.
+
+- **Predator's Mark (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.underdogSideBonus:2`, samma fält Umbrael redan använder.
+- **Poisoned Edge (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.onWinDebuffLoserPermanent:1`, samma fält Yojimbo redan
+  använder.
+- **Special Attack: Lethal Volley** — HELT oförändrad kod, bara
+  textstädad (borttagen "invented numbers"-not).
+
+Bort: Shadow Blink, Windstep, Silent Arrow — alla flavor-only, och
+Windstep/Silent Arrow upprepade idéer Graff/Zaevir redan äger bättre.
+
+Ett nytt permanent test i `tests/game.test.mjs` (59 totalt, alla gröna,
+grönt på första körningen) verifierar: nytt element satt, Predator's
+Mark bara mot starkare motstående sida, Poisoned Edge permanent -1 efter
+en riktig vinst (via `resolveFlips`, inte bara direkt handler-anrop),
+och Lethal Volley fortfarande obstoppbar (träffar även sköldade fiender).
 
 **25. Ysara ombyggd (The Timeweaver)** — 🟠 REWORK: tredje "tid"-kortet
 i rostret (utöver Vayra/Vorathos) utan egen fraktion, svagast
