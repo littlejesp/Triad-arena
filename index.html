@@ -1310,12 +1310,10 @@ const HEROES = [
     {name:"Darien's Grace (Passive)", desc:"Elara gets +2 Power on all sides while Darien is anywhere on your board. (Stacks with the existing +1 when adjacent, from the game's rivalry-pair rule.)"},
     {name:'Special Attack: Requiem of Light', desc:'Costs 2 wins. Every allied card is cleansed of negative effects; each one that had negative effects cleared also gains +1 Power permanently. Usable once per match.'},
   ]},
-  { id:'vayra', name:"Vayra", role:"The Shadowblade — The Wardens of Time", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', active: {shield:true}, special:{ name:'Eclipse', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Shadow Step (Passive)', desc:'Moves through shadows, where least expected.'},
-    {name:'Silent Strike', desc:'One strike. No sound. Only death remains.'},
-    {name:'Shadow Shell', desc:'High defense that makes her nearly impossible to break through.'},
-    {name:'Dagger Dance', desc:'A deadly dance of speed and precision. She always defends herself.'},
-    {name:'Special Attack: Eclipse', desc:"Costs 2 wins. Choose an enemy card — Vayra gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently. (Invented numbers: the source text describes the effect with no concrete values — see PROJECT.md.)"},
+  { id:'vayra', name:"Vayra", role:"The Shadowblade — The Wardens of Time", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', active: {marginShieldThreshold:2, onCaptureBonus:1}, special:{ name:'Eclipse', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Shadow Step (Passive)', desc:'If an enemy wins against Vayra by 2 Power or less, the attack is blocked instead and the attacker gets -1 Power this round.'},
+    {name:'Silent Strike (Passive)', desc:'Each time Vayra takes control of an enemy card, she permanently gains +1 Power.'},
+    {name:'Special Attack: Eclipse', desc:"Costs 2 wins. Choose an enemy card — Vayra gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
   ]},
   { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{shield:true}, special:{ name:'Eternal Eclipse', cost:2, once:true, targets:'single' }, skills: [
     {name:'Time Stop (Passive)', desc:'Stops time in an instant, freezing all enemies while she moves freely. Duration depends on her focus.'},
@@ -1663,12 +1661,14 @@ const HEROES = [
     {name:'Glacial Barrier (Passive)', desc:'The first time Ferea would lose a battle, that loss is ignored.'},
     {name:'Special Attack: The Frozen Crown', desc:"Costs 3 wins. Every enemy card becomes Frostmarked and gets -2 Power this round. Ferea permanently gains +1 Power on all sides for every enemy Frostmarked this way (max +3), locked in at activation. Usable once per match."},
   ] },
-  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
-    {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
+  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
+    {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
+    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
   ] },
-  { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+  { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', active: {axisBonus:{dirs:['left','right'], amount:1}, pairPresence:{partner:'aurelian', amount:2}}, special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
+    {name:"Horizon's Reach (Passive)", desc:'Vorlix gets +1 Power on Left and Right when attacking.'},
+    {name:'Celestial Bond (Passive)', desc:'Vorlix gets +2 Power on all sides while Aurelian is anywhere on your board.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
   { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
@@ -2001,12 +2001,14 @@ const FOREST_FOES = [
     {name:'Glacial Barrier (Passive)', desc:'The first time Ferea would lose a battle, that loss is ignored.'},
     {name:'Special Attack: The Frozen Crown', desc:"Costs 3 wins. Every enemy card becomes Frostmarked and gets -2 Power this round. Ferea permanently gains +1 Power on all sides for every enemy Frostmarked this way (max +3), locked in at activation. Usable once per match."},
   ] },
-  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
-    {name:'Special Attack: Skybreaker', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Up and Down during this attack. If this attack wins, it gains +1 Power on Up and Down for the rest of the match.'},
+  { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
+    {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
+    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
   ] },
-  { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
+  { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', active: {axisBonus:{dirs:['left','right'], amount:1}, pairPresence:{partner:'aurelian', amount:2}}, special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
+    {name:"Horizon's Reach (Passive)", desc:'Vorlix gets +1 Power on Left and Right when attacking.'},
+    {name:'Celestial Bond (Passive)', desc:'Vorlix gets +2 Power on all sides while Aurelian is anywhere on your board.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
   { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
@@ -3921,6 +3923,14 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   if(card.active && card.active.flatAttackBonus && role === 'attack'){
     v += card.active.flatAttackBonus;
   }
+  // Aurelian's Skyward Reach: the same shape as flatAttackBonus above, but
+  // restricted to specific sides instead of all four — a natural
+  // generalization of the older single-direction active.bonus field
+  // (bonus.dir/bonus.amount, used by Ragnar/Zaevir/Harpy) to a list of
+  // directions, since nothing needed more than one side until now.
+  if(card.active && card.active.axisBonus && role === 'attack' && card.active.axisBonus.dirs.includes(edgeKey)){
+    v += card.active.axisBonus.amount;
+  }
   // Shiva's Eternal Winter / Leviathan's Maelstrom: "+N Power on all sides
   // THIS ROUND while 2+ enemy cards are adjacent" — the enemy-counting
   // mirror of Medusa's adjacentAlliesBoost (not role-gated, since both say
@@ -4812,12 +4822,16 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s Megaflare overwhelms ${targetEntry.card.name}, defenses and all!`;
   },
+  // Rebuilt to match the approved card art's generic wording ("+3 this
+  // attack only, +1 all sides permanent on a win") instead of the original
+  // axis-specific Up/Down version — same shape as Vayra's Eclipse and
+  // Ysara's Eternal Eclipse (total-power threshold check + attackBoost),
+  // reused directly rather than inventing a third pattern. His axis
+  // identity still lives on in the separate Skyward Reach passive above.
   aurelian({ srcEntry, targetEntry, targetIndex, owner }){
-    const sides = ['top', 'bottom']; // Up / Down
-    const basePower = totalPower(srcEntry);
-    const targetPower = totalPower(targetEntry);
-    if(basePower + 4*sides.length <= targetPower){
-      return `${srcEntry.card.name}'s Skybreaker crashes down without effect!`;
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Skybreaker crashes down without effect!`;
     }
     if(specialBlockedByShield(targetEntry, targetIndex)){
       return `${targetEntry.card.name}'s shield holds against Skybreaker!`;
@@ -4825,8 +4839,8 @@ const SPECIAL_HANDLERS = {
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
-    SpecialVerbs.directionalBoost(srcEntry, sides, 1);
-    return `${srcEntry.card.name}'s Skybreaker splits the sky over ${targetEntry.card.name}!`;
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Skybreaker splits the sky over ${targetEntry.card.name}!`;
   },
   vorlix({ srcEntry, targetEntry, targetIndex, owner }){
     const sides = ['left', 'right'];

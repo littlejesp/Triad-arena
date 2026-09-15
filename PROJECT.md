@@ -19,14 +19,115 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–20
+info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–21
 (Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps, Sylvarions,
-Dariens och Fereas fullständiga om/nybyggnader, inklusive ny kortkonst
-för alla fem) är sedan dess MERGADE till `main` också. **Punkt 21 (Elara
-ombyggd — 🟠 REWORK från 68-korts-auditen) ligger committad på
-feature-branchen, INTE mergad till `main` än** — fråga alltid explicit
-innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från
-en tidigare bekräftelse.
+Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
+kortkonst för alla sex) är sedan dess MERGADE till `main` också.
+**Punkt 22–24 (Vayra, Aurelian och Vorlix ombyggda — 🟠 REWORK från
+68-korts-auditen) ligger committade på feature-branchen, INTE mergade
+till `main` än** — fråga alltid explicit innan nästa merge när mer
+arbete samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+
+**24. Vorlix ombyggd (The Horizon Blade)** — 🟠 REWORK, spegelbilden av
+Aurelian (punkt 23): samma "Celestial Siblings"-problem (en rad
+flavor-prosa, ingen riktig parmekanik), samma lösning i speglad form.
+
+- **Horizon's Reach (Passiv)** — PROPOSAL, samma `active.axisBonus`-fält
+  Aurelian fick, bara `dirs:['left','right']` istället för
+  `['top','bottom']`. Ingen ny kod — fältet fanns redan från Aurelians
+  ombyggnad.
+- **Celestial Bond (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.pairPresence:{partner:'aurelian', amount:2}`. Gör relationen
+  ömsesidig — nu har BÅDA syskonen bonden (Aurelian fick sin, en-sidig,
+  i punkt 23).
+- **Special Attack: WorldCleaver** — **HELT oförändrad**, varken text
+  eller kod rörd. Viktig medveten asymmetri: när Aurelians Skybreaker
+  gjordes generisk (se punkt 23-ändringen samma dag) valde användaren
+  uttryckligen att INTE göra samma ändring på WorldCleaver — Vorlix nya
+  kortkonst visar fortfarande den ursprungliga axel-specifika texten
+  ("+4 Power on Left and Right this attack only... +1 Power on Left and
+  Right permanently"), och koden matchade redan den exakt utan någon
+  ändring alls. Syskonen har nu olika Ultimate-format (generisk vs
+  axel-specifik) — ett medvetet val ("få in båda"), inte en olöst
+  inkonsekvens.
+
+Ett nytt permanent test i `tests/game.test.mjs` (57 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Horizon's
+Reach bara på attack och bara Left/Right, Celestial Bond ger +2 när
+Aurelian finns på brädet och 0 annars, och WorldCleaver fortfarande bara
+boostar Left/Right (inte alla sidor) permanent vid vinst — till skillnad
+från Aurelians nu generiska Skybreaker.
+
+**23. Aurelian ombyggd (The Skyward Spear)** — 🟠 REWORK: tunnaste
+kittet av alla "riktiga" legendarer — bara en rad flavor-prosa
+("The Celestial Siblings") och en redan fungerande Ultimate (Skybreaker).
+Auditen flaggade explicit att "Celestial Siblings" antydde en
+parmekanik mot **Vorlix** som aldrig byggdes — jämfört med Twin
+Brothers/Sisters som redan har en riktig `pairPresence`.
+
+- **Skyward Reach (Passiv)** — PROPOSAL, en liten ny primitiv:
+  `active.axisBonus:{dirs:['top','bottom'], amount:1}`. Naturlig
+  generalisering av det äldre `active.bonus:{dir,amount}`-fältet (som
+  bara stödjer EN riktning, används av Ragnar/Zaevir/Harpy) till en
+  lista av riktningar — samma sorts motiverade lilla utökning som Little
+  Jesps `boardLeadBonus.tieOnly`. Ny läsning i `fullEffectiveValue()`,
+  attack-only, gated på `edgeKey`.
+- **Celestial Bond (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.pairPresence:{partner:'vorlix', amount:2}`, samma fält Twin
+  Brothers/Sisters och nu Darien/Elara redan använder. En-sidig i denna
+  ändring (Vorlix rörs inte) — kan speglas tillbaka när han får sin egen
+  REWORK.
+- **Special Attack: Skybreaker** — den godkända kortkonsten visade en
+  generisk beskrivning ("+3 denna attack, +1 alla sidor permanent")
+  som inte matchade den ursprungliga axel-specifika koden ("+4 Up/Down
+  denna attack, +1 Up/Down permanent"). Användaren valde uttryckligen
+  att ändra KODEN till bildens version snarare än tvärtom. Ombyggd till
+  exakt samma form som Vayras Eclipse/Ysaras Eternal Eclipse
+  (total-power-tröskel + `SpecialVerbs.attackBoost` för permanent
+  +1 alla sidor) istället för `directionalBoost` — återanvänder ett
+  redan tre gånger etablerat mönster snarare än att uppfinna ett fjärde.
+  Hans axel-identitet lever kvar i Skyward Reach ovan, orörd.
+
+Ett nytt permanent test i `tests/game.test.mjs` (56 totalt, alla gröna)
+verifierar: stats/element orörda, Skyward Reach bara på attack och bara
+Up/Down, Celestial Bond ger +2 när Vorlix finns på brädet och 0 annars,
+och Skybreaker nu ger ett generiskt +1 på alla sidor (inte bara Up/Down)
+och misslyckas mot mål vars totalstyrka överstiger +3-tröskeln.
+
+**22. Vayra ombyggd (The Shadowblade)** — 🟠 REWORK: bär spelets
+viktigaste fraktionsnamn (**The Wardens of Time**, redan CANON) men var
+mekaniskt tunnast beskriven av alla "riktiga" legendarer — 4 skills var
+ren poesi utan mekanik. Ultimate Eclipse fungerade redan (bara påhittade
+tal, ingen påhittad FUNKTION) och lämnades därför helt orörd —
+REWORK betyder laga glappet, inte bygga om det som redan funkar.
+
+Medvetet differentierad från två håll: **Vorathos** (Order of the
+Timekeepers) äger redan "manipulera tid mekaniskt"-nischen fullt
+utbyggd, så Vayra fick INTE en till tidsmekanik — hon är ordens blad,
+inte dess teoretiker. **Deathblade/Graff/Torn** äger redan "skugg-
+lönnmördare"-arketypen mekaniskt, så differentieringen sker främst
+visuellt i den godkända kortkonsten (frusna tidssprickor, ekon av sig
+själv, klockverks-filigran) snarare än genom en ny mekanisk nisch.
+
+- **Shadow Step (Passiv)** — PROPOSAL, men bara ett existerande fält:
+  `active.marginShieldThreshold:2`, samma fält Medusa/Darien/Elara redan
+  använder (fjärde kortet nu). Ersätter hennes gamla ovillkorliga
+  `active.shield` helt.
+- **Silent Strike (Passiv)** — PROPOSAL: `active.onCaptureBonus:1`,
+  samma fält Ifrit/Bahamut/Graff/Yojimbo redan använder. Permanent +1
+  Power varje gång hon tar ett fiendekort.
+- **Special Attack: Eclipse** — HELT oförändrad kod (`SPECIAL_HANDLERS.
+  vayra`), bara städad text (borttagen "invented numbers"-dev-not som
+  inte längre behövs).
+
+Bort: "Shadow Shell" och "Dagger Dance" — båda upprepade samma
+flavor-idé som Shadow Step redan täcker, ingen egen substans.
+
+Ett nytt permanent test i `tests/game.test.mjs` (55 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, gamla
+skölden borta, Shadow Step blockerar margin-2 och debuffar angriparen,
+Silent Strike ger permanent +1 vid erövring, och Eclipse fortfarande
+erövrar/buffar exakt som förut.
 
 **21. Elara ombyggd (Healer of the Frozen Light)** — 🟠 REWORK: kallades
 "Healer" men hade noll läkningsmekanik (starkast identitets-glapp i

@@ -2815,6 +2815,215 @@ test("Elara: Frostbloom cleanse-on-win, Crystal Sanctuary margin-block, Darien's
   await page.close();
 });
 
+test('Vayra: Shadow Step margin-block, Silent Strike permanent capture bonus, and Eclipse is unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vayra = findCardById('vayra');
+    out.statsUnchanged = vayra.top === 10 && vayra.right === 8 && vayra.bottom === 8 && vayra.left === 9 && vayra.element === 'earth';
+    out.oldShieldGone = !vayra.active.shield;
+    out.hasShadowStep = vayra.active.marginShieldThreshold === 2;
+    out.hasSilentStrike = vayra.active.onCaptureBonus === 1;
+    out.specialName = vayra.special.name === 'Eclipse';
+    out.specialCost = vayra.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Shadow Step: enemy wins by <=2 margin -> blocked, attacker debuffed -1.
+    state.board = Array(9).fill(null);
+    const defender = freshEntry(vayra, 'blue'); // top:10
+    state.board[4] = defender;
+    const closeAttacker = freshEntry({ id:'close', name:'Close', top:1,right:1,bottom:12,left:1 }, 'red'); // bottom:12 vs top:10, margin=2
+    state.board[1] = closeAttacker;
+    resolveFlips(1, 'red');
+    out.shadowStepBlockedCloseWin = state.board[4].owner === 'blue';
+    out.shadowStepDebuffedAttacker = closeAttacker.captureBonus === -1;
+
+    state.board = Array(9).fill(null);
+    const defender2 = freshEntry(vayra, 'blue');
+    state.board[4] = defender2;
+    const bigAttacker = freshEntry({ id:'big', name:'Big', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.bigMarginNotBlocked = state.board[4].owner === 'red';
+
+    // Silent Strike: winning a battle (taking control of an enemy card)
+    // grants a permanent +1 Power via the existing onCaptureBonus field.
+    state.board = Array(9).fill(null);
+    const winner = freshEntry(vayra, 'blue');
+    state.board[4] = winner;
+    const weakFoe = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    resolveFlips(4, 'blue');
+    out.silentStrikeGrantedPermanentBonus = winner.captureBonus === 1;
+
+    // Eclipse: unchanged, still requires beating the target's total power by
+    // at least 3 (the temp boost), and grants +1 permanent on all sides if it wins.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vayra, 'blue');
+    state.board[4] = src;
+    const target = freshEntry({ id:'t', name:'T', top:5,right:5,bottom:5,left:5 }, 'red'); // total 20
+    state.board[1] = target;
+    SPECIAL_HANDLERS.vayra({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.eclipseCapturedAndBuffed = target.owner === 'blue' && src.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.oldShieldGone, true, 'the old plain active.shield must be gone, replaced by Shadow Step');
+  assert.equal(result.hasShadowStep, true);
+  assert.equal(result.hasSilentStrike, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.shadowStepBlockedCloseWin, true, 'a margin-2 loss is blocked by Shadow Step');
+  assert.equal(result.shadowStepDebuffedAttacker, true, 'the attacker is debuffed -1 when blocked');
+  assert.equal(result.bigMarginNotBlocked, true, 'a margin greater than 2 still flips her normally');
+  assert.equal(result.silentStrikeGrantedPermanentBonus, true, 'capturing an enemy card grants a permanent +1 via Silent Strike');
+  assert.equal(result.eclipseCapturedAndBuffed, true, 'Eclipse still captures and grants +1 permanent on a win, unchanged from before');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bond mirrors the Twin pattern, and Skybreaker is unchanged", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const aurelian = findCardById('aurelian');
+    out.statsUnchanged = aurelian.top === 10 && aurelian.right === 7 && aurelian.bottom === 10 && aurelian.left === 6 && aurelian.element === 'wind';
+    out.hasSkywardReach = aurelian.active.axisBonus && aurelian.active.axisBonus.amount === 1 && aurelian.active.axisBonus.dirs.includes('top') && aurelian.active.axisBonus.dirs.includes('bottom');
+    out.hasCelestialBond = aurelian.active.pairPresence && aurelian.active.pairPresence.partner === 'vorlix' && aurelian.active.pairPresence.amount === 2;
+    out.specialName = aurelian.special.name === 'Skybreaker';
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Skyward Reach: +1 on Up/Down while attacking, nothing on Left/Right,
+    // and nothing at all while defending (even on Up/Down).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(aurelian, 'blue');
+    const topAttack = fullEffectiveValue(aurelian, 'top', null, 4, 'blue', 'attack');
+    out.topAttackBonus = topAttack - aurelian.top === 1;
+    const bottomAttack = fullEffectiveValue(aurelian, 'bottom', null, 4, 'blue', 'attack');
+    out.bottomAttackBonus = bottomAttack - aurelian.bottom === 1;
+    const rightAttack = fullEffectiveValue(aurelian, 'right', null, 4, 'blue', 'attack');
+    out.rightAttackUnaffected = rightAttack - aurelian.right === 0;
+    const topDefense = fullEffectiveValue(aurelian, 'top', null, 4, 'blue', 'defense');
+    out.topDefenseUnaffected = topDefense - aurelian.top === 0;
+
+    // Celestial Bond: +2 while Vorlix is anywhere on the board.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(aurelian, 'blue');
+    state.board[8] = freshEntry(findCardById('vorlix'), 'blue');
+    const withVorlix = fullEffectiveValue(aurelian, 'left', null, 0, 'blue', 'defense');
+    out.celestialBondBonus = withVorlix - aurelian.left === 2;
+    state.board[8] = null;
+    const withoutVorlix = fullEffectiveValue(aurelian, 'left', null, 0, 'blue', 'defense');
+    out.noBondWithoutVorlix = withoutVorlix - aurelian.left === 0;
+
+    // Skybreaker: rebuilt to match the approved card art -- a total-power
+    // threshold check (+3) rather than an Up/Down-specific temp boost, and
+    // a generic +1 all-sides permanent buff via attackBoost on a win,
+    // same shape as Vayra's Eclipse / Ysara's Eternal Eclipse.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(aurelian, 'blue');
+    state.board[4] = src;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red'); // total 4, easily beaten
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.aurelian({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.skybreakerCaptured = weakTarget.owner === 'blue';
+    out.skybreakerBoostedAllSides = src.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(aurelian, 'blue'); // total 33
+    state.board[4] = src2;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, 33+3 <= 80
+    state.board[1] = strongTarget;
+    SPECIAL_HANDLERS.aurelian({ srcEntry: src2, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.skybreakerNoEffectVsMuchStronger = strongTarget.owner === 'red' && src2.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasSkywardReach, true);
+  assert.equal(result.hasCelestialBond, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.topAttackBonus, true, 'Skyward Reach grants +1 on Up while attacking');
+  assert.equal(result.bottomAttackBonus, true, 'Skyward Reach grants +1 on Down while attacking');
+  assert.equal(result.rightAttackUnaffected, true, 'Skyward Reach does not apply to Left/Right');
+  assert.equal(result.topDefenseUnaffected, true, 'Skyward Reach is attack-only, even on Up/Down');
+  assert.equal(result.celestialBondBonus, true, '+2 on all sides while Vorlix is anywhere on the board');
+  assert.equal(result.noBondWithoutVorlix, true, 'no bonus once Vorlix leaves the board');
+  assert.equal(result.skybreakerCaptured, true, 'Skybreaker still captures a much weaker target');
+  assert.equal(result.skybreakerBoostedAllSides, true, 'Skybreaker now grants a generic +1 on all sides, matching the approved card art');
+  assert.equal(result.skybreakerNoEffectVsMuchStronger, true, 'Skybreaker fails against a target whose total power exceeds the +3 threshold');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Vorlix: Horizon's Reach only boosts Left/Right while attacking, Celestial Bond mirrors Aurelian's, and WorldCleaver is unchanged (axis-specific, unlike Aurelian's now-generic Skybreaker)", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vorlix = findCardById('vorlix');
+    out.statsUnchanged = vorlix.top === 10 && vorlix.right === 9 && vorlix.bottom === 6 && vorlix.left === 9 && vorlix.element === 'water';
+    out.hasHorizonsReach = vorlix.active.axisBonus && vorlix.active.axisBonus.amount === 1 && vorlix.active.axisBonus.dirs.includes('left') && vorlix.active.axisBonus.dirs.includes('right');
+    out.hasCelestialBond = vorlix.active.pairPresence && vorlix.active.pairPresence.partner === 'aurelian' && vorlix.active.pairPresence.amount === 2;
+    out.specialName = vorlix.special.name === 'WorldCleaver';
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Horizon's Reach: +1 on Left/Right while attacking, nothing on
+    // Up/Down, and nothing at all while defending.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(vorlix, 'blue');
+    const leftAttack = fullEffectiveValue(vorlix, 'left', null, 4, 'blue', 'attack');
+    out.leftAttackBonus = leftAttack - vorlix.left === 1;
+    const rightAttack = fullEffectiveValue(vorlix, 'right', null, 4, 'blue', 'attack');
+    out.rightAttackBonus = rightAttack - vorlix.right === 1;
+    const topAttack = fullEffectiveValue(vorlix, 'top', null, 4, 'blue', 'attack');
+    out.topAttackUnaffected = topAttack - vorlix.top === 0;
+    const leftDefense = fullEffectiveValue(vorlix, 'left', null, 4, 'blue', 'defense');
+    out.leftDefenseUnaffected = leftDefense - vorlix.left === 0;
+
+    // Celestial Bond: +2 while Aurelian is anywhere on the board.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(vorlix, 'blue');
+    state.board[8] = freshEntry(findCardById('aurelian'), 'blue');
+    const withAurelian = fullEffectiveValue(vorlix, 'top', null, 0, 'blue', 'defense');
+    out.celestialBondBonus = withAurelian - vorlix.top === 2;
+    state.board[8] = null;
+    const withoutAurelian = fullEffectiveValue(vorlix, 'top', null, 0, 'blue', 'defense');
+    out.noBondWithoutAurelian = withoutAurelian - vorlix.top === 0;
+
+    // WorldCleaver: fully unchanged -- still axis-specific (Left/Right
+    // only), unlike Aurelian's Skybreaker which became generic per the
+    // user's explicit choice for that card alone.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vorlix, 'blue');
+    state.board[4] = src;
+    const target = freshEntry({ id:'t', name:'T', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = target;
+    SPECIAL_HANDLERS.vorlix({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.worldCleaverCaptured = target.owner === 'blue';
+    out.worldCleaverBoostedLeftRightOnly = src.sideBonus && src.sideBonus.left === 1 && src.sideBonus.right === 1 && !src.sideBonus.top && !src.sideBonus.bottom;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasHorizonsReach, true);
+  assert.equal(result.hasCelestialBond, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.leftAttackBonus, true, "Horizon's Reach grants +1 on Left while attacking");
+  assert.equal(result.rightAttackBonus, true, "Horizon's Reach grants +1 on Right while attacking");
+  assert.equal(result.topAttackUnaffected, true, "Horizon's Reach does not apply to Up/Down");
+  assert.equal(result.leftDefenseUnaffected, true, "Horizon's Reach is attack-only, even on Left/Right");
+  assert.equal(result.celestialBondBonus, true, '+2 on all sides while Aurelian is anywhere on the board');
+  assert.equal(result.noBondWithoutAurelian, true, 'no bonus once Aurelian leaves the board');
+  assert.equal(result.worldCleaverCaptured, true, 'WorldCleaver still captures on a win');
+  assert.equal(result.worldCleaverBoostedLeftRightOnly, true, 'WorldCleaver still only permanently boosts Left/Right, fully unchanged from before');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
