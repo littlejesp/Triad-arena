@@ -1428,7 +1428,10 @@ const HEROES = [
     {name:'Soul Fuel', desc:'When she loses a card, she immediately gains +2 on all sides next round.'},
     {name:"Special Attack: Oblivion's Call", desc:'Costs 2 wins. Choose an enemy card — all enemy cards adjacent to it get -2 on the sides facing her until your next round.'},
   ] },
-  { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
+  { id:'dragon', name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{weightOfAges:true}, special:{ name:'Conquests Witnessed', cost:3, once:true, targets:'aoe' }, skills: [
+    {name:'Weight of Ages', desc:'For every 2 full turns Ancient Wyrmking stands unbroken on the same cell under the same owner, the Power margin an attacker needs to flip him increases by 1 (max +2). Capturing him, moving him, or replacing him on that cell resets the count to zero.'},
+    {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
+  ]},
   { id:'shadowking', name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
   { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
@@ -1784,7 +1787,10 @@ const FOREST_FOES = [
   { id:'lich',      name:'Frost Lich',       role:'Undying Sorcerer', top:8, right:6, bottom:9, left:5, element:'water', hue:'linear-gradient(160deg,#10222c,#0d0b18 60%)', accent:'#8fe0ff', active:{shield:true}, icon:'❄️', skills: [{name:'Undying Frost', desc:'The first time this card would lose a battle, the loss is ignored.'}]},
   { id:'direbear',  name:'Dire Bear',        role:'Alpha of the Wilds', top:9, right:8, bottom:5, left:7, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', icon:'🐻'},
   { id:'wendigo',   name:'Wendigo',          role:'Starved Horror', top:7, right:9, bottom:8, left:5, element:'water', hue:'linear-gradient(160deg,#181818,#0d0b18 60%)', accent:'#9c93b8', active:{underdogBonus:2}, icon:'🦴', skills: [{name:'Starved Fury', desc:'Gets +2 Power in any battle where its total value is lower than the opposing card.'}]},
-  { id:'dragon',    name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{shield:true}, icon:'🐉', skills: [{name:'Ancient Shield', desc:'Ancient Wyrmking survives the first loss he would take. The shield shatters once the effect activates.'}]},
+  { id:'dragon',    name:'Ancient Wyrmking', role:'Mystic Card — Sovereign of the Dragonkin', top:10, right:8, bottom:9, left:10, element:'earth', hue:'linear-gradient(160deg,#0f2010,#0d0b18 60%)', accent:'#8fd15a', isDragon:true, active:{weightOfAges:true}, icon:'🐉', special:{ name:'Conquests Witnessed', cost:3, once:true, targets:'aoe' }, skills: [
+    {name:'Weight of Ages', desc:'For every 2 full turns Ancient Wyrmking stands unbroken on the same cell under the same owner, the Power margin an attacker needs to flip him increases by 1 (max +2). Capturing him, moving him, or replacing him on that cell resets the count to zero.'},
+    {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
+  ]},
   { id:'shadowking',name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, icon:'👑', skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
   { id:'voidqueen', name:'The Void Empress', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3}, icon:'🌌', special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [    {name:'Hunger of the Void (Passive)', desc:'If The Void Empress controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:"Vacuum's Grip", desc:'After she takes an enemy card, all her adjacent sides get +1 Power this round.'},
@@ -4252,7 +4258,13 @@ function placeCard(cellIndex, cardId, owner){
   if(cardIdx === -1) return;
   const card = hand[cardIdx];
 
-  state.board[cellIndex] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:0, justPlaced:true };
+  // turnsStanding/turnsStandingOwner/turnsStandingCell only matter for
+  // Ancient Wyrmking's Weight of Ages (see sweepExpiredRoundEffects) — set
+  // unconditionally here anyway, same as shieldUsed/grantedShield above,
+  // so the very first tick after placement counts as "1 full turn
+  // survived" instead of sweepExpiredRoundEffects treating an undefined
+  // owner/cell as a mismatch and burning that first tick on a no-op reset.
+  state.board[cellIndex] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:0, justPlaced:true, turnsStanding:0, turnsStandingOwner:owner, turnsStandingCell:cellIndex };
   // Starborn (Astrael): a random side gets a permanent boost the moment
   // she lands, before flips are resolved — so it counts toward this very
   // placement's battles, not just future ones.
@@ -4527,7 +4539,7 @@ const SpecialVerbs = {
 // turn switch, not just once per round, so it never runs stale by more than
 // one turn regardless of which side started the clock.
 function sweepExpiredRoundEffects(){
-  state.board.forEach(entry => {
+  state.board.forEach((entry, i) => {
     if(!entry) return;
     // Omega Weapon's Absolute Defense: "the FIRST time he'd lose a battle
     // EACH ROUND, ignore it" — unlike every other card's active.shield
@@ -4539,6 +4551,31 @@ function sweepExpiredRoundEffects(){
     // roster's shields; flagged here in case future balancing wants it
     // capped further.
     if(entry.card.active && entry.card.active.shieldResetsEachRound) entry.shieldUsed = false;
+    // Ancient Wyrmking's Weight of Ages: "+1 to the Power margin needed to
+    // flip him for every 2 full turns he's stood unbroken on this exact
+    // cell under the same owner" (read in battleNeighbors, capped there
+    // at +2). Tracked here since this function already visits every board
+    // entry on every turn switch — no separate hook needed. Resets the
+    // instant his owner OR his cell differs from what was last recorded
+    // (a capture, a position-swap like Deathblade's, or a fresh placement
+    // after being destroyed) by comparing against a small snapshot
+    // (turnsStandingOwner/turnsStandingCell) rather than needing an
+    // explicit reset call at every one of the ~20 "entry.owner = owner"
+    // sites elsewhere in the engine — the same wide-reaching pattern
+    // checkSisterFlip needed for the Sisters, avoided here entirely.
+    // entry.turnsStanding is read as `|| 0` wherever it matters, so a
+    // freshly placed card (all three fields still undefined) is handled
+    // by the same mismatch branch below without any extra initialization
+    // in placeCard() or the various revive-from-graveyard helpers.
+    if(entry.card.active && entry.card.active.weightOfAges){
+      if(entry.turnsStandingOwner !== entry.owner || entry.turnsStandingCell !== i){
+        entry.turnsStanding = 0;
+        entry.turnsStandingOwner = entry.owner;
+        entry.turnsStandingCell = i;
+      } else {
+        entry.turnsStanding += 1;
+      }
+    }
     if(!entry.tempEffects || entry.tempEffects.length === 0) return;
     entry.tempEffects = entry.tempEffects.filter(effect => {
       if(effect.expiresAtTurnCount > state.turnCount) return true;
@@ -5582,6 +5619,26 @@ const SPECIAL_HANDLERS = {
       ? `${name}'s Zantetsuken cuts down ${targetEntry.card.name} and chills ${weakened} more foe${weakened>1?'s':''}!`
       : `${name}'s Zantetsuken cuts down ${targetEntry.card.name}!`;
   },
+  // Conquests Witnessed: counts total Wins already claimed by BOTH sides at
+  // the moment the Ultimate fires (state.wins.blue + state.wins.red) —
+  // reuses the same resource that gates every Ultimate rather than adding
+  // any new counter. +1 Power permanent for every 2 total conquests,
+  // capped at +3, applied ONCE as a flat SpecialVerbs.attackBoost — a
+  // locked-in snapshot, not a live formula, so it never keeps growing after
+  // activation even as more Wins accumulate later in the match. All enemy
+  // cards also get -1 Power this round (plain debuffThisRound, same as
+  // every other mild AOE control effect in the roster).
+  dragon({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    const totalConquests = state.wins.blue + state.wins.red;
+    const bonus = Math.min(3, Math.floor(totalConquests / 2));
+    if(bonus > 0) SpecialVerbs.attackBoost(srcEntry, bonus);
+    state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 1); });
+    return bonus > 0
+      ? `${name}'s Conquests Witnessed grants +${bonus} Power, remembering ${totalConquests} conquest${totalConquests !== 1 ? 's' : ''} already claimed!`
+      : `${name}'s Conquests Witnessed finds too few conquests yet claimed to grow stronger!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -5812,25 +5869,40 @@ function battleNeighbors(index, owner, result){
 
     if(effOutcome){
       const shielded = isShielded(target, p.ni);
+      const targetActive = target.card.active;
       // Medusa's Curse of the Gorgon: "if an enemy attacks Medusa and wins
       // by 2 Power or less, the battle becomes a draw and the attacker
       // gets -1 Power this round" — a margin-conditional block distinct
       // from the flat always-blocks-once active.shield above, so it's
       // checked separately here (isShielded has no access to the actual
       // battle values it would need for a margin check) rather than folded
-      // into isShielded() itself.
-      const marginBlocked = !shielded && target.card.active && target.card.active.marginShieldThreshold != null
-        && (placedVal - targetVal) <= target.card.active.marginShieldThreshold;
+      // into isShielded() itself. Combined here with Ancient Wyrmking's
+      // Weight of Ages, a DYNAMIC margin wall that grows the longer he's
+      // stood unbroken on this cell (entry.turnsStanding, tracked in
+      // sweepExpiredRoundEffects — capped at +2 here). The two thresholds
+      // are independent fields (marginShieldThreshold is a static per-card
+      // constant, weightOfAges reads a live counter) so they can coexist
+      // on different cards without interfering with each other.
+      const staticMarginThreshold = targetActive && targetActive.marginShieldThreshold != null ? targetActive.marginShieldThreshold : 0;
+      const weightOfAgesBonus = targetActive && targetActive.weightOfAges
+        ? Math.min(2, Math.floor((target.turnsStanding || 0) / 2))
+        : 0;
+      const marginThreshold = staticMarginThreshold + weightOfAgesBonus;
+      const marginBlocked = !shielded && marginThreshold > 0 && (placedVal - targetVal) <= marginThreshold;
       if(shielded || marginBlocked){
-        if(target.card.active && target.card.active.shield){
+        if(targetActive && targetActive.shield){
           target.shieldUsed = true;
           // Medusa's Living Statue: her own shield trigger also grants a
           // permanent Power bonus, unlike every other shield in the
           // roster — scoped to her own active.shield specifically (not
           // externally granted shields), matching the card's own text.
-          if(target.card.active.shieldGrantsBonus) SpecialVerbs.attackBoost(target, target.card.active.shieldGrantsBonus);
+          if(targetActive.shieldGrantsBonus) SpecialVerbs.attackBoost(target, targetActive.shieldGrantsBonus);
         }
-        if(marginBlocked) SpecialVerbs.debuffThisRound(placedEntry, 1);
+        // The attacker debuff is Curse of the Gorgon's own effect
+        // specifically — scoped to marginShieldThreshold (Medusa's static
+        // field) so Weight of Ages never triggers it. Weight of Ages only
+        // raises the wall; it does nothing else, per its own card text.
+        if(marginBlocked && targetActive.marginShieldThreshold != null) SpecialVerbs.debuffThisRound(placedEntry, 1);
         target.shieldFlash = true;
         result.shielded++;
         return;
