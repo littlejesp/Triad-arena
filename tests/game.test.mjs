@@ -1051,6 +1051,62 @@ test('Aurelia: card trimmed to Radiant Guardian/Luminous Strike/Dawn\'s Reckonin
   await page.close();
 });
 
+test('Twisted Gipsy: card trimmed to The House Always Wins/Loaded Deck/House of Shadows, stats matched to approved art, Ultimate text synced to real behavior', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const gipsy = findCardById('twistedgipsy');
+    out.statsMatchArt = gipsy.top === 9 && gipsy.right === 7 && gipsy.bottom === 9 && gipsy.left === 10 && gipsy.element === 'wind';
+    out.hasHouseAlwaysWins = gipsy.active.onWinDebuffLoserPermanent === 1 && gipsy.active.onCaptureBonus === 1;
+    out.hasLoadedDeck = gipsy.active.oncePerMatchAttackBoost && gipsy.active.oncePerMatchAttackBoost.amount === 3;
+    out.skillCount = gipsy.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // The House Always Wins: winning permanently steals 1 Power (loser -1, Gipsy +1).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(gipsy, 'blue'); // top:9
+    state.board[4] = src;
+    const loser = freshEntry({ id:'tg-weak', name:'TGWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.loserPermanentlyDebuffed = loser.captureBonus === -1;
+    out.gipsyPermanentlyBoosted = src.captureBonus === 1;
+
+    // Loaded Deck: +3 Power on the next attack, once per match. The read
+    // needs a live board entry at cellIndex to check oncePerMatchAttackBoostUsed.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(gipsy, 'blue');
+    const weakFoe = { id:'tg-weaker', name:'Weaker', top:1,right:1,bottom:1,left:1 };
+    out.loadedDeckBoost = fullEffectiveValue(gipsy, 'top', weakFoe, 0, 'blue', 'attack') - gipsy.top;
+
+    // House of Shadows (unchanged code, synced UI text): steals 2 Power on
+    // win and grants a further permanent +1 to the attacker.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(gipsy, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.twistedgipsy({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.wrathFlippedTarget = wtarget.owner === 'blue';
+    out.wrathStoleTwoPower = wtarget.captureBonus === -2;
+    out.wrathGainedPermanentOne = wsrc.captureBonus === 3; // +2 stolen + 1 permanent
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 9/7/9/10 (top/right/bottom/left)');
+  assert.equal(result.hasHouseAlwaysWins, true, 'reuses onWinDebuffLoserPermanent + onCaptureBonus, same combination Yojimbo already has');
+  assert.equal(result.hasLoadedDeck, true, "reuses oncePerMatchAttackBoost, same as Yojimbo's Kozuka");
+  assert.equal(result.skillCount, 3, 'the printed card only carries The House Always Wins, Loaded Deck, and House of Shadows');
+  assert.equal(result.loserPermanentlyDebuffed, true);
+  assert.equal(result.gipsyPermanentlyBoosted, true);
+  assert.equal(result.loadedDeckBoost, 3);
+  assert.equal(result.wrathFlippedTarget, true);
+  assert.equal(result.wrathStoleTwoPower, true);
+  assert.equal(result.wrathGainedPermanentOne, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

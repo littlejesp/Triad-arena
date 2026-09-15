@@ -1606,13 +1606,10 @@ const HEROES = [
     {name:'Luminous Strike (Passive)', desc:'When Aurelia wins an attack, she gains +2 Power on the side she attacked with. (Once per match.)'},
     {name:"Special Attack: Dawn's Reckoning", desc:"If Aurelia wins, the target card is flipped and Aurelia gains +4 Power on all sides. If this attack scores a critical hit (25%), the target card is still flipped but instead gets -20 Power on all sides."},
   ] },
-  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
-    {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
-    {name:'Loaded Deck', desc:'Once per match, choose a side — Twisted Gipsy gets +3 Power on that side during the battle.'},
-    {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
-    {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:7, bottom:9, left:10, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', active:{onWinDebuffLoserPermanent:1, onCaptureBonus:1, oncePerMatchAttackBoost:{amount:3}}, special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The House Always Wins (Passive)', desc:'When Twisted Gipsy wins a round, the opponent loses 1 Power permanently and Twisted Gipsy gains 1 Power permanently.'},
+    {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
+    {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
   { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
@@ -1935,13 +1932,10 @@ const FOREST_FOES = [
     {name:'Luminous Strike (Passive)', desc:'When Aurelia wins an attack, she gains +2 Power on the side she attacked with. (Once per match.)'},
     {name:"Special Attack: Dawn's Reckoning", desc:"If Aurelia wins, the target card is flipped and Aurelia gains +4 Power on all sides. If this attack scores a critical hit (25%), the target card is still flipped but instead gets -20 Power on all sides."},
   ] },
-  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
-    {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
-    {name:'Loaded Deck', desc:'Once per match, choose a side — Twisted Gipsy gets +3 Power on that side during the battle.'},
-    {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
-    {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:7, bottom:9, left:10, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', active:{onWinDebuffLoserPermanent:1, onCaptureBonus:1, oncePerMatchAttackBoost:{amount:3}}, special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The House Always Wins (Passive)', desc:'When Twisted Gipsy wins a round, the opponent loses 1 Power permanently and Twisted Gipsy gains 1 Power permanently.'},
+    {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
+    {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
   { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},

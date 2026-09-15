@@ -27,11 +27,11 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29–32 (Sarah, Deathblade, Lyrith och
-Aurelia ombyggda) ligger committade på feature-branchen, INTE mergade
-till `main` än** — fråga alltid explicit innan nästa merge när mer
-arbete samlats där, anta ALDRIG tillstånd från en tidigare
-bekräftelse.
+till `main` också. **Punkt 29–33 (Sarah, Deathblade, Lyrith, Aurelia
+och Twisted Gipsy ombyggda) ligger committade på feature-branchen,
+INTE mergade till `main` än** — fråga alltid explicit innan nästa
+merge när mer arbete samlats där, anta ALDRIG tillstånd från en
+tidigare bekräftelse.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -131,6 +131,33 @@ ströks helt.
 Inga nya primitives — båda passiva skills återanvänder befintliga,
 redan testade engine-hooks. Bort: Holy Barrage, Divine Shield, Light's
 Swiftness — alla flavor-only.
+
+**33. Twisted Gipsy ombyggd (The House Always Wins / Loaded Deck)** —
+ursprungligen bedömd 🟡 POLISH i auditen, men samma missbedömning som
+Graff/Voidqueen/Sarah/Deathblade/Lyrith/Aurelia: NOLL av 5 skills hade
+backing, bara Ultimaten (House of Shadows) var riktig kod — och den
+hade dessutom en egen textdrift (UI:n nämnde ett tillfälligt +3 på
+attacksidan som koden aldrig gav). Godkänd kortkonst trimmade honom
+till tre skills, samma mönster som Deathblade/Lyrith/Aurelia — Pick a
+Card, Sleight of Hand och Steal the Fortune ströks helt.
+
+- **The House Always Wins (Passiv)** — helt befintlig kombination
+  `active.onWinDebuffLoserPermanent:1` + `active.onCaptureBonus:1`,
+  samma kombination Yojimbo redan har. En äkta "stöld": förloraren -1
+  permanent, Twisted Gipsy +1 permanent.
+- **Loaded Deck (Passiv)** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:3}`, samma primitive som
+  Yojimbos Kozuka.
+- **Special Attack: "House of Shadows"** — koden HELT oförändrad (vinst
+  → stjäl 2 Power + permanent +1 till honom själv), men UI-texten
+  synkades till vad koden faktiskt gör istället för den gamla,
+  aldrig-implementerade "+3 på attacksidan"-texten.
+- **Stats matchade till godkänd konst** (avvikelse i 3 av 4 sidor):
+  top:9, right:7, bottom:9, left:10 (tidigare 9/10/7/9).
+
+Inga nya primitives — båda passiva skills återanvänder befintliga,
+redan testade engine-hooks. Bort: Pick a Card, Sleight of Hand, Steal
+the Fortune — alla flavor-only.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
