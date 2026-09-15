@@ -1170,6 +1170,63 @@ test('Astrael: element added, new Cosmic Ward shield, Starborn unchanged, Fallin
   await page.close();
 });
 
+test('Vaelira: new capped Crimson Surge, all other mechanics (Undying Flame/Sister\'s Bond/Weakness/Infernal Pact) unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vaelira = findCardById('vaelira');
+    out.statsUnchanged = vaelira.top === 10 && vaelira.right === 9 && vaelira.bottom === 10 && vaelira.left === 10 && vaelira.element === 'fire';
+    out.hasSisterAuraUnchanged = vaelira.active.sisterAura && vaelira.active.sisterAura.partners.includes('seraphine') && vaelira.active.sisterAura.partners.includes('nyxara') && !vaelira.active.sisterAura.partners.includes('lyrith') && !vaelira.active.sisterAura.partners.includes('aurelia');
+    out.hasCrimsonSurge = vaelira.active.onWinCappedBoost && vaelira.active.onWinCappedBoost.amount === 1 && vaelira.active.onWinCappedBoost.max === 3;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Crimson Surge: +1 Power all sides per win, capped at 3 stacks total.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vaelira, 'blue'); // top:10
+    state.board[4] = src;
+    for(let i=0;i<4;i++){
+      state.board[1] = freshEntry({ id:'v-weak'+i, name:'VWeak'+i, top:1,right:1,bottom:1,left:1 }, 'red');
+      resolveFlips(4, 'blue');
+    }
+    out.crimsonSurgeCappedAtThree = src.captureBonus === 3;
+
+    // Undying Flame (unchanged): on-place, permanently debuffs one random
+    // not-yet-burned enemy by 2.
+    state.board = Array(9).fill(null);
+    const placedSrc = freshEntry(vaelira, 'blue');
+    state.board[4] = placedSrc;
+    const onlyEnemy = freshEntry({ id:'v-burn-target', name:'BurnTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = onlyEnemy;
+    ON_PLACE_HANDLERS.vaelira(placedSrc, 'blue');
+    out.undyingFlameBurnedEnemy = onlyEnemy.captureBonus === -2 && onlyEnemy.vaeliraBurned === true;
+
+    // Infernal Pact (unchanged): destroys every enemy, spares allies, grants an extra turn.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(vaelira, 'blue');
+    const ally = freshEntry({ id:'v-ally', name:'Ally', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const enemy1 = freshEntry({ id:'v-enemy1', name:'Enemy1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = wsrc; state.board[0] = ally; state.board[1] = enemy1;
+    state.extraTurnPending = null;
+    SPECIAL_HANDLERS.vaelira({ srcEntry: wsrc, owner: 'blue' });
+    out.pactSparedAlly = state.board[0] !== null;
+    out.pactDestroyedEnemy = state.board[1] === null;
+    out.pactGrantedExtraTurn = state.extraTurnPending === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasSisterAuraUnchanged, true, "Sister's Bond still points at Seraphine/Nyxara, not the image-generation error (Lyrith/Aurelia)");
+  assert.equal(result.hasCrimsonSurge, true, 'Crimson Surge is the agreed capped +1x3 variant, not the uncapped +2 the art text showed');
+  assert.equal(result.crimsonSurgeCappedAtThree, true);
+  assert.equal(result.undyingFlameBurnedEnemy, true);
+  assert.equal(result.pactSparedAlly, true);
+  assert.equal(result.pactDestroyedEnemy, true);
+  assert.equal(result.pactGrantedExtraTurn, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

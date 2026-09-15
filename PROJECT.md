@@ -27,8 +27,8 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29–34 (Sarah, Deathblade, Lyrith, Aurelia,
-Twisted Gipsy och Astrael ombyggda) ligger committade på
+till `main` också. **Punkt 29–35 (Sarah, Deathblade, Lyrith, Aurelia,
+Twisted Gipsy, Astrael och Vaelira ombyggda) ligger committade på
 feature-branchen, INTE mergade till `main` än** — fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
@@ -189,6 +189,40 @@ Card".
 
 Inga nya primitives utöver ren återanvändning av `debuff()`, redan
 befintlig `SpecialVerbs`-funktion.
+
+**35. Vaelira — minimal fix (Crimson Surge) + ny solo-konst** —
+TILL SKILLNAD FRÅN de flesta korten på listan var Vaelira redan i gott
+skick: 4 av 5 skills var wired (Undying Flame, Sister's Bond, Weakness
+— Broken Focus, Infernal Pact). Bara **Crimson Surge** saknade
+backing. Användaren bad explicit om en MINIMAL fix, inte en full
+rework — "inte för mycket ändringar bara det blir bättre".
+
+Den godkända bilden (ny solo-pose, hjärtformad säng) hade dock en
+gameplay-text som skilde sig från koden på ALLA fem skills, inklusive
+ett troligt AI-bildgenereringsfel i Sister's Bond (nämnde Lyrith/
+Aurelia istället för hennes faktiska Triple Triad-systrar Seraphine/
+Nyxara). Användaren valde uttryckligen "den säkra vägen": behåll all
+fungerande kod, rätta bara UI-texten, ingen annan gameplay/lore/balans
+rörd.
+
+- **Crimson Surge (Passiv)** — NY primitive `active.onWinCappedBoost:
+  {amount:1, max:3}` + motsvarande hook i `checkOnWinBonuses()`, byggd
+  på samma capped-stack-idé som Omega Weapons
+  `buffOnEnemyDestroyedCapped`, men triggad av vanliga vinster istället
+  för destroys (behöver sin egen räknare, `onWinCappedBoostCount`, på
+  vinnarens entry).
+- **Undying Flame, Sister's Bond, Weakness — Broken Focus, Infernal
+  Pact** — HELT oförändrad mekanik. UI-texten synkades bara till att
+  vara exakt (t.ex. "-3 Power den runda hon återvänder" → "permanent
+  -3 Power", eftersom koden redan var permanent, inte temporär).
+- **Sister's Bond namnen (Seraphine/Nyxara) bekräftade och behållna** —
+  Lyrith/Aurelia i bilden var ett bildgenereringsfel, ingen avsiktlig
+  lore-ändring.
+- Stats **rördes INTE** (till skillnad från tidigare kort) — bilden
+  hade en mindre right/left-avvikelse, men användaren bad om minimala
+  ändringar så den lämnades orörd.
+
+Inga andra gameplay-, lore- eller balansändringar.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

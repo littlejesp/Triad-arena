@@ -1668,13 +1668,13 @@ const HEROES = [
   { id:'vaelira', name:'Vaelira', role:'The Crimson Arcanist — Boss, Triple Triad Sisters I', element:'fire',
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#2a0a10,#0d0b18 60%)', accent:'#e0304a', icon:'🔥',
-    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} } },
+    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} }, onWinCappedBoost:{amount:1, max:3} },
     special:{ name:'Infernal Pact', cost:2, once:true, targets:'aoe' },
     skills: [
       {name:'Undying Flame (Passive)', desc:'When Vaelira is placed, she burns a random enemy card for -2 Power. A card can only be burned once per match.'},
-      {name:'Crimson Surge', desc:'When Vaelira wins a round, she gains +1 Power on all sides (max +3 Power this match). (Card draw is flavor only — no card-draw system exists in the engine.)'},
+      {name:'Crimson Surge (Passive)', desc:'When Vaelira wins a round, she gains +1 Power on all sides, up to 3 times per match.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Vaelira's sisters (Seraphine, Nyxara) is on the board, she gets +2 Power on all sides — +4 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Vaelira is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses emotional control" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:"If Vaelira is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power on all sides."},
       {name:'Special Attack: Infernal Pact', desc:'Costs 2 wins. Destroys every enemy card on the board and grants an extra turn immediately after. Usable once per match.'},
     ] },
   { id:'seraphine', name:'Seraphine', role:'The Silver Gunslinger — Boss, Triple Triad Sisters II', element:'wind',
@@ -1997,13 +1997,13 @@ const FOREST_FOES = [
   { id:'vaelira', name:'Vaelira', role:'The Crimson Arcanist — Boss, Triple Triad Sisters I', element:'fire',
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#2a0a10,#0d0b18 60%)', accent:'#e0304a', icon:'🔥',
-    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} } },
+    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} }, onWinCappedBoost:{amount:1, max:3} },
     special:{ name:'Infernal Pact', cost:2, once:true, targets:'aoe' },
     skills: [
       {name:'Undying Flame (Passive)', desc:'When Vaelira is placed, she burns a random enemy card for -2 Power. A card can only be burned once per match.'},
-      {name:'Crimson Surge', desc:'When Vaelira wins a round, she gains +1 Power on all sides (max +3 Power this match). (Card draw is flavor only — no card-draw system exists in the engine.)'},
+      {name:'Crimson Surge (Passive)', desc:'When Vaelira wins a round, she gains +1 Power on all sides, up to 3 times per match.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Vaelira's sisters (Seraphine, Nyxara) is on the board, she gets +2 Power on all sides — +4 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Vaelira is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses emotional control" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:"If Vaelira is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power on all sides."},
       {name:'Special Attack: Infernal Pact', desc:'Costs 2 wins. Destroys every enemy card on the board and grants an extra turn immediately after. Usable once per match.'},
     ] },
   { id:'seraphine', name:'Seraphine', role:'The Silver Gunslinger — Boss, Triple Triad Sisters II', element:'wind',
@@ -3514,6 +3514,14 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // as Ifrit's onCaptureBonus (already shipped, permanent, uncapped).
   if(a.onWinDebuffLoserPermanent && loserIndex != null){
     SpecialVerbs.debuff(loserEntry, a.onWinDebuffLoserPermanent);
+  }
+  // Vaelira's Crimson Surge: "+1 Power all sides per win, capped at 3
+  // stacks" -- same capped-stacking idea as Omega Weapon's
+  // buffOnEnemyDestroyedCapped, but keyed off ordinary wins instead of
+  // enemy destroys, so it needs its own counter on the winner's entry.
+  if(a.onWinCappedBoost && (winnerEntry.onWinCappedBoostCount||0) < a.onWinCappedBoost.max){
+    SpecialVerbs.attackBoost(winnerEntry, a.onWinCappedBoost.amount);
+    winnerEntry.onWinCappedBoostCount = (winnerEntry.onWinCappedBoostCount||0) + 1;
   }
   // Chocobo King's Feather Storm: "a RANDOM adjacent enemy card" (not
   // necessarily the loser of THIS battle) gets -N Power this round —
