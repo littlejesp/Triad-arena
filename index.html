@@ -1296,13 +1296,11 @@ const RULEBOOK_PAGES = [
 /* ---------------- Character data ---------------- */
 // stat mapping: top = Strength, right = Speed, bottom = Magic, left = Defense
 const HEROES = [
-  { id:'darien', name:"Darien", role:"The Shadowwarden", top:10, right:10, bottom:9, left:9, element:'water', hue:'linear-gradient(160deg,#0f2440,#0d0b18 60%)', accent:'#5ec8f2', active: {shield:true}, special:{ name:'Shadow Breaker', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Shadow Counter', desc:'When Darien loses a battle in a direction, he immediately counterattacks in that same direction. (Flavor only — not currently wired into the battle engine.)'},
-    {name:'Void Step', desc:'Once per match, Darien may swap places with a friendly card and gain +1 Power. (Flavor only — not currently wired into the battle engine.)'},
-    {name:'Dark Aegis', desc:"The first time Darien would lose a battle, the loss is ignored — that half is wired in via his shield (active.shield, unchanged from before). The card text's extra \"+1 Power\" on trigger is flavor only."},
-    {name:'Last Stand', desc:"If Darien is your last card on the board, he gets +1 Power on all his directions. (Flavor only — not currently wired into the battle engine, same limitation as Sarah's Last Arrow.)"},
-    {name:'Legendary Bond (Passive)', desc:"While bonded to a Legendary partner: +3 Power on all sides, Card Skills trigger an extra time per round, can't lose to a lower total Power, and +1 Power on all sides per consecutive win (stacking). (Flavor only — no partner is named on the card, and round/win-streak tracking doesn't exist in the engine.) His Special Attack being unblockable, the one clause here that doesn't need a partner, IS wired into Shadow Breaker below."},
-    {name:"Special Attack: Shadow Breaker", desc:"Cost 2 Wins. Choose 1 enemy card — unblockable (per Legendary Bond above). If its average side Power is 7 or lower, it's destroyed outright. If 8 or higher, it's permanently weakened by -3 Power instead and stays enemy-owned. (\"POWER\" is read as the target's average side value, since the card's 7/8 thresholds don't fit this engine's much larger total-power range; the \"can't use Card Skills next round\" clause is dropped — no round tracking exists.)"},
+  { id:'darien', name:"Darien", role:"The Shadowwarden", top:10, right:10, bottom:9, left:9, element:'water', hue:'linear-gradient(160deg,#0f2440,#0d0b18 60%)', accent:'#5ec8f2', active: {shield:true, marginShieldThreshold:2, pairPresence:{partner:'elara', amount:2}}, special:{ name:'Shadow Breaker', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Dark Aegis (Passive)', desc:'The first time Darien would lose a battle, that loss is ignored.'},
+    {name:'Umbral Ward (Passive)', desc:'If an enemy wins against Darien by 2 Power or less, the attack is blocked instead and the attacker gets -1 Power this round.'},
+    {name:"Elara's Bond (Passive)", desc:"Darien gets +2 Power on all sides while Elara is anywhere on your board. (Stacks with the existing +1 when adjacent, from the game's rivalry-pair rule.)"},
+    {name:"Special Attack: Shadow Breaker", desc:"Cost 2 Wins. Choose 1 enemy card — unblockable. If its average side Power is 7 or lower, it's destroyed outright. If 8 or higher, it's permanently weakened by -3 Power instead and stays enemy-owned."},
   ]},
   { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{bonus:{dir:'right',amount:1}}, skills:[{name:"Eternal Aim", desc:"On placement, choose a direction — Zaevir's attack there gets +2 for the next battle."}, {name:"Forest's Path", desc:"Once per match, Zaevir may attack a card one space away in a straight line, if the path is clear."}, {name:"Focus", desc:"If Zaevir hasn't lost a battle yet, he gets +1 on his next attack."}, {name:"Eternal Arrow", desc:"When Zaevir defeats a card, he may keep attacking in the same direction if another card borders it."}]},
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', skills:[{name:"Shadow Step", desc:"When Sarah loses a battle, you may swap her with a card in an adjacent empty square."}, {name:"Direction Focus", desc:"Once per match, change Sarah's direction on her next attack before the battle resolves."}, {name:"Light Shield", desc:"The first time Sarah would lose a battle, the loss is ignored and the battle counts as a draw."}, {name:"Last Arrow", desc:"If Sarah is your last card on the board, she gets +1 to all her directions."}], active: {shield:true}},
@@ -1654,13 +1652,11 @@ const HEROES = [
     {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
     {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
   ] },
-  { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:9, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', skills: [
-    {name:'Touched by Grace (Passive)', desc:"When Ferea wins a battle, she gets +1 Power on all sides for the rest of the match. If she defends a side and wins, she places a Frostmark on the enemy card (-1 Power on all sides, max 2 stacks). (Flavor only — Frostmark stacking is not currently wired into the battle engine.)"},
-    {name:'Ice Embrace', desc:'Ferea places a Frostmark on an enemy card — it gets -2 Power on the chosen side this round.'},
-    {name:"Queen's Blessing", desc:'Ferea gets +2 Power on all sides for every Frostmark on enemy cards (max +6) for the rest of the round.'},
-    {name:'Glacial Barrier', desc:"Choose a side — the next time Ferea defends it, she takes no damage and the attacker gets -2 Power on that side for the rest of the round."},
-    {name:'Empathy of the North', desc:'When Ferea wins a battle, all your cards get +1 Power on all sides for the rest of the round.'},
-    {name:"Special Attack: Memory of Her Stolen Scepter", desc:"Costs 2 wins. Look at 1-3 cards from the enemy's deck and reorder them as you choose. Usable once per match. (Flavor only — deck manipulation is not currently wired into the battle engine.)"},
+  { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', active: {shield:true, onWinFrostmark:true, auraPerFrostmarkedEnemy:{amount:1, max:3}}, special:{ name:'The Frozen Crown', cost:3, once:true, targets:'aoe' }, skills: [
+    {name:'Frostmark (Passive)', desc:'When Ferea wins a battle, the defeated enemy card becomes Frostmarked for the rest of the match.'},
+    {name:"Queen's Blessing (Passive)", desc:'Ferea gets +1 Power on all sides for every Frostmarked enemy card on the board (max +3).'},
+    {name:'Glacial Barrier (Passive)', desc:'The first time Ferea would lose a battle, that loss is ignored.'},
+    {name:'Special Attack: The Frozen Crown', desc:"Costs 3 wins. Every enemy card becomes Frostmarked and gets -2 Power this round. Ferea permanently gains +1 Power on all sides for every enemy Frostmarked this way (max +3), locked in at activation. Usable once per match."},
   ] },
   { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
     {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
@@ -1994,13 +1990,11 @@ const FOREST_FOES = [
     {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
     {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
   ] },
-  { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:9, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', skills: [
-    {name:'Touched by Grace (Passive)', desc:"When Ferea wins a battle, she gets +1 Power on all sides for the rest of the match. If she defends a side and wins, she places a Frostmark on the enemy card (-1 Power on all sides, max 2 stacks). (Flavor only — Frostmark stacking is not currently wired into the battle engine.)"},
-    {name:'Ice Embrace', desc:'Ferea places a Frostmark on an enemy card — it gets -2 Power on the chosen side this round.'},
-    {name:"Queen's Blessing", desc:'Ferea gets +2 Power on all sides for every Frostmark on enemy cards (max +6) for the rest of the round.'},
-    {name:'Glacial Barrier', desc:"Choose a side — the next time Ferea defends it, she takes no damage and the attacker gets -2 Power on that side for the rest of the round."},
-    {name:'Empathy of the North', desc:'When Ferea wins a battle, all your cards get +1 Power on all sides for the rest of the round.'},
-    {name:"Special Attack: Memory of Her Stolen Scepter", desc:"Costs 2 wins. Look at 1-3 cards from the enemy's deck and reorder them as you choose. Usable once per match. (Flavor only — deck manipulation is not currently wired into the battle engine.)"},
+  { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', active: {shield:true, onWinFrostmark:true, auraPerFrostmarkedEnemy:{amount:1, max:3}}, special:{ name:'The Frozen Crown', cost:3, once:true, targets:'aoe' }, skills: [
+    {name:'Frostmark (Passive)', desc:'When Ferea wins a battle, the defeated enemy card becomes Frostmarked for the rest of the match.'},
+    {name:"Queen's Blessing (Passive)", desc:'Ferea gets +1 Power on all sides for every Frostmarked enemy card on the board (max +3).'},
+    {name:'Glacial Barrier (Passive)', desc:'The first time Ferea would lose a battle, that loss is ignored.'},
+    {name:'Special Attack: The Frozen Crown', desc:"Costs 3 wins. Every enemy card becomes Frostmarked and gets -2 Power this round. Ferea permanently gains +1 Power on all sides for every enemy Frostmarked this way (max +3), locked in at activation. Usable once per match."},
   ] },
   { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
     {name:'The Celestial Siblings', desc:'Once they stood as one, now they carve their paths across the world.'},
@@ -3516,6 +3510,14 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   if(a.onWinPetrify && loserIndex != null){
     loserEntry.petrifiedUntilTurnCount = state.turnCount + 4;
   }
+  // Ferea's Frostmark: "the defeated enemy card becomes Frostmarked for the
+  // rest of the match" — a permanent boolean status (unlike Medusa's
+  // temporary petrifiedUntilTurnCount above), read by her own Queen's
+  // Blessing aura via auraPerFrostmarkedEnemy below, same shape as
+  // auraPerPetrifiedEnemy reads petrifiedUntilTurnCount.
+  if(a.onWinFrostmark && loserIndex != null){
+    loserEntry.frostmarked = true;
+  }
   // Shiva's Diamond Dust / Leviathan's Crushing Tide / Omega Weapon's Hyper
   // Pulse: "the defeated card gets -N Power on all sides this round" — no
   // "once per match" cap in any of the three cards' text, and unlike
@@ -3897,6 +3899,14 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     const cfg = card.active.auraPerPetrifiedEnemy;
     const petrifiedEnemies = state.board.filter(e => e && e.owner !== owner && e.petrifiedUntilTurnCount > state.turnCount).length;
     v += Math.min(petrifiedEnemies, cfg.max) * cfg.amount;
+  }
+  // Ferea's Queen's Blessing: the Frostmarked mirror of Serpent Queen above
+  // (permanent boolean flag instead of a turn-count expiry), same capped
+  // per-enemy-count aura shape.
+  if(card.active && card.active.auraPerFrostmarkedEnemy){
+    const cfg = card.active.auraPerFrostmarkedEnemy;
+    const frostmarkedEnemies = state.board.filter(e => e && e.owner !== owner && e.frostmarked).length;
+    v += Math.min(frostmarkedEnemies, cfg.max) * cfg.amount;
   }
   // Shiva's Ice Touch / Chocobo King's Choco Dash / Odin's Gungnir Strike:
   // "gets +N Power on the attacking side" — a plain, unconditional
@@ -5240,25 +5250,6 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.debuff(targetEntry, 3);
     return `${name}'s Shadow Breaker tears through ${targetEntry.card.name}, crippling its power!`;
   },
-  // "True damage" per the source text — unconditional, no specialBlockedByShield
-  // check (matches Naline/Torn's unconditional-debuff style), no capture
-  // attempt. Each of the 5 arrows independently rolls a random current
-  // enemy, so a card can take more than one hit while others take none.
-  sylvarion({ srcEntry, owner }){
-    const name = srcEntry.card.name;
-    const enemies = state.board.filter(e => e && e.owner !== owner);
-    if(enemies.length === 0){
-      return `${name}'s Tempest Volley finds no enemies to strike!`;
-    }
-    const hits = new Map();
-    for(let i=0;i<5;i++){
-      const target = enemies[Math.floor(Math.random()*enemies.length)];
-      SpecialVerbs.debuff(target, 1);
-      hits.set(target, (hits.get(target)||0) + 1);
-    }
-    const summary = [...hits.entries()].map(([e,n]) => `${e.card.name} (-${n})`).join(', ');
-    return `${name}'s Tempest Volley rains true-damage arrows down — ${summary}!`;
-  },
   // Triple Triad Sisters ultimates. All three are aoe (no board target),
   // so the AI's generic aoe branch in enemyTryUseSpecial already drives
   // them — no id-specific AI targeting code needed, unlike Voidqueen/
@@ -5674,6 +5665,26 @@ const SPECIAL_HANDLERS = {
     return deficit > 0
       ? `${name}'s Herald's Gale sweeps the board and grants +${deficit} Power, rallying the outnumbered vanguard!`
       : `${name}'s Herald's Gale sweeps the board!`;
+  },
+  // Ferea's The Frozen Crown: Frostmarks every enemy (same boolean flag her
+  // Frostmark passive sets on a win) and hits them all for -2 this round
+  // (debuffThisRound, same verb Shiva/Leviathan use), then a permanent
+  // self-buff equal to how many enemies got marked (capped at 3), locked in
+  // via attackBoost same as every other snapshot-style Ultimate above.
+  ferea({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    let marked = 0;
+    state.board.forEach(e => {
+      if(e && e.owner === enemyOwner){
+        e.frostmarked = true;
+        SpecialVerbs.debuffThisRound(e, 2);
+        marked++;
+      }
+    });
+    const bonus = Math.min(3, marked);
+    if(bonus > 0) SpecialVerbs.attackBoost(srcEntry, bonus);
+    return `${name}'s The Frozen Crown Frostmarks ${marked} enem${marked !== 1 ? 'ies' : 'y'} and grants +${bonus} Power!`;
   },
 };
 

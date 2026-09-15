@@ -19,13 +19,85 @@ fil (t.ex. GitHub Pages).
 
 **Punkt 1–14 är MERGADE till `main`** (användaren bekräftade explicit,
 åtta gånger nu — senast "Merga allt till main" för punkt 13–14,
-info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–17
-(Ancient Wyrmkings ultimate + Weight of Ages, samt Little Jesps fullständiga
-ombyggnad, inklusive ny kortkonst för båda) är sedan dess MERGADE till
-`main` också. **Punkt 18 (Sylvarion fullständigt ombyggd — 🔴 REPLACE från
-68-korts-auditen) ligger committad på feature-branchen, INTE mergad till
-`main` än** — fråga alltid explicit innan nästa merge när mer arbete
+info-modalens layout + rond-klockan breddad till 4 ticks). Punkt 15–18
+(Ancient Wyrmkings ultimate + Weight of Ages, Little Jesps och Sylvarions
+fullständiga ombyggnader, inklusive ny kortkonst för alla tre) är sedan
+dess MERGADE till `main` också. **Punkt 19 (Darien ombyggd — 🟠 REWORK
+från 68-korts-auditen) ligger committad på feature-branchen, INTE mergad
+till `main` än** — fråga alltid explicit innan nästa merge när mer arbete
 samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+
+**20. Ferea fullständigt ombyggd (Grand Queen & Enchantress of the North)**
+— 🔴 REPLACE: enda kortet i spelet vars Ultimate var 100% flavor-only
+("Memory of Her Stolen Scepter" — deckmanipulation finns inte i motorn),
+plus en flavor-only Frostmark-stapling i passiverna. Stat-sidorna (kod
+hade 10/10/9/9, den godkända bildkonsten visade 10/9/9/10 — mitt eget
+missat att specificera exakta siffror i bildbriefen) löstes genom att
+låta koden matcha den redan godkända, färdiga bildkonsten snarare än
+tvärtom (totalen 38 oförändrad, ingen balanspåverkan — bara en
+höger/vänster-omkastning).
+
+- **Frostmark (Passiv)** — PROPOSAL, ny permanent boolean-status
+  `entry.frostmarked` (till skillnad från Medusas tidsbegränsade
+  `petrifiedUntilTurnCount`), satt i `checkOnWinBonuses()` via ett nytt
+  `active.onWinFrostmark`-fält — direkt modellerad på Medusas redan
+  existerande Stone Gaze/`onWinPetrify`-mönster.
+- **Queen's Blessing (Passiv)** — PROPOSAL, ny `active.
+  auraPerFrostmarkedEnemy:{amount:1,max:3}`, exakt samma beräkningsform
+  som Medusas redan existerande `auraPerPetrifiedEnemy`, bara kopplad
+  till den nya statusen ovan istället.
+- **Glacial Barrier (Passiv)** — `active.shield:true`, helt befintligt,
+  ingen ny kod.
+- **Special Attack: The Frozen Crown** (3 wins, ersätter "Memory of Her
+  Stolen Scepter") — ny `SPECIAL_HANDLERS.ferea`. Frostmärker varje
+  fiendekort + `debuffThisRound(e,2)` (samma verb som Shiva/Leviathan),
+  plus ett permanent self-buff via `attackBoost` som motsvarar antalet
+  märkta fiender (cappat +3), låst vid aktivering som alla tidigare
+  Ultimates i den här serien.
+
+Ett verkligt städfynd under arbetet, inte relaterat till Ferea: den
+GAMLA `SPECIAL_HANDLERS.sylvarion`-funktionen (Tempest Volley) hade
+aldrig tagits bort när Sylvarion byggdes om förra punkten — död kod,
+harmlös eftersom JS-objektlitteraler låter senare nycklar vinna (den nya
+Herald's Gale-funktionen stod redan sist och körde korrekt), men
+förvirrande att ha kvar. Borttagen i samma commit.
+
+Ett nytt permanent test i `tests/game.test.mjs` (53 totalt, alla gröna,
+grönt på första körningen) verifierar: stats matchar den godkända
+bildkonsten, Frostmark sätts permanent vid vinst, Queen's Blessing
+skalar per märkt fiende och cappar vid +3, samt The Frozen Crown märker/
+debuffar alla fiender och ger korrekt self-buff utan att röra allierade.
+
+**19. Darien ombyggd (The Shadowward)** — ett 🟠 REWORK, inte REPLACE:
+grundidentiteten (vakt, skölden, den redan fungerande Ultimaten Shadow
+Breaker) behölls, bara de fyra flavor-only-skillsen (Shadow Counter, Void
+Step, Last Stand, Legendary Bond) byttes ut. Last Stand var dessutom
+redan redundant med den globala `lastStandBonus()`-mekaniken som gäller
+alla kort automatiskt. Ny kortkonst godkänd, matchade specen exakt (inga
+avvikelser den här gången — lärdom från Ferea-bildbriefen: alltid
+specificera exakta stat-siffror i bildbriefen).
+
+- **Dark Aegis** — oförändrad (`active.shield`), bara textfixad till att
+  matcha vad koden faktiskt gör.
+- **Umbral Ward** — PROPOSAL, men bara ett nytt fält, ingen ny kod:
+  `active.marginShieldThreshold:2`, exakt samma fält Medusas Curse of
+  the Gorgon redan använder (även attackerar-debuffen vid block ärvs
+  gratis, eftersom den logiken redan är generisk sedan Weight of Ages-
+  arbetet).
+- **Elara's Bond** — PROPOSAL, samma mönster: `active.pairPresence:
+  {partner:'elara', amount:2}`, exakt samma fält Little Jesp/Pallispell
+  och Twin Brothers/Sisters redan använder. Lägger sig OVANPÅ den redan
+  existerande `RIVALRY_PAIRS`-bonusen (+1 vid angränsning, global regel,
+  gällde redan innan denna ändring) — två lager av samma relation.
+- **Special Attack: Shadow Breaker** — HELT oförändrad kod, bara städad
+  text (borttagna dev-kommentarer som redan var inaktuella).
+
+Ett nytt permanent test i `tests/game.test.mjs` (52 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Umbral Ward
+blockerar margin-2-förluster och debuffar angriparen, margin 3+ flippar
+fortfarande normalt, Elara's Bond ger +2 på egen hand och +3 tillsammans
+med den befintliga rivalitetsbonusen vid angränsning, samt att Shadow
+Breaker fortfarande avrättar/försvagar exakt som förut.
 
 **18. Sylvarion fullständigt ombyggd (Herald of the Wild Hunt)** —
 nästa kort ur 68-korts-auditen (🔴 REPLACE): 8 av 9 skills var 100%

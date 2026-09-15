@@ -2558,6 +2558,162 @@ test("Sylvarion: Herald's Gale debuffs every enemy, and self-buff scales with ho
   await page.close();
 });
 
+test('Darien: Umbral Ward margin-block, Elara\'s Bond stacks with the rivalry-pair bonus, and Shadow Breaker is unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const darien = findCardById('darien');
+    out.statsUnchanged = darien.top === 10 && darien.right === 10 && darien.bottom === 9 && darien.left === 9 && darien.element === 'water';
+    out.hasUmbralWard = darien.active.marginShieldThreshold === 2;
+    out.hasElaraBond = darien.active.pairPresence && darien.active.pairPresence.partner === 'elara' && darien.active.pairPresence.amount === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Umbral Ward: enemy wins by <=2 margin -> blocked, attacker debuffed -1.
+    // shieldUsed pre-set true to isolate this from Dark Aegis's own
+    // always-on-first-loss shield, same isolation trick as Medusa's test.
+    state.board = Array(9).fill(null);
+    const darienDefender = freshEntry(darien, 'blue'); // top:10
+    darienDefender.shieldUsed = true;
+    state.board[4] = darienDefender;
+    const closeAttacker = freshEntry({ id:'close', name:'Close', top:1,right:1,bottom:12,left:1 }, 'red'); // bottom:12 vs top:10, margin=2
+    state.board[1] = closeAttacker;
+    resolveFlips(1, 'red');
+    out.wardBlockedCloseWin = state.board[4].owner === 'blue';
+    out.wardDebuffedAttacker = closeAttacker.captureBonus === -1;
+
+    // A bigger margin (>2) should NOT be blocked.
+    state.board = Array(9).fill(null);
+    const darienDefender2 = freshEntry(darien, 'blue');
+    darienDefender2.shieldUsed = true;
+    state.board[4] = darienDefender2;
+    const bigAttacker = freshEntry({ id:'big', name:'Big', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.bigMarginNotBlocked = state.board[4].owner === 'red';
+
+    // Elara's Bond: +2 while Elara is anywhere on the board, on top of the
+    // existing +1 rivalry-pair bonus when actually adjacent to her.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(darien, 'blue');
+    state.board[8] = freshEntry(findCardById('elara'), 'blue'); // far away, not adjacent
+    const farValue = fullEffectiveValue(darien, 'top', null, 0, 'blue', 'attack');
+    out.bondOnlyFar = farValue - darien.top === 2;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(darien, 'blue');
+    state.board[1] = freshEntry(findCardById('elara'), 'blue'); // adjacent this time
+    const adjacentValue = fullEffectiveValue(darien, 'top', null, 4, 'blue', 'attack');
+    out.bondPlusRivalryAdjacent = adjacentValue - darien.top === 3;
+
+    // Shadow Breaker is untouched: still executes weak targets outright and
+    // permanently weakens strong ones by -3, unblockable either way.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(darien, 'blue');
+    state.board[4] = src;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:5,right:5,bottom:5,left:5 }, 'red'); // avg 5 <= 7
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.darien({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.weakTargetDestroyed = state.board[1] === null;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = src;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:10,right:10,bottom:10,left:10 }, 'red'); // avg 10 > 7
+    state.board[1] = strongTarget;
+    SPECIAL_HANDLERS.darien({ srcEntry: src, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.strongTargetWeakened = strongTarget.captureBonus === -3 && state.board[1] === strongTarget;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasUmbralWard, true);
+  assert.equal(result.hasElaraBond, true);
+  assert.equal(result.wardBlockedCloseWin, true, 'a margin-2 loss is blocked by Umbral Ward');
+  assert.equal(result.wardDebuffedAttacker, true, 'the attacker is debuffed -1 when blocked');
+  assert.equal(result.bigMarginNotBlocked, true, 'a margin greater than 2 still flips him normally');
+  assert.equal(result.bondOnlyFar, true, "+2 from Elara's Bond alone when she is on the board but not adjacent");
+  assert.equal(result.bondPlusRivalryAdjacent, true, "+2 from Elara's Bond plus +1 from the existing rivalry-pair adjacency bonus when she is actually adjacent");
+  assert.equal(result.weakTargetDestroyed, true, 'Shadow Breaker still destroys targets with average Power <= 7');
+  assert.equal(result.strongTargetWeakened, true, 'Shadow Breaker still permanently weakens stronger targets by -3 instead of capturing them');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Ferea: Frostmark on win, Queen\'s Blessing aura scales with Frostmarked enemies, and The Frozen Crown ultimate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ferea = findCardById('ferea');
+    out.playableAndEnemy = HEROES.some(h => h.id === 'ferea') && FOREST_FOES.some(f => f.id === 'ferea');
+    out.statsMatchArt = ferea.top === 10 && ferea.right === 9 && ferea.bottom === 9 && ferea.left === 10 && ferea.element === 'water';
+    out.specialCost = ferea.special.cost === 3;
+    out.specialName = ferea.special.name === 'The Frozen Crown';
+
+    // Frostmark: winning a battle marks the loser, permanently (no expiry,
+    // unlike Medusa's temporary petrify).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const winner = freshEntry(ferea, 'blue');
+    state.board[4] = winner;
+    const loser = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.frostmarkedAfterWin = loser.frostmarked === true;
+
+    // Queen's Blessing: +1 per Frostmarked enemy on the board, capped at +3.
+    state.board = Array(9).fill(null);
+    const src1 = freshEntry(ferea, 'blue');
+    state.board[4] = src1;
+    const marked1 = freshEntry({ id:'m1', name:'M1', top:5,right:5,bottom:5,left:5 }, 'red');
+    marked1.frostmarked = true;
+    state.board[1] = marked1;
+    const unmarked1 = freshEntry({ id:'u1', name:'U1', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = unmarked1;
+    const oneMarkedValue = fullEffectiveValue(ferea, 'top', null, 4, 'blue', 'attack');
+    out.oneMarkedBonus = oneMarkedValue - ferea.top === 1;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(ferea, 'blue');
+    state.board[4] = src2;
+    [0,1,2,3].forEach(i => { const e = freshEntry({ id:'m'+i, name:'M'+i, top:5,right:5,bottom:5,left:5 }, 'red'); e.frostmarked = true; state.board[i] = e; });
+    const fourMarkedValue = fullEffectiveValue(ferea, 'top', null, 4, 'blue', 'attack');
+    out.cappedAtThree = fourMarkedValue - ferea.top === 3;
+
+    // The Frozen Crown: marks every enemy, debuffs them -2 this round, and
+    // grants a permanent self-buff equal to how many were marked (capped at 3).
+    state.board = Array(9).fill(null);
+    const src3 = freshEntry(ferea, 'blue');
+    state.board[4] = src3;
+    const foe3a = freshEntry({ id:'f3a', name:'F3A', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = foe3a;
+    const foe3b = freshEntry({ id:'f3b', name:'F3B', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = foe3b;
+    const ally3 = freshEntry({ id:'a3', name:'A3', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[3] = ally3;
+    SPECIAL_HANDLERS.ferea({ srcEntry: src3, owner: 'blue' });
+    out.bothEnemiesFrostmarked = foe3a.frostmarked === true && foe3b.frostmarked === true;
+    out.bothEnemiesDebuffed = foe3a.captureBonus === -2 && foe3b.captureBonus === -2;
+    out.selfBuffEqualsCount = src3.captureBonus === 2;
+    out.allyUntouched = ally3.frostmarked !== true && ally3.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.playableAndEnemy, true);
+  assert.equal(result.statsMatchArt, true, 'stats must match the approved card art (10/9/9/10, water)');
+  assert.equal(result.specialCost, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.frostmarkedAfterWin, true, 'winning a battle Frostmarks the defeated enemy permanently');
+  assert.equal(result.oneMarkedBonus, true, "Queen's Blessing grants +1 per Frostmarked enemy on the board");
+  assert.equal(result.cappedAtThree, true, "Queen's Blessing never exceeds +3 regardless of how many enemies are marked");
+  assert.equal(result.bothEnemiesFrostmarked, true, 'The Frozen Crown Frostmarks every enemy');
+  assert.equal(result.bothEnemiesDebuffed, true, 'The Frozen Crown debuffs every enemy -2 this round');
+  assert.equal(result.selfBuffEqualsCount, true, 'the self-buff equals the number of enemies marked (2 here)');
+  assert.equal(result.allyUntouched, true, 'allies are never Frostmarked or debuffed by the ultimate');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
