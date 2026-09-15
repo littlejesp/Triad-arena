@@ -25,12 +25,44 @@ Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
 Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
-MERGADE till `main` också. **Punkt 25–26 (Ysara och Torn ombyggda —
-🟠 REWORK från 68-korts-auditen) ligger committade på feature-branchen,
-INTE mergade till `main` än** — fråga alltid explicit innan nästa merge
-när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
-bekräftelse. Ysaras kortkonst är fortfarande inte sparad (ingen
-filsökväg följde med uppladdningen — väntar på att bilden skickas om).
+MERGADE till `main` också. **Punkt 25–27 (Ysara, Torn och Graff
+ombyggda — 🟠 REWORK från 68-korts-auditen, Ysaras och Torns kortkonst
+inkluderad) ligger committade på feature-branchen, INTE mergade till
+`main` än** — fråga alltid explicit innan nästa merge när mer arbete
+samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse. Graffs
+kortkonst är ännu inte sparad.
+
+**27. Graff ombyggd (The Darkrunner)** — ursprungligen bedömd 🟡 POLISH
+i 68-korts-auditen ("bra kit, bara ett namnfel"), men en närmare
+läsning av den faktiska korttexten visade att 4 av 5 skills var ren
+flavor utan mekanik — samma mönster som de andra REWORK-korten. Kört
+som REWORK på användarens begäran, min ursprungliga POLISH-bedömning
+var för snäll.
+
+- **Shadowplay (Passiv)** — HELT oförändrad (`active.onCaptureBonus:1`,
+  redan fungerande).
+- **Behind Enemy Lines (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.adjacentEnemiesBoost:{minCount:2, amount:2}`, samma fält
+  Tiamats Five Heads, One Will redan använder.
+- **Special Attack: Whirlwind Assault** — namnet rättat (`special.name`
+  sa "Shadow Assault", skill-texten sa redan "Whirlwind Assault").
+  Mekaniken slogs samman efter en riktig bildkonst-avvikelse: den
+  godkända bilden visade en AOE-variant (-2 alla fiender, obstoppbar)
+  istället för den ursprungliga singel-målsvarianten (gripa+flippa,
+  permanent +3). Användaren valde att **kombinera båda** istället för
+  att välja ett: en garanterad AOE-splash (`debuffThisRound`, samma verb
+  Shiva/Leviathan/Torn redan använder) träffar alla ÖVRIGA fiender
+  ovillkorligt, medan det valda målet behåller den ursprungliga
+  gripa-vid-vinst-mekaniken helt orörd (tröskelkoll, sköldkoll, flip,
+  permanent +3 via `attackBoost`). Det valda målet exkluderas från
+  splashen (det får fångst-eller-inget istället).
+
+Ett nytt permanent test i `tests/game.test.mjs` (60 totalt, alla gröna,
+grönt på första körningen) verifierar: Behind Enemy Lines kräver
+verkligen 2+ angränsande fiender (inte bara 1), Shadowplay orörd,
+splashen träffar övriga fiender även när det valda målet är för starkt
+för att gripas, det valda målet dubbel-träffas inte, och den ursprungliga
+gripa/permanent-buff-mekaniken fungerar fortfarande mot ett svagare mål.
 
 **26. Torn ombyggd (The Shadowhuntress)** — 🟠 REWORK: 5 skills ren
 poesi, bara Ultimate (Lethal Volley) fungerade. Saknade dessutom

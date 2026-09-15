@@ -3133,6 +3133,70 @@ test("Torn: Predator's Mark vs a stronger facing side, Poisoned Edge permanent d
   await page.close();
 });
 
+test('Graff: Behind Enemy Lines requires 2+ adjacent enemies, Shadowplay is unchanged, and Whirlwind Assault combines a guaranteed AOE splash with the original single-target capture', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const graff = findCardById('graff');
+    out.hasShadowplay = graff.active.onCaptureBonus === 1;
+    out.hasBehindEnemyLines = graff.active.adjacentEnemiesBoost && graff.active.adjacentEnemiesBoost.minCount === 2 && graff.active.adjacentEnemiesBoost.amount === 2;
+    out.specialName = graff.special.name === 'Whirlwind Assault';
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Behind Enemy Lines: +2 on attack with 2+ adjacent enemies, nothing with only 1.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(graff, 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[3] = freshEntry(findCardById('ogre'), 'red');
+    const twoAdjacent = fullEffectiveValue(graff, 'top', null, 4, 'blue', 'attack');
+    out.behindEnemyLinesTwoAdjacent = twoAdjacent - graff.top === 2;
+    state.board[3] = null;
+    const oneAdjacent = fullEffectiveValue(graff, 'top', null, 4, 'blue', 'attack');
+    out.behindEnemyLinesOneAdjacent = oneAdjacent - graff.top === 0;
+
+    // Whirlwind Assault: the AOE splash hits every OTHER enemy (-2 this
+    // round) unconditionally -- even when the chosen target is too strong
+    // for the single-target capture to succeed. The chosen target itself
+    // is excluded from the splash (it gets the capture-or-nothing outcome
+    // instead).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(graff, 'blue');
+    state.board[4] = src;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red');
+    state.board[1] = strongTarget;
+    const splashFoe = freshEntry({ id:'splash', name:'Splash', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[2] = splashFoe;
+    SPECIAL_HANDLERS.graff({ srcEntry: src, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.splashHitsOtherEnemies = splashFoe.captureBonus === -2;
+    out.targetExcludedFromSplash = strongTarget.captureBonus === 0;
+    out.failedCaptureVsStronger = strongTarget.owner === 'red';
+
+    // Against a weak target, the capture still succeeds and grants the
+    // permanent +3 all-sides buff, same as before this change.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(graff, 'blue');
+    state.board[4] = src2;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.graff({ srcEntry: src2, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.capturedAndBuffed = weakTarget.owner === 'blue' && src2.captureBonus === 3;
+
+    return out;
+  })()`);
+  assert.equal(result.hasShadowplay, true, 'Shadowplay must be untouched');
+  assert.equal(result.hasBehindEnemyLines, true);
+  assert.equal(result.specialName, true, 'the Ultimate name is now consistent (was "Shadow Assault" in special vs "Whirlwind Assault" in the skill text)');
+  assert.equal(result.behindEnemyLinesTwoAdjacent, true, 'Behind Enemy Lines grants +2 with 2+ adjacent enemies');
+  assert.equal(result.behindEnemyLinesOneAdjacent, true, 'Behind Enemy Lines grants nothing with only 1 adjacent enemy');
+  assert.equal(result.splashHitsOtherEnemies, true, 'the AOE splash lands on other enemies even when the chosen target resists capture');
+  assert.equal(result.targetExcludedFromSplash, true, 'the chosen target is not double-hit by the splash');
+  assert.equal(result.failedCaptureVsStronger, true, 'the single-target capture still fails against a much stronger target');
+  assert.equal(result.capturedAndBuffed, true, 'the single-target capture still succeeds and grants the permanent +3 buff against a weaker target');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

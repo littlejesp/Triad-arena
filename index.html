@@ -1497,13 +1497,10 @@ const HEROES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yin Resonance', desc:'Costs 3 wins. Unites with Yang — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
-    {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
-    {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
-    {name:'Tiger Strike', desc:'When Graff attacks and wins, he gets +2 attack on the opposite side this round.'},
-    {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
-    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1, adjacentEnemiesBoost:{minCount:2, amount:2}}, special:{ name:'Whirlwind Assault', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+    {name:'Behind Enemy Lines (Passive)', desc:'While Graff has 2 or more enemy cards adjacent to him, he gets +2 Power on his next attack.'},
+    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card. Graff's whirlwind tears through every other enemy card, hitting them for -2 Power this round, unblockable. He then strikes the chosen card with both weapons — if he wins, it's flipped and he permanently gains +3 Power on all sides. Usable once per match."},
   ] },
   // Medusa was fully redesigned in a later session from a new poster ("The
   // Petrified Queen") — same full-rebuild treatment as Tiamat/Naline: id
@@ -1837,13 +1834,10 @@ const FOREST_FOES = [
     {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
-  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles) — a simplified version of his original "this round only, unless two flips" design.'},
-    {name:'Shadow Step', desc:'Teleport one of your cards to an empty adjacent space. That card gets +2 agility this round.'},
-    {name:'Behind Enemy Lines', desc:"If Graff flips a card positioned behind an enemy card (diagonals count), Graff gets +2 attack."},
-    {name:'Tiger Strike', desc:'When Graff attacks and wins, he gets +2 attack on the opposite side this round.'},
-    {name:'Drop Back', desc:'When Graff is in danger (loses an attack), he gets +2 defense on all sides for the rest of the round.'},
-    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card — Graff attacks it with both weapons. If the attack wins, flip the card and gain +3 Power on all sides for the rest of this round. Usable once per match."},
+  { id:'graff', name:'Graff', role:'The Darkrunner — Legendary Card', element:'wind', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#3a3010,#0d0b18 60%)', accent:'#e0c02f', icon:'🥷', active:{onCaptureBonus:1, adjacentEnemiesBoost:{minCount:2, amount:2}}, special:{ name:'Whirlwind Assault', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Shadowplay (Passive)', desc:'When Graff takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+    {name:'Behind Enemy Lines (Passive)', desc:'While Graff has 2 or more enemy cards adjacent to him, he gets +2 Power on his next attack.'},
+    {name:'Special Attack: Whirlwind Assault', desc:"Costs 2 wins. Choose an enemy card. Graff's whirlwind tears through every other enemy card, hitting them for -2 Power this round, unblockable. He then strikes the chosen card with both weapons — if he wins, it's flipped and he permanently gains +3 Power on all sides. Usable once per match."},
   ] },
   // Medusa was fully redesigned in a later session from a new poster ("The
   // Petrified Queen") — same full-rebuild treatment as Tiamat/Naline: id
@@ -4654,18 +4648,27 @@ function specialBlockedByShield(targetEntry, targetIndex){
 }
 
 const SPECIAL_HANDLERS = {
+  // Whirlwind Assault merges the two things the approved card art and the
+  // original single-target capture design each wanted: a guaranteed AOE
+  // splash (debuffThisRound, same verb Shiva/Leviathan/Torn use) hits every
+  // OTHER enemy unconditionally, while the chosen target keeps the original
+  // capture-on-win behavior untouched (threshold check, shield check, flip,
+  // permanent +3 via attackBoost).
   graff({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    state.board.forEach(e => { if(e && e.owner === enemyOwner && e !== targetEntry) SpecialVerbs.debuffThisRound(e, 2); });
     if(totalPower(srcEntry) <= totalPower(targetEntry)){
-      return `${srcEntry.card.name}'s Shadow Assault is repelled!`;
+      return `${name}'s Whirlwind Assault tears through the enemy line, but ${targetEntry.card.name} holds firm!`;
     }
     if(specialBlockedByShield(targetEntry, targetIndex)){
-      return `${targetEntry.card.name}'s shield holds against Shadow Assault!`;
+      return `${targetEntry.card.name}'s shield holds against Whirlwind Assault!`;
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 3);
-    return `${srcEntry.card.name}'s Shadow Assault flips ${targetEntry.card.name} and surges with power!`;
+    return `${name}'s Whirlwind Assault tears through the enemy line and flips ${targetEntry.card.name}!`;
   },
   lyrith({ srcEntry, targetEntry, targetIndex, owner }){
     // Serpent's Wrath explicitly ignores the enemy's defensive skills — no shield check here.
