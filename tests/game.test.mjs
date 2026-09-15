@@ -2714,6 +2714,107 @@ test('Ferea: Frostmark on win, Queen\'s Blessing aura scales with Frostmarked en
   await page.close();
 });
 
+test("Elara: Frostbloom cleanse-on-win, Crystal Sanctuary margin-block, Darien's Grace, and Requiem of Light ultimate", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const elara = findCardById('elara');
+    out.statsUnchanged = elara.top === 8 && elara.right === 8 && elara.bottom === 8 && elara.left === 10 && elara.element === 'water';
+    out.oldShieldGone = !elara.active.shield;
+    out.hasMarginWard = elara.active.marginShieldThreshold === 2;
+    out.hasDarienBond = elara.active.pairPresence && elara.active.pairPresence.partner === 'darien' && elara.active.pairPresence.amount === 2;
+    out.specialName = elara.special.name === 'Requiem of Light';
+    out.specialCost = elara.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Frostbloom: on-win, clears a negative captureBonus + tempEffects and
+    // adds +1 permanent. Calls checkOnWinBonuses directly (same isolation
+    // trick as Naline's Healing Radiance test) so the random ally pick
+    // deterministically lands on Elara herself.
+    state.board = Array(9).fill(null);
+    const winner = freshEntry(elara, 'blue');
+    winner.captureBonus = -3;
+    winner.tempEffects = [{ captureDelta: -3, expiresAtTurnCount: 999 }];
+    state.board[4] = winner;
+    const hrLoser = freshEntry({ id:'hr-loser', name:'HRLoser', top:1,right:1,bottom:1,left:1 }, 'red');
+    checkOnWinBonuses(winner, 'top', hrLoser, null, 4, 10);
+    out.frostbloomCleansed = winner.captureBonus === 1 && winner.tempEffects.length === 0;
+
+    // Crystal Sanctuary: enemy wins by <=2 margin -> blocked, attacker
+    // debuffed -1. No pre-set shieldUsed needed this time -- Elara no
+    // longer carries a separate plain shield to isolate from.
+    state.board = Array(9).fill(null);
+    const defender = freshEntry(elara, 'blue'); // top:8
+    state.board[4] = defender;
+    const closeAttacker = freshEntry({ id:'close', name:'Close', top:1,right:1,bottom:10,left:1 }, 'red'); // bottom:10 vs top:8, margin=2
+    state.board[1] = closeAttacker;
+    resolveFlips(1, 'red');
+    out.sanctuaryBlockedCloseWin = state.board[4].owner === 'blue';
+    out.sanctuaryDebuffedAttacker = closeAttacker.captureBonus === -1;
+
+    state.board = Array(9).fill(null);
+    const defender2 = freshEntry(elara, 'blue');
+    state.board[4] = defender2;
+    const bigAttacker = freshEntry({ id:'big', name:'Big', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.bigMarginNotBlocked = state.board[4].owner === 'red';
+
+    // Darien's Grace: +2 while Darien is on the board, +3 total when
+    // actually adjacent (stacking with the existing rivalry-pair bonus).
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(elara, 'blue');
+    state.board[8] = freshEntry(findCardById('darien'), 'blue'); // far away
+    const farValue = fullEffectiveValue(elara, 'top', null, 0, 'blue', 'attack');
+    out.graceOnlyFar = farValue - elara.top === 2;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(elara, 'blue');
+    state.board[1] = freshEntry(findCardById('darien'), 'blue'); // adjacent
+    const adjacentValue = fullEffectiveValue(elara, 'top', null, 4, 'blue', 'attack');
+    out.gracePlusRivalryAdjacent = adjacentValue - elara.top === 3;
+
+    // Requiem of Light: every ally with something to clear gets cleansed
+    // and +1; an ally with nothing to clear is untouched; enemies are
+    // never touched at all.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(elara, 'blue');
+    state.board[4] = src;
+    const hurtAlly = freshEntry({ id:'hurt', name:'Hurt', top:5,right:5,bottom:5,left:5 }, 'blue');
+    hurtAlly.captureBonus = -2;
+    state.board[1] = hurtAlly;
+    const healthyAlly = freshEntry({ id:'healthy', name:'Healthy', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[2] = healthyAlly;
+    const foe = freshEntry({ id:'foe', name:'Foe', top:5,right:5,bottom:5,left:5 }, 'red');
+    foe.captureBonus = -2;
+    state.board[3] = foe;
+    SPECIAL_HANDLERS.elara({ srcEntry: src, owner: 'blue' });
+    out.hurtAllyCleansedAndBuffed = hurtAlly.captureBonus === 1; // -2 cleared to 0, then +1
+    out.healthyAllyUntouched = healthyAlly.captureBonus === 0;
+    out.enemyUntouched = foe.captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.oldShieldGone, true, 'the old plain active.shield must be gone, replaced by Crystal Sanctuary');
+  assert.equal(result.hasMarginWard, true);
+  assert.equal(result.hasDarienBond, true);
+  assert.equal(result.specialName, true, 'Elara now has an Ultimate for the first time');
+  assert.equal(result.specialCost, true);
+  assert.equal(result.frostbloomCleansed, true, 'Frostbloom clears a negative captureBonus and tempEffects, then adds +1');
+  assert.equal(result.sanctuaryBlockedCloseWin, true, 'a margin-2 loss is blocked by Crystal Sanctuary');
+  assert.equal(result.sanctuaryDebuffedAttacker, true, 'the attacker is debuffed -1 when blocked');
+  assert.equal(result.bigMarginNotBlocked, true, 'a margin greater than 2 still flips her normally');
+  assert.equal(result.graceOnlyFar, true, "+2 from Darien's Grace alone when he is on the board but not adjacent");
+  assert.equal(result.gracePlusRivalryAdjacent, true, "+2 from Darien's Grace plus +1 from the existing rivalry-pair adjacency bonus when he is actually adjacent");
+  assert.equal(result.hurtAllyCleansedAndBuffed, true, 'an ally with negative effects is cleansed to 0 then gains +1');
+  assert.equal(result.healthyAllyUntouched, true, 'an ally with nothing to clear is left untouched, no free +1');
+  assert.equal(result.enemyUntouched, true, 'enemies are never affected by Requiem of Light');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
