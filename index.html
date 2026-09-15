@@ -1387,13 +1387,10 @@ const HEROES = [
       {name:'Second Dawn', desc:"Whenever Zlaizer wins a round, up to 2 cards are pulled back from his own Graveyard onto the board, each weakened by -1 Power."},
       {name:'Special Attack: Rebirth', desc:"Costs 3 wins. Pull up to 3 cards back from Zlaizer's own Graveyard onto the board at 1 Power each, fully cleansed of any negative effects."},
     ] },
-  { id:'deathblade', name:"Deathblade", role:"Shadow Assassin — Order of the Radiance", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', active: {shield:true}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
+  { id:'deathblade', name:"Deathblade", role:"Shadow Assassin of the Order of the Radiance", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', active: {shield:true, onWinDestroyIfLoserWeak:{maxTotal:6}}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
     {name:'Night’s Veil (Passive)', desc:"The first time this card would lose a battle, the enemy's bonuses on that battle are ignored."},
-    {name:'Silent Hunter', desc:'When Deathblade attacks a card that already lost a battle this round, she gets +1 Power on all directions.'},
-    {name:'Shadow Mastery', desc:'When Deathblade wins a battle, she gets +1 Power on a chosen direction on this card, permanently.'},
-    {name:'Executioner', desc:"If an enemy card's total power is 6 or lower after Deathblade wins a battle against it, it's removed from the game entirely (no card gained)."},
-    {name:'Nightstalker', desc:'When Deathblade moves on the board, she gets +1 Power on a chosen direction this round.'},
-    {name:'Special Attack: Shadow Assault', desc:"Costs 2 wins. Choose an enemy card sharing Deathblade's row or column — swap places with it, and it permanently loses 2 Power on all directions. (Simplified from the card's full text: the \"win against 3 cards with 27+ power\" unlock condition isn't tracked by the engine — see PROJECT.md.)"},
+    {name:'Executioner (Passive)', desc:"Whenever Deathblade wins a battle against a card with 6 or lower total Power, that card is destroyed outright instead of captured."},
+    {name:'Special Attack: Shadow Assault', desc:"Choose an enemy card — Deathblade swaps physical position with the target, and the target permanently loses 2 Power on all directions."},
   ]},
   { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
   // Divine Bond's card text says "placed ADJACENT to Little Jesp", but the
@@ -3419,6 +3416,12 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // card outright" — no "once per match" cap in the source text either, so
   // this can trigger on every qualifying win, same as onWinAreaDebuff above.
   if(a.onWinPowerThresholdDestroy && loserIndex != null && winnerVal != null && winnerVal >= a.onWinPowerThresholdDestroy){
+    if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex);
+  }
+  // Deathblade's Executioner: mirror of the hook above, but checks the
+  // LOSER's total power instead of the winner's effective power for that
+  // battle — "wins against a 6-or-lower card" rather than "wins with 10+".
+  if(a.onWinDestroyIfLoserWeak && loserIndex != null && totalPower(loserEntry) <= a.onWinDestroyIfLoserWeak.maxTotal){
     if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex);
   }
   // Nexzoth's World Shatter / Morvath's Abyssal Grasp: "destroy every card

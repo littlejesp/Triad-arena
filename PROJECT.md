@@ -27,10 +27,10 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29 (Sarah ombyggd, hennes första Ultimate
-någonsin) ligger committad på feature-branchen, INTE mergad till
-`main` än** — fråga alltid explicit innan nästa merge när mer arbete
-samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+till `main` också. **Punkt 29–30 (Sarah och Deathblade ombyggda)
+ligger committade på feature-branchen, INTE mergade till `main` än**
+— fråga alltid explicit innan nästa merge när mer arbete samlats där,
+anta ALDRIG tillstånd från en tidigare bekräftelse.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -52,6 +52,28 @@ tolkning påklistrad.
 
 Bort: Shadow Step, Direction Focus, Last Arrow — alla flavor-only, Last
 Arrow redundant mot den globala `lastStandBonus()`.
+
+**30. Deathblade ombyggd (Executioner)** — ursprungligen bedömd 🟡
+POLISH i auditen, men samma missbedömning som Graff/Voidqueen/Sarah:
+bara Ultimaten (Shadow Assault) hade backing, alla fem övriga skills
+saknade. Den godkända kortkonsten förenklade henne själv till bara tre
+skills (Night's Veil, Executioner, Shadow Assault) — Silent Hunter,
+Shadow Mastery och Nightstalker ströks helt från det tryckta kortet,
+så kortdatan matchar nu bilden exakt istället för det bredare utkastet.
+
+- **Night's Veil (Passiv)** — HELT oförändrad (`active.shield:true`).
+- **Executioner (Passiv)** — NY primitive `active.onWinDestroyIfLoserWeak:
+  {maxTotal:6}` + motsvarande hook i `checkOnWinBonuses()`, en spegelbild
+  av Kaeldryx' `onWinPowerThresholdDestroy` men som läser FÖRLORARENS
+  totala kraft istället för vinnarens effektiva värde. Vinner Deathblade
+  mot ett kort med total kraft ≤6 destrueras det helt (`destroyCard`),
+  ingen capture.
+- **Special Attack: "Shadow Assault"** — HELT oförändrad, den enda unika
+  positionsbytes-mekaniken i hela rostern (`SPECIAL_HANDLERS.deathblade`
+  byter fysisk plats på brädet + permanent -2 alla sidor på målet).
+
+Bort: Silent Hunter, Shadow Mastery, Nightstalker — alla flavor-only,
+ströks i linje med den godkända kortkonsten.
 
 Ny kortkonst höll sig medvetet nära hennes redan existerande bild
 (samma siluett, färgpalett, ställning) snarare än en ny tolkning, med

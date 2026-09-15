@@ -870,6 +870,56 @@ test('Kaeldryx: Dragon Hunter/Scalebreaker passives, Hunter\'s Focus buff-lock, 
   await page.close();
 });
 
+test('Deathblade: card data trimmed to Night\'s Veil/Executioner/Shadow Assault, Executioner destroys a weak loser, Shadow Assault swap unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const deathblade = findCardById('deathblade');
+    out.statsUnchanged = deathblade.top === 9 && deathblade.right === 8 && deathblade.bottom === 6 && deathblade.left === 7 && deathblade.element === 'earth';
+    out.hasShield = deathblade.active.shield === true;
+    out.hasExecutioner = deathblade.active.onWinDestroyIfLoserWeak && deathblade.active.onWinDestroyIfLoserWeak.maxTotal === 6;
+    out.skillCount = deathblade.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Executioner: winning against a card with total power <= 6 destroys it
+    // outright (board cell becomes null, no capture).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(deathblade, 'blue'); // top:9
+    state.board[1] = freshEntry({ id:'db-weak', name:'DBWeak', top:1,right:1,bottom:1,left:1 }, 'red'); // total 4
+    resolveFlips(4, 'blue');
+    out.executionerDestroyedWeakLoser = state.board[1] === null;
+
+    // A loser with total power > 6 is captured normally, not destroyed.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(deathblade, 'blue');
+    state.board[1] = freshEntry({ id:'db-strong', name:'DBStrong', top:5,right:5,bottom:5,left:5 }, 'red'); // total 20
+    resolveFlips(4, 'blue');
+    out.strongLoserCapturedNotDestroyed = state.board[1] !== null && state.board[1].owner === 'blue';
+
+    // Shadow Assault: unchanged position-swap + permanent -2 all sides on the target.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(deathblade, 'blue');
+    const target = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = src; state.board[1] = target;
+    SPECIAL_HANDLERS.deathblade({ srcEntry: src, sourceIndex: 4, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.swappedPositions = state.board[1] === src && state.board[4] === target;
+    out.targetDebuffed = state.board[4].captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasShield, true);
+  assert.equal(result.hasExecutioner, true, 'Executioner is now backed by active.onWinDestroyIfLoserWeak:{maxTotal:6}');
+  assert.equal(result.skillCount, 3, 'the printed card only carries Night\'s Veil, Executioner, and Shadow Assault');
+  assert.equal(result.executionerDestroyedWeakLoser, true);
+  assert.equal(result.strongLoserCapturedNotDestroyed, true);
+  assert.equal(result.swappedPositions, true);
+  assert.equal(result.targetDebuffed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
