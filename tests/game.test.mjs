@@ -975,6 +975,82 @@ test('Lyrith: card trimmed to Venomous Fangs/Silent Strike/Serpent\'s Wrath, bot
   await page.close();
 });
 
+test('Aurelia: card trimmed to Radiant Guardian/Luminous Strike/Dawn\'s Reckoning, stats matched to approved art, Ultimate unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const aurelia = findCardById('aurelia');
+    out.statsMatchArt = aurelia.top === 9 && aurelia.right === 6 && aurelia.bottom === 8 && aurelia.left === 7 && aurelia.element === 'wind';
+    out.hasRadiantGuardian = aurelia.active.shield === true;
+    out.hasLuminousStrike = aurelia.active.onWinDirectionalBoost === 2;
+    out.skillCount = aurelia.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Radiant Guardian: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    const shieldedDefender = freshEntry(aurelia, 'blue'); // bottom:8
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'aur-attacker', name:'AurAttacker', top:1,right:1,bottom:20,left:1 }, 'red'); // bottom faces the defender above it
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+    out.shieldConsumed = state.board[4].shieldUsed === true;
+
+    // Luminous Strike: winning an attack grants permanent +2 Power on the
+    // attacking side only, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(aurelia, 'blue'); // top:9
+    src.shieldUsed = true; // isolate from Radiant Guardian, same trick as Darien's test
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'aur-weak', name:'AurWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.luminousStrikeBoostedAttackSide = src.sideBonus && src.sideBonus.top === 2;
+    out.luminousStrikeOnlyAttackSide = src.sideBonus && (src.sideBonus.right||0) === 0 && (src.sideBonus.bottom||0) === 0 && (src.sideBonus.left||0) === 0;
+
+    // Dawn's Reckoning (unchanged): non-crit win flips the target and grants
+    // permanent +4 Power all sides; Math.random forced high to avoid the
+    // 25% crit-wipe branch so this assertion is deterministic.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(aurelia, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    const realRandom = Math.random;
+    Math.random = () => 0.99;
+    SPECIAL_HANDLERS.aurelia({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.reckoningFlippedTarget = wtarget.owner === 'blue';
+    out.reckoningPermanentBoost = wsrc.captureBonus === 4;
+
+    // Dawn's Reckoning crit branch: target is still flipped but gets -20 instead.
+    state.board = Array(9).fill(null);
+    const csrc = freshEntry(aurelia, 'blue');
+    const ctarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = csrc; state.board[1] = ctarget;
+    Math.random = () => 0.01;
+    SPECIAL_HANDLERS.aurelia({ srcEntry: csrc, targetEntry: ctarget, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.critStillFlipsTarget = ctarget.owner === 'blue';
+    out.critWipesInsteadOfBoost = ctarget.captureBonus === -20;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 9/6/8/7 (top/right/bottom/left)');
+  assert.equal(result.hasRadiantGuardian, true);
+  assert.equal(result.hasLuminousStrike, true);
+  assert.equal(result.skillCount, 3, 'the printed card only carries Radiant Guardian, Luminous Strike, and Dawn\'s Reckoning');
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.shieldConsumed, true);
+  assert.equal(result.luminousStrikeBoostedAttackSide, true);
+  assert.equal(result.luminousStrikeOnlyAttackSide, true);
+  assert.equal(result.reckoningFlippedTarget, true);
+  assert.equal(result.reckoningPermanentBoost, true);
+  assert.equal(result.critStillFlipsTarget, true, 'the crit branch still flips the target card');
+  assert.equal(result.critWipesInsteadOfBoost, true, 'the crit branch wipes the target to -20 instead of the attacker getting +4');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

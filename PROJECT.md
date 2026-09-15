@@ -27,10 +27,11 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29–31 (Sarah, Deathblade och Lyrith
-ombyggda) ligger committade på feature-branchen, INTE mergade till
-`main` än** — fråga alltid explicit innan nästa merge när mer arbete
-samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
+till `main` också. **Punkt 29–32 (Sarah, Deathblade, Lyrith och
+Aurelia ombyggda) ligger committade på feature-branchen, INTE mergade
+till `main` än** — fråga alltid explicit innan nästa merge när mer
+arbete samlats där, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -52,6 +53,16 @@ tolkning påklistrad.
 
 Bort: Shadow Step, Direction Focus, Last Arrow — alla flavor-only, Last
 Arrow redundant mot den globala `lastStandBonus()`.
+
+Ny kortkonst höll sig medvetet nära hennes redan existerande bild
+(samma siluett, färgpalett, ställning) snarare än en ny tolkning, med
+snöflingedetaljer tillagda i klänningen som efterfrågat.
+
+Ett nytt permanent test i `tests/game.test.mjs` (62 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Light
+Shield orörd, Feared Huntress bara mot starkare mål, och Aion's Last
+Light erövrar/buffar på vinst men misslyckas mot ett mål vars
+totalstyrka överstiger tröskeln.
 
 **30. Deathblade ombyggd (Executioner)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen/Sarah:
@@ -97,15 +108,29 @@ Inga nya primitives — båda passiva skills återanvänder befintliga,
 redan testade engine-hooks. Bort: Shadow Step, Bloodlust, Veil of
 Shadows — alla flavor-only.
 
-Ny kortkonst höll sig medvetet nära hennes redan existerande bild
-(samma siluett, färgpalett, ställning) snarare än en ny tolkning, med
-snöflingedetaljer tillagda i klänningen som efterfrågat.
+**32. Aurelia ombyggd (Radiant Guardian / Luminous Strike)** —
+ursprungligen bedömd 🟡 POLISH i auditen, men samma missbedömning som
+Graff/Voidqueen/Sarah/Deathblade/Lyrith: NOLL av 5 skills hade
+backing, bara Ultimaten (Dawn's Reckoning) var riktig kod. Godkänd
+kortkonst trimmade henne till tre skills, samma mönster som
+Deathblade/Lyrith — Holy Barrage, Divine Shield och Light's Swiftness
+ströks helt.
 
-Ett nytt permanent test i `tests/game.test.mjs` (62 totalt, alla gröna,
-grönt på första körningen) verifierar: stats/element orörda, Light
-Shield orörd, Feared Huntress bara mot starkare mål, och Aion's Last
-Light erövrar/buffar på vinst men misslyckas mot ett mål vars
-totalstyrka överstiger tröskeln.
+- **Radiant Guardian (Passiv)** — helt befintligt fält
+  `active.shield:true`, samma primitive som redan används brett i
+  rostern.
+- **Luminous Strike (Passiv)** — helt befintligt fält
+  `active.onWinDirectionalBoost:2`, samma primitive Tiamat redan
+  använder.
+- **Special Attack: "Dawn's Reckoning"** — HELT oförändrad (vinst →
+  flip + permanent +4 Power alla sidor; crit 25% → flippas ändå men
+  får -20 Power istället). Rörs ej.
+- **Stats matchade till godkänd konst** (avvikelse i 3 av 4 sidor):
+  top:9, right:6, bottom:8, left:7 (tidigare 9/7/6/8).
+
+Inga nya primitives — båda passiva skills återanvänder befintliga,
+redan testade engine-hooks. Bort: Holy Barrage, Divine Shield, Light's
+Swiftness — alla flavor-only.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

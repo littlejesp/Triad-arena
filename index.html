@@ -1601,13 +1601,10 @@ const HEROES = [
     {name:'Silent Strike (Passive)', desc:'If the enemy card has higher total Power than Lyrith, she gets +2 Power for that attack.'},
     {name:"Special Attack: Serpent's Wrath", desc:"Lyrith attacks with both weapons. If the attack wins, flip the card and permanently gain +4 Power on all sides. If it crits, destroy the target instead of flipping it. Ignores the enemy's shields."},
   ] },
-  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Luminous Strike', desc:'When Aurelia attacks and wins, she gets +2 Power on the side she attacked with for the rest of the match.'},
-    {name:'Holy Barrage', desc:'If Aurelia wins a round on at least 2 sides, all your sides get +1 Power for the rest of the match.'},
-    {name:'Divine Shield', desc:'If Aurelia defends and loses a round, all your sides get +2 defense next round.'},
-    {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
-    {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
+  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:6, bottom:8, left:7, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', active:{shield:true, onWinDirectionalBoost:2}, special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Radiant Guardian (Passive)', desc:'The first time Aurelia would lose a round, the loss is ignored.'},
+    {name:'Luminous Strike (Passive)', desc:'When Aurelia wins an attack, she gains +2 Power on the side she attacked with. (Once per match.)'},
+    {name:"Special Attack: Dawn's Reckoning", desc:"If Aurelia wins, the target card is flipped and Aurelia gains +4 Power on all sides. If this attack scores a critical hit (25%), the target card is still flipped but instead gets -20 Power on all sides."},
   ] },
   { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
     {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
@@ -1933,13 +1930,10 @@ const FOREST_FOES = [
     {name:'Silent Strike (Passive)', desc:'If the enemy card has higher total Power than Lyrith, she gets +2 Power for that attack.'},
     {name:"Special Attack: Serpent's Wrath", desc:"Lyrith attacks with both weapons. If the attack wins, flip the card and permanently gain +4 Power on all sides. If it crits, destroy the target instead of flipping it. Ignores the enemy's shields."},
   ] },
-  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Luminous Strike', desc:'When Aurelia attacks and wins, she gets +2 Power on the side she attacked with for the rest of the match.'},
-    {name:'Holy Barrage', desc:'If Aurelia wins a round on at least 2 sides, all your sides get +1 Power for the rest of the match.'},
-    {name:'Divine Shield', desc:'If Aurelia defends and loses a round, all your sides get +2 defense next round.'},
-    {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
-    {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
+  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:6, bottom:8, left:7, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', active:{shield:true, onWinDirectionalBoost:2}, special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Radiant Guardian (Passive)', desc:'The first time Aurelia would lose a round, the loss is ignored.'},
+    {name:'Luminous Strike (Passive)', desc:'When Aurelia wins an attack, she gains +2 Power on the side she attacked with. (Once per match.)'},
+    {name:"Special Attack: Dawn's Reckoning", desc:"If Aurelia wins, the target card is flipped and Aurelia gains +4 Power on all sides. If this attack scores a critical hit (25%), the target card is still flipped but instead gets -20 Power on all sides."},
   ] },
   { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
     {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
