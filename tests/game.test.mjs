@@ -920,6 +920,61 @@ test('Deathblade: card data trimmed to Night\'s Veil/Executioner/Shadow Assault,
   await page.close();
 });
 
+test('Lyrith: card trimmed to Venomous Fangs/Silent Strike/Serpent\'s Wrath, both passives reuse existing primitives, Ultimate unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const lyrith = findCardById('lyrith');
+    out.statsUnchanged = lyrith.top === 9 && lyrith.right === 9 && lyrith.bottom === 6 && lyrith.left === 8 && lyrith.element === 'water';
+    out.hasVenomousFangs = lyrith.active.onWinDebuffLoserPermanent === 1;
+    out.hasSilentStrike = lyrith.active.vsStrongerTotalPowerBoost && lyrith.active.vsStrongerTotalPowerBoost.amount === 2;
+    out.skillCount = lyrith.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Venomous Fangs: winning a battle permanently debuffs the loser -1 all sides.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(lyrith, 'blue'); // top:9
+    const loser = freshEntry({ id:'lyr-weak', name:'LyrWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.venomousFangsDebuffedLoser = loser.captureBonus === -1;
+
+    // Silent Strike: +2 Power on the attack when the enemy's total Power is higher.
+    const weakerFoe = { id:'lyr-weaker', name:'Weaker', top:1,right:1,bottom:1,left:1 };
+    const strongerFoe = { id:'lyr-stronger', name:'Stronger', top:9,right:9,bottom:9,left:9 };
+    out.noBonusVsWeaker = fullEffectiveValue(lyrith, 'top', weakerFoe, 0, 'blue', 'attack') - lyrith.top;
+    out.bonusVsStronger = fullEffectiveValue(lyrith, 'top', strongerFoe, 0, 'blue', 'attack') - lyrith.top;
+
+    // Serpent's Wrath (unchanged): non-crit win flips the target and grants
+    // permanent +4 Power all sides; Math.random forced high to avoid the
+    // 25% crit-destroy branch so this assertion is deterministic.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(lyrith, 'blue');
+    const target = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = src; state.board[1] = target;
+    const realRandom = Math.random;
+    Math.random = () => 0.99;
+    SPECIAL_HANDLERS.lyrith({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.wrathFlippedTarget = target.owner === 'blue';
+    out.wrathPermanentBoost = src.captureBonus === 4;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasVenomousFangs, true, 'Venomous Fangs reuses active.onWinDebuffLoserPermanent, same as Yojimbo/Torn');
+  assert.equal(result.hasSilentStrike, true, 'Silent Strike reuses active.vsStrongerTotalPowerBoost, same as Yojimbo/Ysara/Sarah');
+  assert.equal(result.skillCount, 3, 'the printed card only carries Venomous Fangs, Silent Strike, and Serpent\'s Wrath');
+  assert.equal(result.venomousFangsDebuffedLoser, true);
+  assert.equal(result.noBonusVsWeaker, 0);
+  assert.equal(result.bonusVsStronger, 2);
+  assert.equal(result.wrathFlippedTarget, true);
+  assert.equal(result.wrathPermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

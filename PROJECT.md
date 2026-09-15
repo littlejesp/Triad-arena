@@ -27,10 +27,10 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29–30 (Sarah och Deathblade ombyggda)
-ligger committade på feature-branchen, INTE mergade till `main` än**
-— fråga alltid explicit innan nästa merge när mer arbete samlats där,
-anta ALDRIG tillstånd från en tidigare bekräftelse.
+till `main` också. **Punkt 29–31 (Sarah, Deathblade och Lyrith
+ombyggda) ligger committade på feature-branchen, INTE mergade till
+`main` än** — fråga alltid explicit innan nästa merge när mer arbete
+samlats där, anta ALDRIG tillstånd från en tidigare bekräftelse.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -74,6 +74,28 @@ så kortdatan matchar nu bilden exakt istället för det bredare utkastet.
 
 Bort: Silent Hunter, Shadow Mastery, Nightstalker — alla flavor-only,
 ströks i linje med den godkända kortkonsten.
+
+**31. Lyrith ombyggd (Venomous Fangs / Silent Strike)** — ursprungligen
+bedömd 🟡 POLISH i auditen, men samma missbedömning som Graff/
+Voidqueen/Sarah/Deathblade: NOLL av 5 skills hade backing, bara
+Ultimaten (Serpent's Wrath) var riktig kod. Godkänd kortkonst trimmade
+henne till tre skills, precis som Deathblade — Shadow Step, Bloodlust
+och Veil of Shadows ströks helt.
+
+- **Venomous Fangs (Passiv)** — helt befintligt fält
+  `active.onWinDebuffLoserPermanent:1`, samma primitive Yojimbo/Torn
+  redan använder.
+- **Silent Strike (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:2}`, samma primitive
+  Yojimbo/Ysara/Sarah redan använder.
+- **Special Attack: "Serpent's Wrath"** — HELT oförändrad (crit-chans
+  25% → destroy, annars flip + permanent +4 Power alla sidor, ignorerar
+  sköldar). UI-texten trimmades för att matcha den kortare kortkonsten,
+  men själva mekaniken rördes inte.
+
+Inga nya primitives — båda passiva skills återanvänder befintliga,
+redan testade engine-hooks. Bort: Shadow Step, Bloodlust, Veil of
+Shadows — alla flavor-only.
 
 Ny kortkonst höll sig medvetet nära hennes redan existerande bild
 (samma siluett, färgpalett, ställning) snarare än en ny tolkning, med

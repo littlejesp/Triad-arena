@@ -1596,13 +1596,10 @@ const HEROES = [
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
       {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
     ] },
-  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
-    {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
-    {name:'Poisoned Edge', desc:'When Lyrith attacks, the enemy is poisoned and gets -2 defense for 2 rounds. If the enemy is already poisoned, Lyrith gets +2 attack instead.'},
-    {name:'Bloodlust', desc:'When Lyrith flips a card, she gets +2 attack and lifesteal for 1 round.'},
-    {name:'Veil of Shadows', desc:"All enemies on Lyrith's side of the arena get -1 attack for 1 round when she flips a card."},
-    {name:"Special Attack: Serpent's Wrath", desc:"Costs 3 wins. Lyrith attacks this card with both weapons. If the attack wins, flip the card and gain +4 Power on all sides for the rest of this round. If the attack crits, destroy the enemy card instead of flipping it (can only happen once per match). Ignores the enemy's defensive skills. Usable once per match."},
+  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
+    {name:'Silent Strike (Passive)', desc:'If the enemy card has higher total Power than Lyrith, she gets +2 Power for that attack.'},
+    {name:"Special Attack: Serpent's Wrath", desc:"Lyrith attacks with both weapons. If the attack wins, flip the card and permanently gain +4 Power on all sides. If it crits, destroy the target instead of flipping it. Ignores the enemy's shields."},
   ] },
   { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
     {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
@@ -1931,13 +1928,10 @@ const FOREST_FOES = [
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
       {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
     ] },
-  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
-    {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
-    {name:'Poisoned Edge', desc:'When Lyrith attacks, the enemy is poisoned and gets -2 defense for 2 rounds. If the enemy is already poisoned, Lyrith gets +2 attack instead.'},
-    {name:'Bloodlust', desc:'When Lyrith flips a card, she gets +2 attack and lifesteal for 1 round.'},
-    {name:'Veil of Shadows', desc:"All enemies on Lyrith's side of the arena get -1 attack for 1 round when she flips a card."},
-    {name:"Special Attack: Serpent's Wrath", desc:"Costs 3 wins. Lyrith attacks this card with both weapons. If the attack wins, flip the card and gain +4 Power on all sides for the rest of this round. If the attack crits, destroy the enemy card instead of flipping it (can only happen once per match). Ignores the enemy's defensive skills. Usable once per match."},
+  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
+    {name:'Silent Strike (Passive)', desc:'If the enemy card has higher total Power than Lyrith, she gets +2 Power for that attack.'},
+    {name:"Special Attack: Serpent's Wrath", desc:"Lyrith attacks with both weapons. If the attack wins, flip the card and permanently gain +4 Power on all sides. If it crits, destroy the target instead of flipping it. Ignores the enemy's shields."},
   ] },
   { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
     {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
