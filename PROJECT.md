@@ -31,12 +31,12 @@ till `main` också. **Punkt 29–36 (Sarah, Deathblade, Lyrith, Aurelia,
 Twisted Gipsy, Astrael, Vaelira och Nexzoth ombyggda) ligger
 committade på feature-branchen, INTE mergade till `main` än** — fråga
 alltid explicit innan nästa merge när mer arbete samlats där, anta
-ALDRIG tillstånd från en tidigare bekräftelse. **OBS: Nexzoths bild är
-INTE genererad/godkänd än** — bara Devourer, World Shatter och The
-Ending är implementerade (alternativ A, matcha kod till bild för de
-tre säkra delarna). Reality Consume och Endless Void väntar
-fortfarande på svar om ny motorlogik (se punkt 36 nedan) innan bilden
-beställs.
+ALDRIG tillstånd från en tidigare bekräftelse. **OBS: Nexzoths
+kortkonst är committad, men bara Devourer, World Shatter och The
+Ending matchar den nya bilden** (alternativ A, de tre säkra delarna).
+Reality Consume och Endless Void är OFÖRÄNDRADE och matchar INTE
+bilden än — väntar fortfarande på svar om ny motorlogik (se punkt 36
+nedan).
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
