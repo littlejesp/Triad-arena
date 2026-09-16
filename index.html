@@ -1617,13 +1617,10 @@ const HEROES = [
     {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
     {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
-    {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
-    {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
-    {name:'Blood for Glory', desc:'If Maximus has lower total Power than his opponent in a battle, he gets +3 Power on the attacking side during that battle.'},
-    {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
-    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:"Gladiator's Dominion (Passive)", desc:'Each time Maximus takes control of a card, he permanently gains +1 Power on all sides.'},
+    {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
+    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
   { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
@@ -1942,13 +1939,10 @@ const FOREST_FOES = [
     {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
     {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
-    {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
-    {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
-    {name:'Blood for Glory', desc:'If Maximus has lower total Power than his opponent in a battle, he gets +3 Power on the attacking side during that battle.'},
-    {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
-    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:"Gladiator's Dominion (Passive)", desc:'Each time Maximus takes control of a card, he permanently gains +1 Power on all sides.'},
+    {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
+    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
   { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},

@@ -36,8 +36,8 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41–42 (Zaevir, Ragnar) ligger committade på feature-branchen,
-INTE mergade till `main` än.**
+**Punkt 41–43 (Zaevir, Ragnar, Maximus) ligger committade på
+feature-branchen, INTE mergade till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -48,7 +48,7 @@ korten som redan var åtgärdade vid det laget) och hittade 16 kort med
 saknar kod-backing), sämst kopplade först:
 1. **Zaevir** 0/4 — KLAR (punkt 41 nedan).
 2. **Ragnar** 0/4 — KLAR (punkt 42 nedan).
-3. **Maximus** 1/6
+3. **Maximus** 1/6 — KLAR (punkt 43 nedan).
 4. **Darum** 1/6
 5. **Daron** 1/6
 6. **Vorathos** 1/5
@@ -500,6 +500,35 @@ Bort: Double Strike (kedjeattack finns inte, samma som Zaevirs
 strukna koncept) och Last Fury (redundant mot spelets globala
 `lastStandBonus()`, samma anledning Sarahs gamla "Last Arrow"
 ströks). Inga nya primitives.
+
+**43. Maximus — trimmad från en 1/6-wired stubbe** — tredje kortet
+från audit-listan. Till skillnad från Zaevir/Ragnar hade Maximus
+faktiskt en riktig, redan bra Ultimate (`SPECIAL_HANDLERS.maximus`:
+tröskel +4, flip, permanent +2, extra tur om målet var starkare) —
+bara de 5 vanliga skillsen saknade backing, och flera av dem
+överlappade varandra (Gladiator's Dominion och Arena Rage triggade
+båda på erövring, bara permanent vs tillfällig).
+
+- **Gladiator's Dominion (Passiv)** — helt befintligt fält
+  `active.onCaptureBonus:1`. Behöll den starkare/tydligare av de två
+  ursprungliga ihopklumpade effekterna, strök den tillfälliga
+  dubbleringen.
+- **Blood for Glory (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, matchade hans egen
+  text exakt.
+- **Special Attack: "Axe of Dominion"** — koden HELT oförändrad. Bildens
+  eget "kontrollera minst 4 kort"-aktiveringsvillkor följdes INTE —
+  tredje gången samma mönster dyker upp i bildverktyget (Zaevir "3
+  kort", Ragnar "3 kort", nu Maximus "4 kort"), avvisat av samma
+  anledning varje gång. UI-texten synkades bara till att beskriva vad
+  koden redan gör.
+- Stats **oförändrade** — matchade redan bilden exakt (första kortet
+  i den nya omgången utan någon stat-avvikelse).
+
+Bort: Spinning Axe (otydligt villkor, överlappade med grundstats),
+Arena Rage (redundant med Gladiator's Dominion), Champion's Will
+(ingen befintlig "välj en allierad"-mekanik finns). Inga nya
+primitives.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

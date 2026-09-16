@@ -4010,6 +4010,67 @@ test('Ragnar: card rebuilt from a 0/4-wired stub -- War Breaker (vsStrongerTotal
   await page.close();
 });
 
+test('Maximus: card trimmed from a 1/6-wired stub -- Gladiator\'s Dominion (onCaptureBonus), Blood for Glory (vsStrongerTotalPowerBoost), Axe of Dominion unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const maximus = findCardById('maximus');
+    out.statsUnchanged = maximus.top === 10 && maximus.right === 10 && maximus.bottom === 8 && maximus.left === 9 && maximus.element === 'fire';
+    out.hasGladiatorsDominion = maximus.active.onCaptureBonus === 1;
+    out.hasBloodForGlory = maximus.active.vsStrongerTotalPowerBoost && maximus.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.skillCount = maximus.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Gladiator's Dominion: capturing a card permanently grants +1 all sides.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(maximus, 'blue'); // top:10
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'max-weak', name:'MaxWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.dominionGainedPower = src.captureBonus === 1;
+
+    // Blood for Glory: +3 Power attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.gloryVsStronger = fullEffectiveValue(maximus, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - maximus.top;
+    out.gloryVsWeaker = fullEffectiveValue(maximus, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - maximus.top;
+
+    // Axe of Dominion (unchanged): threshold +4, flip, permanent +2, extra
+    // turn only when the defeated card was stronger.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(maximus, 'blue'); // total 37
+    const weakTarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = weakTarget;
+    state.extraTurnPending = null;
+    SPECIAL_HANDLERS.maximus({ srcEntry: wsrc, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.axeFlippedWeakTarget = weakTarget.owner === 'blue';
+    out.axePermanentBoost = wsrc.captureBonus === 2;
+    out.axeNoExtraTurnVsWeaker = state.extraTurnPending === null;
+
+    state.board = Array(9).fill(null);
+    const wsrc2 = freshEntry(maximus, 'blue');
+    const strongTarget = freshEntry({ id:'max-strong', name:'MaxStrong', top:10,right:10,bottom:10,left:9 }, 'red'); // total 39: > Maximus's 37, still < 37+4=41
+    state.board[4] = wsrc2; state.board[1] = strongTarget;
+    state.extraTurnPending = null;
+    SPECIAL_HANDLERS.maximus({ srcEntry: wsrc2, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.axeGrantsExtraTurnVsStronger = state.extraTurnPending === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasGladiatorsDominion, true);
+  assert.equal(result.hasBloodForGlory, true);
+  assert.equal(result.skillCount, 3, "the printed card carries Gladiator's Dominion, Blood for Glory, and Axe of Dominion -- Spinning Axe, Arena Rage, and Champion's Will are gone");
+  assert.equal(result.dominionGainedPower, true);
+  assert.equal(result.gloryVsStronger, 3);
+  assert.equal(result.gloryVsWeaker, 0);
+  assert.equal(result.axeFlippedWeakTarget, true);
+  assert.equal(result.axePermanentBoost, true);
+  assert.equal(result.axeNoExtraTurnVsWeaker, true, 'no extra turn when the defeated card was NOT stronger');
+  assert.equal(result.axeGrantsExtraTurnVsStronger, true, 'extra turn granted when the defeated card had higher total Power');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
