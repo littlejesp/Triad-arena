@@ -1111,6 +1111,50 @@ Dragon tre huvuden/mystiskt-eld, bara ny pose/kvalitet i poster-stilen
 som Ferea/Evil Twist fick), men mekaniken kommer först så att den nya
 konsten kan visa de riktiga skill-texterna.
 
+**Uppdatering, samma session: ny konst mottagen för BÅDA korten.** En
+helt ny "guldfolierad kortmall"-stil
+introducerades den här sessionen (poster med allt inbakat: stats i en
+kors-diamant, ability-rutor i 2×2-rutnät, Ultimate-ruta, faktion/
+raritet/typ/alignment-fotrad, citat) — ett tydligt snyggare/mer
+konsekvent format än den äldre poster-mallen (se Ifrit/Ferea/Evil Twist
+ovan), avsett att bli standard för framtida kort. Two bildbrief-utkast
+för Tiamat i det nya formatet visade sig ha en sakfelaktig Ultimate-text
+(AOE mot alla fiender + flerrundors statuseffekter à la Burn/Freeze/
+Stun/Weakness/Poison, som inte finns i motorn alls) — briefen skrevs om
+med korrekt mekanik (ETT valt mål, en av fem krafter, alla omedelbara
+effekter) innan den skickades vidare.
+
+Three Head Dragons brief hade användaren redan skrivit helt korrekt
+själv (all text verifierad ordagrant mot koden innan konsten
+godkändes) — ny konst i den nya mallen matchade sedan exakt: stats
+10/10/10/8, alla fyra skills (inklusive Giftets Plåga/Poison's Torment,
+med EXAKT samma text som redan finns kodad från punkt 54 ovan), Apokalyps-
+ultimaten, faktion/raritet/typ/alignment-fotraden. Inga kodändringar
+behövdes. Flyttade den nya bilden direkt till standardnamnet
+`card-threeheaddragon-full.jpg` (samma fil som redan pekades på, bara
+innehållet bytt). Ny beskuren `cards/card-threeheaddragon.jpg` krävde en
+helt ny beskärningsberäkning eftersom källbilden denna gång är
+1024×1536 (bildgeneratorns egna nativa format, inte projektets
+941×1672-standard) — `crop((167,100)-(856,550))`, skalad till 640×418,
+vald för att visa alla tre huvuden utan att klippa in för mycket av
+titel-texten ovanför eller stat-diamanten nedanför.
+
+**Tiamats konst mottagen direkt efter, i samma session.** Matchade den
+omskrivna briefen exakt — alla fyra skills, Ultimate-texten ord för ord
+(inklusive alla fem krafternas korrekta mekanik, inget AOE/inga
+statuseffekter kvar), "Five Worlds. One Will."-legenden med rätt
+färgkodning (röd/blå/guld/lila/grön matchar Fire/Ice/Storm/Void/Nature),
+stats 10/9/9/10, citatet, faktion/raritet/typ/alignment-fotraden. Den
+begärda blågrå/gunmetal-kroppsfärgen (istället för tidigare svart/röd)
+syns tydligt, huvudena behöll sina egna färger som bett. Samma källupplösning
+(1024×1536) och samma beskärning (`crop((167,100)-(856,550))` → 640×418)
+som Three Head Dragon fungerade rakt av. Inga kodändringar behövdes —
+`FULL_CARD_IMAGES`/`CARD_IMAGES` pekade redan på rätt filnamn för båda
+korten sedan tidigare sessioner.
+
+Båda korten är nu helt klara: mekanik (punkt 54 ovan) OCH konst, i den
+nya guldfolierade mallen som troligen blir standard framåt.
+
 **Öppen tråd, inte påbörjad än:** användaren föreslog en egen
 drak-tema campaign-etapp (Tiamat, Bahamut, Three Head Dragon, Ancient
 Wyrmking, Ifrit, Tahabata är alla `isDragon`/drak-tema; Kaeldryx är
