@@ -1433,9 +1433,9 @@ const HEROES = [
     {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
   ]},
   { id:'shadowking', name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}, volcanicArmorPenalty:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
-    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (Flavor only — would need a new \"defender debuffs attacker live\" primitive that doesn't exist anywhere in the engine yet; same gap already turned down for Vorathos's Standstill.)"},
+    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (\"Would lose\" approximated via total Power, same simplification the engine's oncePerMatchVsStrongerBoost family already uses.)"},
     {name:'Rage of the Beast', desc:"When Ifrit loses control of a card, he gets +2 on all sides next round. (Flavor only — wording not yet resolved: unclear whether this means Ifrit himself being captured, or Ifrit's side losing a DIFFERENT card he previously captured. Left unbuilt until that's decided.)"},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
@@ -1782,9 +1782,9 @@ const FOREST_FOES = [
     {name:'Immortal Chaos', desc:"Three Head Dragon can never be destroyed by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Apokalyps', desc:'Costs 2 wins. Every enemy card gets -3 Power on all sides for the rest of this round.'},
   ] },
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}, volcanicArmorPenalty:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
-    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (Flavor only — would need a new \"defender debuffs attacker live\" primitive that doesn't exist anywhere in the engine yet; same gap already turned down for Vorathos's Standstill.)"},
+    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (\"Would lose\" approximated via total Power, same simplification the engine's oncePerMatchVsStrongerBoost family already uses.)"},
     {name:'Rage of the Beast', desc:"When Ifrit loses control of a card, he gets +2 on all sides next round. (Flavor only — wording not yet resolved: unclear whether this means Ifrit himself being captured, or Ifrit's side losing a DIFFERENT card he previously captured. Left unbuilt until that's decided.)"},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
@@ -6347,6 +6347,27 @@ function battleNeighbors(index, owner, result){
     }
     if(placed.active && placed.active.oncePerMatchAttackBoost && !placedEntry.oncePerMatchAttackBoostUsed){
       placedEntry.oncePerMatchAttackBoostUsed = true;
+    }
+    // Ifrit's Volcanic Armor: "the FIRST TIME Ifrit would lose a battle,
+    // the opponent's strength is reduced by -1 in that battle" — the
+    // mirror image of Three Head Dragon's Ice's Breath (freezeDefenderPenalty,
+    // attacker debuffs defender), but this direction can't live inside
+    // fullEffectiveValue the same way: reading it there during the
+    // ATTACKER's own 'attack'-role call would need the DEFENDER's live
+    // entry to check a Used flag, and fullEffectiveValue only ever gets
+    // the opponent's static card data (same limitation Seraphine's/Tilda's
+    // marks hit above) — this is the one place with both live entries at
+    // once. "Would lose" is approximated via a raw totalPower comparison,
+    // same simplification oncePerMatchVsStrongerBoost above already uses
+    // for its own conditional trigger, rather than trying to predict the
+    // per-side outcome mid-computation.
+    if(target.card.active && target.card.active.volcanicArmorPenalty && !target.volcanicArmorUsed){
+      const attackerTotal = totalPower(placedEntry);
+      const defenderTotal = totalPower(target);
+      if(attackerTotal > defenderTotal){
+        placedVal -= target.card.active.volcanicArmorPenalty;
+        target.volcanicArmorUsed = true;
+      }
     }
     const effOutcome = placedVal > targetVal;
     const baseOutcome = p.myVal > p.theirVal;

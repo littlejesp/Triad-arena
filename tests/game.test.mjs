@@ -3205,7 +3205,7 @@ test('Pallis: reworked per audit — Protective Aura (temporary capture-immunity
   await page.close();
 });
 
-test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpiredRoundEffects) and Burning Dominion (adjacent defeatedByIfrit aura) added, Eternal Inferno/Hellfire/stats unchanged, Volcanic Armor and Rage of the Beast still unbuilt', async () => {
+test('Ifrit: Hellfire Claw (once-per-ROUND attack boost), Burning Dominion (adjacent defeatedByIfrit aura), and Volcanic Armor (defender debuffs attacker once) added, Eternal Inferno/Hellfire/stats unchanged, Rage of the Beast still unbuilt (unresolved wording)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -3222,7 +3222,8 @@ test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpired
       && forestIfrit.active.oncePerMatchAttackBoost.amount === 2
       && forestIfrit.active.attackBoostResetsEachRound === true
       && forestIfrit.active.adjacentDefeatedByMeBoost.minCount === 2
-      && forestIfrit.active.adjacentDefeatedByMeBoost.amount === 1;
+      && forestIfrit.active.adjacentDefeatedByMeBoost.amount === 1
+      && forestIfrit.active.volcanicArmorPenalty === 1;
 
     // Hellfire Claw: +2 on attack, consumed on use, but -- unlike every
     // other oncePerMatchAttackBoost user -- reset back to usable by
@@ -3276,6 +3277,30 @@ test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpired
     resolveFlips(4, 'blue');
     out.defeatedByIfritTaggedOnCapture = tagTarget.owner === 'blue' && tagTarget.defeatedByIfrit === true;
 
+    // Volcanic Armor: the first time Ifrit (as DEFENDER) would lose,
+    // reduce the attacker's Power by 1 for that battle -- approximated
+    // via totalPower(attacker) > totalPower(defender), mirroring
+    // oncePerMatchVsStrongerBoost's own simplification. Attacker's
+    // bottom(10) vs Ifrit's top(9) would normally win; the -1 penalty
+    // ties it, and ties favor the defender.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const vaIfrit = freshEntry(ifrit, 'blue'); // total 37
+    state.board[4] = vaIfrit;
+    const vaAttacker = freshEntry({ id:'va-atk', name:'VAAtk', top:10,right:10,bottom:10,left:10 }, 'red'); // total 40
+    state.board[1] = vaAttacker;
+    resolveFlips(1, 'red');
+    out.volcanicArmorBlockedFirstLoss = state.board[4].owner === 'blue';
+    out.volcanicArmorConsumed = vaIfrit.volcanicArmorUsed === true;
+
+    // Second attack against the same Ifrit: armor already used, so an
+    // attacker with the same kind of marginal edge (left:11 vs Ifrit's
+    // right:10) wins outright this time.
+    const vaAttacker2 = freshEntry({ id:'va-atk2', name:'VAAtk2', top:1,right:1,bottom:1,left:11 }, 'red');
+    state.board[5] = vaAttacker2;
+    resolveFlips(5, 'red');
+    out.volcanicArmorOnlyOnce = state.board[4].owner === 'red';
+
     return out;
   })()`);
   assert.equal(result.statsUnchanged, true);
@@ -3293,6 +3318,9 @@ test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpired
   assert.equal(result.burningDominionAppliesOnAttack, true, 'Burning Dominion is not attack-only, unlike Tiamat\'s adjacentEnemiesBoost');
   assert.equal(result.burningDominionRequiresCurrentOwnership, true, 'a defeatedByIfrit card that changed owner no longer counts');
   assert.equal(result.defeatedByIfritTaggedOnCapture, true);
+  assert.equal(result.volcanicArmorBlockedFirstLoss, true, "Volcanic Armor's -1 penalty turns a marginal loss into a defended tie");
+  assert.equal(result.volcanicArmorConsumed, true);
+  assert.equal(result.volcanicArmorOnlyOnce, true, 'a second attacker with the same marginal edge wins once the armor is already used');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

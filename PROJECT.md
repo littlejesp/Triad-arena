@@ -1067,15 +1067,35 @@ båda ställena. Stats 9/10/8/10 = 37, oförändrade.
   till riktiga strider** — Same/Plus-erövringar (en annan
   fångstmekanism helt, ingen styrke-jämförelse) sätter INTE flaggan,
   matchar "han HAR BESEGRAT" bättre än en bredare tolkning skulle.
-- **Volcanic Armor och Rage of the Beast** — ❌ lämnade oimplementerade
-  per uttrycklig instruktion. Volcanic Armor bekräftat sakna en
-  "försvarare-debuffar-angripare-live"-primitive (samma lucka som redan
-  identifierades och avvisades för Vorathos's Standstill). Rage of the
-  Beast har en olöst formuleringsfråga (drabbar det Ifrit SJÄLV blir
-  erövrad, eller när en ANNAN erövrad av honom tas tillbaka?) — lämnad
-  olöst tills vidare, ingen kod skriven för den.
+- **Rage of the Beast** — ❌ lämnad oimplementerad. Har en olöst
+  formuleringsfråga (drabbar det Ifrit SJÄLV blir erövrad, eller när en
+  ANNAN erövrad av honom tas tillbaka?) — lämnad olöst tills vidare,
+  ingen kod skriven för den.
 
-Inga nya generella primitives — `oncePerMatchAttackBoost`,
+**Uppdatering, samma session: Volcanic Armor också inkopplad.**
+Användaren delegerade beslutet ("kör det på ifrit om du tycker det blir
+bra"). Den ursprungliga bedömningen (skulle kräva en helt ny
+"försvarare-debuffar-angripare-live"-primitive, samma lucka som
+avvisades för Vorathos's Standstill) visade sig vara fel vid närmare
+efterforskning: `active.freezeDefenderPenalty` (Three Head Dragon's
+Ice's Breath, redan i motorn) är EXAKT den primitiven, fast i motsatt
+riktning (anfallare debuffar försvarare). Volcanic Armors behov
+(försvarare debuffar anfallare) gick INTE att koppla in på samma ställe
+i `fullEffectiveValue` som Ice's Breath, dock — det stället har bara
+anfallarens egen `cellIndex`, ingen åtkomst till försvararens levande
+entry för att kolla en `Used`-flagga (samma begränsning som redan
+dokumenterad för Seraphines/Tildas märkningar). Löst genom att lägga
+kollen direkt i `battleNeighbors`, samma ställe/anledning som de
+märkningarna: `placedVal` justeras direkt (-1) precis innan
+`effOutcome` beräknas, om `target.card.active.volcanicArmorPenalty`
+finns, `!target.volcanicArmorUsed`, och en `totalPower`-jämförelse
+(samma förenkling `oncePerMatchVsStrongerBoost` redan använder för sitt
+eget villkorliga triggervärde) indikerar att Ifrit annars skulle
+förlora. Ett riktigt PRIMITIVE-fynd, inte bara en data-nyckel — men
+återanvänder `freezeDefenderPenalty`s princip och `oncePerMatchVsStrongerBoost`s
+förenkling, bygger inget nytt grundläggande mönster.
+
+Inga nya generella primitives utöver ovanstående — `oncePerMatchAttackBoost`,
 `shieldResetsEachRound`-mönstret och adjacency-count-formen fanns alla
 redan; `attackBoostResetsEachRound`/`adjacentDefeatedByMeBoost` är bara
 nya DATA-nycklar som återanvänder samma befintliga kod-teknik. Nytt
