@@ -36,9 +36,9 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41–48 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell,
-Templaren) ligger committade på feature-branchen, INTE mergade till `main`
-än.**
+**Punkt 41–49 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell,
+Templaren, Tilda) ligger committade på feature-branchen, INTE mergade till
+`main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -55,7 +55,7 @@ saknar kod-backing), sämst kopplade först:
 6. **Vorathos** 1/5 — KLAR (punkt 46 nedan).
 7. **Pallispell** 1/5 — KLAR (punkt 47 nedan).
 8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
-9. **Tilda** 1/4
+9. **Tilda** 1/4 — KLAR (punkt 49 nedan).
 10. **Tahabata** 2/6
 11. **Pallis** (solo) 2/6
 12. **Ifrit** 2/6
@@ -701,6 +701,68 @@ som Vorathos/Pallispell. Ny beskuren `cards/card-templaren.jpg` använder
 en högre beskärning ((10,60)-(930,660) istället för standard-
 (140,300)-(800,731)) för att få med ansiktet/hjälmen ovanför skölden
 utan att gå in i stat-diamant-området längst ner.
+
+**49. Tilda — stats buffade + en fjärde skill omdöpt för
+namnkollision** — nionde kortet från audit-listan, hade bara
+`active.underdogBonus:2` (Night's Advantage), övriga tre skills (0/3)
+saknade all kod-backing. Inget `special`-fält alls (ingen Ultimate),
+oförändrat. Objektivt rostrets svagaste kort statistiskt (4/7/7/6 =
+24, exakt vid golvet av hela rostrets 24–44-spann) — användaren valde
+explicit att buffa henne som en del av omjobbet, inte bara koppla in
+skills.
+
+- **Stats: 7/8/8/8 (totalt 31)** — användarens val, uppvägt mot
+  förslaget 6/8/8/7 (30). Tydlig uppgradering från golvet utan att
+  närma sig toppskiktet.
+- **Piercing Shot** — ny `ON_PLACE_HANDLERS.tilda`, buntar ihop med
+  Marked Target (samma "ingen sekundär-aktivering, så båda kör vid
+  placering"-resonemang som Vorgrath/Zalazar/Naline/Zlaizer). Ingen
+  rad-mål-väljar-UI finns, så en slumpad riktning väljs först (samma
+  mönster som Fenrir/Zalazars egna riktningsval), sedan ett slumpat
+  fiendekort inom den `enemiesInDirection()`-linjen, `debuffThisRound`
+  -2.
+- **Marked Target** — samma bunt. Slumpat fiendekort var som helst på
+  brädet, `entry.tildaMarked` satt precis som Seraphines
+  `seraphineMarked`. Två hårdkodade checks (`battleNeighbors` +
+  `simulateFlips`), samma anledning som Seraphine (`fullEffectiveValue`
+  ser aldrig den levande motståndar-entryn). **Skillnad mot Seraphine:**
+  INTE låst till en specifik anfallar-id — källtexten säger "one of
+  YOUR cards", inte bara Tilda själv, så vilken alliansbricka som helst
+  som anfaller det märkta kortet får +2.
+- **Umbral Step (omdöpt från "Shadow Step")** — namnkollision med
+  Vayras redan existerande, helt orelaterade Shadow Step-passiv
+  (blockerar attacker ≤2 marginal). Användaren valde "Umbral Step".
+  **Viktig precisering från användaren:** originalets "nästa tur"-
+  identitet fick INTE tystas ner till permanent bara för att det var
+  enklare — motorns EXISTERANDE `xUntilTurnCount`-mönster (samma
+  runda-klocka som Medusas `petrifiedUntilTurnCount`,
+  `state.turnCount + 4`, beskrivet på annat håll som "genom kastarens
+  egen nästa tur") återanvändes rakt av istället för
+  `SpecialVerbs.directionalBoost()` (som är permanent i alla dess
+  andra användningar, kollat — Vorathos/Darum/Daron/Aurelian/Vorlix
+  använder den aldrig temporärt). Två nya, helt vanliga runtime-fält
+  (`entry.umbralStepSide`, `entry.umbralStepUntilTurnCount`) sätts i
+  `checkOnWinBonuses` (slumpad sida per vinst, samma
+  "ingen riktningsväljare"-förenkling) och läses LIVE i
+  `fullEffectiveValue` — samma "beräkna direkt, inget att återställa"
+  -form som `boardLeadBonus`/`pairPresence`-kollarna redan har där,
+  så ingenting behöver röra `sweepExpiredRoundEffects()`. **Upptäckt
+  under arbetet:** `checkOnWinBonuses` anropas EXKLUSIVT när det just
+  placerade kortet vinner (aldrig när ett redan liggande kort försvarar
+  framgångsrikt) — så bonusen kan bara TRIGGAS av Tildas egen placering,
+  men eftersom hon aldrig "anfaller" igen efter det konsumeras den i
+  praktiken nästan alltid av en FÖRSVARSstrid senare (en fiende som
+  placerar sig intill henne inom fönstret). Därför fick kollen INTE
+  gates till `role==='attack'` (till skillnad från
+  `oncePerMatchAttackBoost`s mönster) — annars hade ability:n nästan
+  alltid varit dödkod.
+- **Night's Advantage** — oförändrad (`active.underdogBonus:2`).
+
+Inga nya primitives — `debuffThisRound()`, `enemiesInDirection()` och
+Seraphine-märkningsmönstret fanns alla redan; Umbral Step återanvänder
+det redan existerande `xUntilTurnCount`-idiomet snarare än att bygga en
+ny "temporär riktad bonus"-primitive i `SpecialVerbs`. Ingen Ultimate
+tillagd (ingen bildbrief för det ännu).
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

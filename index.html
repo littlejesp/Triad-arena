@@ -1398,7 +1398,7 @@ const HEROES = [
     {name:'Executioner (Passive)', desc:"Whenever Deathblade wins a battle against a card with 6 or lower total Power, that card is destroyed outright instead of captured."},
     {name:'Special Attack: Shadow Assault', desc:"Choose an enemy card — Deathblade swaps physical position with the target, and the target permanently loses 2 Power on all directions."},
   ]},
-  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
+  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:7, right:8, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"When Tilda is placed, a random direction is chosen — a random enemy card along that line gets -2 Power this round. (Source text lets you choose the direction and target; simplified to random, same as Fenrir/Zalazar's own on-place directional effects.)"}, {name:"Umbral Step", desc:"After Tilda wins a battle, a random one of her directions gets +1 Power for the next turn. (Source text lets you choose the direction; simplified to random, same as every other direction-choice ability in this game. Renamed from 'Shadow Step' to avoid a name collision with Vayra's own unrelated Shadow Step passive.)"}, {name:"Marked Target", desc:"When Tilda is placed, she marks a random enemy card — the next time one of your cards attacks it, it gets +2 Power. (Source text lets you choose the target; simplified to random, same as Seraphine's own Celestial Mark.)"}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2, onWinRandomDirectionalBoost:1}},
   // Divine Bond's card text says "placed ADJACENT to Little Jesp", but the
   // engine's only board-presence passive (pairPresence, see Twin Brothers/
   // Evil Twist) checks "partner anywhere on your board" — reused as-is
@@ -3373,6 +3373,23 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
     SpecialVerbs.debuff(loserEntry, a.onWinDebuffOnce);
     winnerEntry.onWinDebuffOnceUsed = true;
   }
+  // Tilda's Umbral Step: "change one of her directions by +1 for the next
+  // turn" — no direction-choice UI exists, so a random side is picked
+  // each win (same simplification as Fenrir/Zalazar's own directional
+  // picks), replacing whichever side was previously chosen. Modeled as a
+  // live, self-expiring read in fullEffectiveValue (entry.umbralStepSide +
+  // entry.umbralStepUntilTurnCount) rather than a permanent
+  // SpecialVerbs.directionalBoost call or a captureBonus/tempEffects
+  // route like buffThisRound — same "compute live off two plain runtime
+  // fields, nothing to reverse" shape as the boardLeadBonus/pairPresence
+  // checks in fullEffectiveValue, gated by the same state.turnCount+4
+  // round-clock window Medusa's Stone Gaze (petrifiedUntilTurnCount)
+  // already uses for "this round"/"next turn" effects.
+  if(a.onWinRandomDirectionalBoost){
+    const sides = ['top','right','bottom','left'];
+    winnerEntry.umbralStepSide = sides[Math.floor(Math.random()*sides.length)];
+    winnerEntry.umbralStepUntilTurnCount = state.turnCount + 4;
+  }
   // Three Head Dragon's Fire's Wrath: every enemy card orthogonally around
   // the just-captured square also gets hit — no "once per match" cap in
   // the source text, unlike the two hooks above, so this fires on every win.
@@ -3811,6 +3828,12 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   const entry = state.board[cellIndex];
   if(entry && entry.captureBonus) v += entry.captureBonus;
   if(entry && entry.sideBonus && entry.sideBonus[edgeKey]) v += entry.sideBonus[edgeKey];
+  // Tilda's Umbral Step, set in checkOnWinBonuses — live and self-expiring
+  // (see the comment there), so nothing needs to reverse it once the
+  // round-clock window passes.
+  if(entry && entry.umbralStepSide === edgeKey && entry.umbralStepUntilTurnCount > state.turnCount && card.active && card.active.onWinRandomDirectionalBoost){
+    v += card.active.onWinRandomDirectionalBoost;
+  }
   if(card.active && card.active.pairPresence){
     const pp = card.active.pairPresence;
     const present = state.board.some(e => e && e.owner === owner && e.card.id === pp.partner);
@@ -4283,6 +4306,35 @@ const ON_PLACE_HANDLERS = {
       const n = state.board[r*3+c];
       if(n && n.owner === owner) SpecialVerbs.directionalBoost(n, [side], 1);
     });
+  },
+  // Tilda bundles two independent, untriggered "Choose an enemy card"
+  // abilities into her one placement — same "no secondary-activation
+  // system, so both fire on-place instead" reasoning as Vorgrath/Zalazar/
+  // Naline/Zlaizer above.
+  tilda(entry, owner, cellIndex){
+    // Piercing Shot: no line-target-choice UI exists, so a random
+    // direction is picked first (same shape as Fenrir/Zalazar's own
+    // on-place directional picks), then one random enemy along that line.
+    const dirs = ['up','right','down','left'];
+    const direction = dirs[Math.floor(Math.random()*dirs.length)];
+    const lineTargets = enemiesInDirection(cellIndex, direction, owner);
+    if(lineTargets.length > 0){
+      const shot = lineTargets[Math.floor(Math.random()*lineTargets.length)].entry;
+      SpecialVerbs.debuffThisRound(shot, 2);
+    }
+    // Marked Target: random enemy anywhere on the board (same "pick 1
+    // random enemy" shape as Nyxara/Vaelira/Kaeldryx/Morvath/Umbrael
+    // above). entry.tildaMarked is read by two hardcoded-by-id checks in
+    // battleNeighbors and simulateFlips — same reasoning as Seraphine's
+    // own seraphineMarked flag (fullEffectiveValue only ever sees the
+    // opponent's static card data, never the live entry the flag lives
+    // on) — except NOT gated to a specific attacker id, since the card
+    // text says "one of YOUR cards", not just Tilda herself.
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length > 0){
+      const marked = enemies[Math.floor(Math.random()*enemies.length)];
+      marked.tildaMarked = true;
+    }
   },
 };
 
@@ -6039,6 +6091,11 @@ function battleNeighbors(index, owner, result){
     // runtime flags like seraphineMarked — this is the one place in the
     // real battle-resolution path that actually has the live target entry.
     if(placed.id === 'seraphine' && target.seraphineMarked) placedVal += 2;
+    // Tilda's Marked Target: same hardcoded shape as Seraphine's Celestial
+    // Mark above, but NOT gated to a specific attacker id — the card text
+    // says "the next time ONE OF YOUR CARDS attacks it", not just Tilda
+    // herself, so any allied attacker benefits.
+    if(target.tildaMarked) placedVal += 2;
     // Omega Weapon's Anti-Matter Cannon / Yojimbo's Kozuka: fullEffectiveValue
     // above already read these as "not yet used" and folded the bonus into
     // placedVal if eligible — mark them used now that this is a real attack
@@ -6402,6 +6459,10 @@ function simulateFlips(index, card, owner){
     // Seraphine's Celestial Mark, mirrored here so the AI's own move
     // evaluation accounts for it too — same hardcoded check as battleNeighbors.
     if(card.id === 'seraphine' && target.seraphineMarked) myVal += 2;
+    // Tilda's Marked Target, mirrored here so the AI's own move evaluation
+    // accounts for it too — same hardcoded check as battleNeighbors, not
+    // gated to a specific attacker id (see the comment there).
+    if(target.tildaMarked) myVal += 2;
     if(myVal > theirVal){
       score += isShielded(target, ni) ? 0.25 : 1;
     }

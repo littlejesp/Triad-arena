@@ -2732,6 +2732,109 @@ test('Templaren: reworked per audit — Holy Aura (on-place directional ally buf
   await page.close();
 });
 
+test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Marked Target (on-place), Umbral Step (renamed, on-win, live-expiring), Night\'s Advantage unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const tilda = findCardById('tilda');
+    out.statsBuffed = tilda.top === 7 && tilda.right === 8 && tilda.bottom === 8 && tilda.left === 8;
+    out.skillCount = tilda.skills.length === 4;
+    out.shadowStepRenamed = !tilda.skills.some(s => s.name === 'Shadow Step') && tilda.skills.some(s => s.name === 'Umbral Step');
+    out.hasNightsAdvantage = tilda.active.underdogBonus === 2;
+
+    // Piercing Shot + Marked Target both fire on placement. Math.random
+    // forced to 0 so the random direction picks 'up' (dirs[0]) and any
+    // random-index picks land on index 0 of their candidate list.
+    const realRandom = Math.random;
+
+    // Case A: enemy directly above Tilda (in the forced 'up' line) — both
+    // Piercing Shot (-2 this round) AND Marked Target (tildaMarked) should
+    // land on it, since it's also the only enemy on the board.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const tildaA = freshEntry(tilda, 'blue');
+    state.board[4] = tildaA;
+    const inLineFoe = freshEntry({ id:'ilf', name:'ILF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = inLineFoe;
+    Math.random = () => 0;
+    ON_PLACE_HANDLERS.tilda(tildaA, 'blue', 4);
+    Math.random = realRandom;
+    out.piercingShotHitInLineTarget = inLineFoe.captureBonus === -2;
+    out.markedTargetHitInLineTarget = inLineFoe.tildaMarked === true;
+
+    // Case B: enemy at a CORNER (index 0) — not orthogonally aligned with
+    // Tilda at center (index 4), so Piercing Shot's line-scan (forced
+    // 'up') never reaches it, but Marked Target (whole-board random pick)
+    // still marks it regardless of position.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const tildaB = freshEntry(tilda, 'blue');
+    state.board[4] = tildaB;
+    const cornerFoe = freshEntry({ id:'cf', name:'CF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[0] = cornerFoe;
+    Math.random = () => 0;
+    ON_PLACE_HANDLERS.tilda(tildaB, 'blue', 4);
+    Math.random = realRandom;
+    out.piercingShotMissedCorner = cornerFoe.captureBonus === 0;
+    out.markedTargetStillHitsCorner = cornerFoe.tildaMarked === true;
+
+    // Marked Target's +2 applies to ANY allied attacker, not just Tilda
+    // (unlike Seraphine's self-only Celestial Mark) — checked directly via
+    // battleNeighbors' real resolution path.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    // Without the +2 mark bonus, otherAlly's 5 loses to markedFoe's 6 on
+    // every side — only the mark makes this a win (5+2=7 > 6), proving the
+    // bonus is what flips the outcome.
+    const markedFoe = freshEntry({ id:'mf', name:'MF', top:6,right:6,bottom:6,left:6 }, 'red');
+    markedFoe.tildaMarked = true;
+    state.board[1] = markedFoe;
+    const otherAlly = freshEntry({ id:'oa', name:'OA', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = otherAlly;
+    resolveFlips(4, 'blue');
+    out.markedTargetBoostsAnyAlly = state.board[1].owner === 'blue';
+
+    // Umbral Step: on win, a random side (forced to 'top', sides[0]) gets
+    // live +1 for the round-clock window, then expires — nothing to
+    // reverse since it's never written into sideBonus/captureBonus.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const tildaWinner = freshEntry(tilda, 'blue');
+    state.board[4] = tildaWinner;
+    const weakFoe = freshEntry({ id:'wf', name:'WF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    Math.random = () => 0;
+    resolveFlips(4, 'blue');
+    Math.random = realRandom;
+    out.umbralStepSideChosen = tildaWinner.umbralStepSide === 'top';
+    const dummyOpp = { id:'dummy', name:'D', top:1,right:1,bottom:1,left:1 };
+    out.umbralStepLiveBonusOnChosenSide = fullEffectiveValue(tilda, 'top', dummyOpp, 4, 'blue', 'defense') - tilda.top === 1;
+    out.umbralStepNoBonusOnOtherSide = fullEffectiveValue(tilda, 'right', dummyOpp, 4, 'blue', 'defense') - tilda.right === 0;
+    const savedTurnCount = state.turnCount;
+    state.turnCount = tildaWinner.umbralStepUntilTurnCount;
+    out.umbralStepExpiredAfterWindow = fullEffectiveValue(tilda, 'top', dummyOpp, 4, 'blue', 'defense') - tilda.top === 0;
+    state.turnCount = savedTurnCount;
+
+    return out;
+  })()`);
+  assert.equal(result.statsBuffed, true);
+  assert.equal(result.skillCount, true);
+  assert.equal(result.shadowStepRenamed, true);
+  assert.equal(result.hasNightsAdvantage, true);
+  assert.equal(result.piercingShotHitInLineTarget, true);
+  assert.equal(result.markedTargetHitInLineTarget, true);
+  assert.equal(result.piercingShotMissedCorner, true, "Piercing Shot's line-scan should not reach a diagonal corner");
+  assert.equal(result.markedTargetStillHitsCorner, true, "Marked Target is a whole-board pick, unaffected by position");
+  assert.equal(result.markedTargetBoostsAnyAlly, true, "Marked Target boosts ANY allied attacker, not just Tilda herself");
+  assert.equal(result.umbralStepSideChosen, true);
+  assert.equal(result.umbralStepLiveBonusOnChosenSide, true);
+  assert.equal(result.umbralStepNoBonusOnOtherSide, true);
+  assert.equal(result.umbralStepExpiredAfterWindow, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
