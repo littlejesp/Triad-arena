@@ -36,7 +36,7 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41–46 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos)
+**Punkt 41–47 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell)
 ligger committade på feature-branchen, INTE mergade till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
@@ -52,7 +52,7 @@ saknar kod-backing), sämst kopplade först:
 4. **Darum** 1/6 — KLAR (punkt 44 nedan).
 5. **Daron** 1/6 — KLAR (punkt 45 nedan).
 6. **Vorathos** 1/5 — KLAR (punkt 46 nedan).
-7. **Pallispell** 1/5
+7. **Pallispell** 1/5 — KLAR (punkt 47 nedan).
 8. **Templaren** 1/4
 9. **Tilda** 1/4
 10. **Tahabata** 2/6
@@ -616,6 +616,35 @@ live"-primitive), Reversed Shield (ingen on-loss-trigger-typ finns).
 Inga nya primitives utöver den redan existerande
 `SpecialVerbs.directionalBoost()` (bara ett nytt anrop till en
 befintlig funktion).
+
+**47. Pallispell — en riktig kod-vs-bild-konflikt löst med "kombinera
+båda" (samma användarval som Vorathos)** — sjunde kortet från
+audit-listan, redan 4/5 wired (Keen Eye, Loyal Strike, Double Fury,
+Strong Together matchade bilden exakt, ingen ändring). Den enda luckan
+var Ultimaten, och den var en RIKTIG mekanik-konflikt, inte bara
+"kontrollera N kort"-mönstret:
+
+- **Koden** (`SPECIAL_HANDLERS.pallispell`, redan wired sedan tidigare
+  session): AOE-dubbelstrid — hittar automatiskt upp till 2 angränsande
+  fiendekort och jämför rå totalPower (inget attack-bonus), flippar de
+  som förlorar. Om BÅDA flippas får Pallis & Pell permanent +1 alla
+  sidor.
+- **Den nya godkända bilden**: enkel-mål flip+debuff — välj ETT
+  fiendekort, om striden vinns förlorar det kortet permanent 2 Power på
+  alla sidor.
+- Helt olika mål (AOE mot enkel-mål) och helt olika effekt (självbuff
+  mot fiendedebuff) — samma typ av konflikt som Vorathos Time Collapse.
+  Användaren valde "C" (kombinera båda) igen: AOE-dubbelstriden ligger
+  kvar oförändrad, men varje enskilt kort som flippas av den får NU
+  också bildens permanenta -2 alla sidor-debuff, via ett nytt anrop till
+  den redan existerande `SpecialVerbs.debuff()` (samma primitive som
+  Sarahs Poisoned Edge). Den befintliga "båda flippade → +1
+  självbuff"-bonusen är oförändrad och läggs ovanpå.
+- Stats, badges, Keen Eye, Strong Together **oförändrade** — matchade
+  redan bilden exakt.
+
+Inga nya primitives — bara ett nytt anrop till den redan existerande
+`SpecialVerbs.debuff()`.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

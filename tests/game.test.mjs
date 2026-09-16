@@ -164,6 +164,35 @@ test('conquest banner: an AOE special (Pallis & Pell) triggers it on an actual c
   await page.close();
 });
 
+test('Hunter\'s Wrath: each defeated card permanently loses 2 Power on all sides, on top of the both-flipped self-buff', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('pallispell'), 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[7] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    runSpecialResolution(4, null, {});
+    return {
+      firstFlipped: state.board[1].owner === 'blue',
+      secondFlipped: state.board[7].owner === 'blue',
+      firstDebuff: state.board[1].captureBonus,
+      secondDebuff: state.board[7].captureBonus,
+      selfBuffApplied: src.captureBonus,
+    };
+  })()`);
+  assert.equal(result.firstFlipped, true);
+  assert.equal(result.secondFlipped, true);
+  assert.equal(result.firstDebuff, -2, 'defeated card permanently loses 2 Power on all sides');
+  assert.equal(result.secondDebuff, -2, 'defeated card permanently loses 2 Power on all sides');
+  assert.equal(result.selfBuffApplied, 1, 'both targets flipped, so Pallis and Pell still gain the existing +1 self-buff');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('conquest banner: a non-capturing special (Deathblade\'s swap) does not trigger it', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

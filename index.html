@@ -1412,7 +1412,7 @@ const HEROES = [
     {name:'Even Ground (Passive)', desc:"While you and your opponent control an equal number of cards on the board, Little Jesp gets +2 Power on all sides."},
     {name:'Special Attack: Scales of Judgment', desc:"Costs 2 wins. Compares total Wins claimed by each side. Little Jesp permanently gains +1 Power on all sides for every point the gap is under 3 (max +3, locked in at activation — a gap of 0 means the sides are perfectly tied). Then, every card belonging to whichever side currently has more Wins gets -1 Power this round — even if that's your own side. If the two sides are exactly tied, no debuff is applied. Usable once per match."},
   ]},
-  { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', special:{ name:'Hunter\'s Wrath', cost:2, once:true, targets:'aoe' }, skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}, {name:"Special Attack: Hunter's Wrath", desc:"Cost 2 Wins. Immediately battles up to 2 adjacent enemy cards (no attack bonus, just their raw Power). If both are defeated, Pallis and Pell gain +1 Power on all sides for the rest of the match."}]},
+  { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', special:{ name:'Hunter\'s Wrath', cost:2, once:true, targets:'aoe' }, skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}, {name:"Special Attack: Hunter's Wrath", desc:"Cost 2 Wins. Immediately battles up to 2 adjacent enemy cards (no attack bonus, just their raw Power). Each one defeated this way permanently loses 2 Power on all sides. If both are defeated, Pallis and Pell also gain +1 Power on all sides for the rest of the match."}]},
   { id:'voidqueen', name:'The Hungering Void', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3, onCaptureBonus:1}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [
     {name:'Hunger of the Void (Passive)', desc:'While she controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:'Insatiable (Passive)', desc:'Each time she takes control of an enemy card, she permanently gains +1 Power.'},
@@ -5302,6 +5302,11 @@ const SPECIAL_HANDLERS = {
   // same shield rules as a normal battle. "Choose up to 2" is simplified to
   // "the up to 2 adjacent enemies found automatically" (up/right/down/left
   // order) since the engine has no multi-select board-click flow yet.
+  // Combines both conflicting readings (user's choice "C", same as Vorathos):
+  // the existing AOE dual-battle stays as-is, and each individual card
+  // defeated this way also takes the approved art's permanent -2 all-sides
+  // debuff via the existing SpecialVerbs.debuff(), on top of the pre-existing
+  // both-flipped +1 self-buff.
   pallispell({ srcEntry, sourceIndex, owner }){
     const name = srcEntry.card.name;
     const row = Math.floor(sourceIndex/3), col = sourceIndex%3;
@@ -5326,6 +5331,7 @@ const SPECIAL_HANDLERS = {
       entry.owner = owner;
       entry.justFlipped = true;
       flipped.push(entry.card.name);
+      SpecialVerbs.debuff(entry, 2);
     });
     if(flipped.length === 0){
       return `${name}'s Hunter's Wrath is fought off without a single flip!`;
