@@ -4071,6 +4071,70 @@ test('Maximus: card trimmed from a 1/6-wired stub -- Gladiator\'s Dominion (onCa
   await page.close();
 });
 
+test('Darum: card trimmed from a 0/5-wired stub -- Wall of Resolve (onWinDirectionalBoost), Crushing Counter (vsStrongerTotalPowerBoost), Ironwall (shield), Gate of Dominion unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const darum = findCardById('darum');
+    out.statsUnchanged = darum.top === 10 && darum.right === 10 && darum.bottom === 8 && darum.left === 9 && darum.element === 'earth';
+    out.hasWallOfResolve = darum.active.onWinDirectionalBoost === 1;
+    out.hasCrushingCounter = darum.active.vsStrongerTotalPowerBoost && darum.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.hasIronwall = darum.active.shield === true;
+    out.skillCount = darum.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Wall of Resolve: winning a battle (as the attacker -- checkOnWinBonuses
+    // only ever fires for the placing/attacking side in this engine, never
+    // a defender that merely resists) grants permanent +1 on the winning
+    // side, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(darum, 'blue'); // top:10
+    src.shieldUsed = true; // isolate from Ironwall's own shield
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'dar-weak', name:'DarWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.wallOfResolveBoosted = src.sideBonus && src.sideBonus.top === 1;
+
+    // Crushing Counter: +3 Power vs a stronger-total-power foe, nothing vs a weaker one.
+    out.counterVsStronger = fullEffectiveValue(darum, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - darum.top;
+    out.counterVsWeaker = fullEffectiveValue(darum, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - darum.top;
+
+    // Ironwall: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    const shieldedDefender = freshEntry(darum, 'blue');
+    state.board[4] = shieldedDefender;
+    const bigAttacker = freshEntry({ id:'dar-big', name:'DarBig', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.ironwallBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Gate of Dominion (unchanged): threshold +4, flip, permanent +2.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(darum, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.darum({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.gateFlippedTarget = wtarget.owner === 'blue';
+    out.gatePermanentBoost = wsrc.captureBonus === 2;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasWallOfResolve, true);
+  assert.equal(result.hasCrushingCounter, true);
+  assert.equal(result.hasIronwall, true);
+  assert.equal(result.skillCount, 4, "the printed card carries Wall of Resolve, Crushing Counter, Ironwall, and Gate of Dominion -- Boulder Bash, Fortress Stance, and the Special-Attack immunity are gone");
+  assert.equal(result.wallOfResolveBoosted, true);
+  assert.equal(result.counterVsStronger, 3);
+  assert.equal(result.counterVsWeaker, 0);
+  assert.equal(result.ironwallBlockedFirstLoss, true);
+  assert.equal(result.gateFlippedTarget, true);
+  assert.equal(result.gatePermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

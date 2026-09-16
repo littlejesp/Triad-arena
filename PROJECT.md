@@ -36,7 +36,7 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41–43 (Zaevir, Ragnar, Maximus) ligger committade på
+**Punkt 41–44 (Zaevir, Ragnar, Maximus, Darum) ligger committade på
 feature-branchen, INTE mergade till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
@@ -49,7 +49,7 @@ saknar kod-backing), sämst kopplade först:
 1. **Zaevir** 0/4 — KLAR (punkt 41 nedan).
 2. **Ragnar** 0/4 — KLAR (punkt 42 nedan).
 3. **Maximus** 1/6 — KLAR (punkt 43 nedan).
-4. **Darum** 1/6
+4. **Darum** 1/6 — KLAR (punkt 44 nedan).
 5. **Daron** 1/6
 6. **Vorathos** 1/5
 7. **Pallispell** 1/5
@@ -529,6 +529,36 @@ Bort: Spinning Axe (otydligt villkor, överlappade med grundstats),
 Arena Rage (redundant med Gladiator's Dominion), Champion's Will
 (ingen befintlig "välj en allierad"-mekanik finns). Inga nya
 primitives.
+
+**44. Darum — trimmad från en 0/5-wired stubbe** — fjärde kortet från
+audit-listan. Precis som Maximus hade Darum en redan fungerande
+Ultimate (`SPECIAL_HANDLERS.darum`, tröskel +4/flip/permanent +2),
+bara de 5 vanliga skillsen saknade backing.
+
+- **Wall of Resolve (Passiv)** — helt befintligt fält
+  `active.onWinDirectionalBoost:1`. VIKTIG LÄRDOM under
+  implementationen: kortets ursprungliga text sa "vinner en
+  DEFENSIV strid", men `onWinDirectionalBoost` (och alla `checkOnWin-
+  Bonuses`-hooks överlag) triggas bara för den ANFALLANDE/placerande
+  sidans vinster i den här motorn — en försvarare som lyckas hålla
+  emot en attack räknas aldrig som en "vinst" i motorns egen mening.
+  Texten justerades till "vinner en strid" (utan "defensiv") för att
+  matcha vad primitiven faktiskt gör, upptäckt när det första
+  testförsöket floppade.
+- **Crushing Counter (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, matchade hans text
+  exakt.
+- **Ironwall (Passiv)** — helt befintligt fält `active.shield:true`.
+- **Special Attack: "Gate of Dominion"** — koden HELT oförändrad.
+  Bildens "kontrollera minst 4 kort"-villkor följdes INTE igen (fjärde
+  gången detta mönster dyker upp: Zaevir/Ragnar "3 kort", Maximus/
+  Darum "4 kort").
+- Stats **oförändrade** — matchade redan bilden exakt.
+
+Bort: Boulder Bash och Fortress Stance (båda otydliga/obetingade,
+överlappade varandra och grundidentiteten "tank"), samt "immun mot
+Special Attacks"-klausulen i Wall of Resolve (inget spårningssystem
+för det finns). Inga nya primitives.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

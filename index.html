@@ -1622,13 +1622,11 @@ const HEROES = [
     {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
     {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
-  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
-    {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
-    {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
-    {name:'Crushing Counter', desc:'When Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
-    {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
-    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:3}, shield:true}, special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Wall of Resolve (Passive)', desc:'The first time Darum wins a battle, he permanently gains +1 Power on that side.'},
+    {name:'Crushing Counter (Passive)', desc:'If Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
+    {name:'Ironwall (Passive)', desc:'The first time Darum would lose a battle, the loss is ignored.'},
+    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently."},
   ] },
   { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
     {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
@@ -1944,13 +1942,11 @@ const FOREST_FOES = [
     {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
     {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
-  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
-    {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
-    {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
-    {name:'Crushing Counter', desc:'When Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
-    {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
-    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:3}, shield:true}, special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Wall of Resolve (Passive)', desc:'The first time Darum wins a battle, he permanently gains +1 Power on that side.'},
+    {name:'Crushing Counter (Passive)', desc:'If Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
+    {name:'Ironwall (Passive)', desc:'The first time Darum would lose a battle, the loss is ignored.'},
+    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently."},
   ] },
   { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
     {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
