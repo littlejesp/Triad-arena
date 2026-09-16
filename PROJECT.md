@@ -37,8 +37,10 @@ explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
 **Punkt 41–49 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell,
-Templaren, Tilda) ligger committade på feature-branchen, INTE mergade till
-`main` än.**
+Templaren, Tilda) är sedan dess MERGADE till `main` också** (användaren
+bekräftade explicit "Merga nu"). Fråga alltid explicit innan nästa merge
+när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
