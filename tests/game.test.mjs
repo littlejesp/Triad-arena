@@ -3961,6 +3961,55 @@ test("Zaevir: card rebuilt from a 0/4-wired stub -- Eternal Aim (onPlaceBoost), 
   await page.close();
 });
 
+test('Ragnar: card rebuilt from a 0/4-wired stub -- War Breaker (vsStrongerTotalPowerBoost), Blood Rush (onCaptureBonus), and his first-ever Ultimate Blood Fury', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ragnar = findCardById('ragnar');
+    out.statsMatchArt = ragnar.top === 9 && ragnar.right === 6 && ragnar.bottom === 9 && ragnar.left === 5 && ragnar.element === 'fire';
+    out.hasWarBreaker = ragnar.active.vsStrongerTotalPowerBoost && ragnar.active.vsStrongerTotalPowerBoost.amount === 2;
+    out.hasBloodRush = ragnar.active.onCaptureBonus === 1;
+    out.skillCount = ragnar.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // War Breaker: +2 Power attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.warBreakerVsStronger = fullEffectiveValue(ragnar, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - ragnar.top;
+    out.warBreakerVsWeaker = fullEffectiveValue(ragnar, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - ragnar.top;
+
+    // Blood Rush: capturing a card permanently grants +1 Power.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(ragnar, 'blue'); // top:9
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'rag-weak', name:'RagWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.bloodRushGainedPower = src.captureBonus === 1;
+
+    // Blood Fury (same Eclipse shape as Zaevir/Sarah/Vayra/Ysara): non-crit
+    // win flips the target and grants permanent +1 Power all sides.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(ragnar, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.ragnar({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.furyFlippedTarget = wtarget.owner === 'blue';
+    out.furyPermanentBoost = wsrc.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 9/6/9/5 (top/right/bottom/left)');
+  assert.equal(result.hasWarBreaker, true);
+  assert.equal(result.hasBloodRush, true);
+  assert.equal(result.skillCount, 3, 'the printed card carries War Breaker, Blood Rush, and Blood Fury -- Double Strike and Last Fury are gone');
+  assert.equal(result.warBreakerVsStronger, 2);
+  assert.equal(result.warBreakerVsWeaker, 0);
+  assert.equal(result.bloodRushGainedPower, true);
+  assert.equal(result.furyFlippedTarget, true);
+  assert.equal(result.furyPermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

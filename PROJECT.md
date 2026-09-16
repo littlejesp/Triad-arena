@@ -36,8 +36,8 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41 (Zaevir) ligger committad på feature-branchen, INTE mergad
-till `main` än.**
+**Punkt 41–42 (Zaevir, Ragnar) ligger committade på feature-branchen,
+INTE mergade till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -47,7 +47,7 @@ korten som redan var åtgärdade vid det laget) och hittade 16 kort med
 "tysta" luckor (skills utan egen "Flavor only"-disclaimer som ändå
 saknar kod-backing), sämst kopplade först:
 1. **Zaevir** 0/4 — KLAR (punkt 41 nedan).
-2. **Ragnar** 0/4
+2. **Ragnar** 0/4 — KLAR (punkt 42 nedan).
 3. **Maximus** 1/6
 4. **Darum** 1/6
 5. **Daron** 1/6
@@ -474,6 +474,32 @@ Bort: Forest's Path (skulle kräva en helt ny räckvidds-mekanik för
 icke-angränsande attacker, inte värt det för ett enda filler-kort) och
 den gamla Eternal Arrow-kedjeattacks-idén (ingen kedjeattack-mekanik
 finns). Inga nya primitives.
+
+**42. Ragnar — full ombyggnad från en 0/4-wired stubbe** — andra kortet
+från 16-korts audit-listan, samma mönster som Zaevir: INGET
+`special`-fält alls och ett `active.bonus`-fält som inte matchade
+någon av hans 4 skills. 0 av 4 skills hade backing.
+
+- **War Breaker (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:2}`, samma primitive som
+  Yojimbo/Ysara/Sarah/Lyrith. Omtolkad från "valfri fiende" (ingen
+  mål-väljar-UI finns) till "en starkare fiende".
+- **Blood Rush (Passiv)** — helt befintligt fält
+  `active.onCaptureBonus:1`, samma primitive som Ifrit/Graff/Vayra/
+  Yojimbo. "Nästa strid" blev permanent, samma simplifiering som redan
+  gjorts flera gånger.
+- **Special Attack: "Blood Fury"** — hans FÖRSTA Ultimate någonsin,
+  samma Eclipse-mönster som Zaevir/Sarah/Vayra/Ysara. Bildens eget
+  "kontrollera minst 3 kort"-aktiveringsvillkor följdes INTE igen —
+  samma återkommande mönster i bildverktyget som redan avvisades för
+  Zaevir, av samma anledning (ny resurstyp utanför Wins-systemet).
+- Stats matchade till godkänd konst (tre av fyra sidor omkastade):
+  top:9, right:6, bottom:9, left:5 (tidigare 9/5/6/9).
+
+Bort: Double Strike (kedjeattack finns inte, samma som Zaevirs
+strukna koncept) och Last Fury (redundant mot spelets globala
+`lastStandBonus()`, samma anledning Sarahs gamla "Last Arrow"
+ströks). Inga nya primitives.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

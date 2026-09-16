@@ -1350,7 +1350,11 @@ const HEROES = [
     {name:'Vanguard of the Hunt (Passive)', desc:'While your side controls fewer cards than your opponent, Sylvarion gets +2 Power on the attacking side.'},
     {name:"Special Attack: Herald's Gale", desc:"Costs 2 wins. A gale sweeps the board: every enemy card gets -2 Power this round. Sylvarion permanently gains +1 Power on all sides for every card fewer his side controls compared to the opponent at the moment of casting (max +3), locked in at activation. Usable once per match."},
   ]},
-  { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:5, bottom:6, left:9, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Double Strike", desc:"When Ragnar wins a battle, he may attack again this round (once per round)."}, {name:"War Breaker", desc:"Choose an enemy card — Ragnar gets +2 Power when attacking it."}, {name:"Blood Rush", desc:"When Ragnar defeats an enemy card, he gets +1 Power for his next battle."}, {name:"Last Fury", desc:"If Ragnar is your only card left on the board, he gets +3 Power until the round ends."}], active: {bonus:{dir:'top',amount:1}}},
+  { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:6, bottom:9, left:5, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', active:{vsStrongerTotalPowerBoost:{amount:2}, onCaptureBonus:1}, special:{ name:'Blood Fury', cost:2, once:true, targets:'single' }, skills:[
+    {name:'War Breaker (Passive)', desc:'If Ragnar attacks an enemy card with higher total Power than his own, he gets +2 Power on the attacking side.'},
+    {name:'Blood Rush (Passive)', desc:'Each time Ragnar takes control of an enemy card, he permanently gains +1 Power.'},
+    {name:'Special Attack: Blood Fury', desc:"Costs 2 wins. Choose an enemy card — Ragnar gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
+  ]},
   // Naline was fully redesigned in a later session from a new poster the
   // user sent ("Naline, The Soul Healer") — same full-rebuild treatment
   // Tiamat got earlier: name and id unchanged (existing unlockIds/rivalry
@@ -5242,6 +5246,24 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Eternal Arrow finds its mark — ${targetEntry.card.name} falls!`;
+  },
+  // Ragnar's first-ever Ultimate, same Eclipse shape as Zaevir/Sarah/Vayra/
+  // Ysara. The approved art described a "control 3+ cards" activation gate
+  // instead of a Wins cost -- not adopted, same call as Zaevir, since it
+  // would need a new resource type outside the existing Wins-cost system.
+  ragnar({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Blood Fury finds no opening — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Blood Fury!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Blood Fury overwhelms ${targetEntry.card.name}!`;
   },
   ysara({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
