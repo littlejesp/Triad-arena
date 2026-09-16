@@ -1449,7 +1449,7 @@ const HEROES = [
     {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
     {name:'Apocalyptic Retribution', desc:'If Tiamat controls more squares than her opponent, she gets +1 Power on all sides.'},
     {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
-    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
+    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers. Fire: +5 Power, +1 all sides permanently on win. Ice: no self-boost, but -3 Power to the target this attack. Storm: +3 Power; on win, every other adjacent enemy gets -1 Power this round. Void: +2 Power; if the target has 10 or less total Power, destroy it outright instead of capturing. Nature: +2 Power; on win, cleanses all negative effects on your whole side.'},
   ] },
   { id:'tahabata', name:'Tahabata', role:'Pyrelord', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', isDragon:true, active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
@@ -1778,7 +1778,7 @@ const FOREST_FOES = [
   { id:'threeheaddragon', name:'Three Head Dragon', role:'Mystic Card', element:'fire', top:10, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#1a0a28,#0d0b18 60%)', accent:'#8b6ef2', icon:'🐲', isDragon:true, active:{ freezeDefenderPenalty:2, onWinAreaDebuff:1, destroyImmune:true }, special:{ name:'Apokalyps', cost:2, once:true, targets:'aoe' }, skills: [    {name:'Three Souls, One Fury (Passive)', desc:"When Three Head Dragon is placed, every enemy card gets -1 Power on its weakest side."},
     {name:"Ice's Breath", desc:'When Three Head Dragon attacks, the defending side is frozen and gets -2 Power during that attack.'},
     {name:"Fire's Wrath", desc:'When Three Head Dragon wins a battle, every enemy card around the defeated card gets -1 Power on all sides.'},
-    {name:"Poison's Torment", desc:"When Three Head Dragon loses a battle, the winner gets -2 Power on all sides during its next attack. (Flavor only — would need a deferred bonus consumed on a card's next attack, the same category of engine risk avoided for Tiamat's rebuilt ultimate; see PROJECT.md.)"},
+    {name:"Poison's Torment", desc:"When Three Head Dragon loses a battle, the winner gets -2 Power on all sides during its next attack."},
     {name:'Immortal Chaos', desc:"Three Head Dragon can never be destroyed by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Apokalyps', desc:'Costs 2 wins. Every enemy card gets -3 Power on all sides for the rest of this round.'},
   ] },
@@ -1798,7 +1798,7 @@ const FOREST_FOES = [
     {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
     {name:'Apocalyptic Retribution', desc:'If Tiamat controls more squares than her opponent, she gets +1 Power on all sides.'},
     {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
-    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
+    {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers. Fire: +5 Power, +1 all sides permanently on win. Ice: no self-boost, but -3 Power to the target this attack. Storm: +3 Power; on win, every other adjacent enemy gets -1 Power this round. Void: +2 Power; if the target has 10 or less total Power, destroy it outright instead of capturing. Nature: +2 Power; on win, cleanses all negative effects on your whole side.'},
   ] },
   { id:'tahabata', name:'Tahabata', role:'Pyrelord', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', isDragon:true, active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
@@ -3177,10 +3177,9 @@ function elementBeats(a, b){ return a && b && ELEMENT_BEATS[a] === b; }
 // an extra pick beyond (or instead of) a board target — rendered by
 // renderChoicePicker(), resolved by resolveSpecialChoice().
 const ELEMENT_CHOICES = ['fire','wind','earth','water'].map(el => ({ value: el, icon: ELEMENT_ICONS[el], label: el[0].toUpperCase()+el.slice(1) }));
-// Purely flavor labels since the redesigned Fivefold Apocalypse (see
-// SPECIAL_HANDLERS.tiamat) gives all five powers the same mechanical
-// effect — kept as a choice anyway for the ritual feel of "channeling one
-// of five heads".
+// Each of the five powers resolves differently now (see
+// SPECIAL_HANDLERS.tiamat) — Fire/Ice/Storm/Void/Nature are real mechanical
+// choices, not just flavor labels on an identical effect.
 const TIAMAT_POWER_CHOICES = [
   { value:'fire', icon:'🔥', label:'Fire' },
   { value:'ice', icon:'❄️', label:'Ice' },
@@ -5269,28 +5268,65 @@ const SPECIAL_HANDLERS = {
       ? `${srcEntry.card.name}'s Wave of Loyalty blesses ${matches.length} ${elName} ${matches.length===1 ? 'ally' : 'allies'}!`
       : `${srcEntry.card.name}'s Wave of Loyalty finds no ${elName} allies to bless!`;
   },
-  // Redesigned in a later session from a new source poster that replaces
-  // the old five-distinct-effects "Fivefold Apocalypse" (Attack/Defense/
-  // Breakthrough/Weakening/Dominance) entirely: "choose one of the five
-  // powers: Fire, Ice, Storm, Void or Nature. Attack gets +5 Power; if
-  // Tiamat wins, +1 all sides for the rest of the match." Unlike the old
-  // kit, the new text gives no distinct mechanical effect per power — all
-  // five are flavor labels this time, so the choice picker stays (for feel)
-  // but every choice resolves identically, via the engine's standard
-  // single-target temp-boost-then-permanent-on-win pattern (see Astrael).
-  tiamat({ srcEntry, targetEntry, targetIndex, owner }){
+  // Second redesign, this session: the previous rebuild (see PROJECT.md)
+  // gave the five powers identical resolution as a deliberate simplification
+  // — avoiding a "pending direction bonus consumed on next attack" mutation
+  // in fullEffectiveValue. That risk doesn't apply here because every power
+  // below resolves IMMEDIATELY at cast time (same standard single-target
+  // temp-boost-then-permanent-on-win shape as Astrael), so there's nothing
+  // left deferred to protect against. Five real choices now:
+  // - Fire: +5 attack (the original behavior); +1 all sides permanently on win.
+  // - Ice: no self-boost, instead -3 to the target's defense this attack —
+  //   the biggest single-attack swing, no permanent reward.
+  // - Storm: +3 attack; on win, every OTHER enemy adjacent to the captured
+  //   cell gets -1 Power this round (reuses the same adjacency shape as
+  //   Three Head Dragon's Fire's Wrath/onWinAreaDebuff, but round-scoped
+  //   via debuffThisRound instead of permanent, and only on this specific
+  //   choice rather than every win).
+  // - Void: +2 attack; if the target's total Power is 10 or lower (same
+  //   "weak" threshold Shiva's Diamond Storm already established for its
+  //   own execute-window mechanic), destroy it outright instead of
+  //   capturing — respects isDestroyImmune/protectedByInfiniteSeraph like
+  //   every other destroy path.
+  // - Nature: +2 attack; on win, cleanse negative effects (captureBonus<0
+  //   reset to 0, tempEffects cleared) on Tiamat's WHOLE side — the
+  //   onWinCleanseAlly pattern (Naline/Elara) applied side-wide instead of
+  //   one random ally.
+  tiamat({ srcEntry, targetEntry, targetIndex, owner, power }){
     const name = srcEntry.card.name;
-    if(totalPower(srcEntry) + 5 <= totalPower(targetEntry)){
+    const p = power || 'fire';
+    const atkBoost = { fire:5, ice:0, storm:3, void:2, nature:2 }[p];
+    const iceDebuff = p === 'ice' ? 3 : 0;
+    if(totalPower(srcEntry) + atkBoost <= totalPower(targetEntry) - iceDebuff){
       return `${name}'s Fivefold Apocalypse is repelled by ${targetEntry.card.name}!`;
     }
     if(specialBlockedByShield(targetEntry, targetIndex)){
       return `${targetEntry.card.name}'s shield holds against the Fivefold Apocalypse!`;
     }
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    if(p === 'void' && totalPower(targetEntry) <= 10 && !isDestroyImmune(targetEntry) && !protectedByInfiniteSeraph(enemyOwner)){
+      destroyCard(targetIndex);
+      return `${name}'s Void unmakes ${targetEntry.card.name} entirely!`;
+    }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
-    SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${name}'s Fivefold Apocalypse claims ${targetEntry.card.name}!`;
+    if(p === 'fire'){
+      SpecialVerbs.attackBoost(srcEntry, 1);
+    } else if(p === 'storm'){
+      adjacentEntries(targetIndex).forEach(({ entry: n }) => {
+        if(n.owner === enemyOwner) SpecialVerbs.debuffThisRound(n, 1);
+      });
+    } else if(p === 'nature'){
+      state.board.forEach(e => {
+        if(e && e.owner === owner){
+          if(e.captureBonus < 0) e.captureBonus = 0;
+          e.tempEffects = [];
+        }
+      });
+    }
+    const POWER_LABEL = { fire:'Fire', ice:'Ice', storm:'Storm', void:'Void', nature:'Nature' };
+    return `${name}'s ${POWER_LABEL[p]} claims ${targetEntry.card.name}!`;
   },
   astrael({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
@@ -6317,6 +6353,15 @@ function battleNeighbors(index, owner, result){
   const placedEntry = state.board[index];
   const placed = placedEntry.card;
   const newlyFlipped = [];
+  // Three Head Dragon's Poison's Torment: "the winner gets -2 Power on all
+  // sides during its NEXT attack" — consumed here, once, applying to every
+  // neighbor battle in this one placement (all the sides used in this one
+  // "attack" event), same per-entry live-flag pattern as Ifrit's
+  // defeatedByIfrit/Seraphine's/Tilda's marks. Read and cleared BEFORE the
+  // loop (not per-iteration) so a placement with several neighbors still
+  // only consumes the flag once, not once per neighbor.
+  const poisonedTormentActive = !!placedEntry.poisonedTorment;
+  if(poisonedTormentActive) placedEntry.poisonedTorment = false;
 
   present.forEach(p=>{
     const target = state.board[p.ni];
@@ -6326,6 +6371,7 @@ function battleNeighbors(index, owner, result){
 
     let placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     let targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
+    if(poisonedTormentActive) placedVal -= 2;
     // Seraphine's Celestial Mark: +2 Power when she attacks the SPECIFIC
     // enemy entry her on-place mark landed on. Hardcoded by id (same shape
     // as Triune Desire's Divine Temptation) rather than a generic active
@@ -6469,10 +6515,25 @@ function battleNeighbors(index, owner, result){
       // place in the real battle-resolution path that has the live
       // just-captured entry to tag.
       if(placed.id === 'ifrit') target.defeatedByIfrit = true;
+      // Three Head Dragon's Poison's Torment, defender side: 3HD just lost
+      // this battle as the DEFENDER — tag the winner (placedEntry) so its
+      // next attack (consumed at the top of this function) takes -2.
+      // Respects debuffImmune like every other debuff source, even though
+      // this isn't routed through SpecialVerbs.debuff/debuffThisRound
+      // (those already guard debuffImmune internally; this hand-rolled
+      // per-entry flag needs its own check).
+      if(target.card.id === 'threeheaddragon' && !(placed.active && placed.active.debuffImmune)){
+        placedEntry.poisonedTorment = true;
+      }
       checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni, index, placedVal);
       checkTriuneTeamBoost(owner);
       result.flips++;
       newlyFlipped.push(p.ni);
+    } else if(placed.id === 'threeheaddragon' && !(target.card.active && target.card.active.debuffImmune)){
+      // Poison's Torment, attacker side: 3HD just lost this battle as the
+      // ATTACKER (was just placed, lost to this particular neighbor) —
+      // tag the successful defender instead.
+      target.poisonedTorment = true;
     }
   });
 
@@ -6601,12 +6662,14 @@ function enemyTryUseSpecial(){
     }
 
     // Tiamat still opens a choice picker after a target click (see
-    // resolveSpecialTarget) even though the redesigned Fivefold Apocalypse
-    // makes all five powers mechanically identical — the AI has no picker
-    // UI to drive, so it bypasses that flow entirely, using the same "would
-    // I win this fight" heuristic as every other attack-and-flip special
-    // below. The power value itself is unused by SPECIAL_HANDLERS.tiamat
-    // now; 'fire' is passed only for log/flavor consistency.
+    // resolveSpecialTarget) — the AI has no picker UI to drive, so it
+    // bypasses that flow entirely, using the same "would I win this fight"
+    // heuristic as every other attack-and-flip special below. Now that the
+    // five powers actually differ, the AI always picks 'fire': the
+    // straightforward highest-raw-power/permanent-scaling option, matching
+    // its existing greedy heuristic (which also doesn't account for any of
+    // the five powers' own bonus when prefiltering targets — same known
+    // gap documented in section 5 for Astrael/Darum/Daron/Maximus/etc).
     if(c.entry.card.id === 'tiamat'){
       let bestTarget = null, bestPower = -1;
       state.board.forEach((target, ti) => {

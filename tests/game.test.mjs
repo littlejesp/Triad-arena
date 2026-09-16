@@ -255,6 +255,181 @@ test('Tiamat: rebuilt Fivefold Apocalypse captures with a permanent +1 on win', 
   await page.close();
 });
 
+test("Tiamat: second Fivefold Apocalypse rework -- Ice/Storm/Void/Nature are now mechanically distinct (Fire's behavior, tested above, is unchanged)", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const tiamat = findCardById('tiamat'); // total 38 (10+9+10+9)
+
+    // Ice: no self-boost, but -3 to the target's defense this attack.
+    // A target with total 39 (1 more than Tiamat's raw 38) would repel a
+    // plain attack, but Ice's -3 flips it into a win -- and unlike Fire,
+    // no permanent captureBonus is granted.
+    state.board = Array(9).fill(null);
+    const iceSrc = freshEntry(tiamat, 'blue');
+    state.board[4] = iceSrc;
+    const iceTarget = freshEntry({ id:'ice-test', name:'IceTest', top:10,right:10,bottom:10,left:9 }, 'red'); // total 39
+    state.board[1] = iceTarget;
+    SPECIAL_HANDLERS.tiamat({ srcEntry: iceSrc, targetEntry: iceTarget, targetIndex: 1, owner: 'blue', power: 'ice' });
+    out.iceCaptured = iceTarget.owner === 'blue';
+    out.iceNoPermanentBonus = iceSrc.captureBonus === 0;
+
+    // Storm: +3 attack; on win, every OTHER adjacent-to-target enemy gets
+    // -1 Power this round -- but not an allied card in the same spot, and
+    // not a permanent captureBonus on Tiamat herself.
+    state.board = Array(9).fill(null);
+    const stormSrc = freshEntry(tiamat, 'blue');
+    state.board[4] = stormSrc; // center, 'up' neighbor is index 1
+    const stormTarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[1] = stormTarget; // weak target, easily won regardless of power
+    const stormEnemyNeighbor = freshEntry(findCardById('ogre'), 'red');
+    state.board[0] = stormEnemyNeighbor; // adjacent to target (index 1), not to Tiamat
+    const stormAllyNeighbor = freshEntry(findCardById('ogre'), 'blue');
+    state.board[2] = stormAllyNeighbor; // also adjacent to target, but allied
+    SPECIAL_HANDLERS.tiamat({ srcEntry: stormSrc, targetEntry: stormTarget, targetIndex: 1, owner: 'blue', power: 'storm' });
+    out.stormCaptured = stormTarget.owner === 'blue';
+    out.stormNoPermanentBonus = stormSrc.captureBonus === 0;
+    out.stormHitEnemyNeighbor = stormEnemyNeighbor.captureBonus === -1;
+    out.stormSparedAllyNeighbor = stormAllyNeighbor.captureBonus === 0;
+
+    // Void: destroys outright (board cell goes null, not captured) when the
+    // target's total Power is 10 or lower; a sturdier target just gets
+    // captured normally; destroyImmune blocks the destroy and falls back
+    // to a normal capture.
+    state.board = Array(9).fill(null);
+    const voidSrcWeak = freshEntry(tiamat, 'blue');
+    state.board[4] = voidSrcWeak;
+    const weakTarget = freshEntry({ id:'void-weak', name:'VoidWeak', top:2,right:2,bottom:2,left:2 }, 'red'); // total 8
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.tiamat({ srcEntry: voidSrcWeak, targetEntry: weakTarget, targetIndex: 1, owner: 'blue', power: 'void' });
+    out.voidDestroyedWeak = state.board[1] === null;
+
+    state.board = Array(9).fill(null);
+    const voidSrcSturdy = freshEntry(tiamat, 'blue');
+    state.board[4] = voidSrcSturdy;
+    const sturdyTarget = freshEntry(findCardById('ogre'), 'red'); // total 25, above the threshold
+    state.board[1] = sturdyTarget;
+    SPECIAL_HANDLERS.tiamat({ srcEntry: voidSrcSturdy, targetEntry: sturdyTarget, targetIndex: 1, owner: 'blue', power: 'void' });
+    out.voidCapturedSturdy = state.board[1] !== null && state.board[1].owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    const voidSrcImmune = freshEntry(tiamat, 'blue');
+    state.board[4] = voidSrcImmune;
+    const immuneTarget = freshEntry({ id:'void-immune', name:'VoidImmune', top:2,right:2,bottom:2,left:2, active:{destroyImmune:true} }, 'red');
+    state.board[1] = immuneTarget;
+    SPECIAL_HANDLERS.tiamat({ srcEntry: voidSrcImmune, targetEntry: immuneTarget, targetIndex: 1, owner: 'blue', power: 'void' });
+    out.voidRespectsDestroyImmune = state.board[1] !== null && state.board[1].owner === 'blue';
+
+    // Nature: +2 attack; on win, cleanses negative effects on Tiamat's
+    // WHOLE side (captureBonus<0 reset to 0, tempEffects cleared) --
+    // a positive captureBonus ally is left untouched.
+    state.board = Array(9).fill(null);
+    const natureSrc = freshEntry(tiamat, 'blue');
+    state.board[4] = natureSrc;
+    const natureTarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[1] = natureTarget;
+    const debuffedAlly = freshEntry(findCardById('ogre'), 'blue');
+    debuffedAlly.captureBonus = -2;
+    debuffedAlly.tempEffects = [{ captureDelta: -2, expiresAtTurnCount: 999 }];
+    state.board[0] = debuffedAlly;
+    const buffedAlly = freshEntry(findCardById('ogre'), 'blue');
+    buffedAlly.captureBonus = 3;
+    state.board[2] = buffedAlly;
+    SPECIAL_HANDLERS.tiamat({ srcEntry: natureSrc, targetEntry: natureTarget, targetIndex: 1, owner: 'blue', power: 'nature' });
+    out.natureCleansedNegative = debuffedAlly.captureBonus === 0 && debuffedAlly.tempEffects.length === 0;
+    out.naturePreservedPositive = buffedAlly.captureBonus === 3;
+
+    return out;
+  })()`);
+  assert.equal(result.iceCaptured, true, "Ice's -3 to the target should turn a would-be repel into a win");
+  assert.equal(result.iceNoPermanentBonus, true, 'Ice grants no permanent captureBonus, unlike Fire');
+  assert.equal(result.stormCaptured, true);
+  assert.equal(result.stormNoPermanentBonus, true, 'Storm grants no permanent captureBonus, unlike Fire');
+  assert.equal(result.stormHitEnemyNeighbor, true, "Storm's splash debuffs other enemies adjacent to the captured cell");
+  assert.equal(result.stormSparedAllyNeighbor, true, "Storm's splash must not hit Tiamat's own side");
+  assert.equal(result.voidDestroyedWeak, true, 'Void destroys a target at or below 10 total Power outright');
+  assert.equal(result.voidCapturedSturdy, true, 'Void just captures normally above the threshold');
+  assert.equal(result.voidRespectsDestroyImmune, true, 'destroyImmune blocks the destroy, falling back to a normal capture');
+  assert.equal(result.natureCleansedNegative, true, "Nature cleanses negative captureBonus/tempEffects on Tiamat's whole side");
+  assert.equal(result.naturePreservedPositive, true, 'Nature must not touch an already-positive captureBonus');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Three Head Dragon: Poison's Torment marks whoever beats it, -2 on that entry's next attack only", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const dragon = findCardById('threeheaddragon');
+
+    // Case A: Three Head Dragon loses as the DEFENDER (a stronger card is
+    // placed next to it and wins) -- the WINNER gets tagged.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const weakDragon = freshEntry({ ...dragon, top:1, right:1, bottom:1, left:1 }, 'blue');
+    state.board[1] = weakDragon;
+    state.playerHand = [];
+    state.enemyHand = [{ id:'strong-atk', name:'StrongAtk', top:9,right:9,bottom:9,left:9 }];
+    placeCard(4, 'strong-atk', 'red'); // 'up' edge attacks weakDragon's 'bottom'
+    const winner = state.board[4];
+    out.defenderLossTaggedWinner = winner.poisonedTorment === true;
+
+    // That winner's NEXT attack (any later placement) takes -2 -- proven by
+    // pitting it against a target it would otherwise juuust beat, but loses
+    // to once poisoned.
+    state.board = Array(9).fill(null);
+    state.board[4] = winner; // carries poisonedTorment:true from above
+    const marginTarget = freshEntry({ id:'margin-test', name:'MarginTest', top:8,right:8,bottom:8,left:8 }, 'red'); // 9 vs 8 would normally win
+    state.board[1] = marginTarget;
+    const battleResult = { flipSeq: 0, flips: 0, shielded: 0, bonusTriggered: false };
+    battleNeighbors(4, 'blue', battleResult);
+    out.poisonedAttackLost = marginTarget.owner === 'red'; // -2 turns a 9-vs-8 win into a 7-vs-8 loss
+    out.flagClearedAfterUse = winner.poisonedTorment === false;
+
+    // A SECOND attack after the flag is consumed must NOT still apply -2.
+    state.board = Array(9).fill(null);
+    state.board[4] = winner;
+    const secondTarget = freshEntry({ id:'second-test', name:'SecondTest', top:8,right:8,bottom:8,left:8 }, 'red');
+    state.board[1] = secondTarget;
+    battleNeighbors(4, 'blue', { flipSeq: 0, flips: 0, shielded: 0, bonusTriggered: false });
+    out.secondAttackNotPoisoned = secondTarget.owner === 'blue';
+
+    // Case B: Three Head Dragon loses as the ATTACKER (freshly placed,
+    // loses to a stronger neighbor already on the board) -- the successful
+    // DEFENDER gets tagged instead.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const defender = freshEntry({ id:'strong-def', name:'StrongDef', top:1,right:1,bottom:9,left:1 }, 'red');
+    state.board[1] = defender; // 'bottom' edge (9) faces down into index 4
+    state.playerHand = [{ ...dragon, top:1, right:1, bottom:1, left:1 }];
+    state.enemyHand = [];
+    placeCard(4, dragon.id, 'blue');
+    out.attackerLossTaggedDefender = defender.poisonedTorment === true;
+
+    // debuffImmune (The Eclipse Fenrir) must block the tag entirely.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const weakDragon2 = freshEntry({ ...dragon, top:1, right:1, bottom:1, left:1 }, 'blue');
+    state.board[1] = weakDragon2;
+    state.playerHand = [];
+    state.enemyHand = [{ ...findCardById('fenrir'), top:9,right:9,bottom:9,left:9 }];
+    placeCard(4, 'fenrir', 'red');
+    out.debuffImmuneNotTagged = state.board[4].poisonedTorment !== true;
+
+    return out;
+  })()`);
+  assert.equal(result.defenderLossTaggedWinner, true, 'the winner over a defending Three Head Dragon should be tagged poisonedTorment');
+  assert.equal(result.poisonedAttackLost, true, "the tagged entry's next attack should take -2 and lose a battle it would otherwise win");
+  assert.equal(result.flagClearedAfterUse, true, 'the flag is consumed after one attack');
+  assert.equal(result.secondAttackNotPoisoned, true, 'a later attack after the flag is consumed must not still take -2');
+  assert.equal(result.attackerLossTaggedDefender, true, 'the defender who beats an attacking Three Head Dragon should be tagged instead');
+  assert.equal(result.debuffImmuneNotTagged, true, 'debuffImmune must block the poisonedTorment tag entirely');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('active.boardLeadBonus: strict lead (Tiamat) vs. tie-counts (The Celestial Judgment)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
