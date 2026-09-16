@@ -1497,13 +1497,13 @@ const HEROES = [
     {name:'Graceful Unity', desc:'If Twin Sisters and Twin Brothers are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Lunar Eclipse', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Sisters gets +3 Power on that side and the enemy's defensive skills can't activate. If she wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}}, special:{ name:'Yang Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyin' }, skills: [
+  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}, neutralizeAttackerBonus:true, mindsBalanceSwap:true}, special:{ name:'Yang Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyin' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yang Resonance', desc:'Costs 3 wins. Unites with Yin — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}}, special:{ name:'Yin Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyang' }, skills: [
+  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}, neutralizeAttackerBonus:true, mindsBalanceSwap:true}, special:{ name:'Yin Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyang' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
@@ -1732,13 +1732,13 @@ const HEROES = [
 
 
 const FOREST_FOES = [
-  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}}, special:{ name:'Yang Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyin' }, skills: [
+  { id:'eviltwistyang', name:'Evil Twist', role:'Yang — The White', element:'wind', top:8, right:8, bottom:9, left:10, hue:'linear-gradient(160deg,#2a2412,#0d0b18 60%)', accent:'#e0d090', active:{pairPresence:{partner:'eviltwistyin', attack:1, defense:2}, neutralizeAttackerBonus:true, mindsBalanceSwap:true}, special:{ name:'Yang Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyin' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yang Resonance', desc:'Costs 3 wins. Unites with Yin — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}}, special:{ name:'Yin Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyang' }, skills: [
+  { id:'eviltwistyin', name:'Evil Twist', role:'Yin — The Black', element:'water', top:9, right:10, bottom:8, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{pairPresence:{partner:'eviltwistyang', attack:1, defense:2}, neutralizeAttackerBonus:true, mindsBalanceSwap:true}, special:{ name:'Yin Resonance', cost:3, once:true, targets:'aoe', requiresPartner:'eviltwistyang' }, skills: [
     {name:'Guardian of Balance (Passive)', desc:'If both Evil Twist cards are on the board, both get +2 Power when defending and +1 Power when attacking. Only active while both are on the board.'},
     {name:'Inner Harmony', desc:"When Evil Twist defends a card, it neutralizes the attacker's bonus this round."},
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
@@ -5238,17 +5238,24 @@ const SPECIAL_HANDLERS = {
     return `${srcEntry.card.name}'s Lunar Eclipse pierces ${targetEntry.card.name}!`;
   },
   // requiresPartner (checked by specialUsable) already guarantees Yin is on
-  // the board whenever this actually fires.
+  // the board whenever this actually fires. Bug fix: this used to call
+  // SpecialVerbs.debuff() (permanent) despite the card text explicitly
+  // saying "-2 Power THIS ROUND" — the wrong verb was picked when this was
+  // first wired (no comment ever justified making it permanent, unlike the
+  // deliberate "this round -> permanent" simplifications used elsewhere in
+  // this file's single-target Ultimate family). debuffThisRound() is the
+  // verb Shiva/Leviathan's own "this round" board-wide debuffs already use.
   eviltwistyang({ srcEntry, owner }){
     const enemies = state.board.filter(e => e && e.owner !== owner);
-    enemies.forEach(e => SpecialVerbs.debuff(e, 2));
+    enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
     return `${srcEntry.card.name} unites with Yin — Yang Resonance withers the enemy ranks!`;
   },
   // requiresPartner (checked by specialUsable) already guarantees Yang is on
-  // the board whenever this actually fires.
+  // the board whenever this actually fires. Same debuff/debuffThisRound bug
+  // fix as eviltwistyang above.
   eviltwistyin({ srcEntry, owner }){
     const enemies = state.board.filter(e => e && e.owner !== owner);
-    enemies.forEach(e => SpecialVerbs.debuff(e, 2));
+    enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
     return `${srcEntry.card.name} unites with Yang — Yin Resonance withers the enemy ranks!`;
   },
   pallis({ srcEntry, owner, element }){
@@ -6318,7 +6325,7 @@ function battleNeighbors(index, owner, result){
     target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
 
     let placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
-    const targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
+    let targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
     // Seraphine's Celestial Mark: +2 Power when she attacks the SPECIFIC
     // enemy entry her on-place mark landed on. Hardcoded by id (same shape
     // as Triune Desire's Divine Temptation) rather than a generic active
@@ -6368,6 +6375,29 @@ function battleNeighbors(index, owner, result){
         placedVal -= target.card.active.volcanicArmorPenalty;
         target.volcanicArmorUsed = true;
       }
+    }
+    // Evil Twist's Inner Harmony: "when Evil Twist defends, it neutralizes
+    // the attacker's bonus this round" — reset the attacker's effective
+    // value back to its bonus-free baseline. p.myVal is exactly that
+    // baseline (fullEffectiveValue's OUTPUT, placedVal, already includes
+    // every bonus; p.myVal is the raw pre-bonus comparison value computed
+    // earlier — see the bonusFlash diffing below, which already relies on
+    // that same distinction). No "each round" gate needed beyond the
+    // per-battle placedVal reset itself; unconditional every time Evil
+    // Twist defends, same as the card text (no "once" qualifier).
+    if(target.card.active && target.card.active.neutralizeAttackerBonus){
+      placedVal = p.myVal;
+    }
+    // Evil Twist's Mind's Balance: "when Evil Twist attacks, swap strength
+    // with the opponent's card if theirs is higher" — a straight value
+    // swap, applied AFTER Inner Harmony above so a mirror match (Evil
+    // Twist attacking Evil Twist) resolves the defender's neutralize
+    // first, then the attacker's own conditional swap reacts to that
+    // already-adjusted comparison.
+    if(placed.active && placed.active.mindsBalanceSwap && targetVal > placedVal){
+      const swapTmp = placedVal;
+      placedVal = targetVal;
+      targetVal = swapTmp;
     }
     const effOutcome = placedVal > targetVal;
     const baseOutcome = p.myVal > p.theirVal;
