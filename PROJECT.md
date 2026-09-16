@@ -51,8 +51,10 @@ ALDRIG tillstånd från en tidigare bekräftelse.
 
 **Punkt 51 (Pallis, solo — 5/5 skills, Loyal Instinct struken, ny konst
 inlagd) samt punkt 52 (Ifrit, Hellfire Claw + Burning Dominion
-tillagda) ligger committade på feature-branchen, INTE mergade till
-`main` än.**
+tillagda, ny konst inlagd) är sedan dess MERGADE till `main` också**
+(användaren bekräftade explicit "merga nu"). Fråga alltid explicit
+innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd
+från en tidigare bekräftelse.
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
