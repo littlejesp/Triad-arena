@@ -3205,7 +3205,7 @@ test('Pallis: reworked per audit — Protective Aura (temporary capture-immunity
   await page.close();
 });
 
-test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpiredRoundEffects) and Burning Dominion (adjacent defeatedByIfrit aura) added, Eternal Inferno/Hellfire/stats unchanged, Volcanic Armor and Rage of the Beast still unbuilt', async () => {
+test('Ifrit: Hellfire Claw (once-per-ROUND attack boost), Burning Dominion (adjacent defeatedByIfrit aura), and Volcanic Armor (defender debuffs attacker once) added, Eternal Inferno/Hellfire/stats unchanged, Rage of the Beast still unbuilt (unresolved wording)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -3222,7 +3222,8 @@ test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpired
       && forestIfrit.active.oncePerMatchAttackBoost.amount === 2
       && forestIfrit.active.attackBoostResetsEachRound === true
       && forestIfrit.active.adjacentDefeatedByMeBoost.minCount === 2
-      && forestIfrit.active.adjacentDefeatedByMeBoost.amount === 1;
+      && forestIfrit.active.adjacentDefeatedByMeBoost.amount === 1
+      && forestIfrit.active.volcanicArmorPenalty === 1;
 
     // Hellfire Claw: +2 on attack, consumed on use, but -- unlike every
     // other oncePerMatchAttackBoost user -- reset back to usable by
@@ -3276,6 +3277,30 @@ test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpired
     resolveFlips(4, 'blue');
     out.defeatedByIfritTaggedOnCapture = tagTarget.owner === 'blue' && tagTarget.defeatedByIfrit === true;
 
+    // Volcanic Armor: the first time Ifrit (as DEFENDER) would lose,
+    // reduce the attacker's Power by 1 for that battle -- approximated
+    // via totalPower(attacker) > totalPower(defender), mirroring
+    // oncePerMatchVsStrongerBoost's own simplification. Attacker's
+    // bottom(10) vs Ifrit's top(9) would normally win; the -1 penalty
+    // ties it, and ties favor the defender.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const vaIfrit = freshEntry(ifrit, 'blue'); // total 37
+    state.board[4] = vaIfrit;
+    const vaAttacker = freshEntry({ id:'va-atk', name:'VAAtk', top:10,right:10,bottom:10,left:10 }, 'red'); // total 40
+    state.board[1] = vaAttacker;
+    resolveFlips(1, 'red');
+    out.volcanicArmorBlockedFirstLoss = state.board[4].owner === 'blue';
+    out.volcanicArmorConsumed = vaIfrit.volcanicArmorUsed === true;
+
+    // Second attack against the same Ifrit: armor already used, so an
+    // attacker with the same kind of marginal edge (left:11 vs Ifrit's
+    // right:10) wins outright this time.
+    const vaAttacker2 = freshEntry({ id:'va-atk2', name:'VAAtk2', top:1,right:1,bottom:1,left:11 }, 'red');
+    state.board[5] = vaAttacker2;
+    resolveFlips(5, 'red');
+    out.volcanicArmorOnlyOnce = state.board[4].owner === 'red';
+
     return out;
   })()`);
   assert.equal(result.statsUnchanged, true);
@@ -3293,6 +3318,150 @@ test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpired
   assert.equal(result.burningDominionAppliesOnAttack, true, 'Burning Dominion is not attack-only, unlike Tiamat\'s adjacentEnemiesBoost');
   assert.equal(result.burningDominionRequiresCurrentOwnership, true, 'a defeatedByIfrit card that changed owner no longer counts');
   assert.equal(result.defeatedByIfritTaggedOnCapture, true);
+  assert.equal(result.volcanicArmorBlockedFirstLoss, true, "Volcanic Armor's -1 penalty turns a marginal loss into a defended tie");
+  assert.equal(result.volcanicArmorConsumed, true);
+  assert.equal(result.volcanicArmorOnlyOnce, true, 'a second attacker with the same marginal edge wins once the armor is already used');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Evil Twist Yang: Yang Resonance fixed to debuffThisRound (was permanent), Inner Harmony (neutralizes attacker bonus on defense), Mind\'s Balance (swaps strength on attack when losing), Guardian of Balance/stats unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const yang = findCardById('eviltwistyang');
+    out.statsUnchanged = yang.top === 8 && yang.right === 8 && yang.bottom === 9 && yang.left === 10;
+    out.skillCount = yang.skills.length === 4;
+    out.hasGuardianOfBalance = yang.active.pairPresence && yang.active.pairPresence.partner === 'eviltwistyin'
+      && yang.active.pairPresence.attack === 1 && yang.active.pairPresence.defense === 2;
+    out.specialName = yang.special.name === 'Yang Resonance';
+    out.specialCost = yang.special.cost === 3;
+
+    const forestYang = FOREST_FOES.find(f => f.id === 'eviltwistyang');
+    out.mirroredInForestFoes = forestYang
+      && forestYang.active.neutralizeAttackerBonus === true
+      && forestYang.active.mindsBalanceSwap === true;
+
+    // Yang Resonance: now debuffThisRound (temporary), not permanent --
+    // the actual bug this rework fixed. Needs Yin on the board too
+    // (requiresPartner).
+    state.board = Array(9).fill(null);
+    const yrYang = freshEntry(yang, 'blue');
+    state.board[4] = yrYang;
+    const yrYin = freshEntry(findCardById('eviltwistyin'), 'blue');
+    state.board[1] = yrYin;
+    const yrFoe = freshEntry({ id:'yr-foe', name:'YRFoe', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[0] = yrFoe;
+    state.specialUsed = {};
+    SPECIAL_HANDLERS.eviltwistyang({ srcEntry: yrYang, owner: 'blue' });
+    out.yangResonanceDebuffedImmediately = yrFoe.captureBonus === -2;
+    const savedTurnCount = state.turnCount;
+    state.turnCount += 4;
+    sweepExpiredRoundEffects();
+    out.yangResonanceExpiresThisRound = yrFoe.captureBonus === 0;
+    state.turnCount = savedTurnCount;
+
+    // Inner Harmony: an attacker with a +3 captureBonus (base bottom:6,
+    // boosted to 9) would normally beat Yang's top(8); neutralized back
+    // to its base 6, Yang defends successfully instead.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const ihYang = freshEntry(yang, 'blue');
+    state.board[4] = ihYang;
+    const ihAttackerCard = { id:'ih-atk', name:'IHAtk', top:1,right:1,bottom:6,left:1 };
+    state.playerHand = [];
+    state.enemyHand = [{ id:'ih-atk', name:'IHAtk', top:1,right:1,bottom:6,left:1 }];
+    placeCard(1, 'ih-atk', 'red');
+    state.board[1].captureBonus = 3; // boosted bottom would be 9, beating Yang's top(8)
+    resolveFlips(1, 'red');
+    out.innerHarmonyDefended = state.board[4].owner === 'blue';
+
+    // Mind's Balance: Yang attacks with top(8) into a defender whose
+    // bottom(15) would normally win -- the swap flips it into a win
+    // for Yang instead.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const mbDefender = freshEntry({ id:'mb-def', name:'MBDef', top:1,right:1,bottom:15,left:1 }, 'red');
+    state.board[1] = mbDefender;
+    state.playerHand = [{ id:'eviltwistyang', name:'Evil Twist', top:8,right:8,bottom:9,left:10, active: yang.active, special: yang.special, skills: yang.skills, element:'wind', role:yang.role, hue:yang.hue, accent:yang.accent }];
+    placeCard(4, 'eviltwistyang', 'blue');
+    out.mindsBalanceWonViaSwap = state.board[1].owner === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.skillCount, true);
+  assert.equal(result.hasGuardianOfBalance, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.mirroredInForestFoes, true, 'the FOREST_FOES copy must carry the same new active fields');
+  assert.equal(result.yangResonanceDebuffedImmediately, true);
+  assert.equal(result.yangResonanceExpiresThisRound, true, 'Yang Resonance must be temporary, matching the card text -- this is the bug fix');
+  assert.equal(result.innerHarmonyDefended, true, "Inner Harmony neutralizes the attacker's bonus, turning a would-be loss into a successful defense");
+  assert.equal(result.mindsBalanceWonViaSwap, true, "Mind's Balance swaps strength when the defender's is higher, turning a would-be loss into a win");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Evil Twist Yin: mirrors Yang exactly -- Yin Resonance (debuffThisRound), Inner Harmony, Mind\'s Balance, Guardian of Balance/stats unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const yin = findCardById('eviltwistyin');
+    out.statsUnchanged = yin.top === 9 && yin.right === 10 && yin.bottom === 8 && yin.left === 8;
+    out.hasGuardianOfBalance = yin.active.pairPresence && yin.active.pairPresence.partner === 'eviltwistyang';
+    out.specialName = yin.special.name === 'Yin Resonance';
+    out.hasNeutralizeAttackerBonus = yin.active.neutralizeAttackerBonus === true;
+    out.hasMindsBalanceSwap = yin.active.mindsBalanceSwap === true;
+
+    const forestYin = FOREST_FOES.find(f => f.id === 'eviltwistyin');
+    out.mirroredInForestFoes = forestYin
+      && forestYin.active.neutralizeAttackerBonus === true
+      && forestYin.active.mindsBalanceSwap === true;
+
+    // Yin Resonance: same debuffThisRound fix as Yang Resonance, exercised
+    // via Yin's own separate handler.
+    state.board = Array(9).fill(null);
+    const yrYin = freshEntry(yin, 'blue');
+    state.board[4] = yrYin;
+    const yrYang = freshEntry(findCardById('eviltwistyang'), 'blue');
+    state.board[1] = yrYang;
+    const yrFoe = freshEntry({ id:'yr-foe2', name:'YRFoe2', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[0] = yrFoe;
+    state.specialUsed = {};
+    SPECIAL_HANDLERS.eviltwistyin({ srcEntry: yrYin, owner: 'blue' });
+    out.yinResonanceDebuffedImmediately = yrFoe.captureBonus === -2;
+    const savedTurnCount = state.turnCount;
+    state.turnCount += 4;
+    sweepExpiredRoundEffects();
+    out.yinResonanceExpiresThisRound = yrFoe.captureBonus === 0;
+    state.turnCount = savedTurnCount;
+
+    // Inner Harmony via Yin as defender: same shape as Yang's own test,
+    // exercised through Yin's id to confirm the shared battleNeighbors
+    // check isn't accidentally scoped to Yang only.
+    state.board = Array(9).fill(null);
+    state.playerHand = []; state.enemyHand = [{ id:'ih-atk2', name:'IHAtk2', top:1,right:1,bottom:6,left:1 }];
+    const ihYin = freshEntry(yin, 'blue');
+    state.board[4] = ihYin;
+    placeCard(1, 'ih-atk2', 'red');
+    state.board[1].captureBonus = 3;
+    resolveFlips(1, 'red');
+    out.innerHarmonyDefended = state.board[4].owner === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasGuardianOfBalance, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.hasNeutralizeAttackerBonus, true);
+  assert.equal(result.hasMindsBalanceSwap, true);
+  assert.equal(result.mirroredInForestFoes, true);
+  assert.equal(result.yinResonanceDebuffedImmediately, true);
+  assert.equal(result.yinResonanceExpiresThisRound, true);
+  assert.equal(result.innerHarmonyDefended, true, "Inner Harmony works identically through Yin's own id");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

@@ -51,8 +51,10 @@ ALDRIG tillstånd från en tidigare bekräftelse.
 
 **Punkt 51 (Pallis, solo — 5/5 skills, Loyal Instinct struken, ny konst
 inlagd) samt punkt 52 (Ifrit, Hellfire Claw + Burning Dominion
-tillagda) ligger committade på feature-branchen, INTE mergade till
-`main` än.**
+tillagda, ny konst inlagd) är sedan dess MERGADE till `main` också**
+(användaren bekräftade explicit "merga nu"). Fråga alltid explicit
+innan nästa merge när mer arbete samlats där, anta ALDRIG tillstånd
+från en tidigare bekräftelse.
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -73,9 +75,9 @@ saknar kod-backing), sämst kopplade först:
 10. **Tahabata** 2/6 — KLAR (punkt 50 nedan, 6/6).
 11. **Pallis** (solo) 2/6 — KLAR (punkt 51 nedan, 5/5 efter att Loyal
     Instinct medvetet ströks).
-12. **Ifrit** 2/6
-13. **Evil Twist Yang** 2/4
-14. **Evil Twist Yin** 2/4
+12. **Ifrit** 2/6 — KLAR (punkt 52 nedan, inkl. Volcanic Armor).
+13. **Evil Twist Yang** 2/4 — KLAR (punkt 53 nedan, 4/4).
+14. **Evil Twist Yin** 2/4 — KLAR (punkt 53 nedan, mirrorar Yang).
 15. **Twin Brothers** 4/6
 16. **Twin Sisters** 4/6
 
@@ -1034,6 +1036,67 @@ använder samma förhöjda beskärning som Templaren/Tilda/Tahabata
 ((10,60)-(930,660)) för att få med ansiktet och hunden istället för att
 klippa av huvudet.
 
+**53. Evil Twist Yang/Yin — sista två korten från 16-korts audit-listan,
+båda klara i samma pass.** Trettonde och fjortonde kortet, det sista
+paret på listan. Hade redan `active.pairPresence` (Guardian of Balance,
++2 försvar/+1 attack när båda tvillingarna är på brädet) och en
+fungerande, `requiresPartner`-skyddad Ultimate (Yang/Yin Resonance,
+AOE -2 på alla fiender) wired (2/4 vardera). Stats oförändrade
+(Yang 8/8/9/10, Yin 9/10/8/8 — spegelvända par, summa 35 båda). Finns i
+både `HEROES` och `FOREST_FOES`, alla ändringar speglade på båda
+ställena för båda korten.
+
+- **Bugfix: Yang/Yin Resonance var permanent debuff, korttexten säger
+  "-2 Power THIS ROUND".** `SPECIAL_HANDLERS.eviltwistyang`/`eviltwistyin`
+  anropade `SpecialVerbs.debuff()` (permanent) istället för
+  `SpecialVerbs.debuffThisRound()` (samma rond-begränsade verb Shiva/
+  Leviathans egna bräd-breda "this round"-debuffar redan använder). Ingen
+  kommentar motiverade det permanenta valet när det skrevs — till skillnad
+  från de medvetna "this round → permanent"-förenklingarna som används på
+  andra ställen i filens enkel-mål-Ultimate-familj, fanns ingen sådan här.
+  Ren bugfix, en rad ändrad per kort.
+- **Inner Harmony** — ny `active.neutralizeAttackerBonus:true`. Inkopplad
+  direkt i `battleNeighbors`s strid-loop: precis innan utfallet jämförs,
+  om försvararens kort har flaggan sätts `placedVal` (angriparens
+  effektiva värde) tillbaka till `p.myVal` (angriparens råa bas-värde
+  utan bonusar — samma distinktion `bonusFlash`-diffen längre ner redan
+  bygger på). Nollställer alltså ALLA angriparens bonusar den striden,
+  inte bara en specifik källa.
+- **Mind's Balance** — ny `active.mindsBalanceSwap:true`. Samma
+  strid-loop, direkt efter Inner Harmony-kollen (så en spegel-match mellan
+  de två tvillingarna löser försvararens neutralisering FÖRST, sedan
+  angriparens villkorliga swap reagerar på det redan justerade värdet):
+  om Evil Twist anfaller och `targetVal > placedVal`, byts de två
+  effektiva värdena rakt av.
+- **Guardian of Balance/stats** — helt oförändrade, redan fungerande.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd för
+båda korten.** Bildbrief skickades med exakta stats och all skill-text
+ordagrant (se ovan) efter att koden blev klar. Ny konst matchade allt
+exakt — inga avvikelser den här gången (jfr Ferea/Darien-lärdomen: alltid
+specificera exakta stat-siffror i briefen). Ny poster-stil med all
+skill-text synlig på kortet (som Ifrit/Ferea/Darien redan har), ersätter
+den äldre enkla stilen (bara namn/stats/tagline) som korten hade sedan
+tidigare. Flyttade fullbilderna från de gamla GitHub-UUID-filnamnen
+(`3978FBE9-47C9-4E71-9348-6D2F4B1E0EDC.jpg` / `6F6FDF5D-77C4-4C60-A6C9-
+C3AA29906068.jpg`, borttagna) till standardnamnen `card-eviltwistyang-
+full.jpg`/`card-eviltwistyin-full.jpg`. Nya beskurna `cards/card-
+eviltwistyang.jpg`/`cards/card-eviltwistyin.jpg` använder samma
+crop-bredd/höjd som standardbeskärningen (660×431 → 640×418) men med
+y-start flyttad till 100 istället för standardens 300 (kompositionen har
+ansiktet högre upp i bilden än de flesta andra korten) för att få med
+ansikte + yin-yang-symbolen istället för att klippa av vid axlarna.
+Inga kodändringar utöver bildbytet — stats/skill-text i koden matchade
+redan konsten exakt.
+
+Inga nya generella primitives — `neutralizeAttackerBonus`/
+`mindsBalanceSwap` är nya DATA-nycklar, men själva teknikerna (justera
+`placedVal`/`targetVal` direkt i strid-loopen innan utfallet räknas) är
+samma mönster som Volcanic Armor (punkt 52 nedan) och Seraphines/Tildas
+märkningar redan etablerat. Två nya permanenta tester (en Yang, en Yin)
+täcker bugfixen (debuff expires efter rond-klockan) och båda de nya
+skillsen. Fullständig testsvit grön (86 tester).
+
 **52. Ifrit — 2 av 4 saknade skills tillagda, 2 medvetet lämnade
 olösta** — tolfte kortet från audit-listan. Hade redan
 `active.onCaptureBonus:1` (Eternal Inferno) och en fungerande Ultimate
@@ -1065,15 +1128,35 @@ båda ställena. Stats 9/10/8/10 = 37, oförändrade.
   till riktiga strider** — Same/Plus-erövringar (en annan
   fångstmekanism helt, ingen styrke-jämförelse) sätter INTE flaggan,
   matchar "han HAR BESEGRAT" bättre än en bredare tolkning skulle.
-- **Volcanic Armor och Rage of the Beast** — ❌ lämnade oimplementerade
-  per uttrycklig instruktion. Volcanic Armor bekräftat sakna en
-  "försvarare-debuffar-angripare-live"-primitive (samma lucka som redan
-  identifierades och avvisades för Vorathos's Standstill). Rage of the
-  Beast har en olöst formuleringsfråga (drabbar det Ifrit SJÄLV blir
-  erövrad, eller när en ANNAN erövrad av honom tas tillbaka?) — lämnad
-  olöst tills vidare, ingen kod skriven för den.
+- **Rage of the Beast** — ❌ lämnad oimplementerad. Har en olöst
+  formuleringsfråga (drabbar det Ifrit SJÄLV blir erövrad, eller när en
+  ANNAN erövrad av honom tas tillbaka?) — lämnad olöst tills vidare,
+  ingen kod skriven för den.
 
-Inga nya generella primitives — `oncePerMatchAttackBoost`,
+**Uppdatering, samma session: Volcanic Armor också inkopplad.**
+Användaren delegerade beslutet ("kör det på ifrit om du tycker det blir
+bra"). Den ursprungliga bedömningen (skulle kräva en helt ny
+"försvarare-debuffar-angripare-live"-primitive, samma lucka som
+avvisades för Vorathos's Standstill) visade sig vara fel vid närmare
+efterforskning: `active.freezeDefenderPenalty` (Three Head Dragon's
+Ice's Breath, redan i motorn) är EXAKT den primitiven, fast i motsatt
+riktning (anfallare debuffar försvarare). Volcanic Armors behov
+(försvarare debuffar anfallare) gick INTE att koppla in på samma ställe
+i `fullEffectiveValue` som Ice's Breath, dock — det stället har bara
+anfallarens egen `cellIndex`, ingen åtkomst till försvararens levande
+entry för att kolla en `Used`-flagga (samma begränsning som redan
+dokumenterad för Seraphines/Tildas märkningar). Löst genom att lägga
+kollen direkt i `battleNeighbors`, samma ställe/anledning som de
+märkningarna: `placedVal` justeras direkt (-1) precis innan
+`effOutcome` beräknas, om `target.card.active.volcanicArmorPenalty`
+finns, `!target.volcanicArmorUsed`, och en `totalPower`-jämförelse
+(samma förenkling `oncePerMatchVsStrongerBoost` redan använder för sitt
+eget villkorliga triggervärde) indikerar att Ifrit annars skulle
+förlora. Ett riktigt PRIMITIVE-fynd, inte bara en data-nyckel — men
+återanvänder `freezeDefenderPenalty`s princip och `oncePerMatchVsStrongerBoost`s
+förenkling, bygger inget nytt grundläggande mönster.
+
+Inga nya generella primitives utöver ovanstående — `oncePerMatchAttackBoost`,
 `shieldResetsEachRound`-mönstret och adjacency-count-formen fanns alla
 redan; `attackBoostResetsEachRound`/`adjacentDefeatedByMeBoost` är bara
 nya DATA-nycklar som återanvänder samma befintliga kod-teknik. Nytt
