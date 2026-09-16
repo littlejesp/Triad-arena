@@ -1081,6 +1081,20 @@ test täcker båda nya skills inklusive rundan-reset-beteendet och att
 flagg-sättningen faktiskt sker vid en riktig strid. Fullständig testsvit
 grön.
 
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Matchade allt exakt — stats 9/10/8/10 (i ett annorlunda 2×2-
+diamant-layout runt namnplattan istället för det vanliga kors-mönstret,
+men siffrorna stämmer), namn/roll, och alla sex skill-texter (inklusive
+de nytillagda Hellfire Claw/Burning Dominion OCH de fortfarande
+obyggda Volcanic Armor/Rage of the Beast, som medvetet står kvar på
+kortet som flavor). Inga kodändringar. Behöll hans etablerade
+demon-identitet (lavaådrad kropp, horn, guldringar) precis som
+bildbriefen bad om. Flyttade full-bilden från det gamla
+GitHub-UUID-filnamnet (`74768DE6-1C73-4629-935D-6EA018ACBCCD.jpg`,
+borttaget) till standardnamnet `card-ifrit-full.jpg`. Ny beskuren
+`cards/card-ifrit.jpg` använder samma förhöjda beskärning som de
+senaste kortens ((10,60)-(930,660)) för att få med ansikte och horn.
+
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
 ("The Void Empress" delades ordagrant med Nyxara — enda konkreta
