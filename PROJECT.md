@@ -43,8 +43,11 @@ när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
 bekräftelse.
 
 **Punkt 50 (Tahabata, HELT klar — 6/6 skills, Inferno Dominion-
-konflikten löst med "kombinera", ny konst inlagd) ligger committad på
-feature-branchen, INTE mergad till `main` än.**
+konflikten löst med "kombinera", ny konst inlagd) samt den nya
+persistenta buff/debuff-visningen på brädet är sedan dess MERGADE till
+`main` också** (användaren bekräftade explicit "merga nu"). Fråga
+alltid explicit innan nästa merge när mer arbete samlats där, anta
+ALDRIG tillstånd från en tidigare bekräftelse.
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
