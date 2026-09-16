@@ -4202,6 +4202,61 @@ test('Daron: card trimmed from a 0/5-wired stub -- Corrupted Bloodline (onWinDir
   await page.close();
 });
 
+test('Vorathos: card cleaned up from an orphan active.shield -- Time Barrier (onWinDirectionalBoost), Eternal Boundary (oncePerMatchAttackBoost), Time Collapse now also debuffs the target (combined resolution)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vorathos = findCardById('vorathos');
+    out.statsUnchanged = vorathos.top === 7 && vorathos.right === 10 && vorathos.bottom === 8 && vorathos.left === 9 && vorathos.element === 'wind';
+    out.hasTimeBarrier = vorathos.active.onWinDirectionalBoost === 1;
+    out.hasEternalBoundary = vorathos.active.oncePerMatchAttackBoost && vorathos.active.oncePerMatchAttackBoost.amount === 2;
+    out.orphanShieldRemoved = vorathos.active.shield === undefined;
+    out.skillCount = vorathos.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Time Barrier: winning a battle grants permanent +1 on the winning side, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vorathos, 'blue'); // right:10
+    state.board[4] = src;
+    state.board[5] = freshEntry({ id:'vt-weak', name:'VtWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.timeBarrierApplied = src.sideBonus && src.sideBonus.right === 1;
+
+    // Eternal Boundary: +2 Power on the next attack, once per match. The
+    // read needs a live board entry at cellIndex to check the used-flag.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(vorathos, 'blue');
+    out.eternalBoundaryBoost = fullEffectiveValue(vorathos, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - vorathos.top;
+
+    // Time Collapse (combined resolution): non-crit win flips the target,
+    // grants Vorathos permanent +1 on the chosen direction, AND the target
+    // permanently loses 1 on that same direction.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(vorathos, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.vorathos({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue', direction: 'up' });
+    out.collapseFlippedTarget = wtarget.owner === 'blue';
+    out.collapseBoostedSelf = wsrc.sideBonus && wsrc.sideBonus.top === 1;
+    out.collapseDebuffedTarget = wtarget.sideBonus && wtarget.sideBonus.top === -1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasTimeBarrier, true);
+  assert.equal(result.hasEternalBoundary, true);
+  assert.equal(result.orphanShieldRemoved, true, 'the old undocumented active.shield (matched no named skill) was removed, not silently kept');
+  assert.equal(result.skillCount, 3, "the printed card carries Time Barrier, Eternal Boundary, and Time Collapse -- Standstill and Reversed Shield are gone");
+  assert.equal(result.timeBarrierApplied, true);
+  assert.equal(result.eternalBoundaryBoost, 2);
+  assert.equal(result.collapseFlippedTarget, true);
+  assert.equal(result.collapseBoostedSelf, true, "Vorathos's own +1 self-buff is kept");
+  assert.equal(result.collapseDebuffedTarget, true, "the approved art's enemy-debuff reading was added on top, per the user's combined ('C') resolution");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

@@ -36,8 +36,8 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41–45 (Zaevir, Ragnar, Maximus, Darum, Daron) ligger
-committade på feature-branchen, INTE mergade till `main` än.**
+**Punkt 41–46 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos)
+ligger committade på feature-branchen, INTE mergade till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -51,7 +51,7 @@ saknar kod-backing), sämst kopplade först:
 3. **Maximus** 1/6 — KLAR (punkt 43 nedan).
 4. **Darum** 1/6 — KLAR (punkt 44 nedan).
 5. **Daron** 1/6 — KLAR (punkt 45 nedan).
-6. **Vorathos** 1/5
+6. **Vorathos** 1/5 — KLAR (punkt 46 nedan).
 7. **Pallispell** 1/5
 8. **Templaren** 1/4
 9. **Tilda** 1/4
@@ -586,6 +586,36 @@ Bort: Dark Sorcery (kräver "rikta in på högsta sidan"-logik som inte
 finns), Twisted Royalty (två ihopklumpade effekter, ingen ren
 mappning), Mother's Torment (redundant/överdrivet i kombination med
 de andra två). Inga nya primitives.
+
+**46. Vorathos — trimmad + en riktig kod-vs-bild-konflikt löst med
+"kombinera båda"** — sjätte kortet från audit-listan. Hade ett
+`active.shield:true` som inte matchade NÅGON av hans 4 namngivna
+skills — en oförklarlig kvarleva, borttagen helt snarare än att gissa
+vad den var tänkt för. Ultimaten (`SPECIAL_HANDLERS.vorathos`, tröskel
++4/flip/riktad permanent +1) var redan wired.
+
+- **Time Barrier (Passiv)** — helt befintligt fält
+  `active.onWinDirectionalBoost:1`, "resten av ronden" blev permanent.
+- **Eternal Boundary (Passiv)** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:2}`, samma som Yojimbos
+  Kozuka. "Vald riktning, resten av ronden" blev "nästa attack".
+- **Special Attack: "Time Collapse" — RIKTIG mekanik-konflikt, inte
+  bara "kontrollera N kort"-mönstret**: koden gav Vorathos SJÄLV
+  permanent +1 på vald riktning (självbuff), men bilden beskrev att
+  DET BESEGRADE KORTET permanent förlorar -1 på samma riktning
+  (fiendedebuff) — helt motsatt mål. Användaren valde "C" (kombinera
+  båda): `SPECIAL_HANDLERS.vorathos` fick en ny rad,
+  `SpecialVerbs.directionalBoost(targetEntry, [side], -1)`, som körs
+  TILLSAMMANS med den befintliga självbuffen. Samma
+  "kontrollera N kort"-aktiveringsvillkor i bilden följdes INTE
+  (sjätte gången).
+- Stats **oförändrade** — matchade redan bilden exakt.
+
+Bort: Standstill (skulle kräva en ny "försvarare försvagar angripare
+live"-primitive), Reversed Shield (ingen on-loss-trigger-typ finns).
+Inga nya primitives utöver den redan existerande
+`SpecialVerbs.directionalBoost()` (bara ett nytt anrop till en
+befintlig funktion).
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
