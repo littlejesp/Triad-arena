@@ -42,9 +42,9 @@ bekräftade explicit "Merga nu"). Fråga alltid explicit innan nästa merge
 när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
 bekräftelse.
 
-**Punkt 50 (Tahabata, 4 av 6 skills) ligger committad på feature-branchen,
-INTE mergad till `main` än — och väntar på användarens beslut om en
-kod-vs-bild-konflikt på Inferno Dominion (Ultimaten), se punkt 50 nedan.**
+**Punkt 50 (Tahabata, HELT klar — 6/6 skills, Inferno Dominion-
+konflikten löst med "kombinera", ny konst inlagd) ligger committad på
+feature-branchen, INTE mergad till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -62,8 +62,7 @@ saknar kod-backing), sämst kopplade först:
 7. **Pallispell** 1/5 — KLAR (punkt 47 nedan).
 8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
 9. **Tilda** 1/4 — KLAR (punkt 49 nedan).
-10. **Tahabata** 2/6 — 4/6 KLAR (punkt 50 nedan), Inferno Dominion väntar på
-    ett kod-vs-bild-konflikt-beslut.
+10. **Tahabata** 2/6 — KLAR (punkt 50 nedan, 6/6).
 11. **Pallis** (solo) 2/6
 12. **Ifrit** 2/6
 13. **Evil Twist Yang** 2/4
@@ -900,6 +899,15 @@ kod. Båda ändringarna speglade i `HEROES` OCH `FOREST_FOES` (samma
 `replace_all`-mönster som resten av kortet). Fullständig testsvit körd
 igen efter taggen (cross-cutting ändring, påverkar andra kort som redan
 läser `isDragon`), fortfarande grön.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Flyttade full-bilden från det gamla GitHub-UUID-filnamnet
+(`99DD524F-E6E1-4476-8FD8-786837E063A9.jpg`, borttaget) till
+standardnamnet `card-tahabata-full.jpg`, samma mönster som Templaren/
+Vorathos/Pallispell/Tilda. Ny beskuren `cards/card-tahabata.jpg`
+använder samma högre beskärning som Templaren/Tilda
+((10,60)-(930,660)) — standardbeskärningen klippte av drakens huvud
+helt på den här bilden. Tahabata är nu HELT klar: 6/6 skills, ny konst.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
