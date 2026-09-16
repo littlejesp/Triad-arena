@@ -3205,6 +3205,98 @@ test('Pallis: reworked per audit — Protective Aura (temporary capture-immunity
   await page.close();
 });
 
+test('Ifrit: Hellfire Claw (once-per-ROUND attack boost, resets via sweepExpiredRoundEffects) and Burning Dominion (adjacent defeatedByIfrit aura) added, Eternal Inferno/Hellfire/stats unchanged, Volcanic Armor and Rage of the Beast still unbuilt', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ifrit = findCardById('ifrit');
+    out.statsUnchanged = ifrit.top === 9 && ifrit.right === 10 && ifrit.bottom === 8 && ifrit.left === 10;
+    out.skillCount = ifrit.skills.length === 6;
+    out.hasEternalInferno = ifrit.active.onCaptureBonus === 1;
+    out.specialName = ifrit.special.name === 'Hellfire';
+    out.specialCost = ifrit.special.cost === 2;
+
+    const forestIfrit = FOREST_FOES.find(f => f.id === 'ifrit');
+    out.mirroredInForestFoes = forestIfrit
+      && forestIfrit.active.oncePerMatchAttackBoost.amount === 2
+      && forestIfrit.active.attackBoostResetsEachRound === true
+      && forestIfrit.active.adjacentDefeatedByMeBoost.minCount === 2
+      && forestIfrit.active.adjacentDefeatedByMeBoost.amount === 1;
+
+    // Hellfire Claw: +2 on attack, consumed on use, but -- unlike every
+    // other oncePerMatchAttackBoost user -- reset back to usable by
+    // sweepExpiredRoundEffects (same mechanism as Omega Weapon's
+    // shieldResetsEachRound, just resetting oncePerMatchAttackBoostUsed).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    out.hellfireClawField = ifrit.active.oncePerMatchAttackBoost.amount === 2;
+    const hcSrc = freshEntry(ifrit, 'blue');
+    state.board[4] = hcSrc;
+    const hcTarget = freshEntry({ id:'hct', name:'HCT', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = hcTarget;
+    out.hellfireClawAppliesOnAttack = fullEffectiveValue(ifrit, 'top', hcTarget, 4, 'blue', 'attack') - ifrit.top === 2;
+    resolveFlips(4, 'blue');
+    out.hellfireClawConsumed = hcSrc.oncePerMatchAttackBoostUsed === true;
+    sweepExpiredRoundEffects();
+    out.hellfireClawResetsEachRound = hcSrc.oncePerMatchAttackBoostUsed === false;
+
+    // Burning Dominion: +1 all sides (both roles, no attack-only gate)
+    // while 2+ adjacent ALLIES specifically carry defeatedByIfrit --
+    // plain adjacency or the flag alone isn't enough on its own.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const bdEntry = freshEntry(ifrit, 'blue');
+    bdEntry.oncePerMatchAttackBoostUsed = true; // isolate from Hellfire Claw's own +2 attack bonus
+    state.board[4] = bdEntry;
+    const dummyOpp = { id:'dummy', name:'D', top:1,right:1,bottom:1,left:1 };
+    const tagged1 = freshEntry({ id:'bd1', name:'BD1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    tagged1.defeatedByIfrit = true;
+    state.board[1] = tagged1;
+    const untaggedAlly = freshEntry({ id:'bd2', name:'BD2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[3] = untaggedAlly;
+    out.burningDominionNoBonusWithOnlyOneTagged = fullEffectiveValue(ifrit, 'top', dummyOpp, 4, 'blue', 'defense') - ifrit.top === 0;
+    const tagged2 = freshEntry({ id:'bd3', name:'BD3', top:1,right:1,bottom:1,left:1 }, 'blue');
+    tagged2.defeatedByIfrit = true;
+    state.board[3] = tagged2;
+    out.burningDominionAppliesOnDefense = fullEffectiveValue(ifrit, 'top', dummyOpp, 4, 'blue', 'defense') - ifrit.top === 1;
+    out.burningDominionAppliesOnAttack = fullEffectiveValue(ifrit, 'top', dummyOpp, 4, 'blue', 'attack') - ifrit.top === 1;
+    // An enemy-owned card carrying the flag (e.g. recaptured back) doesn't count.
+    state.board[3].owner = 'red';
+    out.burningDominionRequiresCurrentOwnership = fullEffectiveValue(ifrit, 'top', dummyOpp, 4, 'blue', 'defense') - ifrit.top === 0;
+
+    // Burning Dominion's tagging mechanism itself: a card Ifrit personally
+    // flips in a real battle gets defeatedByIfrit set automatically.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const tagSrc = freshEntry(ifrit, 'blue');
+    state.board[4] = tagSrc;
+    const tagTarget = freshEntry({ id:'tgt', name:'TGT', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = tagTarget;
+    resolveFlips(4, 'blue');
+    out.defeatedByIfritTaggedOnCapture = tagTarget.owner === 'blue' && tagTarget.defeatedByIfrit === true;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.skillCount, true);
+  assert.equal(result.hasEternalInferno, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.mirroredInForestFoes, true, 'the FOREST_FOES copy must carry the same new active fields');
+  assert.equal(result.hellfireClawField, true);
+  assert.equal(result.hellfireClawAppliesOnAttack, true);
+  assert.equal(result.hellfireClawConsumed, true);
+  assert.equal(result.hellfireClawResetsEachRound, true, "Hellfire Claw resets each round, unlike every other oncePerMatchAttackBoost user");
+  assert.equal(result.burningDominionNoBonusWithOnlyOneTagged, true);
+  assert.equal(result.burningDominionAppliesOnDefense, true);
+  assert.equal(result.burningDominionAppliesOnAttack, true, 'Burning Dominion is not attack-only, unlike Tiamat\'s adjacentEnemiesBoost');
+  assert.equal(result.burningDominionRequiresCurrentOwnership, true, 'a defeatedByIfrit card that changed owner no longer counts');
+  assert.equal(result.defeatedByIfritTaggedOnCapture, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

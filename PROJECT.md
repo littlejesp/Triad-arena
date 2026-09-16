@@ -49,8 +49,10 @@ persistenta buff/debuff-visningen på brädet är sedan dess MERGADE till
 alltid explicit innan nästa merge när mer arbete samlats där, anta
 ALDRIG tillstånd från en tidigare bekräftelse.
 
-**Punkt 51 (Pallis, solo — 5/5 skills, Loyal Instinct struken) ligger
-committad på feature-branchen, INTE mergad till `main` än.**
+**Punkt 51 (Pallis, solo — 5/5 skills, Loyal Instinct struken, ny konst
+inlagd) samt punkt 52 (Ifrit, Hellfire Claw + Burning Dominion
+tillagda) ligger committade på feature-branchen, INTE mergade till
+`main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -1018,6 +1020,66 @@ Grip återanvänder det redan etablerade `xUntilTurnCount`-idiomet. Nytt
 test täcker alla tre skills inklusive Chain of Loyaltys tre grenar
 (fångar, misslyckas mot starkare, blockeras av sköld). Fullständig
 testsvit grön.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Matchade allt exakt — stats 4/10/10/8, namn/roll, alla fem skill-texter
+(inklusive Wave of Loyalty) ord för ord, ingen Loyal Instinct synlig.
+Bekräftar samtidigt den redan existerande identiteten (tjej + trogen
+hund-följeslagare, guld/jord-palett, skogsklippa med slott i bakgrunden)
+som bildbriefen explicit bad att bevara — inte en omdesign. Inga
+kodändringar. Flyttade full-bilden från det gamla GitHub-UUID-filnamnet
+(`63AE7554-757F-459C-9ED0-727E68C8E12E.jpg`, borttaget) till
+standardnamnet `card-pallis-full.jpg`. Ny beskuren `cards/card-pallis.jpg`
+använder samma förhöjda beskärning som Templaren/Tilda/Tahabata
+((10,60)-(930,660)) för att få med ansiktet och hunden istället för att
+klippa av huvudet.
+
+**52. Ifrit — 2 av 4 saknade skills tillagda, 2 medvetet lämnade
+olösta** — tolfte kortet från audit-listan. Hade redan
+`active.onCaptureBonus:1` (Eternal Inferno) och en fungerande Ultimate
+(`SPECIAL_HANDLERS.ifrit`, Hellfire, samma total-power-tröskel-familj
+som Sarah/Vayra/Tilda/Tahabata) wired (2/6). Finns i både `HEROES` och
+`FOREST_FOES` (som Tahabata, AI-spelbar) — alla ändringar speglade på
+båda ställena. Stats 9/10/8/10 = 37, oförändrade.
+
+- **Hellfire Claw** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:2}` (samma som Yojimbo/
+  Vorathos/Tahabata), PLUS en ny `active.attackBoostResetsEachRound:true`
+  som återställer `oncePerMatchAttackBoostUsed` varje runda i
+  `sweepExpiredRoundEffects()` — exakt samma mekanism som Omega Weapons
+  `shieldResetsEachRound` redan använder för sin sköld, bara applicerad
+  på attack-boost-flaggan istället. Skillnaden mot alla andra
+  `oncePerMatchAttackBoost`-kort: Ifrits är "en gång per RUNDA", inte
+  "en gång per MATCH".
+- **Burning Dominion** — ny `active.adjacentDefeatedByMeBoost:
+  {minCount:2, amount:1}`, samma icke-attack-gated adjacency-count-form
+  som Medusas `adjacentAlliesBoost`, men filtrerad på en ny
+  `entry.defeatedByIfrit`-runtime-flagga istället för bara ägarskap.
+  Flaggan sätts hårdkodat (`if(placed.id === 'ifrit') target.
+  defeatedByIfrit = true;`) direkt i `battleNeighbors`s per-flip-loop —
+  samma plats/anledning som Seraphines `seraphineMarked`/Tildas
+  `tildaMarked` (den enda platsen med den levande precis-erövrade
+  entryn). Flaggan är en permanent historisk markering (rensas aldrig),
+  men aurans andra villkor (`n.owner === owner`) gör att bonusen
+  naturligt försvinner om kortet erövras tillbaka. **Medvetet begränsat
+  till riktiga strider** — Same/Plus-erövringar (en annan
+  fångstmekanism helt, ingen styrke-jämförelse) sätter INTE flaggan,
+  matchar "han HAR BESEGRAT" bättre än en bredare tolkning skulle.
+- **Volcanic Armor och Rage of the Beast** — ❌ lämnade oimplementerade
+  per uttrycklig instruktion. Volcanic Armor bekräftat sakna en
+  "försvarare-debuffar-angripare-live"-primitive (samma lucka som redan
+  identifierades och avvisades för Vorathos's Standstill). Rage of the
+  Beast har en olöst formuleringsfråga (drabbar det Ifrit SJÄLV blir
+  erövrad, eller när en ANNAN erövrad av honom tas tillbaka?) — lämnad
+  olöst tills vidare, ingen kod skriven för den.
+
+Inga nya generella primitives — `oncePerMatchAttackBoost`,
+`shieldResetsEachRound`-mönstret och adjacency-count-formen fanns alla
+redan; `attackBoostResetsEachRound`/`adjacentDefeatedByMeBoost` är bara
+nya DATA-nycklar som återanvänder samma befintliga kod-teknik. Nytt
+test täcker båda nya skills inklusive rundan-reset-beteendet och att
+flagg-sättningen faktiskt sker vid en riktig strid. Fullständig testsvit
+grön.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
