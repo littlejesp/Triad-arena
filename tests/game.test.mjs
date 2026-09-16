@@ -1372,6 +1372,67 @@ test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specif
   await page.close();
 });
 
+test('Nyxara: stats matched to approved art, sisterAura total for 2 sisters tightened to +5, Weakness text tightened (mechanic unchanged), Void Dominion still lands in the Graveyard', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const nyxara = findCardById('nyxara');
+    out.statsMatchArt = nyxara.top === 10 && nyxara.right === 9 && nyxara.bottom === 10 && nyxara.left === 10 && nyxara.element === 'water';
+    out.sisterAuraOneSister = nyxara.active.sisterAura.bonusByCount[1] === 1;
+    out.sisterAuraTwoSisters = nyxara.active.sisterAura.bonusByCount[2] === 5;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Weakness -- Broken Focus: mechanic unchanged, still only triggers on
+    // recapture (checkSisterFlip, shared with Vaelira/Seraphine), not on
+    // every ordinary loss.
+    state.board = Array(9).fill(null);
+    const recaptured = freshEntry(nyxara, 'blue');
+    recaptured.owner = 'red'; // was captured by the enemy
+    recaptured.sisterHomeOwner = 'blue';
+    checkSisterFlip(recaptured);
+    out.markedAsCapturedWhileEnemyOwned = recaptured.sisterWasCaptured === true;
+    recaptured.owner = 'blue'; // recaptured back to her own side
+    checkSisterFlip(recaptured);
+    out.debuffedOnlyOnRecapture = recaptured.captureBonus === -3;
+
+    // Void Dominion: unchanged -- still destroys every enemy (+3 Power per
+    // destroyed), spares allies, respects destroyImmune, and still lands in
+    // the Graveyard (matches Vaelira/Triune Desire's own AOE destroy-alls,
+    // NOT changed to noRevive despite the approved art's "(cannot be
+    // revived)" wording -- see chat: that would break an existing,
+    // deliberate cross-card Graveyard consistency test).
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(nyxara, 'blue');
+    const ally = freshEntry({ id:'vd-ally', name:'VDAlly', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const enemy1 = freshEntry({ id:'vd-enemy1', name:'VDEnemy1', top:1,right:1,bottom:1,left:1 }, 'red');
+    const immuneEnemy = freshEntry(findCardById('threeheaddragon'), 'red');
+    state.board[4] = wsrc; state.board[0] = ally; state.board[1] = enemy1; state.board[2] = immuneEnemy;
+    SPECIAL_HANDLERS.nyxara({ srcEntry: wsrc, owner: 'blue' });
+    out.dominionSparedAlly = state.board[0] !== null;
+    out.dominionDestroyedEnemy = state.board[1] === null;
+    out.dominionRespectsDestroyImmune = state.board[2] !== null;
+    out.dominionStillLandsInGraveyard = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'vd-enemy1';
+    out.dominionGainedThreePerDestroyed = wsrc.captureBonus === 3;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 10/9/10/10 (top/right/bottom/left)');
+  assert.equal(result.sisterAuraOneSister, true);
+  assert.equal(result.sisterAuraTwoSisters, true, 'tightened from 6 to 5 to match the art\'s "+1 base, +4 additional" reading');
+  assert.equal(result.markedAsCapturedWhileEnemyOwned, true);
+  assert.equal(result.debuffedOnlyOnRecapture, true, 'the art\'s "every loss" reading was NOT adopted, keeping her sisters\' shared recapture-only mechanic');
+  assert.equal(result.dominionSparedAlly, true);
+  assert.equal(result.dominionDestroyedEnemy, true);
+  assert.equal(result.dominionRespectsDestroyImmune, true);
+  assert.equal(result.dominionStillLandsInGraveyard, true);
+  assert.equal(result.dominionGainedThreePerDestroyed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter now destroys every win outright (no revive), Devourer, The Ending now spares allies (no revive)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

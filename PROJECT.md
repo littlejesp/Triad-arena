@@ -36,10 +36,10 @@ kortkonst är committad, men bara Devourer, World Shatter och The
 Ending matchar den nya bilden** (alternativ A, de tre säkra delarna).
 Reality Consume och Endless Void är OFÖRÄNDRADE och matchar INTE
 bilden än — väntar fortfarande på svar om ny motorlogik (se punkt 36
-nedan). Punkt 37 (Kaeldryx, full ombyggnad) och 38 (Bahamut,
-gameplay-fix + Megaflare-omdesign) har båda godkänd konst att
-konvertera/committa. Punkt 39 (Seraphine, Celestial Mark + Silver
-Sight-byte) är klar i koden men saknar fortfarande en bildbrief.
+nedan). Punkt 37 (Kaeldryx) och 38 (Bahamut) har fått sin konst
+committad. Punkt 39 (Seraphine) och 40 (Nyxara) är klara i koden —
+Seraphine väntar fortfarande på en ny bild (bildbrief skickad),
+Nyxara har godkänd konst men den är inte konverterad/committad än.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -359,6 +359,34 @@ riktigt baserat på den nya texten, inte bara synka ord.
   (`noRevive`).
 - Stats matchade till godkänd konst (höger/vänster omkastade):
   top:10, right:9, bottom:9, left:10 (tidigare 10/10/9/9).
+
+**40. Nyxara — gameplay-fix baserad på godkänd bild, KONFLIKT flaggad
+och undviken** — 5 av 6 skills var redan wired (Void Touch, Empress
+Aura+Sister's Command, Weakness, Void Dominion), bara Shadow Rend är
+flavor-only (uttryckligen lämnad orörd på användarens begäran).
+
+- **Stats matchade till godkänd konst** (höger/botten omkastade):
+  top:10, right:9, bottom:10, left:10 (tidigare 10/10/9/10).
+- **Empress Aura + Sister's Command**: bildens siffror antydde totalt
+  +5 vid båda systrar (+1 bas, +4 på topp) istället för den tidigare
+  koden totalt +6 — `sisterAura.bonusByCount` justerad från `{1:1,
+  2:6}` till `{1:1, 2:5}`.
+- **Weakness — Broken Focus**: koden BEHÖLLS oförändrad (triggar bara
+  vid återerövring efter tillfångatagande, delad `checkSisterFlip`-
+  mekanik med Vaelira/Seraphine) — bildens "varje förlust"-läsning
+  antogs INTE, bara texten stramades åt ("permanently loses 3 Power"
+  istället för "the round she returns").
+- **Void Dominion — VIKTIG KONFLIKT UPPTÄCKT OCH UNDVIKEN**: bilden sa
+  "(cannot be revived)", men Nyxaras Void Dominion delar samma
+  AOE-destroy-all-mönster som Vaeliras Infernal Pact och Triune
+  Desires Forbidden Harmony — och ett redan existerande, avsiktligt
+  test (`"Graveyard optional rule: every destroy-capable Special
+  routes through destroyCard()"`) låser uttryckligen fast att ALLA
+  TRE ska hamna i Graveyard på samma sätt. Att lägga till `noRevive`
+  bara på Nyxara hade brutit den etablerade cross-card-konsekvensen
+  och det testet. Löst genom att INTE lägga till `noRevive` — Void
+  Dominion fungerar exakt som förut, `SPECIAL_HANDLERS.nyxara`
+  oförändrad, bildens "(cannot be revived)"-text följdes inte.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
