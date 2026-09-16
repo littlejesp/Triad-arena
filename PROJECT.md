@@ -37,8 +37,14 @@ explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
 **Punkt 41–49 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell,
-Templaren, Tilda) ligger committade på feature-branchen, INTE mergade till
-`main` än.**
+Templaren, Tilda) är sedan dess MERGADE till `main` också** (användaren
+bekräftade explicit "Merga nu"). Fråga alltid explicit innan nästa merge
+när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
+bekräftelse.
+
+**Punkt 50 (Tahabata, HELT klar — 6/6 skills, Inferno Dominion-
+konflikten löst med "kombinera", ny konst inlagd) ligger committad på
+feature-branchen, INTE mergad till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -56,7 +62,7 @@ saknar kod-backing), sämst kopplade först:
 7. **Pallispell** 1/5 — KLAR (punkt 47 nedan).
 8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
 9. **Tilda** 1/4 — KLAR (punkt 49 nedan).
-10. **Tahabata** 2/6
+10. **Tahabata** 2/6 — KLAR (punkt 50 nedan, 6/6).
 11. **Pallis** (solo) 2/6
 12. **Ifrit** 2/6
 13. **Evil Twist Yang** 2/4
@@ -783,6 +789,166 @@ migrering som Templaren/Vorathos/Pallispell
 (`2EB4B914-42A1-4340-843C-D4213EA510E4.jpg` → `card-tilda-full.jpg`),
 samma förhöjda beskärning som Templaren ((10,60)-(930,660)) för att
 få med ansiktet ovanför namnplattan.
+
+**50. Tahabata — 4 av 6 skills kopplade in, Shield/Inferno Dominion
+lämnade orörda per instruktion** — tionde kortet från audit-listan.
+**Till skillnad från Templaren/Tilda finns Tahabata dubbelt i filen**
+(`HEROES` OCH `FOREST_FOES`, identisk text på båda ställena — AI:t kan
+alltså spela honom) — alla ändringar speglade på BÅDA ställena med en
+`replace_all`-edit. Hade redan `active.shield:true` (Pyrelord's Shield)
+och en fungerande Ultimate (`SPECIAL_HANDLERS.tahabata`, Inferno
+Dominion) — båda lämnade **helt orörda** per uttrycklig instruktion.
+
+- **Dragonfire's Fury** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:2}`, samma som Yojimbo/
+  Vorathos/Twisted Gipsy. "En vald sida" kollapsar naturligt till "den
+  anfallande sidan" eftersom bara en sida någonsin är inblandad per
+  strid — ingen förenkling att deklarera.
+- **Soul Petrification** — ny `active.onCaptureGrantShield:true`,
+  kopplad i `checkOnWinBonuses` (som redan körs en gång per enskild
+  erövring, inte bara en gång per placering) med ett enda anrop till
+  den redan existerande `SpecialVerbs.grantShield()` (samma primitive
+  Pallis's Wave of Loyalty redan använder).
+- **Wrath Eruption** — ny `active.onWinAdjacentEnemyDebuff:1`. Liknar
+  `onWinAreaDebuff` (Three Head Dragon) men är INTE samma sak: den
+  debuffar runt DET ERÖVRADE kortet, permanent, alla sidor; Wrath
+  Eruption debuffar runt TAHABATA SJÄLV (winnerIndex, inte loserIndex),
+  riktat (bara sidan som pekar mot honom), temporärt. Samma
+  `xUntilTurnCount`-idiom som Tildas Umbral Step (`entry.
+  wrathEruptionSide` + `entry.wrathEruptionUntilTurnCount`), men satt
+  på FLERA grannars entries samtidigt istället för på kastaren själv,
+  och läst OVILLKORLIGT i `fullEffectiveValue` (inte gated på det
+  drabbade kortets egen `active`, eftersom flaggan sätts av en
+  motståndare) — samma sätt `entry.sideBonus` redan läses ovillkorligt.
+  Respekterar `isDebuffImmuneNow()` vid sättningstillfället, samma
+  konvention som `SpecialVerbs.debuff()`/`debuffThisRound()`.
+- **Pyrelord's Awakening** — ny `active.adjacentEnemiesBoostAnyRole:
+  {minCount:2, amount:1}`, variant "a" per användarens uttryckliga val:
+  enemy-counting-spegeln av det redan existerande `adjacentEnemiesBoost`
+  (Tiamat), men UTAN dennas `role==='attack'`-spärr (Tahabatas text har
+  ingen "medan han anfaller"-kvalificering, till skillnad från Tiamats).
+  Samma form som Medusas `adjacentAlliesBoost` (som redan saknar
+  attack-only-spärren), bara räknar fiende- istället för
+  allierade-grannar.
+
+**Bugg hittad och fixad under arbetet, inte Tahabata-specifik:**
+`SpecialVerbs.grantShield()`s engångs-blockering konsumerades ALDRIG
+via den vanliga stridsupplösningen (`battleNeighbors`) — bara via
+Ultimate-vägen (`specialBlockedByShield`). `target.shieldUsed = true`
+sattes bara inuti `if(targetActive && targetActive.shield)`-grenen, så
+ett rent externt beviljat skydd (`grantedShield`, inget eget
+`active.shield`) skulle blockera FÖREVER istället för bara en gång —
+skulle ha gjort Soul Petrification permanent osårbar, inte "kan inte
+tas tillbaka NÄSTA strid" som texten säger. Upptäckt av Soul
+Petrifications eget test (`shieldUsedAfterRecapture` fastnade på
+`false`). Fixat genom att flytta `target.shieldUsed = true` utanför
+den snäva `targetActive.shield`-grenen till att gälla varje gång
+`shielded` är sant, oavsett källa — matchar redan hur Ultimate-vägen
+gör det. `shieldGrantsBonus` (Medusas Living Statue-specialfall) förblev
+scoped till just `targetActive.shield`, ingen ändring där. Fullständig
+testsvit (81 tester) grön efter fixen, inga regressioner.
+
+Inga nya generella primitives — alla fyra nya fält återanvänder
+befintliga verb (`SpecialVerbs.grantShield()`) eller redan etablerade
+idiom (`xUntilTurnCount`-mönstret, det icke-attack-gated
+adjacency-boost-mönstret Medusa redan äger).
+
+**Ny godkänd bild mottagen samma session — avslöjade en RIKTIG
+kod-vs-bild-konflikt på Inferno Dominion, inte bara en
+formuleringsskillnad:**
+- **Nuvarande kod** (oförändrad, precis som beordrat): 
+  `totalPower(srcEntry)+2 <= totalPower(targetEntry)` → miss — ett
+  GENERÖST tröskelvärde (Tahabata vinner även om hans totalPower är upp
+  till 1 poäng LÄGRE än målets), och respekterar sköldar
+  (`specialBlockedByShield`-koll finns).
+- **Den nya bilden**: "If Tahabata wins a battle by 2 or more, he flips
+  the enemy card. Shield effects do not prevent this from happening." —
+  ett riktigt marginalkrav (måste vara STARKARE, inte bara "inte alltför
+  mycket svagare"), och uttryckligen ospärrbart av sköldar — motsatsen
+  till nuvarande beteende på båda punkterna.
+- **Uppdatering, samma session: användaren valde "C" (kombinera).**
+  Den gamla generösa tröskeln (`basePower+2 <= targetPower` → miss)
+  ligger kvar OFÖRÄNDRAD som grundvillkor — en marginellt svagare
+  Tahabata vinner fortfarande som förut, och en sådan smal vinst
+  respekterar fortfarande sköldar precis som innan. Men en NY
+  `dominant`-kontroll (`basePower - targetPower >= 2`, exakt bildens
+  eget marginalkrav) lades till: när den är sann hoppas
+  `specialBlockedByShield()`-kollen över helt, vilket matchar bildens
+  "shields don't stop this" — och eftersom den funktionen är den enda
+  platsen som sätter `shieldUsed`, lämnas skölden OKONSUMERAD (bildens
+  text säger "stoppar inte", inte "förstör") snarare än förbrukad.
+  Ingen av de två gamla grenarna togs bort — bara ett nytt extra villkor
+  lagt ovanpå, samma "kombinera genom att lägga till, inte ersätta"-
+  princip som Vorathos/Pallispell. Skill-texten uppdaterad i BÅDA
+  `HEROES`/`FOREST_FOES`-kopiorna för att beskriva det kombinerade
+  beteendet (den gamla texten, "+2 Power on that side", matchade
+  faktiskt aldrig ens den gamla koden — en dold felskrivning som
+  samtidigt städades upp). Fyra nya testfall (misslyckas, generös vinst,
+  smal vinst blockerad, dominant vinst obstruerar sköld och lämnar den
+  okonsumerad).
+
+**Uppdatering, samma session: användaren godkände båda mindre fynden.**
+`role` ändrat från `'Legendary Card'` till `'Pyrelord'` (matchar
+bildens underrubrik, samma mönster som Templarens `role:'Holy
+Guardian'` separat från sin egen rarity-badge). `isDragon:true`
+tillagt (bildens "Type: Dragon") — läses redan generiskt av Kaeldryx's
+`vsTagBonus:{tag:'isDragon'}` (Dragon Hunter) och den `isDragon`-filtrerade
+linje-effekten (Ancient Wyrmking/Three Head Dragon), så Tahabata blir
+nu automatiskt ett giltigt mål/relevant kort för båda utan någon extra
+kod. Båda ändringarna speglade i `HEROES` OCH `FOREST_FOES` (samma
+`replace_all`-mönster som resten av kortet). Fullständig testsvit körd
+igen efter taggen (cross-cutting ändring, påverkar andra kort som redan
+läser `isDragon`), fortfarande grön.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Flyttade full-bilden från det gamla GitHub-UUID-filnamnet
+(`99DD524F-E6E1-4476-8FD8-786837E063A9.jpg`, borttaget) till
+standardnamnet `card-tahabata-full.jpg`, samma mönster som Templaren/
+Vorathos/Pallispell/Tilda. Ny beskuren `cards/card-tahabata.jpg`
+använder samma högre beskärning som Templaren/Tilda
+((10,60)-(930,660)) — standardbeskärningen klippte av drakens huvud
+helt på den här bilden. Tahabata är nu HELT klar: 6/6 skills, ny konst.
+
+**NY FUNKTION (inte del av 16-korts-auditen): persistent buff/debuff-
+visning på brädet.** Användaren påpekade att attack-siffrorna på ett
+liggande kort ALDRIG uppdaterades visuellt när det fick en permanent
+eller "denna runda"-bonus/minus — bara en transient "+N Power"-popup
+(`flashStatChange`) som tonar bort efter ~1.3s, sedan ingenting.
+`cardFace()` renderade alltid `card.top`/`right`/`bottom`/`left` (de
+statiska grundvärdena), aldrig `entry.captureBonus`/`entry.sideBonus`.
+
+- Ny `effectiveStatFor(card, side, opts)` — ren funktion, `base +
+  captureBonus + (sideBonus[side]||0)`. Medvetet begränsad till LAGRADE
+  modifierare (samma två fält `flashStatChange` redan flashar), INTE
+  matchup-beroende live-bonusar (`vsStrongerTotalPowerBoost`,
+  `pairPresence`, etc. — de beräknas bara av `fullEffectiveValue` mot en
+  specifik motståndare vid en faktisk strid, så det finns inget enda
+  "aktuellt" värde att visa i förväg). Användarens eget val efter en
+  fråga om scope.
+- Ny `statNumHtml(card, side, opts)` — visar det EFFEKTIVA värdet
+  (siffran ändras, inte bara en badge bredvid — användarens eget val
+  mellan de två alternativen), med CSS-klass `buffed`/`debuffed` när
+  bonusen är != 0.
+- `cardFace()`s `stat-cluster` bytt till att anropa `statNumHtml` istället
+  för att skriva `card.X` direkt. `boardCellHtml()` skickar nu
+  `captureBonus`/`sideBonus` från den levande `cell`-entryn in i
+  `cardFace`s `opts` — enda anropsstället som har en levande entry
+  (draft/hand/poster-vyerna visar bara statiska kort, ingen ändring där).
+- Ny CSS `.stat-n.buffed`/`.stat-n.debuffed` — samma grön/röd-palett som
+  `.skill-pop.bonus`/`.bonus-negative` redan använder, bara textfärg +
+  glöd istället för en hel badge. Ägar-ramfärgen (blå/röd) rörs inte —
+  det är ägarskap, inte buff-status.
+- Verifierat visuellt med en riktig skärmdump (ett kort med
+  `captureBonus:3` visar 11/7/8/11 i grönt, ett annat med
+  `sideBonus:{top:-2}` visar sin topp-siffra i rött) innan commit, inte
+  bara testat i motorn.
+
+Inga nya primitives — bara en ny renderingsväg för data som redan finns
+(`captureBonus`/`sideBonus` fanns redan, bara aldrig lästa av
+`cardFace`). Nytt test (`Board display: ...`) täcker
+`effectiveStatFor`/`statNumHtml`-matematiken plus att `boardCellHtml`
+faktiskt speglar en levande entrys bonus. Fullständig testsvit (82
+tester) grön.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

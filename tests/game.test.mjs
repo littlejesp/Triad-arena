@@ -2860,6 +2860,234 @@ test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Mar
   await page.close();
 });
 
+test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoost), Soul Petrification (grantShield), Wrath Eruption (on-win directional debuff, live-expiring), Pyrelord\'s Awakening (any-role adjacent-enemy aura), Shield unchanged, Inferno Dominion combined with the approved art\'s dominant-win clause, mirrored in HEROES and FOREST_FOES', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const tahabata = findCardById('tahabata');
+    out.statsUnchanged = tahabata.top === 10 && tahabata.right === 10 && tahabata.bottom === 8 && tahabata.left === 9;
+    out.roleMatchesArt = tahabata.role === 'Pyrelord';
+    out.isDragonTagged = tahabata.isDragon === true;
+    out.skillCount = tahabata.skills.length === 6;
+    out.hasPyrelordsShield = tahabata.active.shield === true;
+    out.specialName = tahabata.special.name === 'Inferno Dominion';
+    out.specialCost = tahabata.special.cost === 2;
+
+    // Mirrored in both HEROES (player) and FOREST_FOES (AI) — same active fields.
+    const forestTahabata = FOREST_FOES.find(f => f.id === 'tahabata');
+    out.mirroredInForestFoes = forestTahabata
+      && forestTahabata.active.oncePerMatchAttackBoost.amount === 2
+      && forestTahabata.active.onCaptureGrantShield === true
+      && forestTahabata.active.onWinAdjacentEnemyDebuff === 1
+      && forestTahabata.active.adjacentEnemiesBoostAnyRole.minCount === 2
+      && forestTahabata.active.adjacentEnemiesBoostAnyRole.amount === 1
+      && forestTahabata.role === 'Pyrelord'
+      && forestTahabata.isDragon === true;
+
+    // Dragonfire's Fury: reuses the existing oncePerMatchAttackBoost primitive.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    out.dragonfiresFuryField = tahabata.active.oncePerMatchAttackBoost.amount === 2;
+    const dfSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = dfSrc;
+    const dfTarget = freshEntry({ id:'dft', name:'DFT', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = dfTarget;
+    out.dragonfiresFuryAppliesOnAttack = fullEffectiveValue(tahabata, 'top', dfTarget, 4, 'blue', 'attack') - tahabata.top === 2;
+    resolveFlips(4, 'blue');
+    out.dragonfiresFuryConsumed = dfSrc.oncePerMatchAttackBoostUsed === true;
+
+    // Soul Petrification: the just-captured card gets a one-time shield
+    // (SpecialVerbs.grantShield), blocking the very next attempt to flip
+    // it back even against overwhelming power.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const spSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = spSrc;
+    const spWeak = freshEntry({ id:'spw', name:'SPW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = spWeak;
+    resolveFlips(4, 'blue');
+    out.soulPetrificationCaptured = state.board[1].owner === 'blue';
+    out.soulPetrificationGrantedShield = spWeak.grantedShield === true;
+    // index 0 is horizontally adjacent to index 1 (row 0, col 0/1), so the
+    // relevant attacking side is 'right', not 'bottom'.
+    const spCrusher = freshEntry({ id:'spc', name:'SPC', top:1,right:20,bottom:1,left:1 }, 'red');
+    state.board[0] = spCrusher;
+    resolveFlips(0, 'red');
+    out.soulPetrificationBlockedRecapture = state.board[1].owner === 'blue';
+    out.soulPetrificationShieldConsumed = spWeak.shieldUsed === true;
+
+    // Wrath Eruption: after Tahabata wins ONE battle, every OTHER still-
+    // enemy-owned adjacent card gets -1 live on the side facing him, this
+    // round. Down neighbor (index 7) survives (crusher stats), so it's
+    // still enemy-owned when checkOnWinBonuses runs off the up neighbor's
+    // capture -- its facing side is 'top' (opposite of Tahabata's [1,0]
+    // offset onto it).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const weSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = weSrc;
+    const weWeak = freshEntry({ id:'wew', name:'WEW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weWeak;
+    const weSurvivor = freshEntry({ id:'wes', name:'WES', top:20,right:1,bottom:1,left:1 }, 'red');
+    state.board[7] = weSurvivor;
+    resolveFlips(4, 'blue');
+    out.wrathEruptionCapturedWeak = state.board[1].owner === 'blue';
+    out.wrathEruptionSurvivorStillEnemy = state.board[7].owner === 'red';
+    out.wrathEruptionSideSet = weSurvivor.wrathEruptionSide === 'top';
+    const dummyOpp = { id:'dummy', name:'D', top:1,right:1,bottom:1,left:1 };
+    out.wrathEruptionLiveDebuff = fullEffectiveValue(weSurvivor.card, 'top', dummyOpp, 7, 'red', 'defense') - weSurvivor.card.top === -1;
+    out.wrathEruptionNoDebuffOtherSide = fullEffectiveValue(weSurvivor.card, 'right', dummyOpp, 7, 'red', 'defense') - weSurvivor.card.right === 0;
+    const savedTurnCount = state.turnCount;
+    state.turnCount = weSurvivor.wrathEruptionUntilTurnCount;
+    out.wrathEruptionExpired = fullEffectiveValue(weSurvivor.card, 'top', dummyOpp, 7, 'red', 'defense') - weSurvivor.card.top === 0;
+    state.turnCount = savedTurnCount;
+
+    // Pyrelord's Awakening: +1 all sides while surrounded by 2+ enemies,
+    // on BOTH attack and defense (variant "a", no role gate) -- the key
+    // difference from Tiamat's attack-only adjacentEnemiesBoost. Marks
+    // oncePerMatchAttackBoostUsed so Dragonfire's Fury doesn't also add
+    // its own +2 and muddy the attack-role assertion.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const paEntry = freshEntry(tahabata, 'blue');
+    paEntry.oncePerMatchAttackBoostUsed = true;
+    state.board[4] = paEntry;
+    state.board[1] = freshEntry({ id:'pae1', name:'PAE1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = freshEntry({ id:'pae2', name:'PAE2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.awakeningAppliesOnAttack = fullEffectiveValue(tahabata, 'top', dummyOpp, 4, 'blue', 'attack') - tahabata.top === 1;
+    out.awakeningAppliesOnDefense = fullEffectiveValue(tahabata, 'top', dummyOpp, 4, 'blue', 'defense') - tahabata.top === 1;
+    state.board[3] = null;
+    out.awakeningNoBonusBelowThreshold = fullEffectiveValue(tahabata, 'top', dummyOpp, 4, 'blue', 'defense') - tahabata.top === 0;
+
+    // Inferno Dominion, combined per the user's choice "C": the old
+    // lenient totalPower+2<=target threshold stays as the baseline (a
+    // narrow win, even while slightly weaker, still succeeds and still
+    // respects shields), but a DOMINANT win (margin of 2+, the approved
+    // art's own threshold) now also bypasses shields entirely, leaving
+    // them unconsumed. Tahabata's total power is 37.
+
+    // Case: fails outright -- target total 40 (37+2=39 <= 40).
+    state.board = Array(9).fill(null);
+    const idFailSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idFailSrc;
+    const idFailTarget = freshEntry({ id:'id-fail', name:'IDFail', top:10,right:10,bottom:10,left:10 }, 'red'); // total 40
+    state.board[1] = idFailTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idFailSrc, targetEntry: idFailTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoFailsOutright = idFailTarget.owner === 'red';
+
+    // Case: lenient win preserved -- target total 38 (Tahabata is
+    // nominally weaker, 37 < 38, but the old +2 threshold still lets this
+    // succeed), no shield involved.
+    state.board = Array(9).fill(null);
+    const idLenientSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idLenientSrc;
+    const idLenientTarget = freshEntry({ id:'id-lenient', name:'IDLenient', top:10,right:10,bottom:9,left:9 }, 'red'); // total 38
+    state.board[1] = idLenientTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idLenientSrc, targetEntry: idLenientTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoLenientWinPreserved = idLenientTarget.owner === 'blue';
+
+    // Case: narrow win (margin 1, target total 36) with a shield -- NOT
+    // dominant, so the shield still blocks exactly as the old code did.
+    state.board = Array(9).fill(null);
+    const idNarrowSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idNarrowSrc;
+    const idNarrowTarget = freshEntry({ id:'id-narrow', name:'IDNarrow', top:9,right:9,bottom:9,left:9, active:{shield:true} }, 'red'); // total 36, margin 1
+    state.board[1] = idNarrowTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idNarrowSrc, targetEntry: idNarrowTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoNarrowWinStillBlockedByShield = idNarrowTarget.owner === 'red';
+
+    // Case: dominant win (margin 3, target total 34) with a shield -- the
+    // approved art's own clause kicks in: shields don't stop this at all.
+    // The shield is bypassed, not consumed (specialBlockedByShield, which
+    // marks shieldUsed, is skipped outright).
+    state.board = Array(9).fill(null);
+    const idDomSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idDomSrc;
+    const idDomTarget = freshEntry({ id:'id-dom', name:'IDDom', top:9,right:9,bottom:8,left:8, active:{shield:true} }, 'red'); // total 34, margin 3
+    state.board[1] = idDomTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idDomSrc, targetEntry: idDomTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoDominantWinBypassesShield = idDomTarget.owner === 'blue';
+    out.infernoDominantShieldLeftUnconsumed = idDomTarget.shieldUsed === false;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.roleMatchesArt, true, "role should read 'Pyrelord' per the approved art's subtitle");
+  assert.equal(result.isDragonTagged, true, 'the approved art shows "Type: Dragon"');
+  assert.equal(result.skillCount, true);
+  assert.equal(result.hasPyrelordsShield, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.mirroredInForestFoes, true, 'the FOREST_FOES copy must carry the same new active fields');
+  assert.equal(result.dragonfiresFuryField, true);
+  assert.equal(result.dragonfiresFuryAppliesOnAttack, true);
+  assert.equal(result.dragonfiresFuryConsumed, true);
+  assert.equal(result.soulPetrificationCaptured, true);
+  assert.equal(result.soulPetrificationGrantedShield, true, 'Soul Petrification grants the just-captured card a one-time shield');
+  assert.equal(result.soulPetrificationBlockedRecapture, true, "the shield blocks the enemy's immediate attempt to win it back");
+  assert.equal(result.soulPetrificationShieldConsumed, true);
+  assert.equal(result.wrathEruptionCapturedWeak, true);
+  assert.equal(result.wrathEruptionSurvivorStillEnemy, true);
+  assert.equal(result.wrathEruptionSideSet, true, "the surviving neighbor's facing side is marked");
+  assert.equal(result.wrathEruptionLiveDebuff, true);
+  assert.equal(result.wrathEruptionNoDebuffOtherSide, true);
+  assert.equal(result.wrathEruptionExpired, true);
+  assert.equal(result.awakeningAppliesOnAttack, true);
+  assert.equal(result.awakeningAppliesOnDefense, true, "Pyrelord's Awakening applies on defense too, unlike Tiamat's attack-only adjacentEnemiesBoost");
+  assert.equal(result.awakeningNoBonusBelowThreshold, true);
+  assert.equal(result.infernoFailsOutright, true, "Inferno Dominion still fails when the target's total Power is 2+ higher");
+  assert.equal(result.infernoLenientWinPreserved, true, 'the old lenient threshold still lets a nominally-weaker Tahabata win');
+  assert.equal(result.infernoNarrowWinStillBlockedByShield, true, 'a non-dominant win still respects shields, same as before');
+  assert.equal(result.infernoDominantWinBypassesShield, true, "a dominant win (margin 2+) bypasses shields entirely, per the approved art");
+  assert.equal(result.infernoDominantShieldLeftUnconsumed, true, 'a bypassed shield is left unconsumed, not destroyed');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Board display: stored captureBonus/sideBonus modifiers show as a live-updated number with a buffed/debuffed color, live matchup-dependent bonuses excluded', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ogre = findCardById('ogre'); // top:8, right:5, bottom:8, left:4
+
+    // effectiveStatFor: pure math, no rendering.
+    out.baseUnaffected = effectiveStatFor(ogre, 'top', {}).value === 8 && effectiveStatFor(ogre, 'top', {}).bonus === 0;
+    out.captureBonusApplies = effectiveStatFor(ogre, 'top', { captureBonus: 2 }).value === 10;
+    out.sideBonusAppliesOnlyToThatSide = effectiveStatFor(ogre, 'right', { sideBonus: { right: -1 } }).value === 4
+      && effectiveStatFor(ogre, 'top', { sideBonus: { right: -1 } }).value === 8;
+    out.captureAndSideBonusStack = effectiveStatFor(ogre, 'top', { captureBonus: 1, sideBonus: { top: 1 } }).value === 10
+      && effectiveStatFor(ogre, 'top', { captureBonus: 1, sideBonus: { top: 1 } }).bonus === 2;
+
+    // statNumHtml: value shown + buffed/debuffed class, neutral gets no class.
+    out.buffedClassAndValue = statNumHtml(ogre, 'top', { captureBonus: 2 }).includes('buffed') && statNumHtml(ogre, 'top', { captureBonus: 2 }).includes('>10<');
+    out.debuffedClassAndValue = statNumHtml(ogre, 'top', { captureBonus: -3 }).includes('debuffed') && statNumHtml(ogre, 'top', { captureBonus: -3 }).includes('>5<');
+    out.neutralHasNoColorClass = !statNumHtml(ogre, 'top', {}).includes('buffed') && !statNumHtml(ogre, 'top', {}).includes('debuffed');
+
+    // End-to-end via a real board cell: boardCellHtml must actually pass
+    // the live entry's captureBonus/sideBonus through to cardFace/statNumHtml.
+    state.board = Array(9).fill(null);
+    const entry = freshEntry(ogre, 'blue');
+    entry.captureBonus = 3;
+    state.board[4] = entry;
+    const html = boardCellHtml(entry, 4);
+    out.boardCellReflectsLiveBonus = html.includes('buffed') && html.includes('>11<');
+
+    return out;
+  })()`);
+  assert.equal(result.baseUnaffected, true);
+  assert.equal(result.captureBonusApplies, true);
+  assert.equal(result.sideBonusAppliesOnlyToThatSide, true);
+  assert.equal(result.captureAndSideBonusStack, true);
+  assert.equal(result.buffedClassAndValue, true);
+  assert.equal(result.debuffedClassAndValue, true);
+  assert.equal(result.neutralHasNoColorClass, true);
+  assert.equal(result.boardCellReflectsLiveBonus, true, 'the board cell render must show the live modified number, not just the base stat');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
