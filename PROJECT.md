@@ -1036,6 +1036,89 @@ använder samma förhöjda beskärning som Templaren/Tilda/Tahabata
 ((10,60)-(930,660)) för att få med ansiktet och hunden istället för att
 klippa av huvudet.
 
+**54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
+"rena" kort, på användarens egen begäran** ("jag hade velat göra om
+tiamat och tree head dragon"), inte från audit-listan (båda var sedan
+tidigare bekräftat 100% kod-kopplade). Användaren valde "bådadera" (ny
+mekanik OCH ny konst) men bad mig föreslå riktningen ("föreslå åt mig"),
+med explicit villkor att behålla grundidentiteten (namn/roll/element
+oförändrat). Siffrorna i mitt förslag fick jag också fritt bestämma
+("jag vet inte bestäm du snälla").
+
+Båda korten gick igenom EN tidigare stor ombyggnad (se avsnittet om
+"Tiamat, The Celestial Judgment, The Infinite Seraph, The Eclipse
+Fenrir" ovan/nedan i avsnitt 5) som redan dokumenterade en medveten
+kompromiss per kort. Den här omgången löser exakt de två
+kompromisserna, med primitiver som inte fanns förra gången:
+
+- **Tiamats Ultimate (The Fivefold Apocalypse)** — de fem "krafterna"
+  (Fire/Ice/Storm/Void/Nature) var ren smak, alla fem löste ut
+  identiskt (dokumenterad medveten förenkling: en "väntande
+  riktningsbonus konsumeras vid nästa attack"-mekanik ansågs för
+  riskabel i `fullEffectiveValue`, en känslig, ofta anropad funktion).
+  Nu löser alla fem ut OMEDELBART vid aktivering istället för uppskjutet
+  till en framtida attack, vilket helt kringgår den risken:
+  - 🔥 **Fire** — oförändrad (+5 attack denna strid, +1 alla sidor
+    permanent vid vinst).
+  - ❄️ **Ice** — inget eget attack-tillägg, istället -3 på MÅLETS
+    försvarssida under just den striden. Ingen permanent belöning —
+    störst enskild swing, inget kvarstående.
+  - ⛈️ **Storm** — +3 attack; vid vinst får varje ÖVRIGT fiendekort
+    intill den erövrade rutan -1 Power denna runda (`debuffThisRound`,
+    samma sido-räkning som 3HD:s egna Fire's Wrath/`onWinAreaDebuff`,
+    men rond-begränsad istället för permanent och bara på detta valda
+    kraft, inte varje vinst).
+  - 🌀 **Void** — +2 attack; om målets totala Power är 10 eller lägre
+    (samma tröskel som Shivas Diamond Storm redan etablerat för sin
+    egen temporära "avrätta-svaga-fiender"-mekanik) förstörs det HELT
+    (`destroyCard`) istället för att erövras — respekterar
+    `isDestroyImmune`/`protectedByInfiniteSeraph` som alla andra
+    förstör-vägar.
+  - 🌿 **Nature** — +2 attack; vid vinst rensas negativa effekter
+    (`captureBonus<0` nollställs, `tempEffects` töms) på HELA Tiamats
+    egen sida — samma `onWinCleanseAlly`-mönster som Naline/Elara,
+    fast sido-brett istället för en slumpad allierad.
+
+  AI:t kan fortfarande inte klicka choice-popupen (samma begränsning som
+  innan) och väljer nu hårdkodat 'fire' — den råaste/mest permanent
+  skalande varianten, matchar dess giriga heuristik bäst.
+
+- **Three Head Dragons Poison's Torment** — tidigare flavor-only
+  ("motorrisk-kategori som undveks för Tiamats ombyggda ultimate").
+  Byggd nu med exakt samma mönster som Ifrits/Seraphines/Tildas
+  per-kort-flaggor (satta direkt i `battleNeighbors`, inte ett generellt
+  `active`-fält): när 3HD förlorar en strid (som ANFALLARE nyplacerad,
+  eller som FÖRSVARARE redan på brädet) taggas VINNAREN med
+  `entry.poisonedTorment = true`. Konsumeras överst i nästa
+  `battleNeighbors`-anrop för just det kortet: -2 på `placedVal` för
+  VARJE granne i den placeringen (matchar "-2 alla sidor under nästa
+  ATTACK" ordagrant — en hel placering räknas som en attack-händelse),
+  sedan nollställs flaggan en gång, inte per granne. Respekterar
+  `debuffImmune` (kollat manuellt vid tagg-sättningen, eftersom detta
+  inte går via `SpecialVerbs.debuff`/`debuffThisRound` som annars har
+  den kollen inbyggd).
+
+Resten av båda korten (Tiamats tre andra passiv + Queen of Dragons,
+3HD:s Three Souls/Ice's Breath/Fire's Wrath/Immortal Chaos) rördes INTE
+— redan solida, ingen kompromiss där. Två nya tester (en per kort)
+täcker alla fem Tiamat-krafter samt båda Poison's Torment-riktningarna
+(anfallare/försvarare) + flagg-konsumtion + `debuffImmune`-respekt.
+Fullständig testsvit grön (88 tester).
+
+Ny konst väntar fortfarande — nästa steg är en bildbrief för båda
+korten (samma identitet: Tiamat femhövdad drakdrottning/eld, Three Head
+Dragon tre huvuden/mystiskt-eld, bara ny pose/kvalitet i poster-stilen
+som Ferea/Evil Twist fick), men mekaniken kommer först så att den nya
+konsten kan visa de riktiga skill-texterna.
+
+**Öppen tråd, inte påbörjad än:** användaren föreslog en egen
+drak-tema campaign-etapp (Tiamat, Bahamut, Three Head Dragon, Ancient
+Wyrmking, Ifrit, Tahabata är alla `isDragon`/drak-tema; Kaeldryx är
+redan byggd som ren "Dragon Hunter" med `vsTagBonus:{tag:'isDragon'}`).
+Medvetet uppskjutet till efter den här ombyggnaden är klar — kräver
+egna beslut (var i `CAMPAIGN_STAGES`-listan, vilka fem drakar, vad den
+låser upp).
+
 **53. Evil Twist Yang/Yin — sista två korten från 16-korts audit-listan,
 båda klara i samma pass.** Trettonde och fjortonde kortet, det sista
 paret på listan. Hade redan `active.pairPresence` (Guardian of Balance,
