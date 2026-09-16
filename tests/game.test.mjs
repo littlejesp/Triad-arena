@@ -3906,6 +3906,61 @@ test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, and her 
   await page.close();
 });
 
+test("Zaevir: card rebuilt from a 0/4-wired stub -- Eternal Aim (onPlaceBoost), Focus (shield), and his first-ever Ultimate Eternal Arrow", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const zaevir = findCardById('zaevir');
+    out.statsMatchArt = zaevir.top === 10 && zaevir.right === 10 && zaevir.bottom === 9 && zaevir.left === 8 && zaevir.element === 'wind';
+    out.hasEternalAim = zaevir.active.onPlaceBoost === 2;
+    out.hasFocus = zaevir.active.shield === true;
+    out.skillCount = zaevir.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Eternal Aim: placing him grants +2 Power on exactly one random side.
+    state.board = Array(9).fill(null);
+    state.playerHand = [zaevir, {id:'filler1'}];
+    placeCard(4, 'zaevir', 'blue');
+    const placed = state.board[4];
+    const sb = placed.sideBonus || {};
+    const boostedSides = ['top','right','bottom','left'].filter(s => (sb[s]||0) === 2);
+    out.eternalAimBoostedExactlyOneSide = boostedSides.length === 1;
+
+    // Focus: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shieldedDefender = freshEntry(zaevir, 'blue'); // top:10
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'zae-attacker', name:'ZaeAttacker', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Eternal Arrow (same Eclipse shape as Sarah/Vayra/Ysara): non-crit win
+    // flips the target and grants permanent +1 Power all sides.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(zaevir, 'blue');
+    const target = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = src; state.board[1] = target;
+    SPECIAL_HANDLERS.zaevir({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.arrowFlippedTarget = target.owner === 'blue';
+    out.arrowPermanentBoost = src.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 10/10/9/8 (top/right/bottom/left)');
+  assert.equal(result.hasEternalAim, true);
+  assert.equal(result.hasFocus, true);
+  assert.equal(result.skillCount, 3, "the printed card carries Eternal Aim, Focus, and Eternal Arrow -- Forest's Path and the old Eternal Arrow chain-attack concept are gone");
+  assert.equal(result.eternalAimBoostedExactlyOneSide, true);
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.arrowFlippedTarget, true);
+  assert.equal(result.arrowPermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

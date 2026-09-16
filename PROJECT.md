@@ -36,6 +36,39 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
+**Punkt 41 (Zaevir) ligger committad på feature-branchen, INTE mergad
+till `main` än.**
+
+**NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
+ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
+misstag vi inte upprepar), är den här listan sparad för framtida
+sessioner. En bakgrundsagent gick igenom HELA rostret (utom de ~35
+korten som redan var åtgärdade vid det laget) och hittade 16 kort med
+"tysta" luckor (skills utan egen "Flavor only"-disclaimer som ändå
+saknar kod-backing), sämst kopplade först:
+1. **Zaevir** 0/4 — KLAR (punkt 41 nedan).
+2. **Ragnar** 0/4
+3. **Maximus** 1/6
+4. **Darum** 1/6
+5. **Daron** 1/6
+6. **Vorathos** 1/5
+7. **Pallispell** 1/5
+8. **Templaren** 1/4
+9. **Tilda** 1/4
+10. **Tahabata** 2/6
+11. **Pallis** (solo) 2/6
+12. **Ifrit** 2/6
+13. **Evil Twist Yang** 2/4
+14. **Evil Twist Yin** 2/4
+15. **Twin Brothers** 4/6
+16. **Twin Sisters** 4/6
+
+Redan kontrollerade och bekräftat HELT rena (inga tysta luckor):
+Celestial Judgment, Infinite Seraph, Fenrir, Tiamat, Odin, Yojimbo,
+Chocobo King, Morvath, Vorgrath, Zalazar, samt enkla 1-skill-mobs
+(Shadowking, Harpy, Lich, Wyrm, Revenant, Wendigo). Direbear/Ogre har
+inga skills alls (statlösa fyllnadsmobs, inget att åtgärda).
+
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
 av 4 skills hade backing (Light Shield, `active.shield`), och hon
@@ -412,6 +445,35 @@ flavor-only (uttryckligen lämnad orörd på användarens begäran).
   och det testet. Löst genom att INTE lägga till `noRevive` — Void
   Dominion fungerar exakt som förut, `SPECIAL_HANDLERS.nyxara`
   oförändrad, bildens "(cannot be revived)"-text följdes inte.
+
+**41. Zaevir — full ombyggnad från en 0/4-wired stubbe** — första kortet
+från den NYA 16-korts audit-listan (se avsnitt 1b). Till skillnad från
+POLISH-korten hade Zaevir INGET `special`-fält alls (ingen Ultimate
+över huvud taget) och ett `active.bonus`-fält som inte matchade någon
+av hans 4 skills — en ren kvarleva. 0 av 4 skills hade backing.
+
+- **Eternal Aim (Passiv)** — helt befintligt fält `active.onPlaceBoost:2`
+  (slumpad sida, permanent), samma primitive som Tiamat/Astrael.
+- **Focus (Passiv)** — helt befintligt fält `active.shield:true`,
+  medvetet omtolkad från "obesegrad → bonus" (ospårbart utan en ny
+  räknare) till "första förlusten ignoreras" — användaren bad
+  uttryckligen om att texten ska beskriva exakt vad Shield-mekaniken
+  gör, inget annat.
+- **Special Attack: "Eternal Arrow"** — hans FÖRSTA Ultimate någonsin,
+  ny `SPECIAL_HANDLERS.zaevir`, byggd i exakt samma form som Sarah/
+  Vayra/Ysaras Eclipse-mönster (total-power-tröskel +3, permanent +1
+  alla sidor på vinst). Bildens eget aktiveringsvillkor ("kontrollera
+  minst 3 kort") följdes INTE — det hade krävt en ny resurstyp vid
+  sidan av det redan etablerade Wins-kostnadssystemet alla andra
+  Special Attacks använder, flaggat till användaren och medvetet
+  avvisat till förmån för det redan godkända, återanvända mönstret.
+- Stats matchade till godkänd konst (vänster/botten omkastade):
+  top:10, right:10, bottom:9, left:8 (tidigare 10/10/8/9).
+
+Bort: Forest's Path (skulle kräva en helt ny räckvidds-mekanik för
+icke-angränsande attacker, inte värt det för ett enda filler-kort) och
+den gamla Eternal Arrow-kedjeattacks-idén (ingen kedjeattack-mekanik
+finns). Inga nya primitives.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

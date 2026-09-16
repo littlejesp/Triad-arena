@@ -1302,7 +1302,11 @@ const HEROES = [
     {name:"Elara's Bond (Passive)", desc:"Darien gets +2 Power on all sides while Elara is anywhere on your board. (Stacks with the existing +1 when adjacent, from the game's rivalry-pair rule.)"},
     {name:"Special Attack: Shadow Breaker", desc:"Cost 2 Wins. Choose 1 enemy card — unblockable. If its average side Power is 7 or lower, it's destroyed outright. If 8 or higher, it's permanently weakened by -3 Power instead and stays enemy-owned."},
   ]},
-  { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{bonus:{dir:'right',amount:1}}, skills:[{name:"Eternal Aim", desc:"On placement, choose a direction — Zaevir's attack there gets +2 for the next battle."}, {name:"Forest's Path", desc:"Once per match, Zaevir may attack a card one space away in a straight line, if the path is clear."}, {name:"Focus", desc:"If Zaevir hasn't lost a battle yet, he gets +1 on his next attack."}, {name:"Eternal Arrow", desc:"When Zaevir defeats a card, he may keep attacking in the same direction if another card borders it."}]},
+  { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:9, left:8, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{onPlaceBoost:2, shield:true}, special:{ name:'Eternal Arrow', cost:2, once:true, targets:'single' }, skills:[
+    {name:'Eternal Aim (Passive)', desc:'When Zaevir is placed, he gains +2 Power on a random side for the rest of the match.'},
+    {name:'Focus (Passive)', desc:'The first time Zaevir would lose a battle, the loss is ignored.'},
+    {name:'Special Attack: Eternal Arrow', desc:"Costs 2 wins. Choose an enemy card — Zaevir gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
+  ]},
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', active:{shield:true, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:"Aion's Last Light", cost:2, once:true, targets:'single' }, skills:[
     {name:'Light Shield (Passive)', desc:'The first time Sarah would lose a battle, the loss is ignored.'},
     {name:'Feared Huntress (Passive)', desc:'If Sarah attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
@@ -5219,6 +5223,25 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls!`;
+  },
+  // Zaevir's first-ever Ultimate, in the same total-power-threshold shape as
+  // Sarah/Vayra/Ysara's own (+3 temp boost, +1 permanent all-sides on a
+  // win) rather than inventing a new "control 3+ cards" activation gate the
+  // approved art described — that would be a different resource than the
+  // existing Wins-cost system every other Special Attack uses.
+  zaevir({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Eternal Arrow flies wide — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Eternal Arrow!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Eternal Arrow finds its mark — ${targetEntry.card.name} falls!`;
   },
   ysara({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
