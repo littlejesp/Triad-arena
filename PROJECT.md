@@ -36,8 +36,8 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41–44 (Zaevir, Ragnar, Maximus, Darum) ligger committade på
-feature-branchen, INTE mergade till `main` än.**
+**Punkt 41–45 (Zaevir, Ragnar, Maximus, Darum, Daron) ligger
+committade på feature-branchen, INTE mergade till `main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -50,7 +50,7 @@ saknar kod-backing), sämst kopplade först:
 2. **Ragnar** 0/4 — KLAR (punkt 42 nedan).
 3. **Maximus** 1/6 — KLAR (punkt 43 nedan).
 4. **Darum** 1/6 — KLAR (punkt 44 nedan).
-5. **Daron** 1/6
+5. **Daron** 1/6 — KLAR (punkt 45 nedan).
 6. **Vorathos** 1/5
 7. **Pallispell** 1/5
 8. **Templaren** 1/4
@@ -559,6 +559,33 @@ Bort: Boulder Bash och Fortress Stance (båda otydliga/obetingade,
 överlappade varandra och grundidentiteten "tank"), samt "immun mot
 Special Attacks"-klausulen i Wall of Resolve (inget spårningssystem
 för det finns). Inga nya primitives.
+
+**45. Daron — trimmad från en 0/5-wired stubbe** — femte kortet från
+audit-listan, och **Darums son** ("Son of Darum, The Fallen Prince of
+the North") — flera av hans skills ekar bokstavligen sin fars
+mekaniker, vilket gjorde återanvändningen extra naturlig. Ultimaten
+(`SPECIAL_HANDLERS.daron`, tröskel +4/flip/`stealPower:2`) var redan
+wired och matchade texten exakt. Bara de 5 vanliga skillsen saknade
+backing.
+
+- **Corrupted Bloodline (Passiv)** — TVÅ helt befintliga fält
+  tillsammans: `active.onWinDirectionalBoost:1` +
+  `active.vsStrongerTotalPowerBoost:{amount:1}` — samma två primitives
+  som pappa Darums Wall of Resolve/Crushing Counter, fast lägre
+  belopp. "Som far, så son."
+- **Soul Drain (Passiv)** — TVÅ helt befintliga fält tillsammans:
+  `active.onWinDebuffLoserPermanent:1` + `active.onCaptureBonus:1` —
+  exakt samma "stöld"-kombination som Twisted Gipsys The House Always
+  Wins.
+- **Special Attack: "Shattered Crown"** — koden HELT oförändrad.
+  Bildens "kontrollera minst 4 kort"-villkor följdes INTE igen (femte
+  gången: Zaevir/Ragnar "3 kort", Maximus/Darum/Daron "4 kort").
+- Stats **oförändrade** — matchade redan bilden exakt.
+
+Bort: Dark Sorcery (kräver "rikta in på högsta sidan"-logik som inte
+finns), Twisted Royalty (två ihopklumpade effekter, ingen ren
+mappning), Mother's Torment (redundant/överdrivet i kombination med
+de andra två). Inga nya primitives.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

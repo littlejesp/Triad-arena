@@ -4135,6 +4135,73 @@ test('Darum: card trimmed from a 0/5-wired stub -- Wall of Resolve (onWinDirecti
   await page.close();
 });
 
+test('Daron: card trimmed from a 0/5-wired stub -- Corrupted Bloodline (onWinDirectionalBoost + vsStrongerTotalPowerBoost), Soul Drain (onWinDebuffLoserPermanent + onCaptureBonus), Shattered Crown unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const daron = findCardById('daron');
+    out.statsUnchanged = daron.top === 10 && daron.right === 10 && daron.bottom === 9 && daron.left === 8 && daron.element === 'water';
+    out.hasOnWinBoost = daron.active.onWinDirectionalBoost === 1;
+    out.hasVsStronger = daron.active.vsStrongerTotalPowerBoost && daron.active.vsStrongerTotalPowerBoost.amount === 1;
+    out.hasSoulDrainDebuff = daron.active.onWinDebuffLoserPermanent === 1;
+    out.hasSoulDrainGain = daron.active.onCaptureBonus === 1;
+    out.skillCount = daron.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Corrupted Bloodline, part 1: winning a battle (as attacker) grants
+    // permanent +1 on the winning side, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(daron, 'blue'); // top:10
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'dn-weak', name:'DnWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.onWinBoostApplied = src.sideBonus && src.sideBonus.top === 1;
+
+    // Corrupted Bloodline, part 2: +1 Power attacking a stronger-total-power foe.
+    out.strongerVsStronger = fullEffectiveValue(daron, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - daron.top;
+    out.strongerVsWeaker = fullEffectiveValue(daron, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - daron.top;
+
+    // Soul Drain: winning permanently steals 1 Power (loser -1, Daron +1).
+    // Reuses src from above, which already has +1 from onWinDirectionalBoost.
+    state.board[1] = freshEntry({ id:'dn-weak2', name:'DnWeak2', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.soulDrainDebuffedLoser = state.board[1].captureBonus === -1;
+    // src already captured once in the first resolveFlips above too, so
+    // onCaptureBonus (uncapped, unlike onWinDirectionalBoost) has now
+    // fired twice: +2 total.
+    out.soulDrainGainedSelf = src.captureBonus === 2;
+
+    // Shattered Crown (unchanged): threshold +4, flip, steals 2 Power permanently.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(daron, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.daron({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.crownFlippedTarget = wtarget.owner === 'blue';
+    out.crownStoleTwoPower = wtarget.captureBonus === -2;
+    out.crownGainedTwoPower = wsrc.captureBonus === 2;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasOnWinBoost, true);
+  assert.equal(result.hasVsStronger, true);
+  assert.equal(result.hasSoulDrainDebuff, true);
+  assert.equal(result.hasSoulDrainGain, true);
+  assert.equal(result.skillCount, 3, "the printed card carries Corrupted Bloodline, Soul Drain, and Shattered Crown -- Dark Sorcery, Twisted Royalty, and Mother's Torment are gone");
+  assert.equal(result.onWinBoostApplied, true);
+  assert.equal(result.strongerVsStronger, 1);
+  assert.equal(result.strongerVsWeaker, 0);
+  assert.equal(result.soulDrainDebuffedLoser, true);
+  assert.equal(result.soulDrainGainedSelf, true, 'onCaptureBonus fired on both captures (uncapped), unlike the once-only onWinDirectionalBoost');
+  assert.equal(result.crownFlippedTarget, true);
+  assert.equal(result.crownStoleTwoPower, true);
+  assert.equal(result.crownGainedTwoPower, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

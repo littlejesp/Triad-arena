@@ -1628,13 +1628,10 @@ const HEROES = [
     {name:'Ironwall (Passive)', desc:'The first time Darum would lose a battle, the loss is ignored.'},
     {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently."},
   ] },
-  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
-    {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
-    {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
-    {name:'Twisted Royalty', desc:'Once per match, choose a side — Daron gets +3 Power on that side and the enemy card gets -2 Power on all sides this round.'},
-    {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
-    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:1}, onWinDebuffLoserPermanent:1, onCaptureBonus:1}, special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Corrupted Bloodline (Passive)', desc:'The first time Daron wins a battle, he permanently gains +1 Power on that side. If he attacks an enemy card with higher total Power than his own, he gets +1 Power on the attacking side.'},
+    {name:'Soul Drain (Passive)', desc:'When Daron wins a battle, the defeated card permanently loses 1 Power on all sides, and Daron permanently gains +1 Power.'},
+    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power for this attack only. If he wins, he steals 2 Power from the defeated card, permanently."},
   ] },
   { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', active: {shield:true, onWinFrostmark:true, auraPerFrostmarkedEnemy:{amount:1, max:3}}, special:{ name:'The Frozen Crown', cost:3, once:true, targets:'aoe' }, skills: [
     {name:'Frostmark (Passive)', desc:'When Ferea wins a battle, the defeated enemy card becomes Frostmarked for the rest of the match.'},
@@ -1948,13 +1945,10 @@ const FOREST_FOES = [
     {name:'Ironwall (Passive)', desc:'The first time Darum would lose a battle, the loss is ignored.'},
     {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently."},
   ] },
-  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
-    {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
-    {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
-    {name:'Twisted Royalty', desc:'Once per match, choose a side — Daron gets +3 Power on that side and the enemy card gets -2 Power on all sides this round.'},
-    {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
-    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:1}, onWinDebuffLoserPermanent:1, onCaptureBonus:1}, special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Corrupted Bloodline (Passive)', desc:'The first time Daron wins a battle, he permanently gains +1 Power on that side. If he attacks an enemy card with higher total Power than his own, he gets +1 Power on the attacking side.'},
+    {name:'Soul Drain (Passive)', desc:'When Daron wins a battle, the defeated card permanently loses 1 Power on all sides, and Daron permanently gains +1 Power.'},
+    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power for this attack only. If he wins, he steals 2 Power from the defeated card, permanently."},
   ] },
   { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', active: {shield:true, onWinFrostmark:true, auraPerFrostmarkedEnemy:{amount:1, max:3}}, special:{ name:'The Frozen Crown', cost:3, once:true, targets:'aoe' }, skills: [
     {name:'Frostmark (Passive)', desc:'When Ferea wins a battle, the defeated enemy card becomes Frostmarked for the rest of the match.'},
