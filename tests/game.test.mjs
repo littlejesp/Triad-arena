@@ -2665,6 +2665,73 @@ test('Chocobo King: Golden Feathers (isBeast tag), Choco Dash/Royal Plumage/Feat
   await page.close();
 });
 
+test('Templaren: reworked per audit — Holy Aura (on-place directional ally buff), Divine Retribution (on-capture self buff), Faithful Defense unchanged, Shield Wall dropped', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const templaren = findCardById('templaren');
+    // Templaren is a campaign unlock reward (CAMPAIGN_STAGES unlockIds),
+    // intentionally player-only — unlike most heroes he's never in
+    // FOREST_FOES, so only HEROES membership is checked here.
+    out.playable = HEROES.some(h => h.id === 'templaren');
+    out.skillCount = templaren.skills.length === 3;
+    out.shieldWallDropped = !templaren.skills.some(s => s.name === 'Shield Wall');
+
+    // Holy Aura: each adjacent ally gets +1 on the side FACING Templaren
+    // (opposite of the direction he's offset from them), a non-adjacent
+    // ally and an adjacent enemy are both untouched.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const templarenEntry = freshEntry(templaren, 'blue');
+    const upAlly = freshEntry({ id:'ua', name:'UA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const leftAlly = freshEntry({ id:'la', name:'LA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const rightAlly = freshEntry({ id:'ra', name:'RA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const downAlly = freshEntry({ id:'da', name:'DA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const adjEnemy = freshEntry({ id:'ae', name:'AE', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = upAlly; state.board[3] = leftAlly; state.board[5] = rightAlly; state.board[7] = downAlly;
+    state.board[4] = templarenEntry;
+    ON_PLACE_HANDLERS.templaren(templarenEntry, 'blue', 4);
+    out.upAllyGetsBottom = upAlly.sideBonus && upAlly.sideBonus.bottom === 1 && !upAlly.sideBonus.top && !upAlly.sideBonus.left && !upAlly.sideBonus.right;
+    out.leftAllyGetsRight = leftAlly.sideBonus && leftAlly.sideBonus.right === 1 && !leftAlly.sideBonus.left;
+    out.rightAllyGetsLeft = rightAlly.sideBonus && rightAlly.sideBonus.left === 1 && !rightAlly.sideBonus.right;
+    out.downAllyGetsTop = downAlly.sideBonus && downAlly.sideBonus.top === 1 && !downAlly.sideBonus.bottom;
+    out.enemyUntouched = !adjEnemy.sideBonus;
+
+    // Divine Retribution: capturing an enemy grants +1 all sides this round.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const templarenWinner = freshEntry(templaren, 'blue');
+    state.board[4] = templarenWinner;
+    const weakFoe = freshEntry({ id:'wf', name:'WF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    resolveFlips(4, 'blue');
+    out.divineRetributionBuffed = templarenWinner.captureBonus === 1;
+
+    // Faithful Defense: unchanged, still a live conditional shield.
+    state.board = Array(9).fill(null);
+    const templarenShielded = freshEntry(templaren, 'blue');
+    state.board[4] = templarenShielded;
+    state.board[1] = freshEntry({ id:'a1', name:'A1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[3] = freshEntry({ id:'a2', name:'A2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.faithfulDefenseHolds = isShielded(templarenShielded, 4) === true;
+
+    return out;
+  })()`);
+  assert.equal(result.playable, true);
+  assert.equal(result.skillCount, true);
+  assert.equal(result.shieldWallDropped, true);
+  assert.equal(result.upAllyGetsBottom, true);
+  assert.equal(result.leftAllyGetsRight, true);
+  assert.equal(result.rightAllyGetsLeft, true);
+  assert.equal(result.downAllyGetsTop, true);
+  assert.equal(result.enemyUntouched, true);
+  assert.equal(result.divineRetributionBuffed, true);
+  assert.equal(result.faithfulDefenseHolds, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {

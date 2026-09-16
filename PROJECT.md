@@ -36,8 +36,9 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
-**Punkt 41–47 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell)
-ligger committade på feature-branchen, INTE mergade till `main` än.**
+**Punkt 41–48 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell,
+Templaren) ligger committade på feature-branchen, INTE mergade till `main`
+än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -53,7 +54,7 @@ saknar kod-backing), sämst kopplade först:
 5. **Daron** 1/6 — KLAR (punkt 45 nedan).
 6. **Vorathos** 1/5 — KLAR (punkt 46 nedan).
 7. **Pallispell** 1/5 — KLAR (punkt 47 nedan).
-8. **Templaren** 1/4
+8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
 9. **Tilda** 1/4
 10. **Tahabata** 2/6
 11. **Pallis** (solo) 2/6
@@ -645,6 +646,49 @@ var Ultimaten, och den var en RIKTIG mekanik-konflikt, inte bara
 
 Inga nya primitives — bara ett nytt anrop till den redan existerande
 `SpecialVerbs.debuff()`.
+
+**48. Templaren — medvetet 3/4, en fjärde skill struken helt (inte
+byggd) efter diskussion med användaren** — åttonde kortet från
+audit-listan, hade `active: {conditionalShield:'adjacentAllies2'}`
+(bara Faithful Defense) och `skills` för alla fyra namn, men Holy Aura,
+Shield Wall och Divine Retribution saknade all kod-backing (0/3). Inget
+`special`-fält alls (ingen Ultimate) — oförändrat, ingen bildbrief för
+det ännu.
+
+- **Holy Aura** — ny handler `ON_PLACE_HANDLERS.templaren(entry, owner,
+  cellIndex)`. "+1 Power i riktningen som pekar mot Templaren" på varje
+  angränsande allierat kort: räknar ut den MOTSATTA sidan från
+  Templarens offset (en allierad ovanför honom får bonusen på sin EGEN
+  botten-sida, osv.) och anropar den redan existerande
+  `SpecialVerbs.directionalBoost()` per granne — samma
+  `adjacentEntries()`-familj av hooks som Shiva/Leviathan/Chocobo King
+  redan använder, bara med en beräknad riktning istället för alla
+  sidor.
+- **Divine Retribution** — helt befintligt fält
+  `active.onCaptureBuffSelfThisRound:1`, exakt samma primitive som
+  Leviathan redan använder (där med värdet 2). "Resten av ronden"
+  matchar ordagrant vad fältet redan gör.
+- **Shield Wall — struken helt, inte byggd.** Texten ("If Templaren
+  wins against a dark or monster-type card, you take control regardless
+  of the numbers") skulle krävt TVÅ nya saker samtidigt: (1) en helt ny
+  "ovillkorlig vinst oavsett siffror"-primitive — inget sådant finns
+  någonstans i motorn (närmaste är `weakVsElement`, som bara ger ett
+  stort men ändligt bonus, aldrig en garanterad vinst), och (2) en ny
+  `isMonster`-tagg på rostret (`element:'dark'` finns redan för
+  "dark", men "monster-type" har ingen datarepresentation alls —
+  skulle krävt omtaggning av de enkla mobbarna Ogre/Direbear/Wyrm/
+  Lich/Revenant/Wendigo/Harpy/Shadowking). Användaren stoppade detta
+  explicit: **"Det går emot hela linjen vi har kört: vi bygger inte
+  nya primitives för ett enda kort när det finns en renare lösning."**
+  Skillen är helt borttagen ur `skills`-arrayen (inte kvarlämnad som
+  en obackad textrad) — Templaren har nu 3 riktiga, fungerande
+  abilities istället för 4 där en är fejk.
+- Stats **oförändrade**. Faithful Defense **oförändrad**
+  (`conditionalShield:'adjacentAllies2'`, redan wired sedan tidigare).
+
+Inga nya primitives — `directionalBoost()` och
+`onCaptureBuffSelfThisRound` fanns båda redan. Ingen Ultimate tillagd
+(väntar på bildbrief).
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

@@ -1342,7 +1342,7 @@ const HEROES = [
     {name:'Eternal Boundary (Passive)', desc:'Once per match, Vorathos gains +2 Power on his next attack.'},
     {name:'Special Attack: Time Collapse', desc:"Costs 2 wins. Choose an enemy card, then a direction — Vorathos gains +4 Power for this attack only. If the attack wins, that direction keeps +1 Power permanently on Vorathos, and the defeated card permanently loses 1 Power on that same direction."},
   ]},
-  { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Shield Wall", desc:"If Templaren wins against a dark or monster-type card, you take control regardless of the numbers."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2'}},
+  { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2', onCaptureBuffSelfThisRound:1}},
   { id:'sylvarion', name:"Sylvarion", role:"Herald of the Wild Hunt — The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', active: {flatAttackBonus:2, boardUnderdogAttackBonus:2}, special:{ name:"Herald's Gale", cost:2, once:true, targets:'aoe' }, skills:[
     {name:'Windrush', desc:'Sylvarion gets +2 Power on the attacking side.'},
     {name:'Vanguard of the Hunt (Passive)', desc:'While your side controls fewer cards than your opponent, Sylvarion gets +2 Power on the attacking side.'},
@@ -4266,6 +4266,23 @@ const ON_PLACE_HANDLERS = {
   chocoboking(entry, owner, cellIndex){
     SpecialVerbs.buffThisRound(entry, 1);
     adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner === owner && n.card.isBeast) SpecialVerbs.buffThisRound(n, 1); });
+  },
+  // Templaren's Holy Aura: "+1 Power in the direction facing Templaren" on
+  // every adjacent allied card, permanent (no "this round" wording on the
+  // card, unlike Shiva/Leviathan/Chocobo King above). The side that "faces"
+  // Templaren from an ally's position is simply the opposite of the
+  // direction Templaren is offset from that ally (an ally above him gets a
+  // bonus on ITS bottom side, etc.) — computed inline since adjacentEntries()
+  // only returns index+entry, not which side touches the source.
+  templaren(entry, owner, cellIndex){
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0,'bottom'],[1,0,'top'],[0,-1,'right'],[0,1,'left']];
+    dirs.forEach(([dr,dc,side])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner === owner) SpecialVerbs.directionalBoost(n, [side], 1);
+    });
   },
 };
 
