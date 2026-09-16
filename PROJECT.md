@@ -909,6 +909,47 @@ använder samma högre beskärning som Templaren/Tilda
 ((10,60)-(930,660)) — standardbeskärningen klippte av drakens huvud
 helt på den här bilden. Tahabata är nu HELT klar: 6/6 skills, ny konst.
 
+**NY FUNKTION (inte del av 16-korts-auditen): persistent buff/debuff-
+visning på brädet.** Användaren påpekade att attack-siffrorna på ett
+liggande kort ALDRIG uppdaterades visuellt när det fick en permanent
+eller "denna runda"-bonus/minus — bara en transient "+N Power"-popup
+(`flashStatChange`) som tonar bort efter ~1.3s, sedan ingenting.
+`cardFace()` renderade alltid `card.top`/`right`/`bottom`/`left` (de
+statiska grundvärdena), aldrig `entry.captureBonus`/`entry.sideBonus`.
+
+- Ny `effectiveStatFor(card, side, opts)` — ren funktion, `base +
+  captureBonus + (sideBonus[side]||0)`. Medvetet begränsad till LAGRADE
+  modifierare (samma två fält `flashStatChange` redan flashar), INTE
+  matchup-beroende live-bonusar (`vsStrongerTotalPowerBoost`,
+  `pairPresence`, etc. — de beräknas bara av `fullEffectiveValue` mot en
+  specifik motståndare vid en faktisk strid, så det finns inget enda
+  "aktuellt" värde att visa i förväg). Användarens eget val efter en
+  fråga om scope.
+- Ny `statNumHtml(card, side, opts)` — visar det EFFEKTIVA värdet
+  (siffran ändras, inte bara en badge bredvid — användarens eget val
+  mellan de två alternativen), med CSS-klass `buffed`/`debuffed` när
+  bonusen är != 0.
+- `cardFace()`s `stat-cluster` bytt till att anropa `statNumHtml` istället
+  för att skriva `card.X` direkt. `boardCellHtml()` skickar nu
+  `captureBonus`/`sideBonus` från den levande `cell`-entryn in i
+  `cardFace`s `opts` — enda anropsstället som har en levande entry
+  (draft/hand/poster-vyerna visar bara statiska kort, ingen ändring där).
+- Ny CSS `.stat-n.buffed`/`.stat-n.debuffed` — samma grön/röd-palett som
+  `.skill-pop.bonus`/`.bonus-negative` redan använder, bara textfärg +
+  glöd istället för en hel badge. Ägar-ramfärgen (blå/röd) rörs inte —
+  det är ägarskap, inte buff-status.
+- Verifierat visuellt med en riktig skärmdump (ett kort med
+  `captureBonus:3` visar 11/7/8/11 i grönt, ett annat med
+  `sideBonus:{top:-2}` visar sin topp-siffra i rött) innan commit, inte
+  bara testat i motorn.
+
+Inga nya primitives — bara en ny renderingsväg för data som redan finns
+(`captureBonus`/`sideBonus` fanns redan, bara aldrig lästa av
+`cardFace`). Nytt test (`Board display: ...`) täcker
+`effectiveStatFor`/`statNumHtml`-matematiken plus att `boardCellHtml`
+faktiskt speglar en levande entrys bonus. Fullständig testsvit (82
+tester) grön.
+
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
 ("The Void Empress" delades ordagrant med Nyxara — enda konkreta

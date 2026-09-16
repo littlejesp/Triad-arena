@@ -3045,6 +3045,49 @@ test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoo
   await page.close();
 });
 
+test('Board display: stored captureBonus/sideBonus modifiers show as a live-updated number with a buffed/debuffed color, live matchup-dependent bonuses excluded', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ogre = findCardById('ogre'); // top:8, right:5, bottom:8, left:4
+
+    // effectiveStatFor: pure math, no rendering.
+    out.baseUnaffected = effectiveStatFor(ogre, 'top', {}).value === 8 && effectiveStatFor(ogre, 'top', {}).bonus === 0;
+    out.captureBonusApplies = effectiveStatFor(ogre, 'top', { captureBonus: 2 }).value === 10;
+    out.sideBonusAppliesOnlyToThatSide = effectiveStatFor(ogre, 'right', { sideBonus: { right: -1 } }).value === 4
+      && effectiveStatFor(ogre, 'top', { sideBonus: { right: -1 } }).value === 8;
+    out.captureAndSideBonusStack = effectiveStatFor(ogre, 'top', { captureBonus: 1, sideBonus: { top: 1 } }).value === 10
+      && effectiveStatFor(ogre, 'top', { captureBonus: 1, sideBonus: { top: 1 } }).bonus === 2;
+
+    // statNumHtml: value shown + buffed/debuffed class, neutral gets no class.
+    out.buffedClassAndValue = statNumHtml(ogre, 'top', { captureBonus: 2 }).includes('buffed') && statNumHtml(ogre, 'top', { captureBonus: 2 }).includes('>10<');
+    out.debuffedClassAndValue = statNumHtml(ogre, 'top', { captureBonus: -3 }).includes('debuffed') && statNumHtml(ogre, 'top', { captureBonus: -3 }).includes('>5<');
+    out.neutralHasNoColorClass = !statNumHtml(ogre, 'top', {}).includes('buffed') && !statNumHtml(ogre, 'top', {}).includes('debuffed');
+
+    // End-to-end via a real board cell: boardCellHtml must actually pass
+    // the live entry's captureBonus/sideBonus through to cardFace/statNumHtml.
+    state.board = Array(9).fill(null);
+    const entry = freshEntry(ogre, 'blue');
+    entry.captureBonus = 3;
+    state.board[4] = entry;
+    const html = boardCellHtml(entry, 4);
+    out.boardCellReflectsLiveBonus = html.includes('buffed') && html.includes('>11<');
+
+    return out;
+  })()`);
+  assert.equal(result.baseUnaffected, true);
+  assert.equal(result.captureBonusApplies, true);
+  assert.equal(result.sideBonusAppliesOnlyToThatSide, true);
+  assert.equal(result.captureAndSideBonusStack, true);
+  assert.equal(result.buffedClassAndValue, true);
+  assert.equal(result.debuffedClassAndValue, true);
+  assert.equal(result.neutralHasNoColorClass, true);
+  assert.equal(result.boardCellReflectsLiveBonus, true, 'the board cell render must show the live modified number, not just the base stat');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
