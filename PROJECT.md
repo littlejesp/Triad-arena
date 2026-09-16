@@ -1155,6 +1155,23 @@ korten sedan tidigare sessioner.
 Båda korten är nu helt klara: mekanik (punkt 54 ovan) OCH konst, i den
 nya guldfolierade mallen som troligen blir standard framåt.
 
+**Bahamut fick också ny konst i samma mall, samma session** — inte en
+mekanisk ombyggnad (redan 3/3 skills + Megaflare wired sedan tidigare),
+bara en ny bildbrief på användarens begäran ("Kan vi göra bahamut lik
+som han är i ff8 men inte copyright"), skriven med generiska
+arketyp-beskrivningar (gyllene pansarklädd drakriddare, samurai-
+hjälmform, ljusstråle-attack) istället för direkta referenser till
+källan. Ny konst matchade all data exakt: stats 10/10/9/9, alla tre
+skills, Megaflare, samt de fritt föreslagna faction/rarity/type/
+alignment-fälten (Astral Dragons/Legendary/Dragon/Lawful Neutral — dessa
+fyra fanns inte i speldatan sedan innan, bara i bildbriefen). Flyttade
+fullbilden från den gamla GitHub-UUID-filen
+(`BFBF6036-F55F-4B42-BDE8-8715ED5BAAEB.jpg`, borttagen) till
+standardnamnet `card-bahamut-full.jpg`. Samma källupplösning
+(1024×1536) som Tiamat/Three Head Dragon, men Bahamuts stående
+humanoida pose satt lägre i bilden — beskärning `crop((167,150)-(856,600))`
+istället för `(167,100)-(856,550)`. Inga övriga kodändringar.
+
 **Öppen tråd, inte påbörjad än:** användaren föreslog en egen
 drak-tema campaign-etapp (Tiamat, Bahamut, Three Head Dragon, Ancient
 Wyrmking, Ifrit, Tahabata är alla `isDragon`/drak-tema; Kaeldryx är
