@@ -2732,16 +2732,18 @@ test('Templaren: reworked per audit — Holy Aura (on-place directional ally buf
   await page.close();
 });
 
-test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Marked Target (on-place), Umbral Step (renamed, on-win, live-expiring), Night\'s Advantage unchanged', async () => {
+test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Marked Target (on-place), Umbral Step (renamed, on-win, live-expiring), Night\'s Advantage unchanged, first-ever Ultimate Nightfall', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
     const tilda = findCardById('tilda');
     out.statsBuffed = tilda.top === 7 && tilda.right === 8 && tilda.bottom === 8 && tilda.left === 8;
-    out.skillCount = tilda.skills.length === 4;
+    out.skillCount = tilda.skills.length === 5;
     out.shadowStepRenamed = !tilda.skills.some(s => s.name === 'Shadow Step') && tilda.skills.some(s => s.name === 'Umbral Step');
     out.hasNightsAdvantage = tilda.active.underdogBonus === 2;
+    out.specialName = tilda.special.name === 'Nightfall';
+    out.specialCost = tilda.special.cost === 2;
 
     // Piercing Shot + Marked Target both fire on placement. Math.random
     // forced to 0 so the random direction picks 'up' (dirs[0]) and any
@@ -2816,12 +2818,33 @@ test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Mar
     out.umbralStepExpiredAfterWindow = fullEffectiveValue(tilda, 'top', dummyOpp, 4, 'blue', 'defense') - tilda.top === 0;
     state.turnCount = savedTurnCount;
 
+    // Nightfall: first-ever Ultimate, same total-power-threshold shape as
+    // Sarah/Vayra/Ysara/Aurelia/Lyrith (+3 temp threshold, +1 permanent
+    // all-sides on a win).
+    state.board = Array(9).fill(null);
+    const nfSrc = freshEntry(tilda, 'blue');
+    state.board[4] = nfSrc;
+    const nfWeak = freshEntry({ id:'nf-weak', name:'NFWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = nfWeak;
+    SPECIAL_HANDLERS.tilda({ srcEntry: nfSrc, targetEntry: nfWeak, targetIndex: 1, owner: 'blue' });
+    out.nightfallCapturedAndBuffed = nfWeak.owner === 'blue' && nfSrc.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const nfSrc2 = freshEntry(tilda, 'blue'); // total 31
+    state.board[4] = nfSrc2;
+    const nfStrong = freshEntry({ id:'nf-strong', name:'NFStrong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, 31+3 <= 80
+    state.board[1] = nfStrong;
+    SPECIAL_HANDLERS.tilda({ srcEntry: nfSrc2, targetEntry: nfStrong, targetIndex: 1, owner: 'blue' });
+    out.nightfallNoEffectVsMuchStronger = nfStrong.owner === 'red' && nfSrc2.captureBonus === 0;
+
     return out;
   })()`);
   assert.equal(result.statsBuffed, true);
   assert.equal(result.skillCount, true);
   assert.equal(result.shadowStepRenamed, true);
   assert.equal(result.hasNightsAdvantage, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
   assert.equal(result.piercingShotHitInLineTarget, true);
   assert.equal(result.markedTargetHitInLineTarget, true);
   assert.equal(result.piercingShotMissedCorner, true, "Piercing Shot's line-scan should not reach a diagonal corner");
@@ -2831,6 +2854,8 @@ test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Mar
   assert.equal(result.umbralStepLiveBonusOnChosenSide, true);
   assert.equal(result.umbralStepNoBonusOnOtherSide, true);
   assert.equal(result.umbralStepExpiredAfterWindow, true);
+  assert.equal(result.nightfallCapturedAndBuffed, true, 'Nightfall captures and grants +1 permanent on a win');
+  assert.equal(result.nightfallNoEffectVsMuchStronger, true, 'Nightfall fails against a target whose total power exceeds the +3 threshold');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

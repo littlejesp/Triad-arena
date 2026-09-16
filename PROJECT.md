@@ -761,8 +761,20 @@ skills.
 Inga nya primitives — `debuffThisRound()`, `enemiesInDirection()` och
 Seraphine-märkningsmönstret fanns alla redan; Umbral Step återanvänder
 det redan existerande `xUntilTurnCount`-idiomet snarare än att bygga en
-ny "temporär riktad bonus"-primitive i `SpecialVerbs`. Ingen Ultimate
-tillagd (ingen bildbrief för det ännu).
+ny "temporär riktad bonus"-primitive i `SpecialVerbs`.
+
+**Uppdatering, samma session: första Ultimate tillagd.** Användaren gav
+en konkret spec direkt (inte en bild) för **"Nightfall"** (kostnad 2
+wins, `targets:'single'`): "+3 Power på den attackerande sidan i denna
+strid, om hon vinner permanent +1 alla sidor" — beordrat att återanvända
+exakt samma total-power-tröskel-mönster som Vayra/Sarah/Ysara/Aurelia/
+Lyrith (`SPECIAL_HANDLERS.tilda`, kopierad nästan rakt av från Sarahs
+`Aion's Last Light`: `totalPower(srcEntry)+3 <= totalPower(targetEntry)`
+→ miss, annars flip + `SpecialVerbs.attackBoost(srcEntry, 1)` permanent).
+Inga nya primitives — bara ett nytt kort i samma redan etablerade familj.
+Femte skill-raden ("Special Attack: Nightfall") tillagd i `skills`-arrayen
+med samma standardformulering som Sarahs egen. Väntar fortfarande på en
+bildbrief-uppdatering som inkluderar Nightfall.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

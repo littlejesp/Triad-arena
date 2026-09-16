@@ -1398,7 +1398,7 @@ const HEROES = [
     {name:'Executioner (Passive)', desc:"Whenever Deathblade wins a battle against a card with 6 or lower total Power, that card is destroyed outright instead of captured."},
     {name:'Special Attack: Shadow Assault', desc:"Choose an enemy card — Deathblade swaps physical position with the target, and the target permanently loses 2 Power on all directions."},
   ]},
-  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:7, right:8, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"When Tilda is placed, a random direction is chosen — a random enemy card along that line gets -2 Power this round. (Source text lets you choose the direction and target; simplified to random, same as Fenrir/Zalazar's own on-place directional effects.)"}, {name:"Umbral Step", desc:"After Tilda wins a battle, a random one of her directions gets +1 Power for the next turn. (Source text lets you choose the direction; simplified to random, same as every other direction-choice ability in this game. Renamed from 'Shadow Step' to avoid a name collision with Vayra's own unrelated Shadow Step passive.)"}, {name:"Marked Target", desc:"When Tilda is placed, she marks a random enemy card — the next time one of your cards attacks it, it gets +2 Power. (Source text lets you choose the target; simplified to random, same as Seraphine's own Celestial Mark.)"}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2, onWinRandomDirectionalBoost:1}},
+  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:7, right:8, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', special:{ name:'Nightfall', cost:2, once:true, targets:'single' }, skills:[{name:"Piercing Shot", desc:"When Tilda is placed, a random direction is chosen — a random enemy card along that line gets -2 Power this round. (Source text lets you choose the direction and target; simplified to random, same as Fenrir/Zalazar's own on-place directional effects.)"}, {name:"Umbral Step", desc:"After Tilda wins a battle, a random one of her directions gets +1 Power for the next turn. (Source text lets you choose the direction; simplified to random, same as every other direction-choice ability in this game. Renamed from 'Shadow Step' to avoid a name collision with Vayra's own unrelated Shadow Step passive.)"}, {name:"Marked Target", desc:"When Tilda is placed, she marks a random enemy card — the next time one of your cards attacks it, it gets +2 Power. (Source text lets you choose the target; simplified to random, same as Seraphine's own Celestial Mark.)"}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}, {name:"Special Attack: Nightfall", desc:"Costs 2 wins. Choose an enemy card — Tilda gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."}], active: {underdogBonus:2, onWinRandomDirectionalBoost:1}},
   // Divine Bond's card text says "placed ADJACENT to Little Jesp", but the
   // engine's only board-presence passive (pairPresence, see Twin Brothers/
   // Evil Twist) checks "partner anywhere on your board" — reused as-is
@@ -5281,6 +5281,24 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls!`;
+  },
+  // Tilda's first-ever Ultimate, in the same total-power-threshold shape as
+  // Sarah/Vayra/Ysara/Aurelia/Lyrith's own (+3 temp boost folded into the
+  // threshold check, +1 permanent all-sides on a win) — per the user,
+  // reused as-is rather than inventing a new pattern.
+  tilda({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Nightfall fails to find purchase — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Nightfall!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Nightfall descends — ${targetEntry.card.name} is claimed by the dark!`;
   },
   // Zaevir's first-ever Ultimate, in the same total-power-threshold shape as
   // Sarah/Vayra/Ysara's own (+3 temp boost, +1 permanent all-sides on a
