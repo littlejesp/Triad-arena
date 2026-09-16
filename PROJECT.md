@@ -690,6 +690,18 @@ Inga nya primitives — `directionalBoost()` och
 `onCaptureBuffSelfThisRound` fanns båda redan. Ingen Ultimate tillagd
 (väntar på bildbrief).
 
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Matchade det redan ombyggda kortet EXAKT — stats 10/9/8/8, namn/roll,
+och alla tre skill-texter (Holy Aura, Divine Retribution, Faithful
+Defense) ord för ord, ingen Ultimate synlig på kortet. Inga kodändringar
+alls den här gången, bara nya bildfiler. Flyttade full-bilden från det
+gamla GitHub-UUID-filnamnet (`27D992DB-122B-4BB7-917C-1734ACDFEFA8.jpg`,
+borttaget) till standardnamnet `card-templaren-full.jpg`, samma mönster
+som Vorathos/Pallispell. Ny beskuren `cards/card-templaren.jpg` använder
+en högre beskärning ((10,60)-(930,660) istället för standard-
+(140,300)-(800,731)) för att få med ansiktet/hjälmen ovanför skölden
+utan att gå in i stat-diamant-området längst ner.
+
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
 ("The Void Empress" delades ordagrant med Nyxara — enda konkreta
