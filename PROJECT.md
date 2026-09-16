@@ -1036,6 +1036,84 @@ använder samma förhöjda beskärning som Templaren/Tilda/Tahabata
 ((10,60)-(930,660)) för att få med ansiktet och hunden istället för att
 klippa av huvudet.
 
+**55. NY FAS: "Game feel"/VFX-lager — fas 1 (ambient arena-liv), på
+användarens initiativ, en helt annan sorts arbete än korten ovan.**
+Användaren skickade en detaljerad engelsk vision för att göra spelet
+kännas mer levande genom presentation/animation/effekter, EXPLICIT UTAN
+att röra spellogik/balans/AI/regler. Nyckelkrav: bygg stegvis (litet,
+testbart, reversibelt per steg — INTE hela visionen i ett svep), bygg
+återanvändbara effekt-system snarare än hårdkodad engångskod, och håll
+kontrasten mellan "lugnt normalt brädspel" och "kraftfulla ögonblick"
+(Same/Combo/Ultimates senare — INTE i denna fas). Ljud explicit
+uteslutet från fas 1.
+
+**Fas 1-omfattning, exakt som beställt:** bara ambient bräd-atmosfär —
+bakgrundsrörelse, atmosfäriska partiklar, mjuk magisk energi-rörelse,
+ambient glöd/pulsering, lagerdjup, och en subtil hover-respons på
+brädrutor. INGEN kombat/Ultimate-VFX än (det kommer i senare,
+separata faser efter användarens egen speltestning av detta steget).
+
+**Arkitektur-fynd innan kod skrevs** (viktigt för alla framtida VFX-
+faser): HELA `#app`-trädet (inklusive `.arena-frame`/`.board`) byggs om
+totalt vid varje `render()`-anrop (`app.innerHTML = html` — ingen
+virtual-DOM-diffing alls i den här motorn). Det betyder att VILKEN SOM
+HELST CSS-animation på ett element inuti `#app` startar om från 0 varje
+gång render() körs. Det här är INTE en ny begränsning jag införde —
+`.cell::before`s redan existerande `cellPulse`-animation (den ambienta
+glöden på tomma rutor, fanns redan innan den här sessionen) gör exakt
+samma sak och har uppenbarligen fungerat bra hela tiden, eftersom
+render() är händelsestyrd (inte en kontinuerlig loop) — under den
+faktiska "fundera på draget"-väntetiden (merparten av en match) körs
+INGET render()-anrop alls, så en pågående animation spelar upp helt
+ostört. Bara vid faktiska handlingar (kortplacering, AI-drag,
+flip-sekvenser) startar animationerna om, vilket är ett acceptabelt
+avbrott eftersom UPPMÄRKSAMHETEN redan är på annat håll då (det händer
+redan mer på skärmen i de ögonblicken).
+
+**Lösning för garanterat oavbruten rörelse ändå:** `.stage`-elementet
+(den yttre statiska sidoskalet) omsluter `#app` men BYGGS ALDRIG OM AV
+render() — bara `#app`s `.wrap`-inneh​åll ersätts. Ett nytt
+`.stage-ambient`-lager las till som SYSKON till `#app` (skrivet en gång
+i den statiska HTML-skalet, aldrig rört igen), så dess drivande
+partiklar aldrig startar om oavsett hur ofta spelet renderar om sig.
+`.wrap` fick `position:relative; z-index:1` tillagt (annars skulle det
+nya absolut-positionerade `.stage-ambient`-lagret måla OVANPÅ hela
+spel-UI:t enligt CSS stacking-regler, eftersom positionerade element
+målas efter icke-positionerade oavsett DOM-ordning) — verifierat säkert
+genom att kontrollera att INGEN befintlig `position:absolute`-avkomling
+förlitar sig på `.stage` som sin containing block (alla har redan egna
+`position:relative`-behållare: `.masthead`, `.arena-frame`, `.card`,
+osv).
+
+**Konkreta tillägg:**
+- `.stage-ambient` + 4× `.stage-mote` (sidoskalet, aldrig ombyggt) —
+  långsamt drivande gnistor i de fyra redan etablerade hörnfärgerna
+  (ember/frost/arcane/earth), 22–28s cykler, olika delay per gnista för
+  organisk känsla istället för synkron pulsering.
+- `.arena-ambient` + 6× `.arena-mote` (inuti `.arena-frame`, byggs om
+  vid render precis som `.cell::before` redan gör) — samma
+  gnist-koncept men snabbare cykler (12–17s) och tätare inpå brädet.
+- `.arena-rosette` fick en ny `rosetteBreathe`-animation (mjuk
+  skala/opacitet-puls, 9s) ovanpå sin befintliga statiska SVG.
+- `.cell:hover:not(.targetable)` — en mjuk guld-kantglöd på hover,
+  medvetet EXKLUDERAD från `.targetable`-tillståndet så den aldrig
+  konkurrerar med den befintliga, meningsbärande guld-pulsen där. Ren
+  CSS `:hover`, ingen JS/state inblandad — kan alltså inte påverka
+  klick-hantering över huvud taget, oavsett hur ofta render() kör.
+
+**Verifiering:** hela testsviten (88 tester) grön, ingen ändring i
+spellogik/AI/regler. Byggde dessutom ett fristående Playwright-skript
+(inte i den permanenta sviten, kastat efter) som körde ett RIKTIGT
+UI-klickflöde (klicka handkort → klicka bräd-ruta, inte
+state-injicering) och tog skärmdumpar — bekräftade att hover-glöden
+syns korrekt, att en riktig placering går igenom via DOM-klick precis
+som innan, och att AI-motdraget löper på normalt efteråt. Alla nya
+dekorativa lager har `pointer-events:none`.
+
+**Stannar här per uttrycklig instruktion** — inga kombat/Ultimate-VFX,
+inget ljud, ingen fortsättning till nästa fas utan att användaren
+speltestat detta steget först.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
