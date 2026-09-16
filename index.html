@@ -54,7 +54,29 @@ body{
   border-radius:16px;
   box-shadow:0 24px 70px rgba(0,0,0,0.75), 0 0 0 1px var(--line);
 }
-.wrap{ padding:16px 14px 24px; }
+/* Game-feel phase 1, page-level layer: unlike .stage's own children below
+   (rendered fresh into #app by every render() call — see the note by
+   .arena-ambient), this sits as a sibling of #app, OUTSIDE it, written once
+   into the static page shell and never touched by render() again. Its drift
+   animation therefore never restarts, giving one layer of guaranteed-smooth
+   continuous motion regardless of how often the game state re-renders. */
+.stage-ambient{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; border-radius:inherit; }
+.stage-mote{
+  position:absolute; bottom:0; width:2px; height:2px; border-radius:50%;
+  background:currentColor; box-shadow:0 0 6px 2px currentColor;
+  opacity:0; animation:stageMoteDrift ease-in-out infinite;
+}
+.stage-mote:nth-child(1){ left:6%;  color:var(--ember);  animation-duration:22s; animation-delay:0s; }
+.stage-mote:nth-child(2){ left:18%; color:var(--frost);  animation-duration:26s; animation-delay:7s; }
+.stage-mote:nth-child(3){ left:80%; color:var(--arcane); animation-duration:24s; animation-delay:12s; }
+.stage-mote:nth-child(4){ left:92%; color:var(--earth);  animation-duration:28s; animation-delay:4s; }
+@keyframes stageMoteDrift{
+  0%{ transform:translateY(0) scale(0.5); opacity:0; }
+  12%{ opacity:0.4; }
+  60%{ transform:translateY(-60vh) scale(1); opacity:0.28; }
+  100%{ transform:translateY(-100vh) scale(0.3); opacity:0; }
+}
+.wrap{ padding:16px 14px 24px; position:relative; z-index:1; }
 
 h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 
@@ -608,6 +630,44 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 }
 .arena-rosette{ position:absolute; inset:12%; z-index:0; pointer-events:none; opacity:0.85; }
 
+/* Game-feel phase 1: ambient arena life (drifting energy motes + a slow
+   rosette breathe). Purely decorative (pointer-events:none, aria-hidden) and
+   additive on top of the existing arena-frame/board markup — no gameplay
+   logic touched. NOTE: .arena-frame's whole subtree (including this) is
+   rebuilt on every render() call (see render()'s `app.innerHTML = html`,
+   there's no virtual-DOM diffing here), so these animations restart their
+   cycle on every real game action. That's an already-accepted trade-off in
+   this codebase (.cell::before's cellPulse below does the same) — render()
+   is event-driven, not a continuous loop, so during normal "deciding what to
+   play" idle time (the vast majority of a match) nothing re-renders and the
+   drift plays out smoothly uninterrupted. */
+.arena-rosette{ animation: rosetteBreathe 9s ease-in-out infinite; transform-origin:50% 50%; }
+@keyframes rosetteBreathe{
+  0%,100%{ opacity:0.7; transform:scale(1); }
+  50%{ opacity:0.95; transform:scale(1.035); }
+}
+.arena-ambient{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; border-radius:inherit; }
+.arena-mote{
+  position:absolute; bottom:4%; width:3px; height:3px; border-radius:50%;
+  background:currentColor; box-shadow:0 0 7px 2px currentColor;
+  opacity:0; animation:moteDrift ease-in-out infinite;
+}
+/* Four theme colors already used by .stage's own corner glows, plus gold —
+   staggered left position/duration/delay per mote so they read as organic
+   independent sparks rather than one synchronized pulse. */
+.arena-mote:nth-child(1){ left:10%; color:var(--ember);       animation-duration:12s; animation-delay:0s;   }
+.arena-mote:nth-child(2){ left:26%; color:var(--gold-bright); animation-duration:15s; animation-delay:2s;   }
+.arena-mote:nth-child(3){ left:46%; color:var(--frost);       animation-duration:13s; animation-delay:4.5s; }
+.arena-mote:nth-child(4){ left:62%; color:var(--arcane);      animation-duration:16s; animation-delay:1.2s; }
+.arena-mote:nth-child(5){ left:80%; color:var(--earth);       animation-duration:14s; animation-delay:3.4s; }
+.arena-mote:nth-child(6){ left:92%; color:var(--gold-bright); animation-duration:17s; animation-delay:6s;   }
+@keyframes moteDrift{
+  0%{ transform:translateY(0) scale(0.6); opacity:0; }
+  15%{ opacity:0.65; }
+  55%{ transform:translateY(-150px) scale(1); opacity:0.5; }
+  100%{ transform:translateY(-280px) scale(0.4); opacity:0; }
+}
+
 /* "Conquered!" banner — a bigger, one-off flourish on top of the routine
    attack slash. state.conquestPopup holds the owner ('blue'/'red') whose
    capture triggered it, and the <img>'s src picks the matching artwork —
@@ -675,6 +735,19 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     inset 0 0 0 1px rgba(201,162,39,0.07);
   display:flex; align-items:center; justify-content:center;
   transition:box-shadow .2s ease, border-color .2s ease;
+}
+/* Game-feel phase 1: a soft acknowledgment that the board responds to the
+   cursor even outside an actual valid-target moment. Excludes .targetable
+   so it never competes with that stronger, meaningful gold pulse -- this is
+   just ambient liveliness, not a signal. Pure CSS (no JS/state), so it costs
+   nothing and can't affect click handling either way. */
+.cell:hover:not(.targetable){
+  border-color:rgba(201,162,39,0.28);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,0.08),
+    inset 0 -4px 8px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(201,162,39,0.22),
+    0 0 10px rgba(201,162,39,0.18);
 }
 .cell::before{
   content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
@@ -1149,6 +1222,12 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   <source src="battle-theme.mp3" type="audio/mpeg">
 </audio>
 <div class="stage">
+  <div class="stage-ambient" aria-hidden="true">
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
+  </div>
   <div class="wrap" id="app"></div>
 </div>
 
@@ -1247,7 +1326,7 @@ const FULL_CARD_IMAGES = {
   dragon: '309C2066-EC8B-4184-B1E6-C8D140B15ED9.jpg',
   threeheaddragon: 'card-threeheaddragon-full.jpg',
   ifrit: 'card-ifrit-full.jpg',
-  bahamut: 'BFBF6036-F55F-4B42-BDE8-8715ED5BAAEB.jpg',
+  bahamut: 'card-bahamut-full.jpg',
   tiamat: 'card-tiamat-full.jpg',
   tahabata: 'card-tahabata-full.jpg',
   celestialjudgment: 'card-celestialjudgment-full.jpg',
@@ -2839,6 +2918,14 @@ function renderBattle(){
           <circle cx="100" cy="100" r="72" fill="none" stroke="rgba(201,162,39,0.16)" stroke-width="1"/>
           <circle cx="100" cy="100" r="6" fill="rgba(139,110,242,0.5)"/>
         </svg>
+      </div>
+      <div class="arena-ambient" aria-hidden="true">
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
       </div>
       <div class="board">
         ${state.board.map(boardCellHtml).join('')}
