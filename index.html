@@ -1477,11 +1477,10 @@ const HEROES = [
     {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
-  { id:'pallis', name:'Pallis', role:'Legendary Card — The Faithful Protector', element:'earth', top:4, right:10, bottom:10, left:8, hue:'linear-gradient(160deg,#1c2010,#0d0b18 60%)', accent:'#c9a227', active:{shield:true}, special:{ name:'Wave of Loyalty', cost:2, once:true, targets:'element' }, skills: [    {name:'Loyal Heart (Passive)', desc:'The first time Pallis would lose control this round, the attack is fully ignored (simplified from also granting +1 all sides).'},
-    {name:'Protective Aura', desc:"Choose an adjacent allied card — it can't be lost this round."},
-    {name:'Chain of Loyalty', desc:'When Pallis wins a card, choose an adjacent enemy card. If Pallis has higher strength facing it, take control of it directly.'},
-    {name:"Wolf Paw's Grip", desc:'Choose a side — all enemy cards adjacent to Pallis on that side get -2 on the side facing her this round.'},
-    {name:'Loyal Instinct', desc:'Once per round, after Pallis loses control of a card, immediately try to take it back.'},
+  { id:'pallis', name:'Pallis', role:'Legendary Card — The Faithful Protector', element:'earth', top:4, right:10, bottom:10, left:8, hue:'linear-gradient(160deg,#1c2010,#0d0b18 60%)', accent:'#c9a227', active:{shield:true, onWinChainCapture:true}, special:{ name:'Wave of Loyalty', cost:2, once:true, targets:'element' }, skills: [    {name:'Loyal Heart (Passive)', desc:'The first time Pallis would lose control this round, the attack is fully ignored (simplified from also granting +1 all sides).'},
+    {name:'Protective Aura', desc:"When Pallis is placed, a random adjacent allied card is chosen — it can't be lost this round. (Source text lets you choose the ally; simplified to random, same as every other on-place 'choose 1' ability in this game. No trigger word in the source text either — assumed to fire on placement, same as Naline/Vorgrath/Zalazar's own untriggered 'Choose X' abilities.)"},
+    {name:'Chain of Loyalty', desc:"When Pallis wins a card, a random adjacent enemy card is chosen — if Pallis's Power on the side facing it is higher, she takes control of it directly. (Source text lets you choose the target; simplified to random, same as every other 'choose 1' ability in this game.)"},
+    {name:"Wolf Paw's Grip", desc:"When Pallis is placed, a random side is chosen — the enemy card adjacent to Pallis on that side (if any) gets -2 on the side facing her this round. (Source text lets you choose the side; simplified to random, same as Fenrir/Zalazar's own on-place directional effects. No trigger word in the source text either — assumed to fire on placement, same reasoning as Protective Aura above.)"},
     {name:'Special Attack: Wave of Loyalty', desc:'Costs 2 wins. Choose an element — all your cards of that element get +2 on all sides this round and are protected from being lost until the end of your next round.'},
   ] },
   { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
@@ -3455,6 +3454,40 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
       }
     });
   }
+  // Pallis's Chain of Loyalty: "choose an adjacent enemy card — if Pallis
+  // has higher strength facing it, take control of it directly." No
+  // target-choice UI, so a random adjacent enemy is picked (same
+  // simplification as every other "choose 1" ability). "Strength facing
+  // it" read as the specific directional side value (matching every other
+  // "facing" comparison in this game), reusing the already-existing
+  // effectiveStatFor() helper (built for the board's live stat display)
+  // to fold in captureBonus/sideBonus on both sides fairly — entries
+  // already carry captureBonus/sideBonus directly, so they can be passed
+  // as effectiveStatFor's opts as-is. Respects shields via the same
+  // specialBlockedByShield() every single-target Ultimate already uses
+  // (which also means it respects Protective Aura's capture-immunity
+  // window above, for free).
+  if(a.onWinChainCapture && winnerIndex != null){
+    const row = Math.floor(winnerIndex/3), col = winnerIndex%3;
+    const dirs = [[-1,0,'top','bottom'],[1,0,'bottom','top'],[0,-1,'left','right'],[0,1,'right','left']];
+    const candidates = [];
+    dirs.forEach(([dr,dc,mySide,theirSide])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== winnerEntry.owner) candidates.push({ entry:n, index:r*3+c, mySide, theirSide });
+    });
+    if(candidates.length > 0){
+      const pick = candidates[Math.floor(Math.random()*candidates.length)];
+      const myVal = effectiveStatFor(winnerEntry.card, pick.mySide, winnerEntry).value;
+      const theirVal = effectiveStatFor(pick.entry.card, pick.theirSide, pick.entry).value;
+      if(myVal > theirVal && !specialBlockedByShield(pick.entry, pick.index)){
+        pick.entry.owner = winnerEntry.owner;
+        pick.entry.justFlipped = true;
+        checkSisterFlip(pick.entry);
+      }
+    }
+  }
   // Three Head Dragon's Fire's Wrath: every enemy card orthogonally around
   // the just-captured square also gets hit — no "once per match" cap in
   // the source text, unlike the two hooks above, so this fires on every win.
@@ -3906,6 +3939,12 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   if(entry && entry.wrathEruptionSide === edgeKey && entry.wrathEruptionUntilTurnCount > state.turnCount){
     v -= 1;
   }
+  // Pallis's Wolf Paw's Grip, set in ON_PLACE_HANDLERS.pallis on the
+  // VICTIM's own entry — same unconditional live-read shape as Wrath
+  // Eruption above, just a -2 amount instead of -1.
+  if(entry && entry.wolfPawSide === edgeKey && entry.wolfPawUntilTurnCount > state.turnCount){
+    v -= 2;
+  }
   if(card.active && card.active.pairPresence){
     const pp = card.active.pairPresence;
     const present = state.board.some(e => e && e.owner === owner && e.card.id === pp.partner);
@@ -4148,6 +4187,13 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
 
 function isShielded(targetEntry, targetIndex){
   if(targetEntry.grantedShield && !targetEntry.shieldUsed) return true;
+  // Pallis's Protective Aura: "can't be lost THIS ROUND" — a time-gated
+  // window (entry.protectiveAuraUntilTurnCount, same xUntilTurnCount idiom
+  // as Umbral Step/Wrath Eruption), not a one-time-use shield. Blocks
+  // EVERY attempt within the window rather than just the first, so unlike
+  // grantedShield/active.shield above it never sets shieldUsed — there's
+  // nothing to consume, it just expires on its own.
+  if(targetEntry.protectiveAuraUntilTurnCount > state.turnCount) return true;
   const a = targetEntry.card.active;
   if(!a) return false;
   if(a.shield && !targetEntry.shieldUsed) return true;
@@ -4425,6 +4471,45 @@ const ON_PLACE_HANDLERS = {
     if(enemies.length > 0){
       const marked = enemies[Math.floor(Math.random()*enemies.length)];
       marked.tildaMarked = true;
+    }
+  },
+  // Pallis bundles two independent, untriggered "Choose X" abilities into
+  // her one placement — same "no secondary-activation system, so both
+  // fire on-place instead" reasoning as Vorgrath/Zalazar/Naline/Zlaizer/
+  // Tilda above.
+  pallis(entry, owner, cellIndex){
+    // Protective Aura: no ally-choice UI exists, so a random ADJACENT
+    // ally is picked (adjacentEntries(), same helper Shiva/Leviathan/
+    // Chocobo King/Templaren already use — the text specifically says
+    // "adjacent", unlike Tilda's whole-board Marked Target). "Can't be
+    // lost this round" is a new temporary capture-immunity status
+    // (entry.protectiveAuraUntilTurnCount), checked inside the shared
+    // isShielded() alongside grantedShield/active.shield/conditionalShield
+    // — same xUntilTurnCount idiom as Umbral Step/Wrath Eruption, just
+    // read from isShielded() since this blocks a capture outright rather
+    // than changing a Power number.
+    const adjacentAllies = adjacentEntries(cellIndex).filter(({ entry: n }) => n.owner === owner);
+    if(adjacentAllies.length > 0){
+      const pick = adjacentAllies[Math.floor(Math.random()*adjacentAllies.length)].entry;
+      pick.protectiveAuraUntilTurnCount = state.turnCount + 4;
+    }
+    // Wolf Paw's Grip: no side-choice UI either, so a random side is
+    // picked (same shape as Fenrir/Zalazar's own on-place directional
+    // picks). Only one enemy can ever occupy a given side of a cell in a
+    // 3x3 grid, so "all enemy cards...on that side" is naturally just the
+    // one cell there, if any. Same directional xUntilTurnCount idiom as
+    // Tahabata's Wrath Eruption, but a single random side instead of all
+    // four neighbors.
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0,'bottom'],[1,0,'top'],[0,-1,'right'],[0,1,'left']];
+    const [dr,dc,side] = dirs[Math.floor(Math.random()*dirs.length)];
+    const r = row+dr, c = col+dc;
+    if(r>=0 && r<=2 && c>=0 && c<=2){
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner && !isDebuffImmuneNow(n.card)){
+        n.wolfPawSide = side;
+        n.wolfPawUntilTurnCount = state.turnCount + 4;
+      }
     }
   },
 };

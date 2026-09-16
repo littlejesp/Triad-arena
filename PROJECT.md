@@ -49,6 +49,9 @@ persistenta buff/debuff-visningen på brädet är sedan dess MERGADE till
 alltid explicit innan nästa merge när mer arbete samlats där, anta
 ALDRIG tillstånd från en tidigare bekräftelse.
 
+**Punkt 51 (Pallis, solo — 5/5 skills, Loyal Instinct struken) ligger
+committad på feature-branchen, INTE mergad till `main` än.**
+
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
 misstag vi inte upprepar), är den här listan sparad för framtida
@@ -66,7 +69,8 @@ saknar kod-backing), sämst kopplade först:
 8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
 9. **Tilda** 1/4 — KLAR (punkt 49 nedan).
 10. **Tahabata** 2/6 — KLAR (punkt 50 nedan, 6/6).
-11. **Pallis** (solo) 2/6
+11. **Pallis** (solo) 2/6 — KLAR (punkt 51 nedan, 5/5 efter att Loyal
+    Instinct medvetet ströks).
 12. **Ifrit** 2/6
 13. **Evil Twist Yang** 2/4
 14. **Evil Twist Yin** 2/4
@@ -952,6 +956,68 @@ Inga nya primitives — bara en ny renderingsväg för data som redan finns
 `effectiveStatFor`/`statNumHtml`-matematiken plus att `boardCellHtml`
 faktiskt speglar en levande entrys bonus. Fullständig testsvit (82
 tester) grön.
+
+**51. Pallis (solo) — 3 nya skills, en medvetet struken** — elfte kortet
+från audit-listan, hade `active:{shield:true}` (Loyal Heart) och en
+fungerande Ultimate (`SPECIAL_HANDLERS.pallis`, Wave of Loyalty) redan
+wired (2/6). Ingen AI-kopia (som Templaren/Tilda, campaign-only via
+`unlockIds`). Stats 4/10/10/8 = 32, oförändrade.
+
+- **Protective Aura** — ny `ON_PLACE_HANDLERS.pallis`, buntar ihop med
+  Wolf Paw's Grip (samma "ingen sekundär-aktivering"-bunt-mönster som
+  Vorgrath/Zalazar/Naline/Zlaizer/Tilda). Slumpad ADJACENT allierad
+  (`adjacentEntries()`, samma hjälpare Shiva/Leviathan/Chocobo King/
+  Templaren redan använder — till skillnad från Tildas Marked Target
+  som är hela-brädet). "Kan inte förloras den här rundan" är en HELT NY
+  temporär fångst-immunitetsstatus (`entry.protectiveAuraUntilTurnCount`,
+  samma `xUntilTurnCount`-idiom som Umbral Step/Wrath Eruption), kollad
+  inuti den DELADE `isShielded()`-funktionen tillsammans med
+  `grantedShield`/`active.shield`/`conditionalShield` — till skillnad
+  från en engångssköld blockerar den VARJE försök inom fönstret, inte
+  bara det första, så den sätter aldrig `shieldUsed`.
+- **Wolf Paw's Grip** — samma bunt. Slumpad riktning (samma mönster som
+  Fenrir/Zalazar), fienden i den riktningen (om någon — bara en kan
+  någonsin finnas per sida i ett 3×3-rutnät) får `entry.wolfPawSide`/
+  `entry.wolfPawUntilTurnCount` satta, läst ovillkorligt i
+  `fullEffectiveValue` (samma form som Tahabatas Wrath Eruption, bara
+  en enda riktning istället för alla fyra grannar, och -2 istället för
+  -1).
+- **Chain of Loyalty** — ny `active.onWinChainCapture:true`, kopplad i
+  `checkOnWinBonuses`. Slumpad angränsande fiende, "styrka" tolkad som
+  den specifika RIKTADE sid-siffran (matchar all annan "facing"-
+  terminologi i spelet), beräknad via den redan existerande
+  `effectiveStatFor()`-hjälparen (byggd för bräd-visningen tidigare
+  samma session — en live-brädentry har redan exakt samma
+  `captureBonus`/`sideBonus`-form som `effectiveStatFor`s `opts`
+  förväntar sig, så entryn kan skickas in direkt). Respekterar sköldar
+  via samma `specialBlockedByShield()` alla envals-Ultimates redan
+  använder (vilket automatiskt även respekterar Protective Aura ovan).
+  **Viktig upptäckt under arbetet:** eftersom ALLA angränsande fiender
+  redan slåss mot Pallis samtidigt vid hennes egen placering (samma
+  jämförelse, samma sidor), kan Chain of Loyalty aldrig fånga något
+  UTÖVER vad en vanlig strid redan skulle fånga i just det scenariot —
+  dess verkliga värde uppstår när Pallis vinner en FÖRSVARS-strid
+  (redan på brädet, en fiende attackerar och förlorar), då kan hon
+  snärja en helt orelaterad, redan etablerad granne som aldrig var
+  inblandad i den utlösande striden. Testad direkt via ett
+  `checkOnWinBonuses(...)`-anrop (samma stil som andra direkta
+  handler-tester) snarare än genom en fullständig placerings-strid, av
+  precis den anledningen.
+- **Loyal Heart, Wave of Loyalty** — oförändrade.
+- **Loyal Instinct** — ❌ struken helt (inte byggd). Skulle krävt en helt
+  ny reaktionsmekanik direkt i förlust-upplösningen i `battleNeighbors`
+  (en omedelbar motattack precis efter att Pallis själv blivit
+  erövrad) — inget liknande finns någonstans i motorn (kollat: samma
+  läge som Pallis & Pells nästan identiska "Double Fury"-syskonskill,
+  som aldrig byggdes av samma anledning). Samma "vi bygger inte
+  specialsystem för ett enda kort"-princip som Templarens Shield Wall.
+
+Inga nya generella primitives — `adjacentEntries()`, `specialBlockedByShield()`
+och `effectiveStatFor()` fanns alla redan; Protective Aura/Wolf Paw's
+Grip återanvänder det redan etablerade `xUntilTurnCount`-idiomet. Nytt
+test täcker alla tre skills inklusive Chain of Loyaltys tre grenar
+(fångar, misslyckas mot starkare, blockeras av sköld). Fullständig
+testsvit grön.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
