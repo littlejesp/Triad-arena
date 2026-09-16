@@ -25,12 +25,394 @@ Dariens, Fereas och Elaras fullständiga om/nybyggnader, inklusive ny
 kortkonst för alla sex) är sedan dess MERGADE till `main` också.
 Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
-MERGADE till `main` också. **Punkt 25–28 (Ysara, Torn, Graff och
-Voidqueen ombyggda — 🟠 REWORK/POLISH-upptrappning från 68-korts-
-auditen, all kortkonst inkluderad) ligger committade på feature-
-branchen, INTE mergade till `main` än** — fråga alltid explicit innan
-nästa merge när mer arbete samlats där, anta ALDRIG tillstånd från en
-tidigare bekräftelse.
+MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
+Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
+till `main` också. **Punkt 29–36 (Sarah, Deathblade, Lyrith, Aurelia,
+Twisted Gipsy, Astrael, Vaelira och Nexzoth ombyggda) ligger
+committade på feature-branchen, INTE mergade till `main` än** — fråga
+alltid explicit innan nästa merge när mer arbete samlats där, anta
+ALDRIG tillstånd från en tidigare bekräftelse. Nexzoth (punkt 36) är
+nu HELT klar — Reality Consume och Endless Void fick sin nya
+motorlogik (se nedan), all konst committad. Punkt 37 (Kaeldryx), 38
+(Bahamut), 40 (Nyxara) har all konst committad. Punkt 39 (Seraphine)
+har fått sin andra bild (vattenfall-posen) committad också.
+
+**29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
+POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
+av 4 skills hade backing (Light Shield, `active.shield`), och hon
+saknade Ultimate helt. Personlig betydelse för användaren — "Aion's
+Last Light" är en hyllning till deras bästa karaktär från spelet Aion,
+INTE en lore-lucka att fylla — behölls uttryckligen orörd, ingen ny
+tolkning påklistrad.
+
+- **Light Shield (Passiv)** — HELT oförändrad (`active.shield:true`).
+- **Feared Huntress (Passiv)** — PROPOSAL, helt befintligt fält:
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, samma fält Yojimbo/
+  Ysara redan använder.
+- **Special Attack: "Aion's Last Light"** — hennes FÖRSTA Ultimate
+  någonsin, ny `SPECIAL_HANDLERS.sarah`, byggd i exakt samma form som
+  Vayras Eclipse/Ysaras Eternal Eclipse (total-power-tröskel +3, permanent
+  +1 alla sidor på vinst via `attackBoost`) — fjärde kortet med detta
+  mönster nu, inget nytt uppfunnet.
+
+Bort: Shadow Step, Direction Focus, Last Arrow — alla flavor-only, Last
+Arrow redundant mot den globala `lastStandBonus()`.
+
+Ny kortkonst höll sig medvetet nära hennes redan existerande bild
+(samma siluett, färgpalett, ställning) snarare än en ny tolkning, med
+snöflingedetaljer tillagda i klänningen som efterfrågat.
+
+Ett nytt permanent test i `tests/game.test.mjs` (62 totalt, alla gröna,
+grönt på första körningen) verifierar: stats/element orörda, Light
+Shield orörd, Feared Huntress bara mot starkare mål, och Aion's Last
+Light erövrar/buffar på vinst men misslyckas mot ett mål vars
+totalstyrka överstiger tröskeln.
+
+**30. Deathblade ombyggd (Executioner)** — ursprungligen bedömd 🟡
+POLISH i auditen, men samma missbedömning som Graff/Voidqueen/Sarah:
+bara Ultimaten (Shadow Assault) hade backing, alla fem övriga skills
+saknade. Den godkända kortkonsten förenklade henne själv till bara tre
+skills (Night's Veil, Executioner, Shadow Assault) — Silent Hunter,
+Shadow Mastery och Nightstalker ströks helt från det tryckta kortet,
+så kortdatan matchar nu bilden exakt istället för det bredare utkastet.
+
+- **Night's Veil (Passiv)** — HELT oförändrad (`active.shield:true`).
+- **Executioner (Passiv)** — NY primitive `active.onWinDestroyIfLoserWeak:
+  {maxTotal:6}` + motsvarande hook i `checkOnWinBonuses()`, en spegelbild
+  av Kaeldryx' `onWinPowerThresholdDestroy` men som läser FÖRLORARENS
+  totala kraft istället för vinnarens effektiva värde. Vinner Deathblade
+  mot ett kort med total kraft ≤6 destrueras det helt (`destroyCard`),
+  ingen capture.
+- **Special Attack: "Shadow Assault"** — HELT oförändrad, den enda unika
+  positionsbytes-mekaniken i hela rostern (`SPECIAL_HANDLERS.deathblade`
+  byter fysisk plats på brädet + permanent -2 alla sidor på målet).
+
+Bort: Silent Hunter, Shadow Mastery, Nightstalker — alla flavor-only,
+ströks i linje med den godkända kortkonsten.
+
+**31. Lyrith ombyggd (Venomous Fangs / Silent Strike)** — ursprungligen
+bedömd 🟡 POLISH i auditen, men samma missbedömning som Graff/
+Voidqueen/Sarah/Deathblade: NOLL av 5 skills hade backing, bara
+Ultimaten (Serpent's Wrath) var riktig kod. Godkänd kortkonst trimmade
+henne till tre skills, precis som Deathblade — Shadow Step, Bloodlust
+och Veil of Shadows ströks helt.
+
+- **Venomous Fangs (Passiv)** — helt befintligt fält
+  `active.onWinDebuffLoserPermanent:1`, samma primitive Yojimbo/Torn
+  redan använder.
+- **Silent Strike (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:2}`, samma primitive
+  Yojimbo/Ysara/Sarah redan använder.
+- **Special Attack: "Serpent's Wrath"** — HELT oförändrad (crit-chans
+  25% → destroy, annars flip + permanent +4 Power alla sidor, ignorerar
+  sköldar). UI-texten trimmades för att matcha den kortare kortkonsten,
+  men själva mekaniken rördes inte.
+
+Inga nya primitives — båda passiva skills återanvänder befintliga,
+redan testade engine-hooks. Bort: Shadow Step, Bloodlust, Veil of
+Shadows — alla flavor-only.
+
+**32. Aurelia ombyggd (Radiant Guardian / Luminous Strike)** —
+ursprungligen bedömd 🟡 POLISH i auditen, men samma missbedömning som
+Graff/Voidqueen/Sarah/Deathblade/Lyrith: NOLL av 5 skills hade
+backing, bara Ultimaten (Dawn's Reckoning) var riktig kod. Godkänd
+kortkonst trimmade henne till tre skills, samma mönster som
+Deathblade/Lyrith — Holy Barrage, Divine Shield och Light's Swiftness
+ströks helt.
+
+- **Radiant Guardian (Passiv)** — helt befintligt fält
+  `active.shield:true`, samma primitive som redan används brett i
+  rostern.
+- **Luminous Strike (Passiv)** — helt befintligt fält
+  `active.onWinDirectionalBoost:2`, samma primitive Tiamat redan
+  använder.
+- **Special Attack: "Dawn's Reckoning"** — HELT oförändrad (vinst →
+  flip + permanent +4 Power alla sidor; crit 25% → flippas ändå men
+  får -20 Power istället). Rörs ej.
+- **Stats matchade till godkänd konst** (avvikelse i 3 av 4 sidor):
+  top:9, right:6, bottom:8, left:7 (tidigare 9/7/6/8).
+
+Inga nya primitives — båda passiva skills återanvänder befintliga,
+redan testade engine-hooks. Bort: Holy Barrage, Divine Shield, Light's
+Swiftness — alla flavor-only.
+
+**33. Twisted Gipsy ombyggd (The House Always Wins / Loaded Deck)** —
+ursprungligen bedömd 🟡 POLISH i auditen, men samma missbedömning som
+Graff/Voidqueen/Sarah/Deathblade/Lyrith/Aurelia: NOLL av 5 skills hade
+backing, bara Ultimaten (House of Shadows) var riktig kod — och den
+hade dessutom en egen textdrift (UI:n nämnde ett tillfälligt +3 på
+attacksidan som koden aldrig gav). Godkänd kortkonst trimmade honom
+till tre skills, samma mönster som Deathblade/Lyrith/Aurelia — Pick a
+Card, Sleight of Hand och Steal the Fortune ströks helt.
+
+- **The House Always Wins (Passiv)** — helt befintlig kombination
+  `active.onWinDebuffLoserPermanent:1` + `active.onCaptureBonus:1`,
+  samma kombination Yojimbo redan har. En äkta "stöld": förloraren -1
+  permanent, Twisted Gipsy +1 permanent.
+- **Loaded Deck (Passiv)** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:3}`, samma primitive som
+  Yojimbos Kozuka.
+- **Special Attack: "House of Shadows"** — koden HELT oförändrad (vinst
+  → stjäl 2 Power + permanent +1 till honom själv), men UI-texten
+  synkades till vad koden faktiskt gör istället för den gamla,
+  aldrig-implementerade "+3 på attacksidan"-texten.
+- **Stats matchade till godkänd konst** (avvikelse i 3 av 4 sidor):
+  top:9, right:7, bottom:9, left:10 (tidigare 9/10/7/9).
+
+Inga nya primitives — båda passiva skills återanvänder befintliga,
+redan testade engine-hooks. Bort: Pick a Card, Sleight of Hand, Steal
+the Fortune — alla flavor-only.
+
+**34. Astrael utökad (Cosmic Ward, element, Falling Stars kombinerad)**
+— TILL SKILLNAD FRÅN de sex senaste korten var Astrael redan HELT
+wired (Starborn + Falling Stars, 2/2 skills, inget flavor-only) —
+ingen felaktig auditbedömning den här gången. Användaren valde ändå
+att utöka henne (alternativ 2: liten utökning + element + ny konst)
+istället för att lämna henne orörd.
+
+Viktigt bevarat: hennes etablerade konst är medvetet KÖNLÖS OCH
+ANSIKTSLÖS ("No gender. No time. Only the stars.") — en kosmisk
+entitet, INTE en mänsklig Legendary-hjältinna som resten av rostern.
+Den nya bildbriefen byggde medvetet vidare på den identiteten istället
+för att bryta den; rarity-bandet är "COSMIC ENTITY", inte "Legendary
+Card".
+
+- **Element: `magic`** (PROPOSAL, nytt fält — inget CANON-brott, fältet
+  var tomt sedan tidigare).
+- **Starborn (Passiv)** — HELT oförändrad (`active.onPlaceBoost:2`,
+  slumpad sida).
+- **Cosmic Ward (Passiv, NY)** — helt befintligt fält
+  `active.shield:true`.
+- **Special Attack: "Falling Stars"** — kod-vs-bild-konflikt löst genom
+  att KOMBINERA båda (användarens val "C", samma lösning som Graffs
+  Whirlwind Assault): bilden sa att målet permanent försvagas -2 alla
+  sidor (nytt, `SpecialVerbs.debuff(targetEntry, 2)` tillagt i
+  `SPECIAL_HANDLERS.astrael`), koden gav redan Astrael permanent +1
+  till sig själv (`attackBoost(srcEntry, 1)`, oförändrad) — nu gör
+  Ultimaten båda delarna.
+
+Inga nya primitives utöver ren återanvändning av `debuff()`, redan
+befintlig `SpecialVerbs`-funktion.
+
+**35. Vaelira — minimal fix (Crimson Surge) + ny solo-konst** —
+TILL SKILLNAD FRÅN de flesta korten på listan var Vaelira redan i gott
+skick: 4 av 5 skills var wired (Undying Flame, Sister's Bond, Weakness
+— Broken Focus, Infernal Pact). Bara **Crimson Surge** saknade
+backing. Användaren bad explicit om en MINIMAL fix, inte en full
+rework — "inte för mycket ändringar bara det blir bättre".
+
+Den godkända bilden (ny solo-pose, hjärtformad säng) hade dock en
+gameplay-text som skilde sig från koden på ALLA fem skills, inklusive
+ett troligt AI-bildgenereringsfel i Sister's Bond (nämnde Lyrith/
+Aurelia istället för hennes faktiska Triple Triad-systrar Seraphine/
+Nyxara). Användaren valde uttryckligen "den säkra vägen": behåll all
+fungerande kod, rätta bara UI-texten, ingen annan gameplay/lore/balans
+rörd.
+
+- **Crimson Surge (Passiv)** — NY primitive `active.onWinCappedBoost:
+  {amount:1, max:3}` + motsvarande hook i `checkOnWinBonuses()`, byggd
+  på samma capped-stack-idé som Omega Weapons
+  `buffOnEnemyDestroyedCapped`, men triggad av vanliga vinster istället
+  för destroys (behöver sin egen räknare, `onWinCappedBoostCount`, på
+  vinnarens entry).
+- **Undying Flame, Sister's Bond, Weakness — Broken Focus, Infernal
+  Pact** — HELT oförändrad mekanik. UI-texten synkades bara till att
+  vara exakt (t.ex. "-3 Power den runda hon återvänder" → "permanent
+  -3 Power", eftersom koden redan var permanent, inte temporär).
+- **Sister's Bond namnen (Seraphine/Nyxara) bekräftade och behållna** —
+  Lyrith/Aurelia i bilden var ett bildgenereringsfel, ingen avsiktlig
+  lore-ändring.
+- Stats **rördes INTE** (till skillnad från tidigare kort) — bilden
+  hade en mindre right/left-avvikelse, men användaren bad om minimala
+  ändringar så den lämnades orörd.
+
+Inga andra gameplay-, lore- eller balansändringar.
+
+**36. Nexzoth — delvis matchad till godkänd bild (alternativ A)** —
+Nexzoth var redan mestadels wired (Reality Consume, World Shatter,
+Endless Void, The Ending), men den nya bilden beskrev en ANNAN
+mekanik på nästan alla skills. Användaren valde alternativ A (matcha
+kod till bild), men bara för de delar som gick att göra säkert utan
+att uppfinna helt nya motorsystem:
+
+- **Devourer** (ersätter Omnivore, redan beslutat tidigare) — helt
+  befintligt fält `active.buffOnEnemyDestroyed:true`, samma som
+  Morvath.
+- **World Shatter** — förenklad från linje-AOE (`onWinLineDestroy`,
+  som Morvath fortfarande använder oförändrad) till en NY, egen
+  primitive `active.onWinDestroyLoserAlways:true`: varje vinst
+  förstör nu målet direkt istället för att erövra det, okapad (ingen
+  once-per-match-spärr som förut — den spärren hör bara till Morvaths
+  linje-AOE), och kan inte återupplivas.
+- **The Ending** — förenklad till att bara träffa fiender (som
+  Vaelira/Nyxaras egna förstör-allt-effekter), sparar allierade nu.
+- **NY generell motorfunktion**: `destroyCard(index, {noRevive:true})`
+  — ett nytt valfritt andra argument som hoppar över
+  Graveyard-registreringen helt, även med Graveyard-regeln på. Används
+  av World Shatter och The Ending för att matcha bildens "cannot be
+  revived". Påverkar INGA andra kort — standardanropet `destroyCard(i)`
+  fungerar exakt som förut.
+
+**Uppföljning — Reality Consume och Endless Void nu också klara**
+(användaren gav klartecken "Ja fixa nya motorlogik", utan att svara på
+de två öppna följdfrågorna, så förvalen nedan användes och flaggas
+här):
+
+- **Reality Consume** — helt ny generisk primitive
+  `active.auraDebuffAdjacentEnemies:1`, mirror-bilden av befintliga
+  `adjacentEnemiesBoost`/`adjacentAlliesBoost` i `fullEffectiveValue()`
+  men försvagar GRANNEN istället för att buffa kortet självt. Gäller
+  både attack och defense, ignorerar allierade, respekterar grannens
+  egen `debuffImmune`. Den gamla on-place-varianten
+  (`ON_PLACE_HANDLERS.nexzoth`) är borttagen helt.
+- **Endless Void** — ny primitive `active.onRoundStartDebuffEnemies:1`
+  + en ny hook i `sweepExpiredRoundEffects()` (som redan körs vid
+  varje turnCount-växling). FÖRVAL använt eftersom frågorna var
+  obesvarade: **tillfällig, icke-staplande** (återanvänder
+  `debuffThisRound()`s egen tempEffects-utgång, samma "denna runda"-
+  fönster som allt annat i spelet) snarare än permanent, och gäller
+  bara fiender som redan finns på brädet vid den exakta
+  turn-växlingen (inget retroaktivt för kort som läggs senare samma
+  runda). Motivering: permanent+staplande hade snöbollat okontrollerat
+  ihop med hans egna Devourer/World Shatter, samma oro som redan
+  dokumenterad för Nexzoth/Morvaths `onWinLineDestroy`-spärr.
+- Den gamla `debuffImmune:true` (Endless Voids förra betydelse,
+  självskydd) är BORTTAGEN helt — bytt mot den nya offensiva
+  betydelsen. Ett existerande, orelaterat test
+  ("Visual feedback...") använde Nexzoth som sitt exempel på ett
+  `debuffImmune`-kort — bytt till Morvath istället eftersom han
+  fortfarande har flaggan.
+- Nexzoth är nu HELT klar (alla 5 skills + Ultimate matchar bilden),
+  konst committad.
+
+**39. Seraphine — Celestial Mark riktig mekanik, Silver Sight bytt** —
+3 av 5 skills var redan wired (Sister's Bond, Weakness — Broken Focus,
+Silver Judgment), men Celestial Mark var flavor-only och Silver Sight
+var genuint obyggbar (kräver fog-of-war, som inte finns).
+
+- **Celestial Mark (Passiv)** — riktig mekanik nu: ny
+  `ON_PLACE_HANDLERS.seraphine` märker en slumpad fiende
+  (`entry.seraphineMarked`, samma runtime-flagg-form som
+  `vaeliraBurned`/`frostmarked`). Eftersom `fullEffectiveValue()`
+  aldrig får motståndarens LEVANDE kort-instans (bara statisk
+  korttext), kunde bonusen inte läsas generiskt där — löst med två
+  små, hårdkodade `if(placed.id === 'seraphine' && target.
+  seraphineMarked)`-checkar i `battleNeighbors` (riktiga strider) och
+  `simulateFlips` (AI:ns egen utvärdering), exakt samma "hårdkodat per
+  kort-ID"-mönster som Triune Desires Divine Temptation redan
+  använder. Ingen ändring av `fullEffectiveValue()` själv, inget annat
+  kort påverkat.
+- **Silver Sight → borttagen**, ersatt av
+  `active.vsStrongerTotalPowerBoost:{amount:2}` (helt återanvänd,
+  samma som Yojimbo/Ysara/Sarah/Lyrith).
+- Sister's Bond, Weakness — Broken Focus, Silver Judgment —
+  **oförändrade**.
+
+Användarens uttryckliga princip: undvik nya generiska primitives när
+möjligt — den här lösningen introducerar INGEN ny generisk `active.X`,
+bara en liten per-kort-hårdkodning i två redan existerande
+funktioner.
+
+**Uppföljning — andra bilden (vattenfall-pose)**: samma tre
+kod-vs-bild-avvikelser dök upp igen (Sister's Bond flackad till "+1",
+Weakness "varje förlust", Silver Judgment omtolkad till destroy-all-
+vid-3-wins). Samma lösning som för Nyxara valdes konsekvent: koden
+(redan testad, egen identitet skild från systrarnas destroy-allt-
+ultimates) behölls oförändrad, bara Weakness-texten stramades åt till
+"permanently loses 3 Power" (samma fix som Vaelira/Nyxara fick).
+Stats (10/10/10/10) matchade redan bilden exakt.
+
+**38. Bahamut — gameplay-fix + Megaflare omdesignad till AOE** —
+tunnare kort, bara 2 av 6 skills wired från start (Dragon King's
+Majesty löst, Megaflare). Godkänd bild krävde en total omdesign av
+Megaflare utöver den ursprungligen godkända minimala fixen.
+
+- **Dragon King's Majesty (Passiv)** — oförändrad `active.
+  onCaptureBonus:1`, texten synkad från "the first time" till "each
+  time" (primitiven triggar varje erövring, inte bara den första).
+- **Astral Aegis (Passiv, NY)** — helt befintligt fält
+  `active.shield:true`.
+- **Celestial Sovereign (Passiv, NY)** — helt befintligt fält
+  `active.adjacentAlliesBoost:{minCount:2, amount:1}` (samma som
+  Medusas Throne of Stone). OBS: bilden beskrev detta som en
+  ALLIERAD-buff istället för ett självbuff ("they gain +1 Power") —
+  användaren bekräftade bara Megaflare-ändringen explicit, så
+  Celestial Sovereign behölls som ursprungligen godkänt (självbuff)
+  tills vidare eftersom ally-varianten hade krävt genuint ny,
+  bespoke grannskaps-kod.
+- **Special Attack: Megaflare — total omdesign per godkänd bild**: från
+  ett enda-mål-anfall (kostade 2 wins, ignorerade försvar, permanent
+  +1 vid vinst) till en AOE som förstör ALLA fiender (`cost:3`,
+  `targets:'aoe'`, samma mönster som Vaelira/Nexzoth), kan inte
+  återupplivas (`noRevive`), och ger permanent +1 Power PER förstört
+  kort istället för en fast +1.
+- Exaflare, Dragon King's Wrath — bort, flavor-only/redundanta
+  (beslutat innan bilden).
+
+**37. Kaeldryx — full ombyggnad baserad på godkänd bild** —
+till skillnad från nästan alla andra kort var Kaeldryx redan 100%
+wired (alla 5 skills). Bilden beskrev ändå helt andra mekaniker på
+varenda skill; användaren valde uttryckligen att göra om honom
+riktigt baserat på den nya texten, inte bara synka ord.
+
+- **Dragon Hunter** — `vsTagBonus.amount` sänkt från 4 till 2.
+- **Hunter's Focus** — total omvändning: FRÅN "vid placering, lås en
+  slumpad fiendes buffar i 4 turns" TILL "+1 Power alla sidor efter
+  VARJE vunnen runda, okapat". Återanvänder `active.onWinCappedBoost`
+  (byggd för Vaelira) med `max:Infinity` — alltså fortfarande INGEN ny
+  primitive, bara en extremt hög/oändlig gräns på en redan existerande
+  capped-mekanism.
+- **Scalebreaker** — total omvändning: FRÅN "+1 Power mot 8+
+  motstående sida" TILL "vid placering, permanent -2 på en slumpad
+  fiende (förstör inte)". `ON_PLACE_HANDLERS.kaeldryx` omskriven för
+  detta (var tidigare Hunter's Focus-koden, som nu bytt plats/mening
+  med Scalebreaker). Den gamla `scaleBreaker:true`-läsningen i
+  `fullEffectiveValue()` är död kod nu (inget annat kort använde den)
+  — borttagen helt, samma städprincip som Sylvarions gamla
+  Ultimate-rester tidigare i projektet.
+- **Execution** — bytte tröskel FRÅN "Kaeldryx vinner med 10+ effektiv
+  Power → förstör förloraren" TILL "förloraren har ≤3 total Power →
+  förstörs". Återanvänder Deathblades `onWinDestroyIfLoserWeak`
+  primitive rakt av (`maxTotal:3`), plus en ny liten valfri
+  `noRevive`-flagga på samma primitives config-objekt (`{maxTotal,
+  noRevive:true}`) så Kaeldryx kan skippa Graveyard helt utan att
+  ändra Deathblades egen, oförändrade `{maxTotal:6}` (ingen
+  `noRevive` där, så hennes destroy fortfarande kan hamna i
+  Graveyard som vanligt).
+- **Dragonslayer** — tappade den gamla "-3 Power till kvarvarande
+  fiender denna runda"-klausulen, fick en ovillkorad extra tur
+  istället, och dragarnas destroy kan inte längre återupplivas
+  (`noRevive`).
+- Stats matchade till godkänd konst (höger/vänster omkastade):
+  top:10, right:9, bottom:9, left:10 (tidigare 10/10/9/9).
+
+**40. Nyxara — gameplay-fix baserad på godkänd bild, KONFLIKT flaggad
+och undviken** — 5 av 6 skills var redan wired (Void Touch, Empress
+Aura+Sister's Command, Weakness, Void Dominion), bara Shadow Rend är
+flavor-only (uttryckligen lämnad orörd på användarens begäran).
+
+- **Stats matchade till godkänd konst** (höger/botten omkastade):
+  top:10, right:9, bottom:10, left:10 (tidigare 10/10/9/10).
+- **Empress Aura + Sister's Command**: bildens siffror antydde totalt
+  +5 vid båda systrar (+1 bas, +4 på topp) istället för den tidigare
+  koden totalt +6 — `sisterAura.bonusByCount` justerad från `{1:1,
+  2:6}` till `{1:1, 2:5}`.
+- **Weakness — Broken Focus**: koden BEHÖLLS oförändrad (triggar bara
+  vid återerövring efter tillfångatagande, delad `checkSisterFlip`-
+  mekanik med Vaelira/Seraphine) — bildens "varje förlust"-läsning
+  antogs INTE, bara texten stramades åt ("permanently loses 3 Power"
+  istället för "the round she returns").
+- **Void Dominion — VIKTIG KONFLIKT UPPTÄCKT OCH UNDVIKEN**: bilden sa
+  "(cannot be revived)", men Nyxaras Void Dominion delar samma
+  AOE-destroy-all-mönster som Vaeliras Infernal Pact och Triune
+  Desires Forbidden Harmony — och ett redan existerande, avsiktligt
+  test (`"Graveyard optional rule: every destroy-capable Special
+  routes through destroyCard()"`) låser uttryckligen fast att ALLA
+  TRE ska hamna i Graveyard på samma sätt. Att lägga till `noRevive`
+  bara på Nyxara hade brutit den etablerade cross-card-konsekvensen
+  och det testet. Löst genom att INTE lägga till `noRevive` — Void
+  Dominion fungerar exakt som förut, `SPECIAL_HANDLERS.nyxara`
+  oförändrad, bildens "(cannot be revived)"-text följdes inte.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

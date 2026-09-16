@@ -1303,7 +1303,11 @@ const HEROES = [
     {name:"Special Attack: Shadow Breaker", desc:"Cost 2 Wins. Choose 1 enemy card — unblockable. If its average side Power is 7 or lower, it's destroyed outright. If 8 or higher, it's permanently weakened by -3 Power instead and stays enemy-owned."},
   ]},
   { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{bonus:{dir:'right',amount:1}}, skills:[{name:"Eternal Aim", desc:"On placement, choose a direction — Zaevir's attack there gets +2 for the next battle."}, {name:"Forest's Path", desc:"Once per match, Zaevir may attack a card one space away in a straight line, if the path is clear."}, {name:"Focus", desc:"If Zaevir hasn't lost a battle yet, he gets +1 on his next attack."}, {name:"Eternal Arrow", desc:"When Zaevir defeats a card, he may keep attacking in the same direction if another card borders it."}]},
-  { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', skills:[{name:"Shadow Step", desc:"When Sarah loses a battle, you may swap her with a card in an adjacent empty square."}, {name:"Direction Focus", desc:"Once per match, change Sarah's direction on her next attack before the battle resolves."}, {name:"Light Shield", desc:"The first time Sarah would lose a battle, the loss is ignored and the battle counts as a draw."}, {name:"Last Arrow", desc:"If Sarah is your last card on the board, she gets +1 to all her directions."}], active: {shield:true}},
+  { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', active:{shield:true, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:"Aion's Last Light", cost:2, once:true, targets:'single' }, skills:[
+    {name:'Light Shield (Passive)', desc:'The first time Sarah would lose a battle, the loss is ignored.'},
+    {name:'Feared Huntress (Passive)', desc:'If Sarah attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
+    {name:"Special Attack: Aion's Last Light", desc:"Costs 2 wins. Choose an enemy card — Sarah gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
+  ]},
   { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', active: {onWinCleanseAlly:true, marginShieldThreshold:2, pairPresence:{partner:'darien', amount:2}}, special:{ name:'Requiem of Light', cost:2, once:true, targets:'aoe' }, skills:[
     {name:'Frostbloom (Passive)', desc:'Whenever Elara wins a round, a random allied card is cleansed of negative effects and gains +1 Power (permanent).'},
     {name:'Crystal Sanctuary (Passive)', desc:'If an enemy wins against Elara by 2 Power or less, the attack is blocked instead and the attacker gets -1 Power this round.'},
@@ -1383,13 +1387,10 @@ const HEROES = [
       {name:'Second Dawn', desc:"Whenever Zlaizer wins a round, up to 2 cards are pulled back from his own Graveyard onto the board, each weakened by -1 Power."},
       {name:'Special Attack: Rebirth', desc:"Costs 3 wins. Pull up to 3 cards back from Zlaizer's own Graveyard onto the board at 1 Power each, fully cleansed of any negative effects."},
     ] },
-  { id:'deathblade', name:"Deathblade", role:"Shadow Assassin — Order of the Radiance", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', active: {shield:true}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
+  { id:'deathblade', name:"Deathblade", role:"Shadow Assassin of the Order of the Radiance", top:9, right:8, bottom:6, left:7, element:'earth', hue:'linear-gradient(160deg,#1e1030,#0d0b18 60%)', accent:'#a568f2', active: {shield:true, onWinDestroyIfLoserWeak:{maxTotal:6}}, special:{ name:'Shadow Assault', cost:2, once:true, targets:'single' }, skills: [
     {name:'Night’s Veil (Passive)', desc:"The first time this card would lose a battle, the enemy's bonuses on that battle are ignored."},
-    {name:'Silent Hunter', desc:'When Deathblade attacks a card that already lost a battle this round, she gets +1 Power on all directions.'},
-    {name:'Shadow Mastery', desc:'When Deathblade wins a battle, she gets +1 Power on a chosen direction on this card, permanently.'},
-    {name:'Executioner', desc:"If an enemy card's total power is 6 or lower after Deathblade wins a battle against it, it's removed from the game entirely (no card gained)."},
-    {name:'Nightstalker', desc:'When Deathblade moves on the board, she gets +1 Power on a chosen direction this round.'},
-    {name:'Special Attack: Shadow Assault', desc:"Costs 2 wins. Choose an enemy card sharing Deathblade's row or column — swap places with it, and it permanently loses 2 Power on all directions. (Simplified from the card's full text: the \"win against 3 cards with 27+ power\" unlock condition isn't tracked by the engine — see PROJECT.md.)"},
+    {name:'Executioner (Passive)', desc:"Whenever Deathblade wins a battle against a card with 6 or lower total Power, that card is destroyed outright instead of captured."},
+    {name:'Special Attack: Shadow Assault', desc:"Choose an enemy card — Deathblade swaps physical position with the target, and the target permanently loses 2 Power on all directions."},
   ]},
   { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
   // Divine Bond's card text says "placed ADJACENT to Little Jesp", but the
@@ -1423,12 +1424,10 @@ const HEROES = [
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, special:{ name:'Megaflare', cost:2, once:true, targets:'single' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
-    {name:'Exaflare', desc:'Once per match, choose an adjacent enemy card - it gets -2 Power on the side facing Bahamut this round.'},
-    {name:'Astral Aegis', desc:'The first time Bahamut would lose a battle in the match, the loss is ignored.'},
-    {name:"Dragon King's Wrath", desc:'When Bahamut takes an enemy card, choose a side on him - it gets +2 this round.'},
-    {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
-    {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, adjacentAlliesBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
+    {name:'Astral Aegis (Passive)', desc:'The first time Bahamut would lose a battle, the loss is ignored.'},
+    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, he gets +1 Power on all sides.'},
+    {name:'Special Attack: Megaflare', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Bahamut permanently gains +1 Power per card destroyed. Usable once per match.'},
   ] },
   { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
     {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
@@ -1595,29 +1594,20 @@ const HEROES = [
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
       {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
     ] },
-  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
-    {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
-    {name:'Poisoned Edge', desc:'When Lyrith attacks, the enemy is poisoned and gets -2 defense for 2 rounds. If the enemy is already poisoned, Lyrith gets +2 attack instead.'},
-    {name:'Bloodlust', desc:'When Lyrith flips a card, she gets +2 attack and lifesteal for 1 round.'},
-    {name:'Veil of Shadows', desc:"All enemies on Lyrith's side of the arena get -1 attack for 1 round when she flips a card."},
-    {name:"Special Attack: Serpent's Wrath", desc:"Costs 3 wins. Lyrith attacks this card with both weapons. If the attack wins, flip the card and gain +4 Power on all sides for the rest of this round. If the attack crits, destroy the enemy card instead of flipping it (can only happen once per match). Ignores the enemy's defensive skills. Usable once per match."},
+  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
+    {name:'Silent Strike (Passive)', desc:'If the enemy card has higher total Power than Lyrith, she gets +2 Power for that attack.'},
+    {name:"Special Attack: Serpent's Wrath", desc:"Lyrith attacks with both weapons. If the attack wins, flip the card and permanently gain +4 Power on all sides. If it crits, destroy the target instead of flipping it. Ignores the enemy's shields."},
   ] },
-  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Luminous Strike', desc:'When Aurelia attacks and wins, she gets +2 Power on the side she attacked with for the rest of the match.'},
-    {name:'Holy Barrage', desc:'If Aurelia wins a round on at least 2 sides, all your sides get +1 Power for the rest of the match.'},
-    {name:'Divine Shield', desc:'If Aurelia defends and loses a round, all your sides get +2 defense next round.'},
-    {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
-    {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
+  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:6, bottom:8, left:7, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', active:{shield:true, onWinDirectionalBoost:2}, special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Radiant Guardian (Passive)', desc:'The first time Aurelia would lose a round, the loss is ignored.'},
+    {name:'Luminous Strike (Passive)', desc:'When Aurelia wins an attack, she gains +2 Power on the side she attacked with. (Once per match.)'},
+    {name:"Special Attack: Dawn's Reckoning", desc:"If Aurelia wins, the target card is flipped and Aurelia gains +4 Power on all sides. If this attack scores a critical hit (25%), the target card is still flipped but instead gets -20 Power on all sides."},
   ] },
-  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
-    {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
-    {name:'Loaded Deck', desc:'Once per match, choose a side — Twisted Gipsy gets +3 Power on that side during the battle.'},
-    {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
-    {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:7, bottom:9, left:10, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', active:{onWinDebuffLoserPermanent:1, onCaptureBonus:1, oncePerMatchAttackBoost:{amount:3}}, special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The House Always Wins (Passive)', desc:'When Twisted Gipsy wins a round, the opponent loses 1 Power permanently and Twisted Gipsy gains 1 Power permanently.'},
+    {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
+    {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
   { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
@@ -1659,9 +1649,10 @@ const HEROES = [
     {name:'Celestial Bond (Passive)', desc:'Vorlix gets +2 Power on all sides while Aurelian is anywhere on your board.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
-  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
+  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', element:'magic', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2, shield:true}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
     {name:'Starborn (Passive)', desc:'When Astrael is placed on the field, a random direction gains +2 Power (applies for the rest of the match).'},
-    {name:'Special Attack: Falling Stars', desc:'Costs 2 wins. Choose an enemy card — three stars strike at random, and the strongest bolt gives Astrael +5 Power on a random side during this attack. If the attack wins, Astrael gains +1 Power on all sides for the rest of the match.'},
+    {name:'Cosmic Ward (Passive)', desc:'The first time Astrael would lose a round, the loss is ignored — her form dissolves into starlight and is reborn.'},
+    {name:'Special Attack: Falling Stars', desc:'When Astrael wins, falling stars rain upon the target, permanently reducing all its sides by 2, and Astrael permanently gains +1 Power on all sides.'},
   ] },
   // The Triple Triad Sisters — originally FOREST_FOES-only (Campaign stage
   // 17's dedicated boss trio, deliberately kept out of HEROES per an
@@ -1675,39 +1666,39 @@ const HEROES = [
   { id:'vaelira', name:'Vaelira', role:'The Crimson Arcanist — Boss, Triple Triad Sisters I', element:'fire',
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#2a0a10,#0d0b18 60%)', accent:'#e0304a', icon:'🔥',
-    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} } },
+    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} }, onWinCappedBoost:{amount:1, max:3} },
     special:{ name:'Infernal Pact', cost:2, once:true, targets:'aoe' },
     skills: [
       {name:'Undying Flame (Passive)', desc:'When Vaelira is placed, she burns a random enemy card for -2 Power. A card can only be burned once per match.'},
-      {name:'Crimson Surge', desc:'When Vaelira wins a round, she gains +1 Power on all sides (max +3 Power this match). (Card draw is flavor only — no card-draw system exists in the engine.)'},
+      {name:'Crimson Surge (Passive)', desc:'When Vaelira wins a round, she gains +1 Power on all sides, up to 3 times per match.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Vaelira's sisters (Seraphine, Nyxara) is on the board, she gets +2 Power on all sides — +4 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Vaelira is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses emotional control" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:"If Vaelira is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power on all sides."},
       {name:'Special Attack: Infernal Pact', desc:'Costs 2 wins. Destroys every enemy card on the board and grants an extra turn immediately after. Usable once per match.'},
     ] },
   { id:'seraphine', name:'Seraphine', role:'The Silver Gunslinger — Boss, Triple Triad Sisters II', element:'wind',
     top:10, right:10, bottom:10, left:10,
     hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#e0c060', icon:'🕊️',
-    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} } },
+    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} }, vsStrongerTotalPowerBoost:{amount:2} },
     special:{ name:'Silver Judgment', cost:2, once:true, targets:'aoe' },
     skills: [
-      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. (Flavor only — a stacking "extra Power the next time she hits that card" bonus is not currently wired into the battle engine.)'},
-      {name:'Silver Sight', desc:"On Seraphine's turn, she can read a hidden enemy card's Power. (Flavor only — this game has no hidden-card/fog-of-war system; every card is always fully visible.)"},
+      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. The next time she attacks that marked card, she gets +2 Power.'},
+      {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "focus is broken" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
       {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
-    top:10, right:10, bottom:9, left:10,
+    top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#8b3bce', icon:'🌑',
-    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:6} } },
+    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:5} } },
     special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:2 },
     skills: [
-      {name:'Void Touch (Passive)', desc:'When Nyxara is placed, she chooses a random enemy card and it loses -2 Power.'},
-      {name:'Shadow Rend', desc:'When Nyxara wins a round, she destroys the enemy card with the lowest Power on the board. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
-      {name:'Empress Aura (Passive)', desc:"While Vaelira or Seraphine is on the board, Nyxara gets +1 Power on all sides for each sister present."},
-      {name:"Sister's Command", desc:'While both Vaelira and Seraphine are on the board, Nyxara gains +4 Power on top of Empress Aura, and her Ultimate costs no Wins (still usable only once per match).'},
-      {name:'Weakness — Broken Focus', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses control of the void" text).'},
-      {name:'Special Attack: Void Dominion', desc:'Costs 3 wins — free if both sisters are on the board. Destroys every enemy card on the board; Nyxara gains +3 Power on all sides for each card destroyed this way. Usable once per match.'},
+      {name:'Void Touch (Passive)', desc:'When Nyxara is placed, a random enemy card loses 2 Power permanently.'},
+      {name:'Shadow Rend (Passive)', desc:'A devastating void strike that shreds the weakest. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
+      {name:'Empress Aura (Passive)', desc:'While you control at least 1 Sister, Nyxara gains +1 Power.'},
+      {name:"Sister's Command (Passive)", desc:'While you control both of her Sisters, Nyxara gains an additional +4 Power (and her Ultimate costs no Wins, still usable only once per match).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
+      {name:'Special Attack: Void Dominion', desc:'Costs 3 wins — free if both Sisters are on the board. Destroys every enemy card on the board; Nyxara gains +3 Power for each card destroyed. Usable once per match.'},
     ] },
   // Triune Desire — a fourth, later-uploaded card: the three sisters fused
   // into one boss. Made playable immediately (no "not in HEROES" debate
@@ -1791,12 +1782,10 @@ const FOREST_FOES = [
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, special:{ name:'Megaflare', cost:2, once:true, targets:'single' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
-    {name:'Exaflare', desc:'Once per match, choose an adjacent enemy card - it gets -2 Power on the side facing Bahamut this round.'},
-    {name:'Astral Aegis', desc:'The first time Bahamut would lose a battle in the match, the loss is ignored.'},
-    {name:"Dragon King's Wrath", desc:'When Bahamut takes an enemy card, choose a side on him - it gets +2 this round.'},
-    {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
-    {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, adjacentAlliesBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
+    {name:'Astral Aegis (Passive)', desc:'The first time Bahamut would lose a battle, the loss is ignored.'},
+    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, he gets +1 Power on all sides.'},
+    {name:'Special Attack: Megaflare', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Bahamut permanently gains +1 Power per card destroyed. Usable once per match.'},
   ] },
   { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
     {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
@@ -1930,29 +1919,20 @@ const FOREST_FOES = [
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
       {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
     ] },
-  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Venomous Presence (Passive)', desc:"When Lyrith is placed, all enemy cards get -1 attack and -1 defense for 2 rounds. If she flips a card, she also gains +1 critical chance for the rest of the match. (Flavor only — critical chance, poison, and lifesteal are not currently wired into the battle engine.)"},
-    {name:'Shadow Step', desc:'Teleport Lyrith to an empty adjacent space. The card gets +2 agility this round.'},
-    {name:'Poisoned Edge', desc:'When Lyrith attacks, the enemy is poisoned and gets -2 defense for 2 rounds. If the enemy is already poisoned, Lyrith gets +2 attack instead.'},
-    {name:'Bloodlust', desc:'When Lyrith flips a card, she gets +2 attack and lifesteal for 1 round.'},
-    {name:'Veil of Shadows', desc:"All enemies on Lyrith's side of the arena get -1 attack for 1 round when she flips a card."},
-    {name:"Special Attack: Serpent's Wrath", desc:"Costs 3 wins. Lyrith attacks this card with both weapons. If the attack wins, flip the card and gain +4 Power on all sides for the rest of this round. If the attack crits, destroy the enemy card instead of flipping it (can only happen once per match). Ignores the enemy's defensive skills. Usable once per match."},
+  { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
+    {name:'Silent Strike (Passive)', desc:'If the enemy card has higher total Power than Lyrith, she gets +2 Power for that attack.'},
+    {name:"Special Attack: Serpent's Wrath", desc:"Lyrith attacks with both weapons. If the attack wins, flip the card and permanently gain +4 Power on all sides. If it crits, destroy the target instead of flipping it. Ignores the enemy's shields."},
   ] },
-  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:7, bottom:6, left:8, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
-    {name:'Radiant Guardian (Passive)', desc:"When Aurelia defends a side, all your sides get +1 defense for the rest of the match. If she wins a round, all your sides get +1 Power. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Luminous Strike', desc:'When Aurelia attacks and wins, she gets +2 Power on the side she attacked with for the rest of the match.'},
-    {name:'Holy Barrage', desc:'If Aurelia wins a round on at least 2 sides, all your sides get +1 Power for the rest of the match.'},
-    {name:'Divine Shield', desc:'If Aurelia defends and loses a round, all your sides get +2 defense next round.'},
-    {name:"Light's Swiftness", desc:'When Aurelia wins a round on only 1 side, all your sides get +2 agility next round.'},
-    {name:"Special Attack: Dawn's Reckoning", desc:"Costs 3 wins. Choose an enemy card — Aurelia attacks it with both weapons. If the attack wins, flip the card and gain +4 attack on all sides for the rest of this round. If the attack crits, wipe out all sides of the enemy card instead (can only happen once per match). Usable once per match."},
+  { id:'aurelia', name:'Aurelia', role:"The Dawn's Blade — Legendary Card", element:'wind', top:9, right:6, bottom:8, left:7, hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🛡️', active:{shield:true, onWinDirectionalBoost:2}, special:{ name:"Dawn's Reckoning", cost:3, once:true, targets:'single' }, skills: [
+    {name:'Radiant Guardian (Passive)', desc:'The first time Aurelia would lose a round, the loss is ignored.'},
+    {name:'Luminous Strike (Passive)', desc:'When Aurelia wins an attack, she gains +2 Power on the side she attacked with. (Once per match.)'},
+    {name:"Special Attack: Dawn's Reckoning", desc:"If Aurelia wins, the target card is flipped and Aurelia gains +4 Power on all sides. If this attack scores a critical hit (25%), the target card is still flipped but instead gets -20 Power on all sides."},
   ] },
-  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:10, bottom:7, left:9, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
-    {name:'The House Always Wins (Passive)', desc:"When Twisted Gipsy wins a battle, he steals +1 Power from the side of the enemy card that lost, for the rest of the match. (Flavor only — not currently wired into the battle engine.)"},
-    {name:'Pick a Card', desc:"Once per round, draw a random card from the enemy's hand and reveal it. Twisted Gipsy gets +2 Power on the side matching that card's highest value this round."},
-    {name:'Sleight of Hand', desc:'When Twisted Gipsy wins a battle, he gets +1 Power on all sides for the rest of this round.'},
-    {name:'Loaded Deck', desc:'Once per match, choose a side — Twisted Gipsy gets +3 Power on that side during the battle.'},
-    {name:'Steal the Fortune', desc:'If Twisted Gipsy defeats a card with higher total Power than his own, he gets +2 Power on all sides next round.'},
-    {name:'Special Attack: House of Shadows', desc:"Costs 2 wins. Choose an enemy card. Twisted Gipsy draws 3 random cards from the enemy's hand and uses the one with the highest value as stolen power. He gets +3 Power on the attacking side; if he wins, he also gets +1 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'twistedgipsy', name:'Twisted Gipsy', role:'The Arcane Trickster — Legendary Card', element:'wind', top:9, right:7, bottom:9, left:10, hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#d4af37', icon:'🃏', active:{onWinDebuffLoserPermanent:1, onCaptureBonus:1, oncePerMatchAttackBoost:{amount:3}}, special:{ name:'House of Shadows', cost:2, once:true, targets:'single' }, skills: [
+    {name:'The House Always Wins (Passive)', desc:'When Twisted Gipsy wins a round, the opponent loses 1 Power permanently and Twisted Gipsy gains 1 Power permanently.'},
+    {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
+    {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
   { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
@@ -1994,9 +1974,10 @@ const FOREST_FOES = [
     {name:'Celestial Bond (Passive)', desc:'Vorlix gets +2 Power on all sides while Aurelian is anywhere on your board.'},
     {name:'Special Attack: WorldCleaver', desc:'Costs 2 wins. Choose an enemy card. This card gains +4 Power on Left and Right during this attack. If this attack wins, it gains +1 Power on Left and Right for the rest of the match.'},
   ] },
-  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
+  { id:'astrael', name:'Astrael', role:'The Starweaver — Cosmic Entity', element:'magic', top:8, right:8, bottom:8, left:8, hue:'linear-gradient(160deg,#100a28,#0d0b18 60%)', accent:'#b8a0f2', icon:'✨', active:{onPlaceBoost:2, shield:true}, special:{ name:'Falling Stars', cost:2, once:true, targets:'single' }, skills: [
     {name:'Starborn (Passive)', desc:'When Astrael is placed on the field, a random direction gains +2 Power (applies for the rest of the match).'},
-    {name:'Special Attack: Falling Stars', desc:'Costs 2 wins. Choose an enemy card — three stars strike at random, and the strongest bolt gives Astrael +5 Power on a random side during this attack. If the attack wins, Astrael gains +1 Power on all sides for the rest of the match.'},
+    {name:'Cosmic Ward (Passive)', desc:'The first time Astrael would lose a round, the loss is ignored — her form dissolves into starlight and is reborn.'},
+    {name:'Special Attack: Falling Stars', desc:'When Astrael wins, falling stars rain upon the target, permanently reducing all its sides by 2, and Astrael permanently gains +1 Power on all sides.'},
   ] },
   // The Triple Triad Sisters — a 3-card boss trio for Campaign stage 17.
   // Also duplicated into HEROES (see there) so they're playable — added in
@@ -2012,39 +1993,39 @@ const FOREST_FOES = [
   { id:'vaelira', name:'Vaelira', role:'The Crimson Arcanist — Boss, Triple Triad Sisters I', element:'fire',
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#2a0a10,#0d0b18 60%)', accent:'#e0304a', icon:'🔥',
-    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} } },
+    active:{ sisterAura:{ partners:['seraphine','nyxara'], bonusByCount:{1:2,2:4} }, onWinCappedBoost:{amount:1, max:3} },
     special:{ name:'Infernal Pact', cost:2, once:true, targets:'aoe' },
     skills: [
       {name:'Undying Flame (Passive)', desc:'When Vaelira is placed, she burns a random enemy card for -2 Power. A card can only be burned once per match.'},
-      {name:'Crimson Surge', desc:'When Vaelira wins a round, she gains +1 Power on all sides (max +3 Power this match). (Card draw is flavor only — no card-draw system exists in the engine.)'},
+      {name:'Crimson Surge (Passive)', desc:'When Vaelira wins a round, she gains +1 Power on all sides, up to 3 times per match.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Vaelira's sisters (Seraphine, Nyxara) is on the board, she gets +2 Power on all sides — +4 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Vaelira is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses emotional control" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:"If Vaelira is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power on all sides."},
       {name:'Special Attack: Infernal Pact', desc:'Costs 2 wins. Destroys every enemy card on the board and grants an extra turn immediately after. Usable once per match.'},
     ] },
   { id:'seraphine', name:'Seraphine', role:'The Silver Gunslinger — Boss, Triple Triad Sisters II', element:'wind',
     top:10, right:10, bottom:10, left:10,
     hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#e0c060', icon:'🕊️',
-    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} } },
+    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} }, vsStrongerTotalPowerBoost:{amount:2} },
     special:{ name:'Silver Judgment', cost:2, once:true, targets:'aoe' },
     skills: [
-      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. (Flavor only — a stacking "extra Power the next time she hits that card" bonus is not currently wired into the battle engine.)'},
-      {name:'Silver Sight', desc:"On Seraphine's turn, she can read a hidden enemy card's Power. (Flavor only — this game has no hidden-card/fog-of-war system; every card is always fully visible.)"},
+      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. The next time she attacks that marked card, she gets +2 Power.'},
+      {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "focus is broken" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
       {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
-    top:10, right:10, bottom:9, left:10,
+    top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#8b3bce', icon:'🌑',
-    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:6} } },
+    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:5} } },
     special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:2 },
     skills: [
-      {name:'Void Touch (Passive)', desc:'When Nyxara is placed, she chooses a random enemy card and it loses -2 Power.'},
-      {name:'Shadow Rend', desc:'When Nyxara wins a round, she destroys the enemy card with the lowest Power on the board. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
-      {name:'Empress Aura (Passive)', desc:"While Vaelira or Seraphine is on the board, Nyxara gets +1 Power on all sides for each sister present."},
-      {name:"Sister's Command", desc:'While both Vaelira and Seraphine are on the board, Nyxara gains +4 Power on top of Empress Aura, and her Ultimate costs no Wins (still usable only once per match).'},
-      {name:'Weakness — Broken Focus', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "loses control of the void" text).'},
-      {name:'Special Attack: Void Dominion', desc:'Costs 3 wins — free if both sisters are on the board. Destroys every enemy card on the board; Nyxara gains +3 Power on all sides for each card destroyed this way. Usable once per match.'},
+      {name:'Void Touch (Passive)', desc:'When Nyxara is placed, a random enemy card loses 2 Power permanently.'},
+      {name:'Shadow Rend (Passive)', desc:'A devastating void strike that shreds the weakest. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
+      {name:'Empress Aura (Passive)', desc:'While you control at least 1 Sister, Nyxara gains +1 Power.'},
+      {name:"Sister's Command (Passive)", desc:'While you control both of her Sisters, Nyxara gains an additional +4 Power (and her Ultimate costs no Wins, still usable only once per match).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
+      {name:'Special Attack: Void Dominion', desc:'Costs 3 wins — free if both Sisters are on the board. Destroys every enemy card on the board; Nyxara gains +3 Power for each card destroyed. Usable once per match.'},
     ] },
   { id:'triunedesire', name:'Triune Desire', role:'The Forbidden Union — Boss, Triple Triad Sisters IV',
     top:10, right:10, bottom:10, left:10,
@@ -2069,28 +2050,28 @@ const FOREST_FOES = [
   // Desire above (both explicitly made playable on request). Trivial to
   // duplicate into HEROES later if the user wants them playable too.
   { id:'kaeldryx', name:'Kaeldryx', role:'Legendary Card — The Last Dragon Hunter',
-    top:10, right:10, bottom:9, left:9,
+    top:10, right:9, bottom:9, left:10,
     hue:'linear-gradient(160deg,#241005,#0d0b18 60%)', accent:'#c9a227', icon:'⚔️',
-    active:{ vsTagBonus:{tag:'isDragon', amount:4}, scaleBreaker:true, onWinPowerThresholdDestroy:10, weakVsElement:{element:'magic', amount:3} },
+    active:{ vsTagBonus:{tag:'isDragon', amount:2}, onWinCappedBoost:{amount:1, max:Infinity}, onWinDestroyIfLoserWeak:{maxTotal:3, noRevive:true}, weakVsElement:{element:'magic', amount:3} },
     special:{ name:'Dragonslayer', cost:3, once:true, targets:'aoe' },
     skills: [
-      {name:'Dragon Hunter (Passive)', desc:'Kaeldryx gets +4 Power whenever he faces a Dragon-type card (Ancient Wyrmking, Three Head Dragon).'},
-      {name:"Hunter's Focus", desc:"When Kaeldryx is placed, a random enemy card is chosen — it can't gain any Power bonuses this round. (Source text lets you choose the target; simplified to random, same as every other on-place 'choose 1 enemy' card above.)"},
-      {name:'Scalebreaker (Passive)', desc:'Kaeldryx gets +1 Power in any battle where the opposing side is 8 Power or higher.'},
-      {name:'Execution', desc:'Whenever Kaeldryx wins a round with 10 or higher effective Power, the losing card is destroyed outright instead of just flipped (respects destroyImmune).'},
-      {name:'Special Attack: Dragonslayer', desc:"Costs 3 wins. Destroys every Dragon-type card on the board — allied or enemy alike — then every remaining enemy card gets -3 Power this round."},
+      {name:'Dragon Hunter (Passive)', desc:'Kaeldryx gains +2 Power against Dragon cards.'},
+      {name:"Hunter's Focus (Passive)", desc:'Kaeldryx gains +1 Power on all sides after each round he wins.'},
+      {name:'Scalebreaker (Passive)', desc:"When Kaeldryx is placed, a random enemy card's Power is permanently reduced by 2 (does not destroy)."},
+      {name:'Execution (Passive)', desc:'Whenever Kaeldryx wins a round against a card with 3 or lower total Power, that card is destroyed outright instead of just flipped (cannot be revived).'},
+      {name:'Special Attack: Dragonslayer', desc:'Costs 3 wins. Destroys every Dragon-type card on the board — allied or enemy alike — and grants an extra turn.'},
     ] },
   { id:'nexzoth', name:'Nexzoth', role:'Mythic Card — The World Eater',
     top:10, right:10, bottom:10, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#a568f2', icon:'🌀',
-    active:{ debuffImmune:true, onWinLineDestroy:true, weakVsElement:{element:'light', amount:4} },
+    active:{ auraDebuffAdjacentEnemies:1, onWinDestroyLoserAlways:true, onRoundStartDebuffEnemies:1, buffOnEnemyDestroyed:true, weakVsElement:{element:'light', amount:4} },
     special:{ name:'The Ending', cost:3, once:true, targets:'aoe' },
     skills: [
-      {name:'Reality Consume', desc:'When Nexzoth is placed, a random enemy card is chosen — it loses -3 Power this round.'},
-      {name:'World Shatter', desc:'The first time Nexzoth wins a round, every enemy card further along that same line is destroyed outright and removed from the board. Once per match. (Source text has no such cap — added deliberately: paired with his permanent debuffImmune, an uncapped version snowballs with no counterplay. See PROJECT.md.)'},
-      {name:'Endless Void (Passive)', desc:"Nexzoth's Power can never be lowered by an opponent's card skills or Special Attacks. (\"Can't be moved by enemy cards\" is flavor only — no card in the engine can ever move another card's position.)"},
-      {name:'Omnivore', desc:"Once per match, Nexzoth can copy any ability from an enemy card. (Flavor only — abilities are bespoke per-card handlers, not composable data; a real 'copy any ability' system would need either a full ability-reflection layer or hardcoding every possible target, disproportionate for one skill line.)"},
-      {name:'Special Attack: The Ending', desc:'Costs 3 wins. Destroys every other card on the board — allied and enemy alike — leaving only Nexzoth behind. Usable once per match.'},
+      {name:'Reality Consume (Passive)', desc:'All adjacent enemy cards have -1 Power.'},
+      {name:'World Shatter (Passive)', desc:'Whenever Nexzoth wins a round, the target card is destroyed outright instead of captured — it cannot be revived.'},
+      {name:'Endless Void (Passive)', desc:'At the start of each round, all enemy cards lose 1 Power.'},
+      {name:'Devourer (Passive)', desc:'Whenever an enemy card is destroyed, by any effect, Nexzoth permanently gains +1 Power.'},
+      {name:'Special Attack: The Ending', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Usable once per match.'},
     ] },
   { id:'morvath', name:'Morvath', role:'Mythic Card — The Abyssal King', element:'water',
     top:9, right:9, bottom:10, left:10,
@@ -3262,7 +3243,7 @@ function adjacentEntries(cellIndex){
 // board outright (as opposed to a normal flip/capture). When the Graveyard
 // optional rule is on, the destroyed card is recorded in its owner's
 // Graveyard instead of simply vanishing.
-function destroyCard(index){
+function destroyCard(index, opts){
   const entry = state.board[index];
   if(!entry) return;
   // Zlaizer's Light of Forgiveness: "50% chance to place it in your
@@ -3270,8 +3251,12 @@ function destroyCard(index){
   // Graveyard rule. If the rule is already on, recording happens
   // unconditionally as normal; if it's off, Zlaizer still gives his OWN
   // side a coin-flip chance to record anyway (never the opponent's side).
+  // Nexzoth's World Shatter/The Ending are explicitly "cannot be revived"
+  // (unlike every other destroy effect, which is fine going to the
+  // Graveyard like normal) — opts.noRevive skips the recording entirely,
+  // even with the Graveyard rule on.
   const zlaizer = state.board.some(e => e && e.owner === entry.owner && e.card.active && e.card.active.chanceToGraveyardIfRuleOff);
-  if(state.rules.graveyard || (zlaizer && Math.random() < 0.5)){
+  if(!(opts && opts.noRevive) && (state.rules.graveyard || (zlaizer && Math.random() < 0.5))){
     state.graveyard[entry.owner].push(entry.card);
   }
   state.board[index] = null;
@@ -3417,6 +3402,12 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   if(a.onWinPowerThresholdDestroy && loserIndex != null && winnerVal != null && winnerVal >= a.onWinPowerThresholdDestroy){
     if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex);
   }
+  // Deathblade's Executioner: mirror of the hook above, but checks the
+  // LOSER's total power instead of the winner's effective power for that
+  // battle — "wins against a 6-or-lower card" rather than "wins with 10+".
+  if(a.onWinDestroyIfLoserWeak && loserIndex != null && totalPower(loserEntry) <= a.onWinDestroyIfLoserWeak.maxTotal){
+    if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex, { noRevive: !!a.onWinDestroyIfLoserWeak.noRevive });
+  }
   // Nexzoth's World Shatter / Morvath's Abyssal Grasp: "destroy every card
   // further along the line the just-won battle happened on" — read as the
   // same enemiesInDirection() line-scan every directional ultimate already
@@ -3442,6 +3433,14 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
     const edgeToDir = { top:'up', bottom:'down', left:'left', right:'right' };
     enemiesInDirection(winnerIndex, edgeToDir[myEdge], winnerEntry.owner).forEach(p => destroyCard(p.index));
     winnerEntry.onWinLineDestroyUsed = true;
+  }
+  // Nexzoth's World Shatter, simplified per the approved art: no longer a
+  // line-AOE (that stays exclusive to Morvath's Abyssal Grasp via
+  // onWinLineDestroy above) — every win outright destroys the direct
+  // target instead of capturing it, uncapped, and skips the Graveyard
+  // (noRevive) per the art's explicit "cannot be revived".
+  if(a.onWinDestroyLoserAlways && loserIndex != null && !isDestroyImmune(loserEntry)){
+    destroyCard(loserIndex, { noRevive: true });
   }
   // Vorgrath's Crushing Weight: "-1 Power to all opponent's cards next
   // round" — approximated as an immediate one-round debuff to every enemy
@@ -3523,6 +3522,14 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // as Ifrit's onCaptureBonus (already shipped, permanent, uncapped).
   if(a.onWinDebuffLoserPermanent && loserIndex != null){
     SpecialVerbs.debuff(loserEntry, a.onWinDebuffLoserPermanent);
+  }
+  // Vaelira's Crimson Surge: "+1 Power all sides per win, capped at 3
+  // stacks" -- same capped-stacking idea as Omega Weapon's
+  // buffOnEnemyDestroyedCapped, but keyed off ordinary wins instead of
+  // enemy destroys, so it needs its own counter on the winner's entry.
+  if(a.onWinCappedBoost && (winnerEntry.onWinCappedBoostCount||0) < a.onWinCappedBoost.max){
+    SpecialVerbs.attackBoost(winnerEntry, a.onWinCappedBoost.amount);
+    winnerEntry.onWinCappedBoostCount = (winnerEntry.onWinCappedBoostCount||0) + 1;
   }
   // Chocobo King's Feather Storm: "a RANDOM adjacent enemy card" (not
   // necessarily the loser of THIS battle) gets -N Power this round —
@@ -3882,6 +3889,25 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     });
     if(allyNeighbors >= ab.minCount) v += ab.amount;
   }
+  // Nexzoth's Reality Consume, rebuilt per the approved art into a
+  // permanent adjacent-enemy aura (was an on-place one-time debuff) --
+  // the mirror image of adjacentEnemiesBoost/adjacentAlliesBoost above,
+  // but debuffing the NEIGHBOR instead of buffing the card carrying the
+  // flag. Applies on both attack and defense (no "this round"/"her next
+  // attack" framing in the art's text), always live off the board so it
+  // needs no separate on-place handler or entry-side status flag.
+  if(cellIndex != null){
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner && n.card.active && n.card.active.auraDebuffAdjacentEnemies && !(card.active && card.active.debuffImmune)){
+        v -= n.card.active.auraDebuffAdjacentEnemies;
+      }
+    });
+  }
   // Medusa's Serpent Queen: +N Power per Petrified enemy on the board,
   // capped — a live board-count check, same "no state needed" shape as
   // boardLeadBonus/pairPresence above.
@@ -3980,14 +4006,6 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   // stat comparison.
   if(card.active && card.active.vsTagBonus && opponentCard && opponentCard[card.active.vsTagBonus.tag]){
     v += card.active.vsTagBonus.amount;
-  }
-  // Kaeldryx's Scalebreaker: "takes 1 less damage from cards with 8+ Power" —
-  // read as +1 Power on his own side whenever the opponent's FACING side
-  // (the edge actually being compared against, i.e. the opposite of this
-  // card's own edgeKey) is 8 or higher.
-  if(card.active && card.active.scaleBreaker && opponentCard){
-    const opposite = { top:'bottom', bottom:'top', left:'right', right:'left' };
-    if(opponentCard[opposite[edgeKey]] >= 8) v += 1;
   }
   // The bosses' "Weakness" clauses (-N Power vs a specific-element card): a
   // plain elemental vulnerability printed on the card itself, not an
@@ -4118,22 +4136,28 @@ const ON_PLACE_HANDLERS = {
     const target = enemies[Math.floor(Math.random()*enemies.length)];
     target.specialLockedUntilTurnCount = state.turnCount + 4;
   },
-  // Kaeldryx's Hunter's Focus: "choose 1 enemy card — it can't get Power
-  // bonuses this round" — random target, same simplification as every other
-  // on-place "choose 1 enemy/direction" ability above with no picker UI.
-  // See SpecialVerbs.attackBoost/directionalBoost for the actual guard.
+  // Seraphine's Celestial Mark: marks a random enemy on placement.
+  // entry.seraphineMarked is a plain runtime flag (same shape as
+  // entry.vaeliraBurned/entry.frostmarked) — the actual +2 bonus is read via
+  // two small, hardcoded-by-id checks in battleNeighbors and simulateFlips
+  // (fullEffectiveValue has no access to the live opponent entry, only its
+  // static card data, so it can't read this flag itself — see the comment
+  // at each check site).
+  seraphine(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    target.seraphineMarked = true;
+  },
+  // Kaeldryx's Scalebreaker, rebuilt per the approved art (was "choose 1
+  // enemy card — it can't get Power bonuses this round", now a permanent
+  // -2 debuff instead) — random target, same simplification as every other
+  // on-place "choose 1 enemy" ability above with no picker UI.
   kaeldryx(entry, owner){
     const enemies = state.board.filter(e => e && e.owner !== owner);
     if(enemies.length === 0) return;
     const target = enemies[Math.floor(Math.random()*enemies.length)];
-    target.buffLockedUntilTurnCount = state.turnCount + 4;
-  },
-  // Nexzoth's Reality Consume.
-  nexzoth(entry, owner){
-    const enemies = state.board.filter(e => e && e.owner !== owner);
-    if(enemies.length === 0) return;
-    const target = enemies[Math.floor(Math.random()*enemies.length)];
-    SpecialVerbs.debuffThisRound(target, 3);
+    SpecialVerbs.debuff(target, 2);
   },
   // Morvath's Tidal Crush.
   morvath(entry, owner){
@@ -4579,6 +4603,21 @@ function sweepExpiredRoundEffects(){
         entry.turnsStanding += 1;
       }
     }
+    // Nexzoth's Endless Void, rebuilt per the approved art into "at the
+    // start of each round, all enemy cards lose 1 Power" (was a
+    // self-protection debuffImmune) — temporary and non-stacking (reuses
+    // debuffThisRound's own tempEffects expiry, the same "this round"
+    // window every other such effect in the game uses), applied to
+    // whichever enemies are on the board at this exact turn switch. A
+    // card placed later in the same round isn't retroactively hit.
+    // Deliberately non-stacking rather than permanent: paired with his
+    // own Devourer/World Shatter, an uncapped permanent version would
+    // snowball with no counterplay, the same concern already on record
+    // for Nexzoth/Morvath's onWinLineDestroy cap above.
+    if(entry.card.active && entry.card.active.onRoundStartDebuffEnemies){
+      const amount = entry.card.active.onRoundStartDebuffEnemies;
+      state.board.forEach(e => { if(e && e.owner !== entry.owner) SpecialVerbs.debuffThisRound(e, amount); });
+    }
     if(!entry.tempEffects || entry.tempEffects.length === 0) return;
     entry.tempEffects = entry.tempEffects.filter(effect => {
       if(effect.expiresAtTurnCount > state.turnCount) return true;
@@ -4801,18 +4840,25 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s Hellfire engulfs ${targetEntry.card.name}!`;
   },
-  bahamut({ srcEntry, targetEntry, owner }){
-    // Megaflare explicitly overrides the enemy's defensive skills — no shield check.
-    const basePower = totalPower(srcEntry);
-    const targetPower = totalPower(targetEntry);
-    if(basePower + 3 <= targetPower){
-      return `${srcEntry.card.name}'s Megaflare dissipates harmlessly!`;
+  // Megaflare, rebuilt per the approved art: from a single-target attack
+  // into a full AOE destroy-all-enemies (same shape as Vaelira's Infernal
+  // Pact / Nexzoth's The Ending), destroyed cards cannot be revived, and
+  // Bahamut permanently gains +1 Power per card destroyed instead of a
+  // flat +1 on a win.
+  bahamut({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    let destroyed = 0;
+    state.board.forEach((e, i) => {
+      if(!e || e.owner === owner) return;
+      if(isDestroyImmune(e)) return;
+      destroyCard(i, { noRevive: true });
+      destroyed++;
+    });
+    if(destroyed === 0){
+      return `${name}'s Megaflare finds no enemies left to consume!`;
     }
-    targetEntry.owner = owner;
-    targetEntry.justFlipped = true;
-    checkSisterFlip(targetEntry);
-    SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${srcEntry.card.name}'s Megaflare overwhelms ${targetEntry.card.name}, defenses and all!`;
+    SpecialVerbs.attackBoost(srcEntry, destroyed);
+    return `${name}'s Megaflare annihilates ${destroyed} enem${destroyed>1?'ies':'y'}!`;
   },
   // Rebuilt to match the approved card art's generic wording ("+3 this
   // attack only, +1 all sides permanent on a win") instead of the original
@@ -4975,6 +5021,7 @@ const SPECIAL_HANDLERS = {
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
+    SpecialVerbs.debuff(targetEntry, 2);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Falling Stars — the strongest bolt lands on ${starSide} — claims ${targetEntry.card.name}!`;
   },
@@ -5156,6 +5203,23 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name} stops time and rewrites the only ending left — Eclipse claims ${targetEntry.card.name}!`;
   },
+  // Sarah's first-ever Ultimate, in the same total-power-threshold shape as
+  // Vayra's Eclipse and Ysara's Eternal Eclipse above (+3 temp boost, +1
+  // permanent all-sides on a win) rather than inventing a new pattern.
+  sarah({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Aion's Last Light fades before it can land — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Aion's Last Light!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls!`;
+  },
   ysara({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
@@ -5322,47 +5386,37 @@ const SPECIAL_HANDLERS = {
   // thematically a hunter who kills every dragon he finds, allied or not.
   // Only card.isDragon-tagged cards are hit (Ancient Wyrmking, Three Head
   // Dragon); everything else just takes the flat -3 Power.
+  // Dragonslayer, simplified per the approved art: drops the old "-3 Power
+  // this round to remaining enemies" clause, adds an unconditional extra
+  // turn, and the destroyed dragons can no longer be revived (noRevive).
   kaeldryx({ srcEntry, owner }){
     const name = srcEntry.card.name;
     const enemyOwner = owner === 'blue' ? 'red' : 'blue';
     const enemyProtected = protectedByInfiniteSeraph(enemyOwner);
-    let dragonsDestroyed = 0, weakened = 0;
+    let dragonsDestroyed = 0;
     state.board.forEach((e, i) => {
       if(!e || !e.card.isDragon) return;
       if(isDestroyImmune(e)) return;
       if(e.owner === enemyOwner && enemyProtected) return;
-      destroyCard(i);
+      destroyCard(i, { noRevive: true });
       dragonsDestroyed++;
     });
-    state.board.forEach(e => {
-      if(e && e.owner === enemyOwner){
-        SpecialVerbs.debuffThisRound(e, 3);
-        weakened++;
-      }
-    });
-    if(dragonsDestroyed === 0 && weakened === 0){
-      return `${name}'s Dragonslayer finds no dragons or foes left to strike!`;
-    }
-    const parts = [];
-    if(dragonsDestroyed > 0) parts.push(`slays ${dragonsDestroyed} dragon${dragonsDestroyed>1?'s':''}`);
-    if(weakened > 0) parts.push(`weakens ${weakened} more`);
-    return `${name}'s Dragonslayer ${parts.join(' and ')}!`;
+    SpecialVerbs.extraTurn(owner);
+    return dragonsDestroyed > 0
+      ? `${name}'s Dragonslayer slays ${dragonsDestroyed} dragon${dragonsDestroyed>1?'s':''}!`
+      : `${name}'s Dragonslayer finds no dragons left to slay!`;
   },
-  // The Ending: "destroy all cards on the board" is read as everything
-  // EXCEPT Nexzoth's own cell — spending 3 Wins to also delete the card
-  // that just earned them would be a strange, anti-fun reading of "The
-  // World Eater consumes everything", so he's the one thing left standing.
-  // Hits both sides indiscriminately (unlike Vaelira/Nyxara's enemy-only
-  // destroy-alls), so protectedByInfiniteSeraph's "blocks the OPPONENT's
-  // effects" framing doesn't cleanly apply to a caster hitting its own side
-  // too — only per-card destroyImmune is honored here.
+  // The Ending, simplified per the approved art: enemy-only now (matching
+  // Vaelira/Nyxara's own destroy-alls), no longer hits allies too, and
+  // skips the Graveyard entirely (noRevive) per the art's explicit
+  // "cannot be revived".
   nexzoth({ srcEntry, sourceIndex, owner }){
     const name = srcEntry.card.name;
     let destroyed = 0;
     state.board.forEach((e, i) => {
-      if(!e || i === sourceIndex) return;
+      if(!e || i === sourceIndex || e.owner === owner) return;
       if(isDestroyImmune(e)) return;
-      destroyCard(i);
+      destroyCard(i, { noRevive: true });
       destroyed++;
     });
     return destroyed > 0
@@ -5922,8 +5976,16 @@ function battleNeighbors(index, owner, result){
     target.attackFlash = true; // purely visual — every real battle gets a slash, win or lose
     target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
 
-    const placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
+    let placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     const targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
+    // Seraphine's Celestial Mark: +2 Power when she attacks the SPECIFIC
+    // enemy entry her on-place mark landed on. Hardcoded by id (same shape
+    // as Triune Desire's Divine Temptation) rather than a generic active
+    // flag, because fullEffectiveValue only ever receives the opponent's
+    // static card data (target.card above), never the live entry carrying
+    // runtime flags like seraphineMarked — this is the one place in the
+    // real battle-resolution path that actually has the live target entry.
+    if(placed.id === 'seraphine' && target.seraphineMarked) placedVal += 2;
     // Omega Weapon's Anti-Matter Cannon / Yojimbo's Kozuka: fullEffectiveValue
     // above already read these as "not yet used" and folded the bonus into
     // placedVal if eligible — mark them used now that this is a real attack
@@ -6282,8 +6344,11 @@ function simulateFlips(index, card, owner){
     const ni = r*3+c;
     const target = state.board[ni];
     if(!target || target.owner === owner) return;
-    const myVal = fullEffectiveValue(card, n.myEdge, target.card, index, owner, 'attack');
+    let myVal = fullEffectiveValue(card, n.myEdge, target.card, index, owner, 'attack');
     const theirVal = fullEffectiveValue(target.card, n.theirEdge, card, ni, target.owner, 'defense');
+    // Seraphine's Celestial Mark, mirrored here so the AI's own move
+    // evaluation accounts for it too — same hardcoded check as battleNeighbors.
+    if(card.id === 'seraphine' && target.seraphineMarked) myVal += 2;
     if(myVal > theirVal){
       score += isShielded(target, ni) ? 0.25 : 1;
     }

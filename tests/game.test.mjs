@@ -801,115 +801,710 @@ test('Graveyard optional rule: every destroy-capable Special routes through dest
   await page.close();
 });
 
-test('Kaeldryx: Dragon Hunter/Scalebreaker passives, Hunter\'s Focus buff-lock, Execution, Dragonslayer ultimate', async () => {
+test('Kaeldryx: reworked per approved art — Dragon Hunter +2, uncapped Hunter\'s Focus, on-place Scalebreaker debuff, weak-loser Execution, Dragonslayer extra turn', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
     const kaeldryx = findCardById('kaeldryx');
+    out.statsMatchArt = kaeldryx.top === 10 && kaeldryx.right === 9 && kaeldryx.bottom === 9 && kaeldryx.left === 10;
 
     state.board = Array(9).fill(null);
     state.playerHand = [1,2]; state.enemyHand = [1,2];
-    // A synthetic dragon with a facing side below 8, so Scalebreaker (+1 vs
-    // 8+ facing) doesn't also kick in here and confound the Dragon Hunter
-    // reading — Scalebreaker gets its own isolated assertions below.
     const weakDragon = { id:'weak-dragon', name:'WeakDragon', top:1,right:1,bottom:1,left:1, isDragon:true };
     out.dragonHunterBonus = fullEffectiveValue(kaeldryx, 'top', weakDragon, 0, 'blue', 'attack') - kaeldryx.top;
-    const strongFacing = { id:'s8', name:'S8', top:8,right:1,bottom:1,left:1 };
-    const weakFacing = { id:'s7', name:'S7', top:7,right:1,bottom:1,left:1 };
-    out.scaleBreakerAt8 = fullEffectiveValue(kaeldryx, 'bottom', strongFacing, 0, 'blue', 'attack') - kaeldryx.bottom;
-    out.scaleBreakerBelow8 = fullEffectiveValue(kaeldryx, 'bottom', weakFacing, 0, 'blue', 'attack') - kaeldryx.bottom;
 
-    // Hunter's Focus (called directly, isolated from battle resolution)
+    // Hunter's Focus: +1 Power all sides after EVERY win, uncapped (no max).
     state.board = Array(9).fill(null);
     const hfSrc = freshEntry(kaeldryx, 'blue');
-    const hfTarget = freshEntry(findCardById('ogre'), 'red');
-    state.board[4] = hfSrc; state.board[1] = hfTarget;
-    state.turnCount = 50;
-    ON_PLACE_HANDLERS.kaeldryx(hfSrc, 'blue', 4);
-    out.buffLockedAfterPlace = hfTarget.buffLockedUntilTurnCount > state.turnCount;
-    SpecialVerbs.attackBoost(hfTarget, 5);
-    out.buffBlockedWhileLocked = hfTarget.captureBonus === 0;
-    state.turnCount += 4;
-    SpecialVerbs.attackBoost(hfTarget, 5);
-    out.buffWorksAfterLockExpires = hfTarget.captureBonus === 5;
+    state.board[4] = hfSrc;
+    for(let i=0;i<5;i++){
+      state.board[1] = freshEntry({ id:'hf-weak'+i, name:'HFWeak'+i, top:1,right:1,bottom:1,left:1 }, 'red');
+      resolveFlips(4, 'blue');
+    }
+    out.huntersFocusUncappedAfterFiveWins = hfSrc.captureBonus === 5;
 
-    // Execution: a 10+ power win destroys the loser outright
+    // Scalebreaker: on-place, permanently debuffs a random enemy by 2 (does not destroy).
     state.board = Array(9).fill(null);
-    state.playerHand = [1,2]; state.enemyHand = [1,2];
-    state.board[4] = freshEntry(kaeldryx, 'blue');
-    state.board[1] = freshEntry({ id:'exec-weak', name:'ExecWeak', top:1,right:1,bottom:1,left:1 }, 'red');
-    resolveFlips(4, 'blue');
-    out.executionDestroyedLoser = state.board[1] === null;
+    const placedSrc = freshEntry(kaeldryx, 'blue');
+    state.board[4] = placedSrc;
+    const onlyEnemy = freshEntry({ id:'sb-target', name:'SBTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = onlyEnemy;
+    ON_PLACE_HANDLERS.kaeldryx(placedSrc, 'blue');
+    out.scalebreakerDebuffed = onlyEnemy.captureBonus === -2;
+    out.scalebreakerDidNotDestroy = state.board[1] !== null;
 
-    // Dragonslayer: destroys ALL dragons (both sides, respecting destroyImmune), debuffs remaining enemies
+    // Execution: winning against a card with total power <= 3 destroys it
+    // outright, and it cannot be revived (skips the Graveyard).
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(kaeldryx, 'blue');
+    state.board[1] = freshEntry({ id:'exec-weak', name:'ExecWeak', top:1,right:1,bottom:1,left:0 }, 'red'); // total 3
+    resolveFlips(4, 'blue');
+    out.executionDestroyedWeakLoser = state.board[1] === null;
+    out.executionSkippedGraveyard = state.graveyard.red.length === 0;
+
+    // A loser with total power > 3 is captured normally, not destroyed.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(kaeldryx, 'blue');
+    state.board[1] = freshEntry({ id:'exec-strong', name:'ExecStrong', top:5,right:5,bottom:5,left:5 }, 'red');
+    resolveFlips(4, 'blue');
+    out.strongLoserCapturedNotDestroyed = state.board[1] !== null && state.board[1].owner === 'blue';
+
+    // Dragonslayer: destroys ALL dragons (both sides, respecting
+    // destroyImmune, no revive), no longer debuffs remaining enemies, and
+    // always grants an extra turn.
     state.board = Array(9).fill(null);
     const ksrc = freshEntry(kaeldryx, 'blue');
     const allyDragon = freshEntry(findCardById('dragon'), 'blue');
     const immuneDragon = freshEntry(findCardById('threeheaddragon'), 'red');
     const plainEnemy = freshEntry(findCardById('ogre'), 'red');
     state.board[0] = ksrc; state.board[1] = allyDragon; state.board[2] = immuneDragon; state.board[3] = plainEnemy;
+    state.extraTurnPending = null;
     SPECIAL_HANDLERS.kaeldryx({ srcEntry: ksrc, owner: 'blue' });
     out.dragonslayerKilledAllyDragon = state.board[1] === null;
     out.dragonslayerRespectsDestroyImmune = state.board[2] !== null;
-    out.dragonslayerDebuffedRemainingEnemy = plainEnemy.captureBonus === -3;
+    out.dragonslayerNoLongerDebuffsEnemy = plainEnemy.captureBonus === 0;
+    out.dragonslayerGrantsExtraTurn = state.extraTurnPending === 'blue';
 
     return out;
   })()`);
-  assert.equal(result.dragonHunterBonus, 4, 'Dragon Hunter: +4 vs an isDragon card');
-  assert.equal(result.scaleBreakerAt8, 1, 'Scalebreaker: +1 vs an 8+ facing side');
-  assert.equal(result.scaleBreakerBelow8, 0, 'Scalebreaker: no bonus below 8');
-  assert.equal(result.buffLockedAfterPlace, true);
-  assert.equal(result.buffBlockedWhileLocked, true, "Hunter's Focus blocks positive bonuses while locked");
-  assert.equal(result.buffWorksAfterLockExpires, true);
-  assert.equal(result.executionDestroyedLoser, true);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 10/9/9/10 (top/right/bottom/left)');
+  assert.equal(result.dragonHunterBonus, 2, 'Dragon Hunter reduced from +4 to +2 per the approved art');
+  assert.equal(result.huntersFocusUncappedAfterFiveWins, true, "Hunter's Focus is now an uncapped +1-per-win self buff, not a buff-lock");
+  assert.equal(result.scalebreakerDebuffed, true, 'Scalebreaker is now an on-place permanent -2 debuff, not a facing-side bonus');
+  assert.equal(result.scalebreakerDidNotDestroy, true);
+  assert.equal(result.executionDestroyedWeakLoser, true, "Execution now checks the LOSER's total power (<=3), not the winner's effective power");
+  assert.equal(result.executionSkippedGraveyard, true);
+  assert.equal(result.strongLoserCapturedNotDestroyed, true);
   assert.equal(result.dragonslayerKilledAllyDragon, true, 'Dragonslayer hits allied dragons too');
   assert.equal(result.dragonslayerRespectsDestroyImmune, true);
-  assert.equal(result.dragonslayerDebuffedRemainingEnemy, true);
+  assert.equal(result.dragonslayerNoLongerDebuffsEnemy, true, 'the old -3-to-remaining-enemies clause was dropped per the approved art');
+  assert.equal(result.dragonslayerGrantsExtraTurn, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
 
-test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on win, The Ending spares only itself', async () => {
+test('Bahamut: Astral Aegis shield and Celestial Sovereign added, Dragon King\'s Majesty text synced, Megaflare rebuilt into an AOE destroy-all', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const bahamut = findCardById('bahamut');
+    out.statsUnchanged = bahamut.top === 10 && bahamut.right === 9 && bahamut.bottom === 9 && bahamut.left === 10;
+    out.hasDragonKingsMajesty = bahamut.active.onCaptureBonus === 1;
+    out.hasAstralAegis = bahamut.active.shield === true;
+    out.hasCelestialSovereign = bahamut.active.adjacentAlliesBoost && bahamut.active.adjacentAlliesBoost.minCount === 2 && bahamut.active.adjacentAlliesBoost.amount === 1;
+    out.skillCount = bahamut.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Astral Aegis: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    const shieldedDefender = freshEntry(bahamut, 'blue'); // top:10
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'bah-attacker', name:'BahAttacker', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Celestial Sovereign: +1 all sides while 2+ allies are adjacent.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(bahamut, 'blue');
+    state.board[1] = freshEntry({ id:'ally1', name:'Ally1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[3] = freshEntry({ id:'ally2', name:'Ally2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.sovereignBonusWithTwoAllies = fullEffectiveValue(bahamut, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - bahamut.top;
+    state.board[3] = null;
+    out.noSovereignBonusWithOneAlly = fullEffectiveValue(bahamut, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - bahamut.top;
+
+    // Megaflare, rebuilt into an AOE: destroys every enemy (no revive),
+    // spares allies, respects destroyImmune, and grants +1 Power per card destroyed.
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(bahamut, 'blue');
+    const ally = freshEntry({ id:'mf-ally', name:'MFAlly', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const enemy1 = freshEntry({ id:'mf-enemy1', name:'MFEnemy1', top:1,right:1,bottom:1,left:1 }, 'red');
+    const immuneEnemy = freshEntry(findCardById('threeheaddragon'), 'red');
+    state.board[4] = wsrc; state.board[0] = ally; state.board[1] = enemy1; state.board[2] = immuneEnemy;
+    SPECIAL_HANDLERS.bahamut({ srcEntry: wsrc, owner: 'blue' });
+    out.megaflareSparedAlly = state.board[0] !== null;
+    out.megaflareDestroyedEnemy = state.board[1] === null;
+    out.megaflareRespectsDestroyImmune = state.board[2] !== null;
+    out.megaflareSkippedGraveyard = state.graveyard.red.length === 0;
+    out.megaflareGainedOnePerDestroyed = wsrc.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasDragonKingsMajesty, true);
+  assert.equal(result.hasAstralAegis, true);
+  assert.equal(result.hasCelestialSovereign, true);
+  assert.equal(result.skillCount, 4, "the printed card carries Dragon King's Majesty, Astral Aegis, Celestial Sovereign, and Megaflare");
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.sovereignBonusWithTwoAllies, 1);
+  assert.equal(result.noSovereignBonusWithOneAlly, 0);
+  assert.equal(result.megaflareSparedAlly, true);
+  assert.equal(result.megaflareDestroyedEnemy, true);
+  assert.equal(result.megaflareRespectsDestroyImmune, true);
+  assert.equal(result.megaflareSkippedGraveyard, true);
+  assert.equal(result.megaflareGainedOnePerDestroyed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Deathblade: card data trimmed to Night\'s Veil/Executioner/Shadow Assault, Executioner destroys a weak loser, Shadow Assault swap unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const deathblade = findCardById('deathblade');
+    out.statsUnchanged = deathblade.top === 9 && deathblade.right === 8 && deathblade.bottom === 6 && deathblade.left === 7 && deathblade.element === 'earth';
+    out.hasShield = deathblade.active.shield === true;
+    out.hasExecutioner = deathblade.active.onWinDestroyIfLoserWeak && deathblade.active.onWinDestroyIfLoserWeak.maxTotal === 6;
+    out.skillCount = deathblade.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Executioner: winning against a card with total power <= 6 destroys it
+    // outright (board cell becomes null, no capture).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(deathblade, 'blue'); // top:9
+    state.board[1] = freshEntry({ id:'db-weak', name:'DBWeak', top:1,right:1,bottom:1,left:1 }, 'red'); // total 4
+    resolveFlips(4, 'blue');
+    out.executionerDestroyedWeakLoser = state.board[1] === null;
+
+    // A loser with total power > 6 is captured normally, not destroyed.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(deathblade, 'blue');
+    state.board[1] = freshEntry({ id:'db-strong', name:'DBStrong', top:5,right:5,bottom:5,left:5 }, 'red'); // total 20
+    resolveFlips(4, 'blue');
+    out.strongLoserCapturedNotDestroyed = state.board[1] !== null && state.board[1].owner === 'blue';
+
+    // Shadow Assault: unchanged position-swap + permanent -2 all sides on the target.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(deathblade, 'blue');
+    const target = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = src; state.board[1] = target;
+    SPECIAL_HANDLERS.deathblade({ srcEntry: src, sourceIndex: 4, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.swappedPositions = state.board[1] === src && state.board[4] === target;
+    out.targetDebuffed = state.board[4].captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasShield, true);
+  assert.equal(result.hasExecutioner, true, 'Executioner is now backed by active.onWinDestroyIfLoserWeak:{maxTotal:6}');
+  assert.equal(result.skillCount, 3, 'the printed card only carries Night\'s Veil, Executioner, and Shadow Assault');
+  assert.equal(result.executionerDestroyedWeakLoser, true);
+  assert.equal(result.strongLoserCapturedNotDestroyed, true);
+  assert.equal(result.swappedPositions, true);
+  assert.equal(result.targetDebuffed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Lyrith: card trimmed to Venomous Fangs/Silent Strike/Serpent\'s Wrath, both passives reuse existing primitives, Ultimate unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const lyrith = findCardById('lyrith');
+    out.statsUnchanged = lyrith.top === 9 && lyrith.right === 9 && lyrith.bottom === 6 && lyrith.left === 8 && lyrith.element === 'water';
+    out.hasVenomousFangs = lyrith.active.onWinDebuffLoserPermanent === 1;
+    out.hasSilentStrike = lyrith.active.vsStrongerTotalPowerBoost && lyrith.active.vsStrongerTotalPowerBoost.amount === 2;
+    out.skillCount = lyrith.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Venomous Fangs: winning a battle permanently debuffs the loser -1 all sides.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(lyrith, 'blue'); // top:9
+    const loser = freshEntry({ id:'lyr-weak', name:'LyrWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.venomousFangsDebuffedLoser = loser.captureBonus === -1;
+
+    // Silent Strike: +2 Power on the attack when the enemy's total Power is higher.
+    const weakerFoe = { id:'lyr-weaker', name:'Weaker', top:1,right:1,bottom:1,left:1 };
+    const strongerFoe = { id:'lyr-stronger', name:'Stronger', top:9,right:9,bottom:9,left:9 };
+    out.noBonusVsWeaker = fullEffectiveValue(lyrith, 'top', weakerFoe, 0, 'blue', 'attack') - lyrith.top;
+    out.bonusVsStronger = fullEffectiveValue(lyrith, 'top', strongerFoe, 0, 'blue', 'attack') - lyrith.top;
+
+    // Serpent's Wrath (unchanged): non-crit win flips the target and grants
+    // permanent +4 Power all sides; Math.random forced high to avoid the
+    // 25% crit-destroy branch so this assertion is deterministic.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(lyrith, 'blue');
+    const target = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = src; state.board[1] = target;
+    const realRandom = Math.random;
+    Math.random = () => 0.99;
+    SPECIAL_HANDLERS.lyrith({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.wrathFlippedTarget = target.owner === 'blue';
+    out.wrathPermanentBoost = src.captureBonus === 4;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasVenomousFangs, true, 'Venomous Fangs reuses active.onWinDebuffLoserPermanent, same as Yojimbo/Torn');
+  assert.equal(result.hasSilentStrike, true, 'Silent Strike reuses active.vsStrongerTotalPowerBoost, same as Yojimbo/Ysara/Sarah');
+  assert.equal(result.skillCount, 3, 'the printed card only carries Venomous Fangs, Silent Strike, and Serpent\'s Wrath');
+  assert.equal(result.venomousFangsDebuffedLoser, true);
+  assert.equal(result.noBonusVsWeaker, 0);
+  assert.equal(result.bonusVsStronger, 2);
+  assert.equal(result.wrathFlippedTarget, true);
+  assert.equal(result.wrathPermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Aurelia: card trimmed to Radiant Guardian/Luminous Strike/Dawn\'s Reckoning, stats matched to approved art, Ultimate unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const aurelia = findCardById('aurelia');
+    out.statsMatchArt = aurelia.top === 9 && aurelia.right === 6 && aurelia.bottom === 8 && aurelia.left === 7 && aurelia.element === 'wind';
+    out.hasRadiantGuardian = aurelia.active.shield === true;
+    out.hasLuminousStrike = aurelia.active.onWinDirectionalBoost === 2;
+    out.skillCount = aurelia.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Radiant Guardian: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    const shieldedDefender = freshEntry(aurelia, 'blue'); // bottom:8
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'aur-attacker', name:'AurAttacker', top:1,right:1,bottom:20,left:1 }, 'red'); // bottom faces the defender above it
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+    out.shieldConsumed = state.board[4].shieldUsed === true;
+
+    // Luminous Strike: winning an attack grants permanent +2 Power on the
+    // attacking side only, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(aurelia, 'blue'); // top:9
+    src.shieldUsed = true; // isolate from Radiant Guardian, same trick as Darien's test
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'aur-weak', name:'AurWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.luminousStrikeBoostedAttackSide = src.sideBonus && src.sideBonus.top === 2;
+    out.luminousStrikeOnlyAttackSide = src.sideBonus && (src.sideBonus.right||0) === 0 && (src.sideBonus.bottom||0) === 0 && (src.sideBonus.left||0) === 0;
+
+    // Dawn's Reckoning (unchanged): non-crit win flips the target and grants
+    // permanent +4 Power all sides; Math.random forced high to avoid the
+    // 25% crit-wipe branch so this assertion is deterministic.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(aurelia, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    const realRandom = Math.random;
+    Math.random = () => 0.99;
+    SPECIAL_HANDLERS.aurelia({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.reckoningFlippedTarget = wtarget.owner === 'blue';
+    out.reckoningPermanentBoost = wsrc.captureBonus === 4;
+
+    // Dawn's Reckoning crit branch: target is still flipped but gets -20 instead.
+    state.board = Array(9).fill(null);
+    const csrc = freshEntry(aurelia, 'blue');
+    const ctarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = csrc; state.board[1] = ctarget;
+    Math.random = () => 0.01;
+    SPECIAL_HANDLERS.aurelia({ srcEntry: csrc, targetEntry: ctarget, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.critStillFlipsTarget = ctarget.owner === 'blue';
+    out.critWipesInsteadOfBoost = ctarget.captureBonus === -20;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 9/6/8/7 (top/right/bottom/left)');
+  assert.equal(result.hasRadiantGuardian, true);
+  assert.equal(result.hasLuminousStrike, true);
+  assert.equal(result.skillCount, 3, 'the printed card only carries Radiant Guardian, Luminous Strike, and Dawn\'s Reckoning');
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.shieldConsumed, true);
+  assert.equal(result.luminousStrikeBoostedAttackSide, true);
+  assert.equal(result.luminousStrikeOnlyAttackSide, true);
+  assert.equal(result.reckoningFlippedTarget, true);
+  assert.equal(result.reckoningPermanentBoost, true);
+  assert.equal(result.critStillFlipsTarget, true, 'the crit branch still flips the target card');
+  assert.equal(result.critWipesInsteadOfBoost, true, 'the crit branch wipes the target to -20 instead of the attacker getting +4');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Twisted Gipsy: card trimmed to The House Always Wins/Loaded Deck/House of Shadows, stats matched to approved art, Ultimate text synced to real behavior', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const gipsy = findCardById('twistedgipsy');
+    out.statsMatchArt = gipsy.top === 9 && gipsy.right === 7 && gipsy.bottom === 9 && gipsy.left === 10 && gipsy.element === 'wind';
+    out.hasHouseAlwaysWins = gipsy.active.onWinDebuffLoserPermanent === 1 && gipsy.active.onCaptureBonus === 1;
+    out.hasLoadedDeck = gipsy.active.oncePerMatchAttackBoost && gipsy.active.oncePerMatchAttackBoost.amount === 3;
+    out.skillCount = gipsy.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // The House Always Wins: winning permanently steals 1 Power (loser -1, Gipsy +1).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(gipsy, 'blue'); // top:9
+    state.board[4] = src;
+    const loser = freshEntry({ id:'tg-weak', name:'TGWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = loser;
+    resolveFlips(4, 'blue');
+    out.loserPermanentlyDebuffed = loser.captureBonus === -1;
+    out.gipsyPermanentlyBoosted = src.captureBonus === 1;
+
+    // Loaded Deck: +3 Power on the next attack, once per match. The read
+    // needs a live board entry at cellIndex to check oncePerMatchAttackBoostUsed.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(gipsy, 'blue');
+    const weakFoe = { id:'tg-weaker', name:'Weaker', top:1,right:1,bottom:1,left:1 };
+    out.loadedDeckBoost = fullEffectiveValue(gipsy, 'top', weakFoe, 0, 'blue', 'attack') - gipsy.top;
+
+    // House of Shadows (unchanged code, synced UI text): steals 2 Power on
+    // win and grants a further permanent +1 to the attacker.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(gipsy, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.twistedgipsy({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.wrathFlippedTarget = wtarget.owner === 'blue';
+    out.wrathStoleTwoPower = wtarget.captureBonus === -2;
+    out.wrathGainedPermanentOne = wsrc.captureBonus === 3; // +2 stolen + 1 permanent
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 9/7/9/10 (top/right/bottom/left)');
+  assert.equal(result.hasHouseAlwaysWins, true, 'reuses onWinDebuffLoserPermanent + onCaptureBonus, same combination Yojimbo already has');
+  assert.equal(result.hasLoadedDeck, true, "reuses oncePerMatchAttackBoost, same as Yojimbo's Kozuka");
+  assert.equal(result.skillCount, 3, 'the printed card only carries The House Always Wins, Loaded Deck, and House of Shadows');
+  assert.equal(result.loserPermanentlyDebuffed, true);
+  assert.equal(result.gipsyPermanentlyBoosted, true);
+  assert.equal(result.loadedDeckBoost, 3);
+  assert.equal(result.wrathFlippedTarget, true);
+  assert.equal(result.wrathStoleTwoPower, true);
+  assert.equal(result.wrathGainedPermanentOne, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Astrael: element added, new Cosmic Ward shield, Starborn unchanged, Falling Stars now also debuffs the target', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const astrael = findCardById('astrael');
+    out.statsUnchanged = astrael.top === 8 && astrael.right === 8 && astrael.bottom === 8 && astrael.left === 8;
+    out.hasElement = astrael.element === 'magic';
+    out.hasStarborn = astrael.active.onPlaceBoost === 2;
+    out.hasCosmicWard = astrael.active.shield === true;
+    out.skillCount = astrael.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Starborn (unchanged): placing Astrael grants +2 Power on exactly one
+    // random side.
+    state.board = Array(9).fill(null);
+    state.playerHand = [astrael, {id:'filler1'}];
+    placeCard(4, 'astrael', 'blue');
+    const placed = state.board[4];
+    const sb = placed.sideBonus || {};
+    const boostedSides = ['top','right','bottom','left'].filter(s => (sb[s]||0) === 2);
+    out.starbornBoostedExactlyOneSide = boostedSides.length === 1;
+    out.starbornTotalIsTwo = (sb.top||0)+(sb.right||0)+(sb.bottom||0)+(sb.left||0) === 2;
+
+    // Cosmic Ward: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shieldedDefender = freshEntry(astrael, 'blue'); // top:8
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'ast-attacker', name:'AstAttacker', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Falling Stars: on win, the target is flipped AND permanently loses 2
+    // Power on all sides, while Astrael permanently gains +1 (combining
+    // both the pre-existing self-buff and the art's target-debuff).
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(astrael, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.astrael({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.starsFlippedTarget = wtarget.owner === 'blue';
+    out.starsDebuffedTarget = wtarget.captureBonus === -2;
+    out.starsBoostedSelf = wsrc.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasElement, true, 'element:magic added, no CANON conflict since the field was previously empty');
+  assert.equal(result.hasStarborn, true);
+  assert.equal(result.hasCosmicWard, true);
+  assert.equal(result.skillCount, 3, 'the printed card now carries Starborn, Cosmic Ward, and Falling Stars');
+  assert.equal(result.starbornBoostedExactlyOneSide, true);
+  assert.equal(result.starbornTotalIsTwo, true);
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.starsFlippedTarget, true);
+  assert.equal(result.starsDebuffedTarget, true, 'combining both interpretations: the target is now also permanently debuffed -2 all sides');
+  assert.equal(result.starsBoostedSelf, true, 'the pre-existing self-buff (+1 permanent) is kept');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Vaelira: new capped Crimson Surge, all other mechanics (Undying Flame/Sister\'s Bond/Weakness/Infernal Pact) unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vaelira = findCardById('vaelira');
+    out.statsUnchanged = vaelira.top === 10 && vaelira.right === 9 && vaelira.bottom === 10 && vaelira.left === 10 && vaelira.element === 'fire';
+    out.hasSisterAuraUnchanged = vaelira.active.sisterAura && vaelira.active.sisterAura.partners.includes('seraphine') && vaelira.active.sisterAura.partners.includes('nyxara') && !vaelira.active.sisterAura.partners.includes('lyrith') && !vaelira.active.sisterAura.partners.includes('aurelia');
+    out.hasCrimsonSurge = vaelira.active.onWinCappedBoost && vaelira.active.onWinCappedBoost.amount === 1 && vaelira.active.onWinCappedBoost.max === 3;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Crimson Surge: +1 Power all sides per win, capped at 3 stacks total.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vaelira, 'blue'); // top:10
+    state.board[4] = src;
+    for(let i=0;i<4;i++){
+      state.board[1] = freshEntry({ id:'v-weak'+i, name:'VWeak'+i, top:1,right:1,bottom:1,left:1 }, 'red');
+      resolveFlips(4, 'blue');
+    }
+    out.crimsonSurgeCappedAtThree = src.captureBonus === 3;
+
+    // Undying Flame (unchanged): on-place, permanently debuffs one random
+    // not-yet-burned enemy by 2.
+    state.board = Array(9).fill(null);
+    const placedSrc = freshEntry(vaelira, 'blue');
+    state.board[4] = placedSrc;
+    const onlyEnemy = freshEntry({ id:'v-burn-target', name:'BurnTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = onlyEnemy;
+    ON_PLACE_HANDLERS.vaelira(placedSrc, 'blue');
+    out.undyingFlameBurnedEnemy = onlyEnemy.captureBonus === -2 && onlyEnemy.vaeliraBurned === true;
+
+    // Infernal Pact (unchanged): destroys every enemy, spares allies, grants an extra turn.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(vaelira, 'blue');
+    const ally = freshEntry({ id:'v-ally', name:'Ally', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const enemy1 = freshEntry({ id:'v-enemy1', name:'Enemy1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = wsrc; state.board[0] = ally; state.board[1] = enemy1;
+    state.extraTurnPending = null;
+    SPECIAL_HANDLERS.vaelira({ srcEntry: wsrc, owner: 'blue' });
+    out.pactSparedAlly = state.board[0] !== null;
+    out.pactDestroyedEnemy = state.board[1] === null;
+    out.pactGrantedExtraTurn = state.extraTurnPending === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasSisterAuraUnchanged, true, "Sister's Bond still points at Seraphine/Nyxara, not the image-generation error (Lyrith/Aurelia)");
+  assert.equal(result.hasCrimsonSurge, true, 'Crimson Surge is the agreed capped +1x3 variant, not the uncapped +2 the art text showed');
+  assert.equal(result.crimsonSurgeCappedAtThree, true);
+  assert.equal(result.undyingFlameBurnedEnemy, true);
+  assert.equal(result.pactSparedAlly, true);
+  assert.equal(result.pactDestroyedEnemy, true);
+  assert.equal(result.pactGrantedExtraTurn, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specific entry), Silver Sight replaced by vsStrongerTotalPowerBoost, rest unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const seraphine = findCardById('seraphine');
+    out.statsUnchanged = seraphine.top === 10 && seraphine.right === 10 && seraphine.bottom === 10 && seraphine.left === 10 && seraphine.element === 'wind';
+    out.hasSisterAuraUnchanged = seraphine.active.sisterAura && seraphine.active.sisterAura.partners.includes('vaelira') && seraphine.active.sisterAura.partners.includes('nyxara');
+    out.hasSilverSight = seraphine.active.vsStrongerTotalPowerBoost && seraphine.active.vsStrongerTotalPowerBoost.amount === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Celestial Mark: on-place marks a random enemy.
+    state.board = Array(9).fill(null);
+    const placedSrc = freshEntry(seraphine, 'blue');
+    state.board[4] = placedSrc;
+    const onlyEnemy = freshEntry({ id:'cm-target', name:'CMTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = onlyEnemy;
+    ON_PLACE_HANDLERS.seraphine(placedSrc, 'blue');
+    out.markedEnemy = onlyEnemy.seraphineMarked === true;
+
+    // The +2 only applies when Seraphine specifically attacks the MARKED
+    // entry, resolved live in battleNeighbors (not fullEffectiveValue,
+    // which can't see the flag) -- isolated here with a defender whose
+    // facing side (11) beats Seraphine's plain top (10) but loses once the
+    // mark's +2 is added (12).
+    state.board = Array(9).fill(null);
+    const srcUnmarked = freshEntry(seraphine, 'blue'); // top:10
+    state.board[4] = srcUnmarked;
+    const closeDefender = freshEntry({ id:'close-defender', name:'CloseDefender', top:1,right:1,bottom:11,left:1 }, 'red');
+    state.board[1] = closeDefender;
+    resolveFlips(4, 'blue');
+    out.unmarkedAttackLoses = state.board[1].owner === 'red';
+
+    state.board = Array(9).fill(null);
+    const srcMarked = freshEntry(seraphine, 'blue');
+    state.board[4] = srcMarked;
+    const markedDefender = freshEntry({ id:'marked-defender', name:'MarkedDefender', top:1,right:1,bottom:11,left:1 }, 'red');
+    markedDefender.seraphineMarked = true;
+    state.board[1] = markedDefender;
+    resolveFlips(4, 'blue');
+    out.markedAttackWins = state.board[1].owner === 'blue';
+
+    // Silver Sight: +2 Power vs a stronger enemy.
+    const weakerFoe = { id:'ser-weaker', name:'Weaker', top:1,right:1,bottom:1,left:1 };
+    const strongerFoe = { id:'ser-stronger', name:'Stronger', top:20,right:20,bottom:20,left:20 };
+    out.noBonusVsWeaker = fullEffectiveValue(seraphine, 'top', weakerFoe, 0, 'blue', 'attack') - seraphine.top;
+    out.bonusVsStronger = fullEffectiveValue(seraphine, 'top', strongerFoe, 0, 'blue', 'attack') - seraphine.top;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasSisterAuraUnchanged, true);
+  assert.equal(result.hasSilverSight, true, 'Silver Sight now reuses active.vsStrongerTotalPowerBoost');
+  assert.equal(result.markedEnemy, true);
+  assert.equal(result.unmarkedAttackLoses, true, 'without the mark, top:10 loses to a facing side of 11');
+  assert.equal(result.markedAttackWins, true, 'the mark\'s +2 flips that same matchup into a win (10+2 > 11)');
+  assert.equal(result.noBonusVsWeaker, 0);
+  assert.equal(result.bonusVsStronger, 2);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Nyxara: stats matched to approved art, sisterAura total for 2 sisters tightened to +5, Weakness text tightened (mechanic unchanged), Void Dominion still lands in the Graveyard', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const nyxara = findCardById('nyxara');
+    out.statsMatchArt = nyxara.top === 10 && nyxara.right === 9 && nyxara.bottom === 10 && nyxara.left === 10 && nyxara.element === 'water';
+    out.sisterAuraOneSister = nyxara.active.sisterAura.bonusByCount[1] === 1;
+    out.sisterAuraTwoSisters = nyxara.active.sisterAura.bonusByCount[2] === 5;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Weakness -- Broken Focus: mechanic unchanged, still only triggers on
+    // recapture (checkSisterFlip, shared with Vaelira/Seraphine), not on
+    // every ordinary loss.
+    state.board = Array(9).fill(null);
+    const recaptured = freshEntry(nyxara, 'blue');
+    recaptured.owner = 'red'; // was captured by the enemy
+    recaptured.sisterHomeOwner = 'blue';
+    checkSisterFlip(recaptured);
+    out.markedAsCapturedWhileEnemyOwned = recaptured.sisterWasCaptured === true;
+    recaptured.owner = 'blue'; // recaptured back to her own side
+    checkSisterFlip(recaptured);
+    out.debuffedOnlyOnRecapture = recaptured.captureBonus === -3;
+
+    // Void Dominion: unchanged -- still destroys every enemy (+3 Power per
+    // destroyed), spares allies, respects destroyImmune, and still lands in
+    // the Graveyard (matches Vaelira/Triune Desire's own AOE destroy-alls,
+    // NOT changed to noRevive despite the approved art's "(cannot be
+    // revived)" wording -- see chat: that would break an existing,
+    // deliberate cross-card Graveyard consistency test).
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(nyxara, 'blue');
+    const ally = freshEntry({ id:'vd-ally', name:'VDAlly', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const enemy1 = freshEntry({ id:'vd-enemy1', name:'VDEnemy1', top:1,right:1,bottom:1,left:1 }, 'red');
+    const immuneEnemy = freshEntry(findCardById('threeheaddragon'), 'red');
+    state.board[4] = wsrc; state.board[0] = ally; state.board[1] = enemy1; state.board[2] = immuneEnemy;
+    SPECIAL_HANDLERS.nyxara({ srcEntry: wsrc, owner: 'blue' });
+    out.dominionSparedAlly = state.board[0] !== null;
+    out.dominionDestroyedEnemy = state.board[1] === null;
+    out.dominionRespectsDestroyImmune = state.board[2] !== null;
+    out.dominionStillLandsInGraveyard = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'vd-enemy1';
+    out.dominionGainedThreePerDestroyed = wsrc.captureBonus === 3;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 10/9/10/10 (top/right/bottom/left)');
+  assert.equal(result.sisterAuraOneSister, true);
+  assert.equal(result.sisterAuraTwoSisters, true, 'tightened from 6 to 5 to match the art\'s "+1 base, +4 additional" reading');
+  assert.equal(result.markedAsCapturedWhileEnemyOwned, true);
+  assert.equal(result.debuffedOnlyOnRecapture, true, 'the art\'s "every loss" reading was NOT adopted, keeping her sisters\' shared recapture-only mechanic');
+  assert.equal(result.dominionSparedAlly, true);
+  assert.equal(result.dominionDestroyedEnemy, true);
+  assert.equal(result.dominionRespectsDestroyImmune, true);
+  assert.equal(result.dominionStillLandsInGraveyard, true);
+  assert.equal(result.dominionGainedThreePerDestroyed, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Nexzoth: Reality Consume adjacency aura, Endless Void round-start drain, weakVsElement(light), World Shatter now destroys every win outright (no revive), Devourer, The Ending now spares allies (no revive)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
     const nexzoth = findCardById('nexzoth');
 
-    state.board = Array(9).fill(null);
-    const immuneEntry = freshEntry(nexzoth, 'blue');
-    state.board[0] = immuneEntry;
-    SpecialVerbs.debuff(immuneEntry, 5);
-    out.debuffImmune = immuneEntry.captureBonus === 0;
-
     state.playerHand = [1,2]; state.enemyHand = [1,2];
     const lightCard = { id:'light-test', name:'Light', top:5,right:5,bottom:5,left:5, element:'light' };
     out.weakVsLight = fullEffectiveValue(nexzoth, 'top', lightCard, 0, 'blue', 'attack') - nexzoth.top;
 
-    // World Shatter: winning destroys enemies further along that same line —
-    // BALANCE CAP (deliberate deviation from source text, see PROJECT.md):
-    // only the FIRST such win destroys the line; a second win by the same
-    // Nexzoth must not repeat it, since paired with his permanent
-    // debuffImmune an uncapped version has no counterplay.
+    // Reality Consume: adjacent enemies have -1 Power (live aura, both
+    // attack and defense), allies untouched, and a debuffImmune neighbor
+    // is unaffected.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(nexzoth, 'blue');
+    const adjacentEnemy = { top:5,right:5,bottom:5,left:5 };
+    out.realityConsumeHitsAdjacentEnemyAttack = fullEffectiveValue(adjacentEnemy, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'red', 'attack') - adjacentEnemy.top;
+    out.realityConsumeHitsAdjacentEnemyDefense = fullEffectiveValue(adjacentEnemy, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'red', 'defense') - adjacentEnemy.top;
+    const farEnemy = { top:5,right:5,bottom:5,left:5 };
+    out.realityConsumeIgnoresFarEnemy = fullEffectiveValue(farEnemy, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'red', 'attack') - farEnemy.top;
+    const adjacentAlly = { top:5,right:5,bottom:5,left:5 };
+    out.realityConsumeIgnoresAlly = fullEffectiveValue(adjacentAlly, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'blue', 'attack') - adjacentAlly.top;
+    const immuneNeighbor = { top:5,right:5,bottom:5,left:5, active:{debuffImmune:true} };
+    out.realityConsumeRespectsDebuffImmune = fullEffectiveValue(immuneNeighbor, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'red', 'attack') - immuneNeighbor.top;
+
+    // Endless Void: at the start of each round (turn switch), every enemy
+    // on the board loses 1 Power this round (temporary, non-stacking).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(nexzoth, 'blue');
+    const voidTarget = freshEntry({ id:'void-target', name:'VoidTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = voidTarget;
+    const allyUnaffected = freshEntry({ id:'void-ally', name:'VoidAlly', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[0] = allyUnaffected;
+    sweepExpiredRoundEffects();
+    out.endlessVoidDebuffedEnemy = voidTarget.captureBonus === -1;
+    out.endlessVoidSparedAlly = allyUnaffected.captureBonus === 0;
+
+    // World Shatter, simplified per the approved art: every win destroys the
+    // direct target outright (no capture), uncapped (no once-per-match flag
+    // this time — that cap is exclusive to Morvath's line-AOE
+    // onWinLineDestroy), and skips the Graveyard even with the rule on.
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
     state.board = Array(9).fill(null);
     const nexShatter = freshEntry(nexzoth, 'blue');
-    state.board[7] = nexShatter;
-    state.board[4] = freshEntry({ id:'near', name:'Near', top:1,right:1,bottom:1,left:1 }, 'red');
-    state.board[1] = freshEntry({ id:'far', name:'Far', top:1,right:1,bottom:1,left:1 }, 'red');
-    resolveFlips(7, 'blue');
-    out.worldShatterCapturedNear = state.board[4] && state.board[4].owner === 'blue';
-    out.worldShatterDestroyedFar = state.board[1] === null;
-    out.worldShatterMarkedUsed = nexShatter.onWinLineDestroyUsed === true;
+    state.board[4] = nexShatter;
+    state.board[1] = freshEntry({ id:'ws-target', name:'WSTarget', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.worldShatterDestroyedTarget = state.board[1] === null;
+    out.worldShatterSkippedGraveyard = state.graveyard.red.length === 0;
 
-    // Second win by the SAME Nexzoth (same 'top' direction, a fresh enemy
-    // now sitting where the first destroyed one used to be): must NOT
-    // destroy again since onWinLineDestroyUsed is now set.
-    state.board[1] = freshEntry({ id:'far2', name:'Far2', top:1,right:1,bottom:1,left:1 }, 'red');
-    checkOnWinBonuses(nexShatter, 'top', state.board[4], 4, 7, 10);
-    out.worldShatterDoesNotRepeat = state.board[1] !== null;
+    // A second, independent win by the same Nexzoth also destroys — uncapped.
+    state.board[1] = freshEntry({ id:'ws-target2', name:'WSTarget2', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.worldShatterRepeatsEveryWin = state.board[1] === null;
 
-    // The Ending: destroys every other card, both sides, except itself; respects destroyImmune
+    // Devourer: +1 Power permanent every time ANY enemy card is destroyed,
+    // by any effect (reuses active.buffOnEnemyDestroyed, same as Morvath).
+    state.board = Array(9).fill(null);
+    const devSrc = freshEntry(nexzoth, 'blue');
+    state.board[4] = devSrc;
+    const devTarget = freshEntry({ id:'dev-target', name:'DevTarget', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = devTarget;
+    destroyCard(1);
+    out.devourerGainedPower = devSrc.captureBonus === 1;
+
+    // The Ending, simplified per the approved art: enemy-only now (spares
+    // allies, unlike before), still respects destroyImmune, skips the
+    // Graveyard entirely.
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
     state.board = Array(9).fill(null);
     const nexSrc = freshEntry(nexzoth, 'blue');
     state.board[4] = nexSrc;
@@ -918,22 +1513,30 @@ test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter line-destroy on
     state.board[8] = freshEntry(findCardById('threeheaddragon'), 'red');
     SPECIAL_HANDLERS.nexzoth({ srcEntry: nexSrc, sourceIndex: 4, owner: 'blue' });
     out.endingKeepsSelf = state.board[4] === nexSrc;
-    out.endingDestroysOwnSide = state.board[0] === null;
+    out.endingSparesOwnSide = state.board[0] !== null;
     out.endingDestroysEnemySide = state.board[1] === null;
     out.endingRespectsDestroyImmune = state.board[8] !== null;
+    out.endingSkippedGraveyard = state.graveyard.red.length === 0;
 
     return out;
   })()`);
-  assert.equal(result.debuffImmune, true);
   assert.equal(result.weakVsLight, -4);
-  assert.equal(result.worldShatterCapturedNear, true);
-  assert.equal(result.worldShatterDestroyedFar, true, 'World Shatter destroys enemies further along the winning line');
-  assert.equal(result.worldShatterMarkedUsed, true);
-  assert.equal(result.worldShatterDoesNotRepeat, true, 'World Shatter is capped to once per match (balance deviation from source text)');
+  assert.equal(result.realityConsumeHitsAdjacentEnemyAttack, -1);
+  assert.equal(result.realityConsumeHitsAdjacentEnemyDefense, -1, 'Reality Consume applies on both attack and defense');
+  assert.equal(result.realityConsumeIgnoresFarEnemy, 0, 'only ADJACENT enemies are affected');
+  assert.equal(result.realityConsumeIgnoresAlly, 0, 'allies are never hit by the aura');
+  assert.equal(result.realityConsumeRespectsDebuffImmune, 0, 'a debuffImmune neighbor is unaffected');
+  assert.equal(result.endlessVoidDebuffedEnemy, true, 'Endless Void debuffs every enemy on the board at each turn switch');
+  assert.equal(result.endlessVoidSparedAlly, true);
+  assert.equal(result.worldShatterDestroyedTarget, true);
+  assert.equal(result.worldShatterSkippedGraveyard, true, "World Shatter's destroy cannot be revived, even with the Graveyard rule on");
+  assert.equal(result.worldShatterRepeatsEveryWin, true, 'World Shatter is uncapped now (no once-per-match flag, unlike Morvath\'s line-AOE)');
+  assert.equal(result.devourerGainedPower, true);
   assert.equal(result.endingKeepsSelf, true);
-  assert.equal(result.endingDestroysOwnSide, true, 'The Ending hits both sides, not just the enemy');
+  assert.equal(result.endingSparesOwnSide, true, 'The Ending now spares allies, matching the approved art');
   assert.equal(result.endingDestroysEnemySide, true);
   assert.equal(result.endingRespectsDestroyImmune, true);
+  assert.equal(result.endingSkippedGraveyard, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -1400,7 +2003,9 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
     out.stealPowerFlashesBoth = stealSrc.bonusAmount === 2 && stealTgt.bonusAmount === -2;
 
     // A blocked change (debuffImmune) does NOT flash — no misleading popup for a no-op
-    const immuneEntry = freshEntry(findCardById('nexzoth'), 'blue');
+    // (Morvath, not Nexzoth -- Nexzoth's own debuffImmune was replaced by
+    // Endless Void's new round-start drain mechanic, see PROJECT.md.)
+    const immuneEntry = freshEntry(findCardById('morvath'), 'blue');
     SpecialVerbs.debuff(immuneEntry, 5);
     out.blockedChangeDoesNotFlash = immuneEntry.bonusFlash !== true;
 
@@ -3246,6 +3851,57 @@ test('Voidqueen (renamed The Hungering Void): title collision with Nyxara resolv
   assert.equal(result.specialCost, true);
   assert.equal(result.insatiableGrantedPermanentBonus, true, 'Insatiable grants a permanent +1 on capturing an enemy card');
   assert.equal(result.oblivionsCallHitAdjacent, true, "Oblivion's Call still permanently weakens cards adjacent to the chosen target");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, and her first-ever Ultimate Aion's Last Light", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const sarah = findCardById('sarah');
+    out.statsUnchanged = sarah.top === 10 && sarah.right === 10 && sarah.bottom === 10 && sarah.left === 10 && sarah.element === 'wind';
+    out.hasLightShield = sarah.active.shield === true;
+    out.hasFearedHuntress = sarah.active.vsStrongerTotalPowerBoost && sarah.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.specialName = sarah.special.name === "Aion's Last Light";
+    out.specialCost = sarah.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Feared Huntress: +3 attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.fearedVsStronger = fullEffectiveValue(sarah, 'top', {top:20,right:20,bottom:20,left:20}, 4, 'blue', 'attack') - sarah.top === 3;
+    out.fearedVsWeaker = fullEffectiveValue(sarah, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - sarah.top === 0;
+
+    // Aion's Last Light: her first-ever Ultimate, same shape as Vayra's
+    // Eclipse / Ysara's Eternal Eclipse (+3 temp threshold, +1 permanent
+    // all-sides on a win).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(sarah, 'blue');
+    state.board[4] = src;
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakTarget;
+    SPECIAL_HANDLERS.sarah({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.capturedAndBuffed = weakTarget.owner === 'blue' && src.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(sarah, 'blue'); // total 40
+    state.board[4] = src2;
+    const strongTarget = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, 40+3 <= 80
+    state.board[1] = strongTarget;
+    SPECIAL_HANDLERS.sarah({ srcEntry: src2, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.noEffectVsMuchStronger = strongTarget.owner === 'red' && src2.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
+  assert.equal(result.hasLightShield, true, "Light Shield's tie to her title is kept unchanged");
+  assert.equal(result.hasFearedHuntress, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.fearedVsStronger, true, 'Feared Huntress grants +3 when attacking a card with higher total Power');
+  assert.equal(result.fearedVsWeaker, true, 'Feared Huntress grants nothing against an equal-or-weaker foe');
+  assert.equal(result.capturedAndBuffed, true, "Aion's Last Light captures and grants +1 permanent on a win");
+  assert.equal(result.noEffectVsMuchStronger, true, "Aion's Last Light fails against a target whose total power exceeds the +3 threshold");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
