@@ -1070,6 +1070,25 @@ ställena för båda korten.
   effektiva värdena rakt av.
 - **Guardian of Balance/stats** — helt oförändrade, redan fungerande.
 
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd för
+båda korten.** Bildbrief skickades med exakta stats och all skill-text
+ordagrant (se ovan) efter att koden blev klar. Ny konst matchade allt
+exakt — inga avvikelser den här gången (jfr Ferea/Darien-lärdomen: alltid
+specificera exakta stat-siffror i briefen). Ny poster-stil med all
+skill-text synlig på kortet (som Ifrit/Ferea/Darien redan har), ersätter
+den äldre enkla stilen (bara namn/stats/tagline) som korten hade sedan
+tidigare. Flyttade fullbilderna från de gamla GitHub-UUID-filnamnen
+(`3978FBE9-47C9-4E71-9348-6D2F4B1E0EDC.jpg` / `6F6FDF5D-77C4-4C60-A6C9-
+C3AA29906068.jpg`, borttagna) till standardnamnen `card-eviltwistyang-
+full.jpg`/`card-eviltwistyin-full.jpg`. Nya beskurna `cards/card-
+eviltwistyang.jpg`/`cards/card-eviltwistyin.jpg` använder samma
+crop-bredd/höjd som standardbeskärningen (660×431 → 640×418) men med
+y-start flyttad till 100 istället för standardens 300 (kompositionen har
+ansiktet högre upp i bilden än de flesta andra korten) för att få med
+ansikte + yin-yang-symbolen istället för att klippa av vid axlarna.
+Inga kodändringar utöver bildbytet — stats/skill-text i koden matchade
+redan konsten exakt.
+
 Inga nya generella primitives — `neutralizeAttackerBonus`/
 `mindsBalanceSwap` är nya DATA-nycklar, men själva teknikerna (justera
 `placedVal`/`targetVal` direkt i strid-loopen innan utfallet räknas) är
