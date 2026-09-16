@@ -1684,7 +1684,7 @@ const HEROES = [
       {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. The next time she attacks that marked card, she gets +2 Power.'},
       {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "focus is broken" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
       {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
@@ -2011,7 +2011,7 @@ const FOREST_FOES = [
       {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. The next time she attacks that marked card, she gets +2 Power.'},
       {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
-      {name:'Weakness — Broken Focus', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "focus is broken" text).'},
+      {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
       {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
@@ -2064,12 +2064,12 @@ const FOREST_FOES = [
   { id:'nexzoth', name:'Nexzoth', role:'Mythic Card — The World Eater',
     top:10, right:10, bottom:10, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#a568f2', icon:'🌀',
-    active:{ debuffImmune:true, onWinDestroyLoserAlways:true, buffOnEnemyDestroyed:true, weakVsElement:{element:'light', amount:4} },
+    active:{ auraDebuffAdjacentEnemies:1, onWinDestroyLoserAlways:true, onRoundStartDebuffEnemies:1, buffOnEnemyDestroyed:true, weakVsElement:{element:'light', amount:4} },
     special:{ name:'The Ending', cost:3, once:true, targets:'aoe' },
     skills: [
-      {name:'Reality Consume', desc:'When Nexzoth is placed, a random enemy card is chosen — it loses -3 Power this round.'},
+      {name:'Reality Consume (Passive)', desc:'All adjacent enemy cards have -1 Power.'},
       {name:'World Shatter (Passive)', desc:'Whenever Nexzoth wins a round, the target card is destroyed outright instead of captured — it cannot be revived.'},
-      {name:'Endless Void (Passive)', desc:"Nexzoth's Power can never be lowered by an opponent's card skills or Special Attacks."},
+      {name:'Endless Void (Passive)', desc:'At the start of each round, all enemy cards lose 1 Power.'},
       {name:'Devourer (Passive)', desc:'Whenever an enemy card is destroyed, by any effect, Nexzoth permanently gains +1 Power.'},
       {name:'Special Attack: The Ending', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Usable once per match.'},
     ] },
@@ -3889,6 +3889,25 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     });
     if(allyNeighbors >= ab.minCount) v += ab.amount;
   }
+  // Nexzoth's Reality Consume, rebuilt per the approved art into a
+  // permanent adjacent-enemy aura (was an on-place one-time debuff) --
+  // the mirror image of adjacentEnemiesBoost/adjacentAlliesBoost above,
+  // but debuffing the NEIGHBOR instead of buffing the card carrying the
+  // flag. Applies on both attack and defense (no "this round"/"her next
+  // attack" framing in the art's text), always live off the board so it
+  // needs no separate on-place handler or entry-side status flag.
+  if(cellIndex != null){
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner && n.card.active && n.card.active.auraDebuffAdjacentEnemies && !(card.active && card.active.debuffImmune)){
+        v -= n.card.active.auraDebuffAdjacentEnemies;
+      }
+    });
+  }
   // Medusa's Serpent Queen: +N Power per Petrified enemy on the board,
   // capped — a live board-count check, same "no state needed" shape as
   // boardLeadBonus/pairPresence above.
@@ -4139,13 +4158,6 @@ const ON_PLACE_HANDLERS = {
     if(enemies.length === 0) return;
     const target = enemies[Math.floor(Math.random()*enemies.length)];
     SpecialVerbs.debuff(target, 2);
-  },
-  // Nexzoth's Reality Consume.
-  nexzoth(entry, owner){
-    const enemies = state.board.filter(e => e && e.owner !== owner);
-    if(enemies.length === 0) return;
-    const target = enemies[Math.floor(Math.random()*enemies.length)];
-    SpecialVerbs.debuffThisRound(target, 3);
   },
   // Morvath's Tidal Crush.
   morvath(entry, owner){
@@ -4590,6 +4602,21 @@ function sweepExpiredRoundEffects(){
       } else {
         entry.turnsStanding += 1;
       }
+    }
+    // Nexzoth's Endless Void, rebuilt per the approved art into "at the
+    // start of each round, all enemy cards lose 1 Power" (was a
+    // self-protection debuffImmune) — temporary and non-stacking (reuses
+    // debuffThisRound's own tempEffects expiry, the same "this round"
+    // window every other such effect in the game uses), applied to
+    // whichever enemies are on the board at this exact turn switch. A
+    // card placed later in the same round isn't retroactively hit.
+    // Deliberately non-stacking rather than permanent: paired with his
+    // own Devourer/World Shatter, an uncapped permanent version would
+    // snowball with no counterplay, the same concern already on record
+    // for Nexzoth/Morvath's onWinLineDestroy cap above.
+    if(entry.card.active && entry.card.active.onRoundStartDebuffEnemies){
+      const amount = entry.card.active.onRoundStartDebuffEnemies;
+      state.board.forEach(e => { if(e && e.owner !== entry.owner) SpecialVerbs.debuffThisRound(e, amount); });
     }
     if(!entry.tempEffects || entry.tempEffects.length === 0) return;
     entry.tempEffects = entry.tempEffects.filter(effect => {

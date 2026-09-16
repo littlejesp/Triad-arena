@@ -31,15 +31,11 @@ till `main` också. **Punkt 29–36 (Sarah, Deathblade, Lyrith, Aurelia,
 Twisted Gipsy, Astrael, Vaelira och Nexzoth ombyggda) ligger
 committade på feature-branchen, INTE mergade till `main` än** — fråga
 alltid explicit innan nästa merge när mer arbete samlats där, anta
-ALDRIG tillstånd från en tidigare bekräftelse. **OBS: Nexzoths
-kortkonst är committad, men bara Devourer, World Shatter och The
-Ending matchar den nya bilden** (alternativ A, de tre säkra delarna).
-Reality Consume och Endless Void är OFÖRÄNDRADE och matchar INTE
-bilden än — väntar fortfarande på svar om ny motorlogik (se punkt 36
-nedan). Punkt 37 (Kaeldryx) och 38 (Bahamut) har fått sin konst
-committad. Punkt 39 (Seraphine) och 40 (Nyxara) är klara i koden —
-Seraphine väntar fortfarande på en ny bild (bildbrief skickad),
-Nyxara har godkänd konst men den är inte konverterad/committad än.
+ALDRIG tillstånd från en tidigare bekräftelse. Nexzoth (punkt 36) är
+nu HELT klar — Reality Consume och Endless Void fick sin nya
+motorlogik (se nedan), all konst committad. Punkt 37 (Kaeldryx), 38
+(Bahamut), 40 (Nyxara) har all konst committad. Punkt 39 (Seraphine)
+har fått sin andra bild (vattenfall-posen) committad också.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -257,16 +253,37 @@ att uppfinna helt nya motorsystem:
   revived". Påverkar INGA andra kort — standardanropet `destroyCard(i)`
   fungerar exakt som förut.
 
-**VÄNTAR PÅ SVAR** (inte implementerat än, bilden inte heller
-beställd): **Reality Consume** (bilden säger en permanent aura som
-försvagar alla angränsande fiender — skulle kräva en helt ny
-"granne-försvagar-fiende"-primitive, motsatsen till befintliga
-`adjacentEnemiesBoost`) och **Endless Void** (bilden säger "vid varje
-rondstart förlorar alla fiender -1 Power" — skulle kräva ett
-rondstart-triggersystem som inte finns alls i motorn idag). Två öppna
-frågor till användaren: ska Endless Void vara permanent-staplande
-eller tillfällig per runda, och ska den gälla alla fiender eller bara
-de som redan fanns vid rondstart.
+**Uppföljning — Reality Consume och Endless Void nu också klara**
+(användaren gav klartecken "Ja fixa nya motorlogik", utan att svara på
+de två öppna följdfrågorna, så förvalen nedan användes och flaggas
+här):
+
+- **Reality Consume** — helt ny generisk primitive
+  `active.auraDebuffAdjacentEnemies:1`, mirror-bilden av befintliga
+  `adjacentEnemiesBoost`/`adjacentAlliesBoost` i `fullEffectiveValue()`
+  men försvagar GRANNEN istället för att buffa kortet självt. Gäller
+  både attack och defense, ignorerar allierade, respekterar grannens
+  egen `debuffImmune`. Den gamla on-place-varianten
+  (`ON_PLACE_HANDLERS.nexzoth`) är borttagen helt.
+- **Endless Void** — ny primitive `active.onRoundStartDebuffEnemies:1`
+  + en ny hook i `sweepExpiredRoundEffects()` (som redan körs vid
+  varje turnCount-växling). FÖRVAL använt eftersom frågorna var
+  obesvarade: **tillfällig, icke-staplande** (återanvänder
+  `debuffThisRound()`s egen tempEffects-utgång, samma "denna runda"-
+  fönster som allt annat i spelet) snarare än permanent, och gäller
+  bara fiender som redan finns på brädet vid den exakta
+  turn-växlingen (inget retroaktivt för kort som läggs senare samma
+  runda). Motivering: permanent+staplande hade snöbollat okontrollerat
+  ihop med hans egna Devourer/World Shatter, samma oro som redan
+  dokumenterad för Nexzoth/Morvaths `onWinLineDestroy`-spärr.
+- Den gamla `debuffImmune:true` (Endless Voids förra betydelse,
+  självskydd) är BORTTAGEN helt — bytt mot den nya offensiva
+  betydelsen. Ett existerande, orelaterat test
+  ("Visual feedback...") använde Nexzoth som sitt exempel på ett
+  `debuffImmune`-kort — bytt till Morvath istället eftersom han
+  fortfarande har flaggan.
+- Nexzoth är nu HELT klar (alla 5 skills + Ultimate matchar bilden),
+  konst committad.
 
 **39. Seraphine — Celestial Mark riktig mekanik, Silver Sight bytt** —
 3 av 5 skills var redan wired (Sister's Bond, Weakness — Broken Focus,
@@ -295,6 +312,15 @@ Användarens uttryckliga princip: undvik nya generiska primitives när
 möjligt — den här lösningen introducerar INGEN ny generisk `active.X`,
 bara en liten per-kort-hårdkodning i två redan existerande
 funktioner.
+
+**Uppföljning — andra bilden (vattenfall-pose)**: samma tre
+kod-vs-bild-avvikelser dök upp igen (Sister's Bond flackad till "+1",
+Weakness "varje förlust", Silver Judgment omtolkad till destroy-all-
+vid-3-wins). Samma lösning som för Nyxara valdes konsekvent: koden
+(redan testad, egen identitet skild från systrarnas destroy-allt-
+ultimates) behölls oförändrad, bara Weakness-texten stramades åt till
+"permanently loses 3 Power" (samma fix som Vaelira/Nyxara fick).
+Stats (10/10/10/10) matchade redan bilden exakt.
 
 **38. Bahamut — gameplay-fix + Megaflare omdesignad till AOE** —
 tunnare kort, bara 2 av 6 skills wired från start (Dragon King's

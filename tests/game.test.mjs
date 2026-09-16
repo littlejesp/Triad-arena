@@ -1433,22 +1433,43 @@ test('Nyxara: stats matched to approved art, sisterAura total for 2 sisters tigh
   await page.close();
 });
 
-test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter now destroys every win outright (no revive), Devourer, The Ending now spares allies (no revive)', async () => {
+test('Nexzoth: Reality Consume adjacency aura, Endless Void round-start drain, weakVsElement(light), World Shatter now destroys every win outright (no revive), Devourer, The Ending now spares allies (no revive)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
     const nexzoth = findCardById('nexzoth');
 
-    state.board = Array(9).fill(null);
-    const immuneEntry = freshEntry(nexzoth, 'blue');
-    state.board[0] = immuneEntry;
-    SpecialVerbs.debuff(immuneEntry, 5);
-    out.debuffImmune = immuneEntry.captureBonus === 0;
-
     state.playerHand = [1,2]; state.enemyHand = [1,2];
     const lightCard = { id:'light-test', name:'Light', top:5,right:5,bottom:5,left:5, element:'light' };
     out.weakVsLight = fullEffectiveValue(nexzoth, 'top', lightCard, 0, 'blue', 'attack') - nexzoth.top;
+
+    // Reality Consume: adjacent enemies have -1 Power (live aura, both
+    // attack and defense), allies untouched, and a debuffImmune neighbor
+    // is unaffected.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(nexzoth, 'blue');
+    const adjacentEnemy = { top:5,right:5,bottom:5,left:5 };
+    out.realityConsumeHitsAdjacentEnemyAttack = fullEffectiveValue(adjacentEnemy, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'red', 'attack') - adjacentEnemy.top;
+    out.realityConsumeHitsAdjacentEnemyDefense = fullEffectiveValue(adjacentEnemy, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'red', 'defense') - adjacentEnemy.top;
+    const farEnemy = { top:5,right:5,bottom:5,left:5 };
+    out.realityConsumeIgnoresFarEnemy = fullEffectiveValue(farEnemy, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'red', 'attack') - farEnemy.top;
+    const adjacentAlly = { top:5,right:5,bottom:5,left:5 };
+    out.realityConsumeIgnoresAlly = fullEffectiveValue(adjacentAlly, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'blue', 'attack') - adjacentAlly.top;
+    const immuneNeighbor = { top:5,right:5,bottom:5,left:5, active:{debuffImmune:true} };
+    out.realityConsumeRespectsDebuffImmune = fullEffectiveValue(immuneNeighbor, 'top', {top:1,right:1,bottom:1,left:1}, 1, 'red', 'attack') - immuneNeighbor.top;
+
+    // Endless Void: at the start of each round (turn switch), every enemy
+    // on the board loses 1 Power this round (temporary, non-stacking).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(nexzoth, 'blue');
+    const voidTarget = freshEntry({ id:'void-target', name:'VoidTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = voidTarget;
+    const allyUnaffected = freshEntry({ id:'void-ally', name:'VoidAlly', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[0] = allyUnaffected;
+    sweepExpiredRoundEffects();
+    out.endlessVoidDebuffedEnemy = voidTarget.captureBonus === -1;
+    out.endlessVoidSparedAlly = allyUnaffected.captureBonus === 0;
 
     // World Shatter, simplified per the approved art: every win destroys the
     // direct target outright (no capture), uncapped (no once-per-match flag
@@ -1499,8 +1520,14 @@ test('Nexzoth: debuffImmune, weakVsElement(light), World Shatter now destroys ev
 
     return out;
   })()`);
-  assert.equal(result.debuffImmune, true);
   assert.equal(result.weakVsLight, -4);
+  assert.equal(result.realityConsumeHitsAdjacentEnemyAttack, -1);
+  assert.equal(result.realityConsumeHitsAdjacentEnemyDefense, -1, 'Reality Consume applies on both attack and defense');
+  assert.equal(result.realityConsumeIgnoresFarEnemy, 0, 'only ADJACENT enemies are affected');
+  assert.equal(result.realityConsumeIgnoresAlly, 0, 'allies are never hit by the aura');
+  assert.equal(result.realityConsumeRespectsDebuffImmune, 0, 'a debuffImmune neighbor is unaffected');
+  assert.equal(result.endlessVoidDebuffedEnemy, true, 'Endless Void debuffs every enemy on the board at each turn switch');
+  assert.equal(result.endlessVoidSparedAlly, true);
   assert.equal(result.worldShatterDestroyedTarget, true);
   assert.equal(result.worldShatterSkippedGraveyard, true, "World Shatter's destroy cannot be revived, even with the Graveyard rule on");
   assert.equal(result.worldShatterRepeatsEveryWin, true, 'World Shatter is uncapped now (no once-per-match flag, unlike Morvath\'s line-AOE)');
@@ -1976,7 +2003,9 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
     out.stealPowerFlashesBoth = stealSrc.bonusAmount === 2 && stealTgt.bonusAmount === -2;
 
     // A blocked change (debuffImmune) does NOT flash — no misleading popup for a no-op
-    const immuneEntry = freshEntry(findCardById('nexzoth'), 'blue');
+    // (Morvath, not Nexzoth -- Nexzoth's own debuffImmune was replaced by
+    // Endless Void's new round-start drain mechanic, see PROJECT.md.)
+    const immuneEntry = freshEntry(findCardById('morvath'), 'blue');
     SpecialVerbs.debuff(immuneEntry, 5);
     out.blockedChangeDoesNotFlash = immuneEntry.bonusFlash !== true;
 
