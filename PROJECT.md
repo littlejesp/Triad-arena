@@ -27,15 +27,14 @@ Punkt 22–24 (Vayra, Aurelian och Vorlix fullständiga om/nybyggnader,
 inklusive ny kortkonst och Aurelians Skybreaker-fix) är sedan dess
 MERGADE till `main` också. Punkt 25–28 (Ysara, Torn, Graff och
 Voidqueen ombyggda, all kortkonst inkluderad) är sedan dess MERGADE
-till `main` också. **Punkt 29–36 (Sarah, Deathblade, Lyrith, Aurelia,
-Twisted Gipsy, Astrael, Vaelira och Nexzoth ombyggda) ligger
-committade på feature-branchen, INTE mergade till `main` än** — fråga
-alltid explicit innan nästa merge när mer arbete samlats där, anta
-ALDRIG tillstånd från en tidigare bekräftelse. Nexzoth (punkt 36) är
-nu HELT klar — Reality Consume och Endless Void fick sin nya
-motorlogik (se nedan), all konst committad. Punkt 37 (Kaeldryx), 38
-(Bahamut), 40 (Nyxara) har all konst committad. Punkt 39 (Seraphine)
-har fått sin andra bild (vattenfall-posen) committad också.
+till `main` också. **Punkt 29–40 (Sarah, Deathblade, Lyrith, Aurelia,
+Twisted Gipsy, Astrael, Vaelira, Nexzoth, Kaeldryx, Bahamut, Seraphine
+och Nyxara — alla fullständigt klara, all kortkonst inkluderad) är
+sedan dess MERGADE till `main` också** (användaren bekräftade explicit
+"Merga till main" efter att Nexzoths sista två skills (Reality
+Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
+explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
+tillstånd från en tidigare bekräftelse.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
