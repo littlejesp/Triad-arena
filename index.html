@@ -1441,12 +1441,12 @@ const HEROES = [
     {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
     {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
   ] },
-  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
+  { id:'tahabata', name:'Tahabata', role:'Pyrelord', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', isDragon:true, active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
     {name:"Dragonfire's Fury", desc:'Once per match, Tahabata gets +2 Power on a chosen side during an attack.'},
     {name:'Soul Petrification', desc:"When Tahabata takes a card, that card can't be won back during the next battle."},
     {name:"Pyrelord's Awakening", desc:'If Tahabata is surrounded by at least 2 enemy cards, he gets +1 on all sides this round.'},
-    {name:'Special Attack: Inferno Dominion', desc:'Costs 2 wins. Choose an adjacent enemy card - Tahabata attacks with +2 Power on that side, taking control of the card as usual if he wins.'},
+    {name:'Special Attack: Inferno Dominion', desc:"Costs 2 wins. Choose an adjacent enemy card — Inferno Dominion fails only if the target's total Power is 2 or more higher than Tahabata's. Otherwise he takes control of it, and shields can still block a narrow win — but if Tahabata's total Power beats the target's by 2 or more, shields don't stop him at all."},
   ] },
   { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Divine Judgment (Passive)', desc:"When The Celestial Judgment is placed, choose a direction — the card that loses an attack against that direction becomes permanently Weakened. (Flavor only — would need a stored on-placement direction plus a conditional win-hook keyed to it; skipped to keep this card's scope contained. Judgment Strike and the Ultimate below cover her main identity.)"},
     {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
@@ -1791,12 +1791,12 @@ const FOREST_FOES = [
     {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
     {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
   ] },
-  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
+  { id:'tahabata', name:'Tahabata', role:'Pyrelord', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', isDragon:true, active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
     {name:"Dragonfire's Fury", desc:'Once per match, Tahabata gets +2 Power on a chosen side during an attack.'},
     {name:'Soul Petrification', desc:"When Tahabata takes a card, that card can't be won back during the next battle."},
     {name:"Pyrelord's Awakening", desc:'If Tahabata is surrounded by at least 2 enemy cards, he gets +1 on all sides this round.'},
-    {name:'Special Attack: Inferno Dominion', desc:'Costs 2 wins. Choose an adjacent enemy card - Tahabata attacks with +2 Power on that side, taking control of the card as usual if he wins.'},
+    {name:'Special Attack: Inferno Dominion', desc:"Costs 2 wins. Choose an adjacent enemy card — Inferno Dominion fails only if the target's total Power is 2 or more higher than Tahabata's. Otherwise he takes control of it, and shields can still block a narrow win — but if Tahabata's total Power beats the target's by 2 or more, shields don't stop him at all."},
   ] },
   { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Divine Judgment (Passive)', desc:"When The Celestial Judgment is placed, choose a direction — the card that loses an attack against that direction becomes permanently Weakened. (Flavor only — would need a stored on-placement direction plus a conditional win-hook keyed to it; skipped to keep this card's scope contained. Judgment Strike and the Ultimate below cover her main identity.)"},
     {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
@@ -5034,19 +5034,33 @@ const SPECIAL_HANDLERS = {
       ? `${srcEntry.card.name}'s Oblivion's Call withers ${count} card${count>1?'s':''} around ${targetEntry.card.name}!`
       : `${srcEntry.card.name}'s Oblivion's Call finds no one nearby to wither!`;
   },
+  // Inferno Dominion had a real code-vs-art conflict: the pre-existing code
+  // used a lenient totalPower+2<=target threshold (Tahabata can still win
+  // even up to 1 point weaker) and respected shields; the newly approved
+  // art said "wins by 2 or more -- shields don't stop this". Per the
+  // user's choice "C" (combine), the old lenient win condition stays as
+  // the baseline (unchanged), but a DOMINANT win (margin of 2+, the art's
+  // own threshold) now additionally bypasses shields entirely -- a
+  // narrower win still respects them as before. A bypassed shield is left
+  // unconsumed (specialBlockedByShield, which both checks AND marks it
+  // used, is skipped outright in the dominant case), matching "shields
+  // don't stop this" rather than "shields get destroyed by this".
   tahabata({ srcEntry, targetEntry, targetIndex, owner }){
     const basePower = totalPower(srcEntry);
     const targetPower = totalPower(targetEntry);
     if(basePower + 2 <= targetPower){
       return `${srcEntry.card.name}'s Inferno Dominion is smothered!`;
     }
-    if(specialBlockedByShield(targetEntry, targetIndex)){
+    const dominant = basePower - targetPower >= 2;
+    if(!dominant && specialBlockedByShield(targetEntry, targetIndex)){
       return `${targetEntry.card.name}'s shield holds against Inferno Dominion!`;
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
-    return `${srcEntry.card.name}'s Inferno Dominion claims ${targetEntry.card.name}!`;
+    return dominant
+      ? `${srcEntry.card.name}'s Inferno Dominion overwhelms ${targetEntry.card.name} -- shields mean nothing before total dominion!`
+      : `${srcEntry.card.name}'s Inferno Dominion claims ${targetEntry.card.name}!`;
   },
   twinbrothers({ srcEntry, targetEntry, owner }){
     // Solar Tempest explicitly disables the enemy's defensive skills — no shield check.

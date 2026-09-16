@@ -867,11 +867,39 @@ formuleringsskillnad:**
   ett riktigt marginalkrav (måste vara STARKARE, inte bara "inte alltför
   mycket svagare"), och uttryckligen ospärrbart av sköldar — motsatsen
   till nuvarande beteende på båda punkterna.
-- Väntar på användarens beslut (A: behåll kod, B: matcha bild, C:
-  kombinera) innan Inferno Dominion rörs. Två mindre fynd flaggade
-  samtidigt: bilden har "Pyrelord" som underrubrik (`role` är för
-  närvarande `'Legendary Card'`, dubblerar rarity-badgen) och
-  "Type: Dragon" (ingen `isDragon`-tagg finns på kortet idag).
+- **Uppdatering, samma session: användaren valde "C" (kombinera).**
+  Den gamla generösa tröskeln (`basePower+2 <= targetPower` → miss)
+  ligger kvar OFÖRÄNDRAD som grundvillkor — en marginellt svagare
+  Tahabata vinner fortfarande som förut, och en sådan smal vinst
+  respekterar fortfarande sköldar precis som innan. Men en NY
+  `dominant`-kontroll (`basePower - targetPower >= 2`, exakt bildens
+  eget marginalkrav) lades till: när den är sann hoppas
+  `specialBlockedByShield()`-kollen över helt, vilket matchar bildens
+  "shields don't stop this" — och eftersom den funktionen är den enda
+  platsen som sätter `shieldUsed`, lämnas skölden OKONSUMERAD (bildens
+  text säger "stoppar inte", inte "förstör") snarare än förbrukad.
+  Ingen av de två gamla grenarna togs bort — bara ett nytt extra villkor
+  lagt ovanpå, samma "kombinera genom att lägga till, inte ersätta"-
+  princip som Vorathos/Pallispell. Skill-texten uppdaterad i BÅDA
+  `HEROES`/`FOREST_FOES`-kopiorna för att beskriva det kombinerade
+  beteendet (den gamla texten, "+2 Power on that side", matchade
+  faktiskt aldrig ens den gamla koden — en dold felskrivning som
+  samtidigt städades upp). Fyra nya testfall (misslyckas, generös vinst,
+  smal vinst blockerad, dominant vinst obstruerar sköld och lämnar den
+  okonsumerad).
+
+**Uppdatering, samma session: användaren godkände båda mindre fynden.**
+`role` ändrat från `'Legendary Card'` till `'Pyrelord'` (matchar
+bildens underrubrik, samma mönster som Templarens `role:'Holy
+Guardian'` separat från sin egen rarity-badge). `isDragon:true`
+tillagt (bildens "Type: Dragon") — läses redan generiskt av Kaeldryx's
+`vsTagBonus:{tag:'isDragon'}` (Dragon Hunter) och den `isDragon`-filtrerade
+linje-effekten (Ancient Wyrmking/Three Head Dragon), så Tahabata blir
+nu automatiskt ett giltigt mål/relevant kort för båda utan någon extra
+kod. Båda ändringarna speglade i `HEROES` OCH `FOREST_FOES` (samma
+`replace_all`-mönster som resten av kortet). Fullständig testsvit körd
+igen efter taggen (cross-cutting ändring, påverkar andra kort som redan
+läser `isDragon`), fortfarande grön.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

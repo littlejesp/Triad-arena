@@ -2860,13 +2860,15 @@ test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Mar
   await page.close();
 });
 
-test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoost), Soul Petrification (grantShield), Wrath Eruption (on-win directional debuff, live-expiring), Pyrelord\'s Awakening (any-role adjacent-enemy aura), Shield/Inferno Dominion unchanged, mirrored in HEROES and FOREST_FOES', async () => {
+test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoost), Soul Petrification (grantShield), Wrath Eruption (on-win directional debuff, live-expiring), Pyrelord\'s Awakening (any-role adjacent-enemy aura), Shield unchanged, Inferno Dominion combined with the approved art\'s dominant-win clause, mirrored in HEROES and FOREST_FOES', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
     const tahabata = findCardById('tahabata');
     out.statsUnchanged = tahabata.top === 10 && tahabata.right === 10 && tahabata.bottom === 8 && tahabata.left === 9;
+    out.roleMatchesArt = tahabata.role === 'Pyrelord';
+    out.isDragonTagged = tahabata.isDragon === true;
     out.skillCount = tahabata.skills.length === 6;
     out.hasPyrelordsShield = tahabata.active.shield === true;
     out.specialName = tahabata.special.name === 'Inferno Dominion';
@@ -2879,7 +2881,9 @@ test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoo
       && forestTahabata.active.onCaptureGrantShield === true
       && forestTahabata.active.onWinAdjacentEnemyDebuff === 1
       && forestTahabata.active.adjacentEnemiesBoostAnyRole.minCount === 2
-      && forestTahabata.active.adjacentEnemiesBoostAnyRole.amount === 1;
+      && forestTahabata.active.adjacentEnemiesBoostAnyRole.amount === 1
+      && forestTahabata.role === 'Pyrelord'
+      && forestTahabata.isDragon === true;
 
     // Dragonfire's Fury: reuses the existing oncePerMatchAttackBoost primitive.
     state.board = Array(9).fill(null);
@@ -2956,9 +2960,61 @@ test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoo
     state.board[3] = null;
     out.awakeningNoBonusBelowThreshold = fullEffectiveValue(tahabata, 'top', dummyOpp, 4, 'blue', 'defense') - tahabata.top === 0;
 
+    // Inferno Dominion, combined per the user's choice "C": the old
+    // lenient totalPower+2<=target threshold stays as the baseline (a
+    // narrow win, even while slightly weaker, still succeeds and still
+    // respects shields), but a DOMINANT win (margin of 2+, the approved
+    // art's own threshold) now also bypasses shields entirely, leaving
+    // them unconsumed. Tahabata's total power is 37.
+
+    // Case: fails outright -- target total 40 (37+2=39 <= 40).
+    state.board = Array(9).fill(null);
+    const idFailSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idFailSrc;
+    const idFailTarget = freshEntry({ id:'id-fail', name:'IDFail', top:10,right:10,bottom:10,left:10 }, 'red'); // total 40
+    state.board[1] = idFailTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idFailSrc, targetEntry: idFailTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoFailsOutright = idFailTarget.owner === 'red';
+
+    // Case: lenient win preserved -- target total 38 (Tahabata is
+    // nominally weaker, 37 < 38, but the old +2 threshold still lets this
+    // succeed), no shield involved.
+    state.board = Array(9).fill(null);
+    const idLenientSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idLenientSrc;
+    const idLenientTarget = freshEntry({ id:'id-lenient', name:'IDLenient', top:10,right:10,bottom:9,left:9 }, 'red'); // total 38
+    state.board[1] = idLenientTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idLenientSrc, targetEntry: idLenientTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoLenientWinPreserved = idLenientTarget.owner === 'blue';
+
+    // Case: narrow win (margin 1, target total 36) with a shield -- NOT
+    // dominant, so the shield still blocks exactly as the old code did.
+    state.board = Array(9).fill(null);
+    const idNarrowSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idNarrowSrc;
+    const idNarrowTarget = freshEntry({ id:'id-narrow', name:'IDNarrow', top:9,right:9,bottom:9,left:9, active:{shield:true} }, 'red'); // total 36, margin 1
+    state.board[1] = idNarrowTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idNarrowSrc, targetEntry: idNarrowTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoNarrowWinStillBlockedByShield = idNarrowTarget.owner === 'red';
+
+    // Case: dominant win (margin 3, target total 34) with a shield -- the
+    // approved art's own clause kicks in: shields don't stop this at all.
+    // The shield is bypassed, not consumed (specialBlockedByShield, which
+    // marks shieldUsed, is skipped outright).
+    state.board = Array(9).fill(null);
+    const idDomSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = idDomSrc;
+    const idDomTarget = freshEntry({ id:'id-dom', name:'IDDom', top:9,right:9,bottom:8,left:8, active:{shield:true} }, 'red'); // total 34, margin 3
+    state.board[1] = idDomTarget;
+    SPECIAL_HANDLERS.tahabata({ srcEntry: idDomSrc, targetEntry: idDomTarget, targetIndex: 1, owner: 'blue' });
+    out.infernoDominantWinBypassesShield = idDomTarget.owner === 'blue';
+    out.infernoDominantShieldLeftUnconsumed = idDomTarget.shieldUsed === false;
+
     return out;
   })()`);
   assert.equal(result.statsUnchanged, true);
+  assert.equal(result.roleMatchesArt, true, "role should read 'Pyrelord' per the approved art's subtitle");
+  assert.equal(result.isDragonTagged, true, 'the approved art shows "Type: Dragon"');
   assert.equal(result.skillCount, true);
   assert.equal(result.hasPyrelordsShield, true);
   assert.equal(result.specialName, true);
@@ -2980,6 +3036,11 @@ test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoo
   assert.equal(result.awakeningAppliesOnAttack, true);
   assert.equal(result.awakeningAppliesOnDefense, true, "Pyrelord's Awakening applies on defense too, unlike Tiamat's attack-only adjacentEnemiesBoost");
   assert.equal(result.awakeningNoBonusBelowThreshold, true);
+  assert.equal(result.infernoFailsOutright, true, "Inferno Dominion still fails when the target's total Power is 2+ higher");
+  assert.equal(result.infernoLenientWinPreserved, true, 'the old lenient threshold still lets a nominally-weaker Tahabata win');
+  assert.equal(result.infernoNarrowWinStillBlockedByShield, true, 'a non-dominant win still respects shields, same as before');
+  assert.equal(result.infernoDominantWinBypassesShield, true, "a dominant win (margin 2+) bypasses shields entirely, per the approved art");
+  assert.equal(result.infernoDominantShieldLeftUnconsumed, true, 'a bypassed shield is left unconsumed, not destroyed');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
