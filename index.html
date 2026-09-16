@@ -1246,14 +1246,14 @@ const FULL_CARD_IMAGES = {
   shadowking: '9C0351F5-41E6-4527-9F99-1356E5D99A5A.jpg',
   dragon: '309C2066-EC8B-4184-B1E6-C8D140B15ED9.jpg',
   threeheaddragon: 'card-threeheaddragon-full.jpg',
-  ifrit: '74768DE6-1C73-4629-935D-6EA018ACBCCD.jpg',
+  ifrit: 'card-ifrit-full.jpg',
   bahamut: 'BFBF6036-F55F-4B42-BDE8-8715ED5BAAEB.jpg',
   tiamat: 'card-tiamat-full.jpg',
   tahabata: 'card-tahabata-full.jpg',
   celestialjudgment: 'card-celestialjudgment-full.jpg',
   infiniteseraph: 'card-infiniteseraph-full.jpg',
   fenrir: 'card-fenrir-full.jpg',
-  pallis: '63AE7554-757F-459C-9ED0-727E68C8E12E.jpg',
+  pallis: 'card-pallis-full.jpg',
   twinbrothers: '0D171967-BE44-4444-AB1D-E145304BCD5A.jpg',
   twinsisters: 'A2B1A2CA-0D9C-46E9-B3C5-07C0283C4407.jpg',
   eviltwistyang: '3978FBE9-47C9-4E71-9348-6D2F4B1E0EDC.jpg',
@@ -1433,10 +1433,10 @@ const HEROES = [
     {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
   ]},
   { id:'shadowking', name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
-    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle."},
-    {name:'Rage of the Beast', desc:'When Ifrit loses control of a card, he gets +2 on all sides next round.'},
+    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (Flavor only — would need a new \"defender debuffs attacker live\" primitive that doesn't exist anywhere in the engine yet; same gap already turned down for Vorathos's Standstill.)"},
+    {name:'Rage of the Beast', desc:"When Ifrit loses control of a card, he gets +2 on all sides next round. (Flavor only — wording not yet resolved: unclear whether this means Ifrit himself being captured, or Ifrit's side losing a DIFFERENT card he previously captured. Left unbuilt until that's decided.)"},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
@@ -1477,11 +1477,10 @@ const HEROES = [
     {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
-  { id:'pallis', name:'Pallis', role:'Legendary Card — The Faithful Protector', element:'earth', top:4, right:10, bottom:10, left:8, hue:'linear-gradient(160deg,#1c2010,#0d0b18 60%)', accent:'#c9a227', active:{shield:true}, special:{ name:'Wave of Loyalty', cost:2, once:true, targets:'element' }, skills: [    {name:'Loyal Heart (Passive)', desc:'The first time Pallis would lose control this round, the attack is fully ignored (simplified from also granting +1 all sides).'},
-    {name:'Protective Aura', desc:"Choose an adjacent allied card — it can't be lost this round."},
-    {name:'Chain of Loyalty', desc:'When Pallis wins a card, choose an adjacent enemy card. If Pallis has higher strength facing it, take control of it directly.'},
-    {name:"Wolf Paw's Grip", desc:'Choose a side — all enemy cards adjacent to Pallis on that side get -2 on the side facing her this round.'},
-    {name:'Loyal Instinct', desc:'Once per round, after Pallis loses control of a card, immediately try to take it back.'},
+  { id:'pallis', name:'Pallis', role:'Legendary Card — The Faithful Protector', element:'earth', top:4, right:10, bottom:10, left:8, hue:'linear-gradient(160deg,#1c2010,#0d0b18 60%)', accent:'#c9a227', active:{shield:true, onWinChainCapture:true}, special:{ name:'Wave of Loyalty', cost:2, once:true, targets:'element' }, skills: [    {name:'Loyal Heart (Passive)', desc:'The first time Pallis would lose control this round, the attack is fully ignored (simplified from also granting +1 all sides).'},
+    {name:'Protective Aura', desc:"When Pallis is placed, a random adjacent allied card is chosen — it can't be lost this round. (Source text lets you choose the ally; simplified to random, same as every other on-place 'choose 1' ability in this game. No trigger word in the source text either — assumed to fire on placement, same as Naline/Vorgrath/Zalazar's own untriggered 'Choose X' abilities.)"},
+    {name:'Chain of Loyalty', desc:"When Pallis wins a card, a random adjacent enemy card is chosen — if Pallis's Power on the side facing it is higher, she takes control of it directly. (Source text lets you choose the target; simplified to random, same as every other 'choose 1' ability in this game.)"},
+    {name:"Wolf Paw's Grip", desc:"When Pallis is placed, a random side is chosen — the enemy card adjacent to Pallis on that side (if any) gets -2 on the side facing her this round. (Source text lets you choose the side; simplified to random, same as Fenrir/Zalazar's own on-place directional effects. No trigger word in the source text either — assumed to fire on placement, same reasoning as Protective Aura above.)"},
     {name:'Special Attack: Wave of Loyalty', desc:'Costs 2 wins. Choose an element — all your cards of that element get +2 on all sides this round and are protected from being lost until the end of your next round.'},
   ] },
   { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
@@ -1783,10 +1782,10 @@ const FOREST_FOES = [
     {name:'Immortal Chaos', desc:"Three Head Dragon can never be destroyed by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Apokalyps', desc:'Costs 2 wins. Every enemy card gets -3 Power on all sides for the rest of this round.'},
   ] },
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
-    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle."},
-    {name:'Rage of the Beast', desc:'When Ifrit loses control of a card, he gets +2 on all sides next round.'},
+    {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (Flavor only — would need a new \"defender debuffs attacker live\" primitive that doesn't exist anywhere in the engine yet; same gap already turned down for Vorathos's Standstill.)"},
+    {name:'Rage of the Beast', desc:"When Ifrit loses control of a card, he gets +2 on all sides next round. (Flavor only — wording not yet resolved: unclear whether this means Ifrit himself being captured, or Ifrit's side losing a DIFFERENT card he previously captured. Left unbuilt until that's decided.)"},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
@@ -3455,6 +3454,40 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
       }
     });
   }
+  // Pallis's Chain of Loyalty: "choose an adjacent enemy card — if Pallis
+  // has higher strength facing it, take control of it directly." No
+  // target-choice UI, so a random adjacent enemy is picked (same
+  // simplification as every other "choose 1" ability). "Strength facing
+  // it" read as the specific directional side value (matching every other
+  // "facing" comparison in this game), reusing the already-existing
+  // effectiveStatFor() helper (built for the board's live stat display)
+  // to fold in captureBonus/sideBonus on both sides fairly — entries
+  // already carry captureBonus/sideBonus directly, so they can be passed
+  // as effectiveStatFor's opts as-is. Respects shields via the same
+  // specialBlockedByShield() every single-target Ultimate already uses
+  // (which also means it respects Protective Aura's capture-immunity
+  // window above, for free).
+  if(a.onWinChainCapture && winnerIndex != null){
+    const row = Math.floor(winnerIndex/3), col = winnerIndex%3;
+    const dirs = [[-1,0,'top','bottom'],[1,0,'bottom','top'],[0,-1,'left','right'],[0,1,'right','left']];
+    const candidates = [];
+    dirs.forEach(([dr,dc,mySide,theirSide])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== winnerEntry.owner) candidates.push({ entry:n, index:r*3+c, mySide, theirSide });
+    });
+    if(candidates.length > 0){
+      const pick = candidates[Math.floor(Math.random()*candidates.length)];
+      const myVal = effectiveStatFor(winnerEntry.card, pick.mySide, winnerEntry).value;
+      const theirVal = effectiveStatFor(pick.entry.card, pick.theirSide, pick.entry).value;
+      if(myVal > theirVal && !specialBlockedByShield(pick.entry, pick.index)){
+        pick.entry.owner = winnerEntry.owner;
+        pick.entry.justFlipped = true;
+        checkSisterFlip(pick.entry);
+      }
+    }
+  }
   // Three Head Dragon's Fire's Wrath: every enemy card orthogonally around
   // the just-captured square also gets hit — no "once per match" cap in
   // the source text, unlike the two hooks above, so this fires on every win.
@@ -3906,6 +3939,12 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   if(entry && entry.wrathEruptionSide === edgeKey && entry.wrathEruptionUntilTurnCount > state.turnCount){
     v -= 1;
   }
+  // Pallis's Wolf Paw's Grip, set in ON_PLACE_HANDLERS.pallis on the
+  // VICTIM's own entry — same unconditional live-read shape as Wrath
+  // Eruption above, just a -2 amount instead of -1.
+  if(entry && entry.wolfPawSide === edgeKey && entry.wolfPawUntilTurnCount > state.turnCount){
+    v -= 2;
+  }
   if(card.active && card.active.pairPresence){
     const pp = card.active.pairPresence;
     const present = state.board.some(e => e && e.owner === owner && e.card.id === pp.partner);
@@ -3992,6 +4031,29 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
       if(n && n.owner === owner) allyNeighbors++;
     });
     if(allyNeighbors >= ab.minCount) v += ab.amount;
+  }
+  // Ifrit's Burning Dominion: "controls at least 2 adjacent cards HE HAS
+  // DEFEATED" — a stricter version of adjacentAlliesBoost above, filtered
+  // to only count neighbors carrying entry.defeatedByIfrit (set in
+  // battleNeighbors whenever Ifrit personally flips a card, see the
+  // comment there). Both conditions (currently owned AND previously
+  // defeated by him) are checked live every call, same "no state to
+  // reverse" shape as every other adjacency-count aura — the flag itself
+  // persists forever once set (a historical fact, not a status effect),
+  // it's the ownership half of the check that can naturally become false
+  // again if the card gets recaptured.
+  if(card.active && card.active.adjacentDefeatedByMeBoost){
+    const ab = card.active.adjacentDefeatedByMeBoost;
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    let defeatedNeighbors = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner === owner && n.defeatedByIfrit) defeatedNeighbors++;
+    });
+    if(defeatedNeighbors >= ab.minCount) v += ab.amount;
   }
   // Nexzoth's Reality Consume, rebuilt per the approved art into a
   // permanent adjacent-enemy aura (was an on-place one-time debuff) --
@@ -4148,6 +4210,13 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
 
 function isShielded(targetEntry, targetIndex){
   if(targetEntry.grantedShield && !targetEntry.shieldUsed) return true;
+  // Pallis's Protective Aura: "can't be lost THIS ROUND" — a time-gated
+  // window (entry.protectiveAuraUntilTurnCount, same xUntilTurnCount idiom
+  // as Umbral Step/Wrath Eruption), not a one-time-use shield. Blocks
+  // EVERY attempt within the window rather than just the first, so unlike
+  // grantedShield/active.shield above it never sets shieldUsed — there's
+  // nothing to consume, it just expires on its own.
+  if(targetEntry.protectiveAuraUntilTurnCount > state.turnCount) return true;
   const a = targetEntry.card.active;
   if(!a) return false;
   if(a.shield && !targetEntry.shieldUsed) return true;
@@ -4425,6 +4494,45 @@ const ON_PLACE_HANDLERS = {
     if(enemies.length > 0){
       const marked = enemies[Math.floor(Math.random()*enemies.length)];
       marked.tildaMarked = true;
+    }
+  },
+  // Pallis bundles two independent, untriggered "Choose X" abilities into
+  // her one placement — same "no secondary-activation system, so both
+  // fire on-place instead" reasoning as Vorgrath/Zalazar/Naline/Zlaizer/
+  // Tilda above.
+  pallis(entry, owner, cellIndex){
+    // Protective Aura: no ally-choice UI exists, so a random ADJACENT
+    // ally is picked (adjacentEntries(), same helper Shiva/Leviathan/
+    // Chocobo King/Templaren already use — the text specifically says
+    // "adjacent", unlike Tilda's whole-board Marked Target). "Can't be
+    // lost this round" is a new temporary capture-immunity status
+    // (entry.protectiveAuraUntilTurnCount), checked inside the shared
+    // isShielded() alongside grantedShield/active.shield/conditionalShield
+    // — same xUntilTurnCount idiom as Umbral Step/Wrath Eruption, just
+    // read from isShielded() since this blocks a capture outright rather
+    // than changing a Power number.
+    const adjacentAllies = adjacentEntries(cellIndex).filter(({ entry: n }) => n.owner === owner);
+    if(adjacentAllies.length > 0){
+      const pick = adjacentAllies[Math.floor(Math.random()*adjacentAllies.length)].entry;
+      pick.protectiveAuraUntilTurnCount = state.turnCount + 4;
+    }
+    // Wolf Paw's Grip: no side-choice UI either, so a random side is
+    // picked (same shape as Fenrir/Zalazar's own on-place directional
+    // picks). Only one enemy can ever occupy a given side of a cell in a
+    // 3x3 grid, so "all enemy cards...on that side" is naturally just the
+    // one cell there, if any. Same directional xUntilTurnCount idiom as
+    // Tahabata's Wrath Eruption, but a single random side instead of all
+    // four neighbors.
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0,'bottom'],[1,0,'top'],[0,-1,'right'],[0,1,'left']];
+    const [dr,dc,side] = dirs[Math.floor(Math.random()*dirs.length)];
+    const r = row+dr, c = col+dc;
+    if(r>=0 && r<=2 && c>=0 && c<=2){
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner && !isDebuffImmuneNow(n.card)){
+        n.wolfPawSide = side;
+        n.wolfPawUntilTurnCount = state.turnCount + 4;
+      }
     }
   },
 };
@@ -4728,6 +4836,11 @@ function sweepExpiredRoundEffects(){
     // roster's shields; flagged here in case future balancing wants it
     // capped further.
     if(entry.card.active && entry.card.active.shieldResetsEachRound) entry.shieldUsed = false;
+    // Ifrit's Hellfire Claw: "once per ROUND" (not once per match like
+    // every other oncePerMatchAttackBoost user), so it needs the exact
+    // same reset treatment as Omega Weapon's shield above -- just applied
+    // to oncePerMatchAttackBoostUsed instead of shieldUsed.
+    if(entry.card.active && entry.card.active.attackBoostResetsEachRound) entry.oncePerMatchAttackBoostUsed = false;
     // Ancient Wyrmking's Weight of Ages: "+1 to the Power margin needed to
     // flip him for every 2 full turns he's stood unbroken on this exact
     // cell under the same owner" (read in battleNeighbors, capped there
@@ -6298,6 +6411,13 @@ function battleNeighbors(index, owner, result){
       target.owner = owner;
       target.justFlipped = true;
       checkSisterFlip(target);
+      // Ifrit's Burning Dominion: tag every card he personally flips, read
+      // live by the adjacentDefeatedByMeBoost check in fullEffectiveValue.
+      // Hardcoded by id (same shape as Seraphine's seraphineMarked/Tilda's
+      // tildaMarked) rather than a generic active flag — this is the one
+      // place in the real battle-resolution path that has the live
+      // just-captured entry to tag.
+      if(placed.id === 'ifrit') target.defeatedByIfrit = true;
       checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni, index, placedVal);
       checkTriuneTeamBoost(owner);
       result.flips++;

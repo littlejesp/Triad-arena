@@ -43,8 +43,16 @@ när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
 bekräftelse.
 
 **Punkt 50 (Tahabata, HELT klar — 6/6 skills, Inferno Dominion-
-konflikten löst med "kombinera", ny konst inlagd) ligger committad på
-feature-branchen, INTE mergad till `main` än.**
+konflikten löst med "kombinera", ny konst inlagd) samt den nya
+persistenta buff/debuff-visningen på brädet är sedan dess MERGADE till
+`main` också** (användaren bekräftade explicit "merga nu"). Fråga
+alltid explicit innan nästa merge när mer arbete samlats där, anta
+ALDRIG tillstånd från en tidigare bekräftelse.
+
+**Punkt 51 (Pallis, solo — 5/5 skills, Loyal Instinct struken, ny konst
+inlagd) samt punkt 52 (Ifrit, Hellfire Claw + Burning Dominion
+tillagda) ligger committade på feature-branchen, INTE mergade till
+`main` än.**
 
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
@@ -63,7 +71,8 @@ saknar kod-backing), sämst kopplade först:
 8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
 9. **Tilda** 1/4 — KLAR (punkt 49 nedan).
 10. **Tahabata** 2/6 — KLAR (punkt 50 nedan, 6/6).
-11. **Pallis** (solo) 2/6
+11. **Pallis** (solo) 2/6 — KLAR (punkt 51 nedan, 5/5 efter att Loyal
+    Instinct medvetet ströks).
 12. **Ifrit** 2/6
 13. **Evil Twist Yang** 2/4
 14. **Evil Twist Yin** 2/4
@@ -949,6 +958,142 @@ Inga nya primitives — bara en ny renderingsväg för data som redan finns
 `effectiveStatFor`/`statNumHtml`-matematiken plus att `boardCellHtml`
 faktiskt speglar en levande entrys bonus. Fullständig testsvit (82
 tester) grön.
+
+**51. Pallis (solo) — 3 nya skills, en medvetet struken** — elfte kortet
+från audit-listan, hade `active:{shield:true}` (Loyal Heart) och en
+fungerande Ultimate (`SPECIAL_HANDLERS.pallis`, Wave of Loyalty) redan
+wired (2/6). Ingen AI-kopia (som Templaren/Tilda, campaign-only via
+`unlockIds`). Stats 4/10/10/8 = 32, oförändrade.
+
+- **Protective Aura** — ny `ON_PLACE_HANDLERS.pallis`, buntar ihop med
+  Wolf Paw's Grip (samma "ingen sekundär-aktivering"-bunt-mönster som
+  Vorgrath/Zalazar/Naline/Zlaizer/Tilda). Slumpad ADJACENT allierad
+  (`adjacentEntries()`, samma hjälpare Shiva/Leviathan/Chocobo King/
+  Templaren redan använder — till skillnad från Tildas Marked Target
+  som är hela-brädet). "Kan inte förloras den här rundan" är en HELT NY
+  temporär fångst-immunitetsstatus (`entry.protectiveAuraUntilTurnCount`,
+  samma `xUntilTurnCount`-idiom som Umbral Step/Wrath Eruption), kollad
+  inuti den DELADE `isShielded()`-funktionen tillsammans med
+  `grantedShield`/`active.shield`/`conditionalShield` — till skillnad
+  från en engångssköld blockerar den VARJE försök inom fönstret, inte
+  bara det första, så den sätter aldrig `shieldUsed`.
+- **Wolf Paw's Grip** — samma bunt. Slumpad riktning (samma mönster som
+  Fenrir/Zalazar), fienden i den riktningen (om någon — bara en kan
+  någonsin finnas per sida i ett 3×3-rutnät) får `entry.wolfPawSide`/
+  `entry.wolfPawUntilTurnCount` satta, läst ovillkorligt i
+  `fullEffectiveValue` (samma form som Tahabatas Wrath Eruption, bara
+  en enda riktning istället för alla fyra grannar, och -2 istället för
+  -1).
+- **Chain of Loyalty** — ny `active.onWinChainCapture:true`, kopplad i
+  `checkOnWinBonuses`. Slumpad angränsande fiende, "styrka" tolkad som
+  den specifika RIKTADE sid-siffran (matchar all annan "facing"-
+  terminologi i spelet), beräknad via den redan existerande
+  `effectiveStatFor()`-hjälparen (byggd för bräd-visningen tidigare
+  samma session — en live-brädentry har redan exakt samma
+  `captureBonus`/`sideBonus`-form som `effectiveStatFor`s `opts`
+  förväntar sig, så entryn kan skickas in direkt). Respekterar sköldar
+  via samma `specialBlockedByShield()` alla envals-Ultimates redan
+  använder (vilket automatiskt även respekterar Protective Aura ovan).
+  **Viktig upptäckt under arbetet:** eftersom ALLA angränsande fiender
+  redan slåss mot Pallis samtidigt vid hennes egen placering (samma
+  jämförelse, samma sidor), kan Chain of Loyalty aldrig fånga något
+  UTÖVER vad en vanlig strid redan skulle fånga i just det scenariot —
+  dess verkliga värde uppstår när Pallis vinner en FÖRSVARS-strid
+  (redan på brädet, en fiende attackerar och förlorar), då kan hon
+  snärja en helt orelaterad, redan etablerad granne som aldrig var
+  inblandad i den utlösande striden. Testad direkt via ett
+  `checkOnWinBonuses(...)`-anrop (samma stil som andra direkta
+  handler-tester) snarare än genom en fullständig placerings-strid, av
+  precis den anledningen.
+- **Loyal Heart, Wave of Loyalty** — oförändrade.
+- **Loyal Instinct** — ❌ struken helt (inte byggd). Skulle krävt en helt
+  ny reaktionsmekanik direkt i förlust-upplösningen i `battleNeighbors`
+  (en omedelbar motattack precis efter att Pallis själv blivit
+  erövrad) — inget liknande finns någonstans i motorn (kollat: samma
+  läge som Pallis & Pells nästan identiska "Double Fury"-syskonskill,
+  som aldrig byggdes av samma anledning). Samma "vi bygger inte
+  specialsystem för ett enda kort"-princip som Templarens Shield Wall.
+
+Inga nya generella primitives — `adjacentEntries()`, `specialBlockedByShield()`
+och `effectiveStatFor()` fanns alla redan; Protective Aura/Wolf Paw's
+Grip återanvänder det redan etablerade `xUntilTurnCount`-idiomet. Nytt
+test täcker alla tre skills inklusive Chain of Loyaltys tre grenar
+(fångar, misslyckas mot starkare, blockeras av sköld). Fullständig
+testsvit grön.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Matchade allt exakt — stats 4/10/10/8, namn/roll, alla fem skill-texter
+(inklusive Wave of Loyalty) ord för ord, ingen Loyal Instinct synlig.
+Bekräftar samtidigt den redan existerande identiteten (tjej + trogen
+hund-följeslagare, guld/jord-palett, skogsklippa med slott i bakgrunden)
+som bildbriefen explicit bad att bevara — inte en omdesign. Inga
+kodändringar. Flyttade full-bilden från det gamla GitHub-UUID-filnamnet
+(`63AE7554-757F-459C-9ED0-727E68C8E12E.jpg`, borttaget) till
+standardnamnet `card-pallis-full.jpg`. Ny beskuren `cards/card-pallis.jpg`
+använder samma förhöjda beskärning som Templaren/Tilda/Tahabata
+((10,60)-(930,660)) för att få med ansiktet och hunden istället för att
+klippa av huvudet.
+
+**52. Ifrit — 2 av 4 saknade skills tillagda, 2 medvetet lämnade
+olösta** — tolfte kortet från audit-listan. Hade redan
+`active.onCaptureBonus:1` (Eternal Inferno) och en fungerande Ultimate
+(`SPECIAL_HANDLERS.ifrit`, Hellfire, samma total-power-tröskel-familj
+som Sarah/Vayra/Tilda/Tahabata) wired (2/6). Finns i både `HEROES` och
+`FOREST_FOES` (som Tahabata, AI-spelbar) — alla ändringar speglade på
+båda ställena. Stats 9/10/8/10 = 37, oförändrade.
+
+- **Hellfire Claw** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:2}` (samma som Yojimbo/
+  Vorathos/Tahabata), PLUS en ny `active.attackBoostResetsEachRound:true`
+  som återställer `oncePerMatchAttackBoostUsed` varje runda i
+  `sweepExpiredRoundEffects()` — exakt samma mekanism som Omega Weapons
+  `shieldResetsEachRound` redan använder för sin sköld, bara applicerad
+  på attack-boost-flaggan istället. Skillnaden mot alla andra
+  `oncePerMatchAttackBoost`-kort: Ifrits är "en gång per RUNDA", inte
+  "en gång per MATCH".
+- **Burning Dominion** — ny `active.adjacentDefeatedByMeBoost:
+  {minCount:2, amount:1}`, samma icke-attack-gated adjacency-count-form
+  som Medusas `adjacentAlliesBoost`, men filtrerad på en ny
+  `entry.defeatedByIfrit`-runtime-flagga istället för bara ägarskap.
+  Flaggan sätts hårdkodat (`if(placed.id === 'ifrit') target.
+  defeatedByIfrit = true;`) direkt i `battleNeighbors`s per-flip-loop —
+  samma plats/anledning som Seraphines `seraphineMarked`/Tildas
+  `tildaMarked` (den enda platsen med den levande precis-erövrade
+  entryn). Flaggan är en permanent historisk markering (rensas aldrig),
+  men aurans andra villkor (`n.owner === owner`) gör att bonusen
+  naturligt försvinner om kortet erövras tillbaka. **Medvetet begränsat
+  till riktiga strider** — Same/Plus-erövringar (en annan
+  fångstmekanism helt, ingen styrke-jämförelse) sätter INTE flaggan,
+  matchar "han HAR BESEGRAT" bättre än en bredare tolkning skulle.
+- **Volcanic Armor och Rage of the Beast** — ❌ lämnade oimplementerade
+  per uttrycklig instruktion. Volcanic Armor bekräftat sakna en
+  "försvarare-debuffar-angripare-live"-primitive (samma lucka som redan
+  identifierades och avvisades för Vorathos's Standstill). Rage of the
+  Beast har en olöst formuleringsfråga (drabbar det Ifrit SJÄLV blir
+  erövrad, eller när en ANNAN erövrad av honom tas tillbaka?) — lämnad
+  olöst tills vidare, ingen kod skriven för den.
+
+Inga nya generella primitives — `oncePerMatchAttackBoost`,
+`shieldResetsEachRound`-mönstret och adjacency-count-formen fanns alla
+redan; `attackBoostResetsEachRound`/`adjacentDefeatedByMeBoost` är bara
+nya DATA-nycklar som återanvänder samma befintliga kod-teknik. Nytt
+test täcker båda nya skills inklusive rundan-reset-beteendet och att
+flagg-sättningen faktiskt sker vid en riktig strid. Fullständig testsvit
+grön.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Matchade allt exakt — stats 9/10/8/10 (i ett annorlunda 2×2-
+diamant-layout runt namnplattan istället för det vanliga kors-mönstret,
+men siffrorna stämmer), namn/roll, och alla sex skill-texter (inklusive
+de nytillagda Hellfire Claw/Burning Dominion OCH de fortfarande
+obyggda Volcanic Armor/Rage of the Beast, som medvetet står kvar på
+kortet som flavor). Inga kodändringar. Behöll hans etablerade
+demon-identitet (lavaådrad kropp, horn, guldringar) precis som
+bildbriefen bad om. Flyttade full-bilden från det gamla
+GitHub-UUID-filnamnet (`74768DE6-1C73-4629-935D-6EA018ACBCCD.jpg`,
+borttaget) till standardnamnet `card-ifrit-full.jpg`. Ny beskuren
+`cards/card-ifrit.jpg` använder samma förhöjda beskärning som de
+senaste kortens ((10,60)-(930,660)) för att få med ansikte och horn.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
