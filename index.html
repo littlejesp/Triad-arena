@@ -1424,12 +1424,10 @@ const HEROES = [
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, special:{ name:'Megaflare', cost:2, once:true, targets:'single' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
-    {name:'Exaflare', desc:'Once per match, choose an adjacent enemy card - it gets -2 Power on the side facing Bahamut this round.'},
-    {name:'Astral Aegis', desc:'The first time Bahamut would lose a battle in the match, the loss is ignored.'},
-    {name:"Dragon King's Wrath", desc:'When Bahamut takes an enemy card, choose a side on him - it gets +2 this round.'},
-    {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
-    {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, adjacentAlliesBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
+    {name:'Astral Aegis (Passive)', desc:'The first time Bahamut would lose a battle, the loss is ignored.'},
+    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, he gets +1 Power on all sides.'},
+    {name:'Special Attack: Megaflare', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Bahamut permanently gains +1 Power per card destroyed. Usable once per match.'},
   ] },
   { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
     {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
@@ -1680,11 +1678,11 @@ const HEROES = [
   { id:'seraphine', name:'Seraphine', role:'The Silver Gunslinger — Boss, Triple Triad Sisters II', element:'wind',
     top:10, right:10, bottom:10, left:10,
     hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#e0c060', icon:'🕊️',
-    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} } },
+    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} }, vsStrongerTotalPowerBoost:{amount:2} },
     special:{ name:'Silver Judgment', cost:2, once:true, targets:'aoe' },
     skills: [
-      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. (Flavor only — a stacking "extra Power the next time she hits that card" bonus is not currently wired into the battle engine.)'},
-      {name:'Silver Sight', desc:"On Seraphine's turn, she can read a hidden enemy card's Power. (Flavor only — this game has no hidden-card/fog-of-war system; every card is always fully visible.)"},
+      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. The next time she attacks that marked card, she gets +2 Power.'},
+      {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
       {name:'Weakness — Broken Focus', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "focus is broken" text).'},
       {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
@@ -1784,12 +1782,10 @@ const FOREST_FOES = [
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1}, special:{ name:'Megaflare', cost:2, once:true, targets:'single' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'The first time Bahamut wins a card, he gains +1 Power (applies to future battles).'},
-    {name:'Exaflare', desc:'Once per match, choose an adjacent enemy card - it gets -2 Power on the side facing Bahamut this round.'},
-    {name:'Astral Aegis', desc:'The first time Bahamut would lose a battle in the match, the loss is ignored.'},
-    {name:"Dragon King's Wrath", desc:'When Bahamut takes an enemy card, choose a side on him - it gets +2 this round.'},
-    {name:'Celestial Sovereign', desc:'If Bahamut is surrounded by at least 2 of your cards, he gets +1 on all sides as long as the formation holds.'},
-    {name:'Special Attack: Megaflare', desc:"Costs 2 wins. Choose an adjacent enemy card - Bahamut gets +3 Power on that side and the enemy's defensive skills can't activate. +1 all sides this round if he wins. Usable once per match."},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, adjacentAlliesBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
+    {name:'Astral Aegis (Passive)', desc:'The first time Bahamut would lose a battle, the loss is ignored.'},
+    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, he gets +1 Power on all sides.'},
+    {name:'Special Attack: Megaflare', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Bahamut permanently gains +1 Power per card destroyed. Usable once per match.'},
   ] },
   { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
     {name:'Queen of Dragons', desc:'When Tiamat wins an attack, she gets +1 Power on the direction used in that attack, for the rest of the match. Once per match.'},
@@ -2009,11 +2005,11 @@ const FOREST_FOES = [
   { id:'seraphine', name:'Seraphine', role:'The Silver Gunslinger — Boss, Triple Triad Sisters II', element:'wind',
     top:10, right:10, bottom:10, left:10,
     hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#e0c060', icon:'🕊️',
-    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} } },
+    active:{ sisterAura:{ partners:['vaelira','nyxara'], bonusByCount:{1:2,2:3} }, vsStrongerTotalPowerBoost:{amount:2} },
     special:{ name:'Silver Judgment', cost:2, once:true, targets:'aoe' },
     skills: [
-      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. (Flavor only — a stacking "extra Power the next time she hits that card" bonus is not currently wired into the battle engine.)'},
-      {name:'Silver Sight', desc:"On Seraphine's turn, she can read a hidden enemy card's Power. (Flavor only — this game has no hidden-card/fog-of-war system; every card is always fully visible.)"},
+      {name:'Celestial Mark (Passive)', desc:'When Seraphine is placed, she marks a random enemy card. The next time she attacks that marked card, she gets +2 Power.'},
+      {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
       {name:'Weakness — Broken Focus', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she loses -3 Power the round she returns (approximates her original "focus is broken" text).'},
       {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
@@ -2054,16 +2050,16 @@ const FOREST_FOES = [
   // Desire above (both explicitly made playable on request). Trivial to
   // duplicate into HEROES later if the user wants them playable too.
   { id:'kaeldryx', name:'Kaeldryx', role:'Legendary Card — The Last Dragon Hunter',
-    top:10, right:10, bottom:9, left:9,
+    top:10, right:9, bottom:9, left:10,
     hue:'linear-gradient(160deg,#241005,#0d0b18 60%)', accent:'#c9a227', icon:'⚔️',
-    active:{ vsTagBonus:{tag:'isDragon', amount:4}, scaleBreaker:true, onWinPowerThresholdDestroy:10, weakVsElement:{element:'magic', amount:3} },
+    active:{ vsTagBonus:{tag:'isDragon', amount:2}, onWinCappedBoost:{amount:1, max:Infinity}, onWinDestroyIfLoserWeak:{maxTotal:3, noRevive:true}, weakVsElement:{element:'magic', amount:3} },
     special:{ name:'Dragonslayer', cost:3, once:true, targets:'aoe' },
     skills: [
-      {name:'Dragon Hunter (Passive)', desc:'Kaeldryx gets +4 Power whenever he faces a Dragon-type card (Ancient Wyrmking, Three Head Dragon).'},
-      {name:"Hunter's Focus", desc:"When Kaeldryx is placed, a random enemy card is chosen — it can't gain any Power bonuses this round. (Source text lets you choose the target; simplified to random, same as every other on-place 'choose 1 enemy' card above.)"},
-      {name:'Scalebreaker (Passive)', desc:'Kaeldryx gets +1 Power in any battle where the opposing side is 8 Power or higher.'},
-      {name:'Execution', desc:'Whenever Kaeldryx wins a round with 10 or higher effective Power, the losing card is destroyed outright instead of just flipped (respects destroyImmune).'},
-      {name:'Special Attack: Dragonslayer', desc:"Costs 3 wins. Destroys every Dragon-type card on the board — allied or enemy alike — then every remaining enemy card gets -3 Power this round."},
+      {name:'Dragon Hunter (Passive)', desc:'Kaeldryx gains +2 Power against Dragon cards.'},
+      {name:"Hunter's Focus (Passive)", desc:'Kaeldryx gains +1 Power on all sides after each round he wins.'},
+      {name:'Scalebreaker (Passive)', desc:"When Kaeldryx is placed, a random enemy card's Power is permanently reduced by 2 (does not destroy)."},
+      {name:'Execution (Passive)', desc:'Whenever Kaeldryx wins a round against a card with 3 or lower total Power, that card is destroyed outright instead of just flipped (cannot be revived).'},
+      {name:'Special Attack: Dragonslayer', desc:'Costs 3 wins. Destroys every Dragon-type card on the board — allied or enemy alike — and grants an extra turn.'},
     ] },
   { id:'nexzoth', name:'Nexzoth', role:'Mythic Card — The World Eater',
     top:10, right:10, bottom:10, left:10,
@@ -3410,7 +3406,7 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // LOSER's total power instead of the winner's effective power for that
   // battle — "wins against a 6-or-lower card" rather than "wins with 10+".
   if(a.onWinDestroyIfLoserWeak && loserIndex != null && totalPower(loserEntry) <= a.onWinDestroyIfLoserWeak.maxTotal){
-    if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex);
+    if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex, { noRevive: !!a.onWinDestroyIfLoserWeak.noRevive });
   }
   // Nexzoth's World Shatter / Morvath's Abyssal Grasp: "destroy every card
   // further along the line the just-won battle happened on" — read as the
@@ -3992,14 +3988,6 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   if(card.active && card.active.vsTagBonus && opponentCard && opponentCard[card.active.vsTagBonus.tag]){
     v += card.active.vsTagBonus.amount;
   }
-  // Kaeldryx's Scalebreaker: "takes 1 less damage from cards with 8+ Power" —
-  // read as +1 Power on his own side whenever the opponent's FACING side
-  // (the edge actually being compared against, i.e. the opposite of this
-  // card's own edgeKey) is 8 or higher.
-  if(card.active && card.active.scaleBreaker && opponentCard){
-    const opposite = { top:'bottom', bottom:'top', left:'right', right:'left' };
-    if(opponentCard[opposite[edgeKey]] >= 8) v += 1;
-  }
   // The bosses' "Weakness" clauses (-N Power vs a specific-element card): a
   // plain elemental vulnerability printed on the card itself, not an
   // opponent's active ability — so unlike every debuff() call above, this
@@ -4129,15 +4117,28 @@ const ON_PLACE_HANDLERS = {
     const target = enemies[Math.floor(Math.random()*enemies.length)];
     target.specialLockedUntilTurnCount = state.turnCount + 4;
   },
-  // Kaeldryx's Hunter's Focus: "choose 1 enemy card — it can't get Power
-  // bonuses this round" — random target, same simplification as every other
-  // on-place "choose 1 enemy/direction" ability above with no picker UI.
-  // See SpecialVerbs.attackBoost/directionalBoost for the actual guard.
+  // Seraphine's Celestial Mark: marks a random enemy on placement.
+  // entry.seraphineMarked is a plain runtime flag (same shape as
+  // entry.vaeliraBurned/entry.frostmarked) — the actual +2 bonus is read via
+  // two small, hardcoded-by-id checks in battleNeighbors and simulateFlips
+  // (fullEffectiveValue has no access to the live opponent entry, only its
+  // static card data, so it can't read this flag itself — see the comment
+  // at each check site).
+  seraphine(entry, owner){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length === 0) return;
+    const target = enemies[Math.floor(Math.random()*enemies.length)];
+    target.seraphineMarked = true;
+  },
+  // Kaeldryx's Scalebreaker, rebuilt per the approved art (was "choose 1
+  // enemy card — it can't get Power bonuses this round", now a permanent
+  // -2 debuff instead) — random target, same simplification as every other
+  // on-place "choose 1 enemy" ability above with no picker UI.
   kaeldryx(entry, owner){
     const enemies = state.board.filter(e => e && e.owner !== owner);
     if(enemies.length === 0) return;
     const target = enemies[Math.floor(Math.random()*enemies.length)];
-    target.buffLockedUntilTurnCount = state.turnCount + 4;
+    SpecialVerbs.debuff(target, 2);
   },
   // Nexzoth's Reality Consume.
   nexzoth(entry, owner){
@@ -4812,18 +4813,25 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${srcEntry.card.name}'s Hellfire engulfs ${targetEntry.card.name}!`;
   },
-  bahamut({ srcEntry, targetEntry, owner }){
-    // Megaflare explicitly overrides the enemy's defensive skills — no shield check.
-    const basePower = totalPower(srcEntry);
-    const targetPower = totalPower(targetEntry);
-    if(basePower + 3 <= targetPower){
-      return `${srcEntry.card.name}'s Megaflare dissipates harmlessly!`;
+  // Megaflare, rebuilt per the approved art: from a single-target attack
+  // into a full AOE destroy-all-enemies (same shape as Vaelira's Infernal
+  // Pact / Nexzoth's The Ending), destroyed cards cannot be revived, and
+  // Bahamut permanently gains +1 Power per card destroyed instead of a
+  // flat +1 on a win.
+  bahamut({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    let destroyed = 0;
+    state.board.forEach((e, i) => {
+      if(!e || e.owner === owner) return;
+      if(isDestroyImmune(e)) return;
+      destroyCard(i, { noRevive: true });
+      destroyed++;
+    });
+    if(destroyed === 0){
+      return `${name}'s Megaflare finds no enemies left to consume!`;
     }
-    targetEntry.owner = owner;
-    targetEntry.justFlipped = true;
-    checkSisterFlip(targetEntry);
-    SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${srcEntry.card.name}'s Megaflare overwhelms ${targetEntry.card.name}, defenses and all!`;
+    SpecialVerbs.attackBoost(srcEntry, destroyed);
+    return `${name}'s Megaflare annihilates ${destroyed} enem${destroyed>1?'ies':'y'}!`;
   },
   // Rebuilt to match the approved card art's generic wording ("+3 this
   // attack only, +1 all sides permanent on a win") instead of the original
@@ -5351,31 +5359,25 @@ const SPECIAL_HANDLERS = {
   // thematically a hunter who kills every dragon he finds, allied or not.
   // Only card.isDragon-tagged cards are hit (Ancient Wyrmking, Three Head
   // Dragon); everything else just takes the flat -3 Power.
+  // Dragonslayer, simplified per the approved art: drops the old "-3 Power
+  // this round to remaining enemies" clause, adds an unconditional extra
+  // turn, and the destroyed dragons can no longer be revived (noRevive).
   kaeldryx({ srcEntry, owner }){
     const name = srcEntry.card.name;
     const enemyOwner = owner === 'blue' ? 'red' : 'blue';
     const enemyProtected = protectedByInfiniteSeraph(enemyOwner);
-    let dragonsDestroyed = 0, weakened = 0;
+    let dragonsDestroyed = 0;
     state.board.forEach((e, i) => {
       if(!e || !e.card.isDragon) return;
       if(isDestroyImmune(e)) return;
       if(e.owner === enemyOwner && enemyProtected) return;
-      destroyCard(i);
+      destroyCard(i, { noRevive: true });
       dragonsDestroyed++;
     });
-    state.board.forEach(e => {
-      if(e && e.owner === enemyOwner){
-        SpecialVerbs.debuffThisRound(e, 3);
-        weakened++;
-      }
-    });
-    if(dragonsDestroyed === 0 && weakened === 0){
-      return `${name}'s Dragonslayer finds no dragons or foes left to strike!`;
-    }
-    const parts = [];
-    if(dragonsDestroyed > 0) parts.push(`slays ${dragonsDestroyed} dragon${dragonsDestroyed>1?'s':''}`);
-    if(weakened > 0) parts.push(`weakens ${weakened} more`);
-    return `${name}'s Dragonslayer ${parts.join(' and ')}!`;
+    SpecialVerbs.extraTurn(owner);
+    return dragonsDestroyed > 0
+      ? `${name}'s Dragonslayer slays ${dragonsDestroyed} dragon${dragonsDestroyed>1?'s':''}!`
+      : `${name}'s Dragonslayer finds no dragons left to slay!`;
   },
   // The Ending, simplified per the approved art: enemy-only now (matching
   // Vaelira/Nyxara's own destroy-alls), no longer hits allies too, and
@@ -5947,8 +5949,16 @@ function battleNeighbors(index, owner, result){
     target.attackFlash = true; // purely visual — every real battle gets a slash, win or lose
     target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
 
-    const placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
+    let placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     const targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
+    // Seraphine's Celestial Mark: +2 Power when she attacks the SPECIFIC
+    // enemy entry her on-place mark landed on. Hardcoded by id (same shape
+    // as Triune Desire's Divine Temptation) rather than a generic active
+    // flag, because fullEffectiveValue only ever receives the opponent's
+    // static card data (target.card above), never the live entry carrying
+    // runtime flags like seraphineMarked — this is the one place in the
+    // real battle-resolution path that actually has the live target entry.
+    if(placed.id === 'seraphine' && target.seraphineMarked) placedVal += 2;
     // Omega Weapon's Anti-Matter Cannon / Yojimbo's Kozuka: fullEffectiveValue
     // above already read these as "not yet used" and folded the bonus into
     // placedVal if eligible — mark them used now that this is a real attack
@@ -6307,8 +6317,11 @@ function simulateFlips(index, card, owner){
     const ni = r*3+c;
     const target = state.board[ni];
     if(!target || target.owner === owner) return;
-    const myVal = fullEffectiveValue(card, n.myEdge, target.card, index, owner, 'attack');
+    let myVal = fullEffectiveValue(card, n.myEdge, target.card, index, owner, 'attack');
     const theirVal = fullEffectiveValue(target.card, n.theirEdge, card, ni, target.owner, 'defense');
+    // Seraphine's Celestial Mark, mirrored here so the AI's own move
+    // evaluation accounts for it too — same hardcoded check as battleNeighbors.
+    if(card.id === 'seraphine' && target.seraphineMarked) myVal += 2;
     if(myVal > theirVal){
       score += isShielded(target, ni) ? 0.25 : 1;
     }

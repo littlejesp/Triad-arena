@@ -36,7 +36,10 @@ kortkonst är committad, men bara Devourer, World Shatter och The
 Ending matchar den nya bilden** (alternativ A, de tre säkra delarna).
 Reality Consume och Endless Void är OFÖRÄNDRADE och matchar INTE
 bilden än — väntar fortfarande på svar om ny motorlogik (se punkt 36
-nedan).
+nedan). Punkt 37 (Kaeldryx, full ombyggnad) och 38 (Bahamut,
+gameplay-fix + Megaflare-omdesign) har båda godkänd konst att
+konvertera/committa. Punkt 39 (Seraphine, Celestial Mark + Silver
+Sight-byte) är klar i koden men saknar fortfarande en bildbrief.
 
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
@@ -264,6 +267,98 @@ rondstart-triggersystem som inte finns alls i motorn idag). Två öppna
 frågor till användaren: ska Endless Void vara permanent-staplande
 eller tillfällig per runda, och ska den gälla alla fiender eller bara
 de som redan fanns vid rondstart.
+
+**39. Seraphine — Celestial Mark riktig mekanik, Silver Sight bytt** —
+3 av 5 skills var redan wired (Sister's Bond, Weakness — Broken Focus,
+Silver Judgment), men Celestial Mark var flavor-only och Silver Sight
+var genuint obyggbar (kräver fog-of-war, som inte finns).
+
+- **Celestial Mark (Passiv)** — riktig mekanik nu: ny
+  `ON_PLACE_HANDLERS.seraphine` märker en slumpad fiende
+  (`entry.seraphineMarked`, samma runtime-flagg-form som
+  `vaeliraBurned`/`frostmarked`). Eftersom `fullEffectiveValue()`
+  aldrig får motståndarens LEVANDE kort-instans (bara statisk
+  korttext), kunde bonusen inte läsas generiskt där — löst med två
+  små, hårdkodade `if(placed.id === 'seraphine' && target.
+  seraphineMarked)`-checkar i `battleNeighbors` (riktiga strider) och
+  `simulateFlips` (AI:ns egen utvärdering), exakt samma "hårdkodat per
+  kort-ID"-mönster som Triune Desires Divine Temptation redan
+  använder. Ingen ändring av `fullEffectiveValue()` själv, inget annat
+  kort påverkat.
+- **Silver Sight → borttagen**, ersatt av
+  `active.vsStrongerTotalPowerBoost:{amount:2}` (helt återanvänd,
+  samma som Yojimbo/Ysara/Sarah/Lyrith).
+- Sister's Bond, Weakness — Broken Focus, Silver Judgment —
+  **oförändrade**.
+
+Användarens uttryckliga princip: undvik nya generiska primitives när
+möjligt — den här lösningen introducerar INGEN ny generisk `active.X`,
+bara en liten per-kort-hårdkodning i två redan existerande
+funktioner.
+
+**38. Bahamut — gameplay-fix + Megaflare omdesignad till AOE** —
+tunnare kort, bara 2 av 6 skills wired från start (Dragon King's
+Majesty löst, Megaflare). Godkänd bild krävde en total omdesign av
+Megaflare utöver den ursprungligen godkända minimala fixen.
+
+- **Dragon King's Majesty (Passiv)** — oförändrad `active.
+  onCaptureBonus:1`, texten synkad från "the first time" till "each
+  time" (primitiven triggar varje erövring, inte bara den första).
+- **Astral Aegis (Passiv, NY)** — helt befintligt fält
+  `active.shield:true`.
+- **Celestial Sovereign (Passiv, NY)** — helt befintligt fält
+  `active.adjacentAlliesBoost:{minCount:2, amount:1}` (samma som
+  Medusas Throne of Stone). OBS: bilden beskrev detta som en
+  ALLIERAD-buff istället för ett självbuff ("they gain +1 Power") —
+  användaren bekräftade bara Megaflare-ändringen explicit, så
+  Celestial Sovereign behölls som ursprungligen godkänt (självbuff)
+  tills vidare eftersom ally-varianten hade krävt genuint ny,
+  bespoke grannskaps-kod.
+- **Special Attack: Megaflare — total omdesign per godkänd bild**: från
+  ett enda-mål-anfall (kostade 2 wins, ignorerade försvar, permanent
+  +1 vid vinst) till en AOE som förstör ALLA fiender (`cost:3`,
+  `targets:'aoe'`, samma mönster som Vaelira/Nexzoth), kan inte
+  återupplivas (`noRevive`), och ger permanent +1 Power PER förstört
+  kort istället för en fast +1.
+- Exaflare, Dragon King's Wrath — bort, flavor-only/redundanta
+  (beslutat innan bilden).
+
+**37. Kaeldryx — full ombyggnad baserad på godkänd bild** —
+till skillnad från nästan alla andra kort var Kaeldryx redan 100%
+wired (alla 5 skills). Bilden beskrev ändå helt andra mekaniker på
+varenda skill; användaren valde uttryckligen att göra om honom
+riktigt baserat på den nya texten, inte bara synka ord.
+
+- **Dragon Hunter** — `vsTagBonus.amount` sänkt från 4 till 2.
+- **Hunter's Focus** — total omvändning: FRÅN "vid placering, lås en
+  slumpad fiendes buffar i 4 turns" TILL "+1 Power alla sidor efter
+  VARJE vunnen runda, okapat". Återanvänder `active.onWinCappedBoost`
+  (byggd för Vaelira) med `max:Infinity` — alltså fortfarande INGEN ny
+  primitive, bara en extremt hög/oändlig gräns på en redan existerande
+  capped-mekanism.
+- **Scalebreaker** — total omvändning: FRÅN "+1 Power mot 8+
+  motstående sida" TILL "vid placering, permanent -2 på en slumpad
+  fiende (förstör inte)". `ON_PLACE_HANDLERS.kaeldryx` omskriven för
+  detta (var tidigare Hunter's Focus-koden, som nu bytt plats/mening
+  med Scalebreaker). Den gamla `scaleBreaker:true`-läsningen i
+  `fullEffectiveValue()` är död kod nu (inget annat kort använde den)
+  — borttagen helt, samma städprincip som Sylvarions gamla
+  Ultimate-rester tidigare i projektet.
+- **Execution** — bytte tröskel FRÅN "Kaeldryx vinner med 10+ effektiv
+  Power → förstör förloraren" TILL "förloraren har ≤3 total Power →
+  förstörs". Återanvänder Deathblades `onWinDestroyIfLoserWeak`
+  primitive rakt av (`maxTotal:3`), plus en ny liten valfri
+  `noRevive`-flagga på samma primitives config-objekt (`{maxTotal,
+  noRevive:true}`) så Kaeldryx kan skippa Graveyard helt utan att
+  ändra Deathblades egen, oförändrade `{maxTotal:6}` (ingen
+  `noRevive` där, så hennes destroy fortfarande kan hamna i
+  Graveyard som vanligt).
+- **Dragonslayer** — tappade den gamla "-3 Power till kvarvarande
+  fiender denna runda"-klausulen, fick en ovillkorad extra tur
+  istället, och dragarnas destroy kan inte längre återupplivas
+  (`noRevive`).
+- Stats matchade till godkänd konst (höger/vänster omkastade):
+  top:10, right:9, bottom:9, left:10 (tidigare 10/10/9/9).
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

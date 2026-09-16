@@ -801,71 +801,154 @@ test('Graveyard optional rule: every destroy-capable Special routes through dest
   await page.close();
 });
 
-test('Kaeldryx: Dragon Hunter/Scalebreaker passives, Hunter\'s Focus buff-lock, Execution, Dragonslayer ultimate', async () => {
+test('Kaeldryx: reworked per approved art — Dragon Hunter +2, uncapped Hunter\'s Focus, on-place Scalebreaker debuff, weak-loser Execution, Dragonslayer extra turn', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
     const kaeldryx = findCardById('kaeldryx');
+    out.statsMatchArt = kaeldryx.top === 10 && kaeldryx.right === 9 && kaeldryx.bottom === 9 && kaeldryx.left === 10;
 
     state.board = Array(9).fill(null);
     state.playerHand = [1,2]; state.enemyHand = [1,2];
-    // A synthetic dragon with a facing side below 8, so Scalebreaker (+1 vs
-    // 8+ facing) doesn't also kick in here and confound the Dragon Hunter
-    // reading — Scalebreaker gets its own isolated assertions below.
     const weakDragon = { id:'weak-dragon', name:'WeakDragon', top:1,right:1,bottom:1,left:1, isDragon:true };
     out.dragonHunterBonus = fullEffectiveValue(kaeldryx, 'top', weakDragon, 0, 'blue', 'attack') - kaeldryx.top;
-    const strongFacing = { id:'s8', name:'S8', top:8,right:1,bottom:1,left:1 };
-    const weakFacing = { id:'s7', name:'S7', top:7,right:1,bottom:1,left:1 };
-    out.scaleBreakerAt8 = fullEffectiveValue(kaeldryx, 'bottom', strongFacing, 0, 'blue', 'attack') - kaeldryx.bottom;
-    out.scaleBreakerBelow8 = fullEffectiveValue(kaeldryx, 'bottom', weakFacing, 0, 'blue', 'attack') - kaeldryx.bottom;
 
-    // Hunter's Focus (called directly, isolated from battle resolution)
+    // Hunter's Focus: +1 Power all sides after EVERY win, uncapped (no max).
     state.board = Array(9).fill(null);
     const hfSrc = freshEntry(kaeldryx, 'blue');
-    const hfTarget = freshEntry(findCardById('ogre'), 'red');
-    state.board[4] = hfSrc; state.board[1] = hfTarget;
-    state.turnCount = 50;
-    ON_PLACE_HANDLERS.kaeldryx(hfSrc, 'blue', 4);
-    out.buffLockedAfterPlace = hfTarget.buffLockedUntilTurnCount > state.turnCount;
-    SpecialVerbs.attackBoost(hfTarget, 5);
-    out.buffBlockedWhileLocked = hfTarget.captureBonus === 0;
-    state.turnCount += 4;
-    SpecialVerbs.attackBoost(hfTarget, 5);
-    out.buffWorksAfterLockExpires = hfTarget.captureBonus === 5;
+    state.board[4] = hfSrc;
+    for(let i=0;i<5;i++){
+      state.board[1] = freshEntry({ id:'hf-weak'+i, name:'HFWeak'+i, top:1,right:1,bottom:1,left:1 }, 'red');
+      resolveFlips(4, 'blue');
+    }
+    out.huntersFocusUncappedAfterFiveWins = hfSrc.captureBonus === 5;
 
-    // Execution: a 10+ power win destroys the loser outright
+    // Scalebreaker: on-place, permanently debuffs a random enemy by 2 (does not destroy).
     state.board = Array(9).fill(null);
-    state.playerHand = [1,2]; state.enemyHand = [1,2];
-    state.board[4] = freshEntry(kaeldryx, 'blue');
-    state.board[1] = freshEntry({ id:'exec-weak', name:'ExecWeak', top:1,right:1,bottom:1,left:1 }, 'red');
-    resolveFlips(4, 'blue');
-    out.executionDestroyedLoser = state.board[1] === null;
+    const placedSrc = freshEntry(kaeldryx, 'blue');
+    state.board[4] = placedSrc;
+    const onlyEnemy = freshEntry({ id:'sb-target', name:'SBTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = onlyEnemy;
+    ON_PLACE_HANDLERS.kaeldryx(placedSrc, 'blue');
+    out.scalebreakerDebuffed = onlyEnemy.captureBonus === -2;
+    out.scalebreakerDidNotDestroy = state.board[1] !== null;
 
-    // Dragonslayer: destroys ALL dragons (both sides, respecting destroyImmune), debuffs remaining enemies
+    // Execution: winning against a card with total power <= 3 destroys it
+    // outright, and it cannot be revived (skips the Graveyard).
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(kaeldryx, 'blue');
+    state.board[1] = freshEntry({ id:'exec-weak', name:'ExecWeak', top:1,right:1,bottom:1,left:0 }, 'red'); // total 3
+    resolveFlips(4, 'blue');
+    out.executionDestroyedWeakLoser = state.board[1] === null;
+    out.executionSkippedGraveyard = state.graveyard.red.length === 0;
+
+    // A loser with total power > 3 is captured normally, not destroyed.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(kaeldryx, 'blue');
+    state.board[1] = freshEntry({ id:'exec-strong', name:'ExecStrong', top:5,right:5,bottom:5,left:5 }, 'red');
+    resolveFlips(4, 'blue');
+    out.strongLoserCapturedNotDestroyed = state.board[1] !== null && state.board[1].owner === 'blue';
+
+    // Dragonslayer: destroys ALL dragons (both sides, respecting
+    // destroyImmune, no revive), no longer debuffs remaining enemies, and
+    // always grants an extra turn.
     state.board = Array(9).fill(null);
     const ksrc = freshEntry(kaeldryx, 'blue');
     const allyDragon = freshEntry(findCardById('dragon'), 'blue');
     const immuneDragon = freshEntry(findCardById('threeheaddragon'), 'red');
     const plainEnemy = freshEntry(findCardById('ogre'), 'red');
     state.board[0] = ksrc; state.board[1] = allyDragon; state.board[2] = immuneDragon; state.board[3] = plainEnemy;
+    state.extraTurnPending = null;
     SPECIAL_HANDLERS.kaeldryx({ srcEntry: ksrc, owner: 'blue' });
     out.dragonslayerKilledAllyDragon = state.board[1] === null;
     out.dragonslayerRespectsDestroyImmune = state.board[2] !== null;
-    out.dragonslayerDebuffedRemainingEnemy = plainEnemy.captureBonus === -3;
+    out.dragonslayerNoLongerDebuffsEnemy = plainEnemy.captureBonus === 0;
+    out.dragonslayerGrantsExtraTurn = state.extraTurnPending === 'blue';
 
     return out;
   })()`);
-  assert.equal(result.dragonHunterBonus, 4, 'Dragon Hunter: +4 vs an isDragon card');
-  assert.equal(result.scaleBreakerAt8, 1, 'Scalebreaker: +1 vs an 8+ facing side');
-  assert.equal(result.scaleBreakerBelow8, 0, 'Scalebreaker: no bonus below 8');
-  assert.equal(result.buffLockedAfterPlace, true);
-  assert.equal(result.buffBlockedWhileLocked, true, "Hunter's Focus blocks positive bonuses while locked");
-  assert.equal(result.buffWorksAfterLockExpires, true);
-  assert.equal(result.executionDestroyedLoser, true);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 10/9/9/10 (top/right/bottom/left)');
+  assert.equal(result.dragonHunterBonus, 2, 'Dragon Hunter reduced from +4 to +2 per the approved art');
+  assert.equal(result.huntersFocusUncappedAfterFiveWins, true, "Hunter's Focus is now an uncapped +1-per-win self buff, not a buff-lock");
+  assert.equal(result.scalebreakerDebuffed, true, 'Scalebreaker is now an on-place permanent -2 debuff, not a facing-side bonus');
+  assert.equal(result.scalebreakerDidNotDestroy, true);
+  assert.equal(result.executionDestroyedWeakLoser, true, "Execution now checks the LOSER's total power (<=3), not the winner's effective power");
+  assert.equal(result.executionSkippedGraveyard, true);
+  assert.equal(result.strongLoserCapturedNotDestroyed, true);
   assert.equal(result.dragonslayerKilledAllyDragon, true, 'Dragonslayer hits allied dragons too');
   assert.equal(result.dragonslayerRespectsDestroyImmune, true);
-  assert.equal(result.dragonslayerDebuffedRemainingEnemy, true);
+  assert.equal(result.dragonslayerNoLongerDebuffsEnemy, true, 'the old -3-to-remaining-enemies clause was dropped per the approved art');
+  assert.equal(result.dragonslayerGrantsExtraTurn, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Bahamut: Astral Aegis shield and Celestial Sovereign added, Dragon King\'s Majesty text synced, Megaflare rebuilt into an AOE destroy-all', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const bahamut = findCardById('bahamut');
+    out.statsUnchanged = bahamut.top === 10 && bahamut.right === 9 && bahamut.bottom === 9 && bahamut.left === 10;
+    out.hasDragonKingsMajesty = bahamut.active.onCaptureBonus === 1;
+    out.hasAstralAegis = bahamut.active.shield === true;
+    out.hasCelestialSovereign = bahamut.active.adjacentAlliesBoost && bahamut.active.adjacentAlliesBoost.minCount === 2 && bahamut.active.adjacentAlliesBoost.amount === 1;
+    out.skillCount = bahamut.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Astral Aegis: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    const shieldedDefender = freshEntry(bahamut, 'blue'); // top:10
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'bah-attacker', name:'BahAttacker', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Celestial Sovereign: +1 all sides while 2+ allies are adjacent.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(bahamut, 'blue');
+    state.board[1] = freshEntry({ id:'ally1', name:'Ally1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[3] = freshEntry({ id:'ally2', name:'Ally2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.sovereignBonusWithTwoAllies = fullEffectiveValue(bahamut, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - bahamut.top;
+    state.board[3] = null;
+    out.noSovereignBonusWithOneAlly = fullEffectiveValue(bahamut, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - bahamut.top;
+
+    // Megaflare, rebuilt into an AOE: destroys every enemy (no revive),
+    // spares allies, respects destroyImmune, and grants +1 Power per card destroyed.
+    state.rules.graveyard = true;
+    state.graveyard = { blue: [], red: [] };
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(bahamut, 'blue');
+    const ally = freshEntry({ id:'mf-ally', name:'MFAlly', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const enemy1 = freshEntry({ id:'mf-enemy1', name:'MFEnemy1', top:1,right:1,bottom:1,left:1 }, 'red');
+    const immuneEnemy = freshEntry(findCardById('threeheaddragon'), 'red');
+    state.board[4] = wsrc; state.board[0] = ally; state.board[1] = enemy1; state.board[2] = immuneEnemy;
+    SPECIAL_HANDLERS.bahamut({ srcEntry: wsrc, owner: 'blue' });
+    out.megaflareSparedAlly = state.board[0] !== null;
+    out.megaflareDestroyedEnemy = state.board[1] === null;
+    out.megaflareRespectsDestroyImmune = state.board[2] !== null;
+    out.megaflareSkippedGraveyard = state.graveyard.red.length === 0;
+    out.megaflareGainedOnePerDestroyed = wsrc.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasDragonKingsMajesty, true);
+  assert.equal(result.hasAstralAegis, true);
+  assert.equal(result.hasCelestialSovereign, true);
+  assert.equal(result.skillCount, 4, "the printed card carries Dragon King's Majesty, Astral Aegis, Celestial Sovereign, and Megaflare");
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.sovereignBonusWithTwoAllies, 1);
+  assert.equal(result.noSovereignBonusWithOneAlly, 0);
+  assert.equal(result.megaflareSparedAlly, true);
+  assert.equal(result.megaflareDestroyedEnemy, true);
+  assert.equal(result.megaflareRespectsDestroyImmune, true);
+  assert.equal(result.megaflareSkippedGraveyard, true);
+  assert.equal(result.megaflareGainedOnePerDestroyed, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -1223,6 +1306,68 @@ test('Vaelira: new capped Crimson Surge, all other mechanics (Undying Flame/Sist
   assert.equal(result.pactSparedAlly, true);
   assert.equal(result.pactDestroyedEnemy, true);
   assert.equal(result.pactGrantedExtraTurn, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specific entry), Silver Sight replaced by vsStrongerTotalPowerBoost, rest unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const seraphine = findCardById('seraphine');
+    out.statsUnchanged = seraphine.top === 10 && seraphine.right === 10 && seraphine.bottom === 10 && seraphine.left === 10 && seraphine.element === 'wind';
+    out.hasSisterAuraUnchanged = seraphine.active.sisterAura && seraphine.active.sisterAura.partners.includes('vaelira') && seraphine.active.sisterAura.partners.includes('nyxara');
+    out.hasSilverSight = seraphine.active.vsStrongerTotalPowerBoost && seraphine.active.vsStrongerTotalPowerBoost.amount === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Celestial Mark: on-place marks a random enemy.
+    state.board = Array(9).fill(null);
+    const placedSrc = freshEntry(seraphine, 'blue');
+    state.board[4] = placedSrc;
+    const onlyEnemy = freshEntry({ id:'cm-target', name:'CMTarget', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[1] = onlyEnemy;
+    ON_PLACE_HANDLERS.seraphine(placedSrc, 'blue');
+    out.markedEnemy = onlyEnemy.seraphineMarked === true;
+
+    // The +2 only applies when Seraphine specifically attacks the MARKED
+    // entry, resolved live in battleNeighbors (not fullEffectiveValue,
+    // which can't see the flag) -- isolated here with a defender whose
+    // facing side (11) beats Seraphine's plain top (10) but loses once the
+    // mark's +2 is added (12).
+    state.board = Array(9).fill(null);
+    const srcUnmarked = freshEntry(seraphine, 'blue'); // top:10
+    state.board[4] = srcUnmarked;
+    const closeDefender = freshEntry({ id:'close-defender', name:'CloseDefender', top:1,right:1,bottom:11,left:1 }, 'red');
+    state.board[1] = closeDefender;
+    resolveFlips(4, 'blue');
+    out.unmarkedAttackLoses = state.board[1].owner === 'red';
+
+    state.board = Array(9).fill(null);
+    const srcMarked = freshEntry(seraphine, 'blue');
+    state.board[4] = srcMarked;
+    const markedDefender = freshEntry({ id:'marked-defender', name:'MarkedDefender', top:1,right:1,bottom:11,left:1 }, 'red');
+    markedDefender.seraphineMarked = true;
+    state.board[1] = markedDefender;
+    resolveFlips(4, 'blue');
+    out.markedAttackWins = state.board[1].owner === 'blue';
+
+    // Silver Sight: +2 Power vs a stronger enemy.
+    const weakerFoe = { id:'ser-weaker', name:'Weaker', top:1,right:1,bottom:1,left:1 };
+    const strongerFoe = { id:'ser-stronger', name:'Stronger', top:20,right:20,bottom:20,left:20 };
+    out.noBonusVsWeaker = fullEffectiveValue(seraphine, 'top', weakerFoe, 0, 'blue', 'attack') - seraphine.top;
+    out.bonusVsStronger = fullEffectiveValue(seraphine, 'top', strongerFoe, 0, 'blue', 'attack') - seraphine.top;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasSisterAuraUnchanged, true);
+  assert.equal(result.hasSilverSight, true, 'Silver Sight now reuses active.vsStrongerTotalPowerBoost');
+  assert.equal(result.markedEnemy, true);
+  assert.equal(result.unmarkedAttackLoses, true, 'without the mark, top:10 loses to a facing side of 11');
+  assert.equal(result.markedAttackWins, true, 'the mark\'s +2 flips that same matchup into a win (10+2 > 11)');
+  assert.equal(result.noBonusVsWeaker, 0);
+  assert.equal(result.bonusVsStronger, 2);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
