@@ -42,6 +42,10 @@ bekräftade explicit "Merga nu"). Fråga alltid explicit innan nästa merge
 när mer arbete samlats där, anta ALDRIG tillstånd från en tidigare
 bekräftelse.
 
+**Punkt 50 (Tahabata, 4 av 6 skills) ligger committad på feature-branchen,
+INTE mergad till `main` än — och väntar på användarens beslut om en
+kod-vs-bild-konflikt på Inferno Dominion (Ultimaten), se punkt 50 nedan.**
+
 **NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
 ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
 misstag vi inte upprepar), är den här listan sparad för framtida
@@ -58,7 +62,8 @@ saknar kod-backing), sämst kopplade först:
 7. **Pallispell** 1/5 — KLAR (punkt 47 nedan).
 8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
 9. **Tilda** 1/4 — KLAR (punkt 49 nedan).
-10. **Tahabata** 2/6
+10. **Tahabata** 2/6 — 4/6 KLAR (punkt 50 nedan), Inferno Dominion väntar på
+    ett kod-vs-bild-konflikt-beslut.
 11. **Pallis** (solo) 2/6
 12. **Ifrit** 2/6
 13. **Evil Twist Yang** 2/4
@@ -785,6 +790,88 @@ migrering som Templaren/Vorathos/Pallispell
 (`2EB4B914-42A1-4340-843C-D4213EA510E4.jpg` → `card-tilda-full.jpg`),
 samma förhöjda beskärning som Templaren ((10,60)-(930,660)) för att
 få med ansiktet ovanför namnplattan.
+
+**50. Tahabata — 4 av 6 skills kopplade in, Shield/Inferno Dominion
+lämnade orörda per instruktion** — tionde kortet från audit-listan.
+**Till skillnad från Templaren/Tilda finns Tahabata dubbelt i filen**
+(`HEROES` OCH `FOREST_FOES`, identisk text på båda ställena — AI:t kan
+alltså spela honom) — alla ändringar speglade på BÅDA ställena med en
+`replace_all`-edit. Hade redan `active.shield:true` (Pyrelord's Shield)
+och en fungerande Ultimate (`SPECIAL_HANDLERS.tahabata`, Inferno
+Dominion) — båda lämnade **helt orörda** per uttrycklig instruktion.
+
+- **Dragonfire's Fury** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:2}`, samma som Yojimbo/
+  Vorathos/Twisted Gipsy. "En vald sida" kollapsar naturligt till "den
+  anfallande sidan" eftersom bara en sida någonsin är inblandad per
+  strid — ingen förenkling att deklarera.
+- **Soul Petrification** — ny `active.onCaptureGrantShield:true`,
+  kopplad i `checkOnWinBonuses` (som redan körs en gång per enskild
+  erövring, inte bara en gång per placering) med ett enda anrop till
+  den redan existerande `SpecialVerbs.grantShield()` (samma primitive
+  Pallis's Wave of Loyalty redan använder).
+- **Wrath Eruption** — ny `active.onWinAdjacentEnemyDebuff:1`. Liknar
+  `onWinAreaDebuff` (Three Head Dragon) men är INTE samma sak: den
+  debuffar runt DET ERÖVRADE kortet, permanent, alla sidor; Wrath
+  Eruption debuffar runt TAHABATA SJÄLV (winnerIndex, inte loserIndex),
+  riktat (bara sidan som pekar mot honom), temporärt. Samma
+  `xUntilTurnCount`-idiom som Tildas Umbral Step (`entry.
+  wrathEruptionSide` + `entry.wrathEruptionUntilTurnCount`), men satt
+  på FLERA grannars entries samtidigt istället för på kastaren själv,
+  och läst OVILLKORLIGT i `fullEffectiveValue` (inte gated på det
+  drabbade kortets egen `active`, eftersom flaggan sätts av en
+  motståndare) — samma sätt `entry.sideBonus` redan läses ovillkorligt.
+  Respekterar `isDebuffImmuneNow()` vid sättningstillfället, samma
+  konvention som `SpecialVerbs.debuff()`/`debuffThisRound()`.
+- **Pyrelord's Awakening** — ny `active.adjacentEnemiesBoostAnyRole:
+  {minCount:2, amount:1}`, variant "a" per användarens uttryckliga val:
+  enemy-counting-spegeln av det redan existerande `adjacentEnemiesBoost`
+  (Tiamat), men UTAN dennas `role==='attack'`-spärr (Tahabatas text har
+  ingen "medan han anfaller"-kvalificering, till skillnad från Tiamats).
+  Samma form som Medusas `adjacentAlliesBoost` (som redan saknar
+  attack-only-spärren), bara räknar fiende- istället för
+  allierade-grannar.
+
+**Bugg hittad och fixad under arbetet, inte Tahabata-specifik:**
+`SpecialVerbs.grantShield()`s engångs-blockering konsumerades ALDRIG
+via den vanliga stridsupplösningen (`battleNeighbors`) — bara via
+Ultimate-vägen (`specialBlockedByShield`). `target.shieldUsed = true`
+sattes bara inuti `if(targetActive && targetActive.shield)`-grenen, så
+ett rent externt beviljat skydd (`grantedShield`, inget eget
+`active.shield`) skulle blockera FÖREVER istället för bara en gång —
+skulle ha gjort Soul Petrification permanent osårbar, inte "kan inte
+tas tillbaka NÄSTA strid" som texten säger. Upptäckt av Soul
+Petrifications eget test (`shieldUsedAfterRecapture` fastnade på
+`false`). Fixat genom att flytta `target.shieldUsed = true` utanför
+den snäva `targetActive.shield`-grenen till att gälla varje gång
+`shielded` är sant, oavsett källa — matchar redan hur Ultimate-vägen
+gör det. `shieldGrantsBonus` (Medusas Living Statue-specialfall) förblev
+scoped till just `targetActive.shield`, ingen ändring där. Fullständig
+testsvit (81 tester) grön efter fixen, inga regressioner.
+
+Inga nya generella primitives — alla fyra nya fält återanvänder
+befintliga verb (`SpecialVerbs.grantShield()`) eller redan etablerade
+idiom (`xUntilTurnCount`-mönstret, det icke-attack-gated
+adjacency-boost-mönstret Medusa redan äger).
+
+**Ny godkänd bild mottagen samma session — avslöjade en RIKTIG
+kod-vs-bild-konflikt på Inferno Dominion, inte bara en
+formuleringsskillnad:**
+- **Nuvarande kod** (oförändrad, precis som beordrat): 
+  `totalPower(srcEntry)+2 <= totalPower(targetEntry)` → miss — ett
+  GENERÖST tröskelvärde (Tahabata vinner även om hans totalPower är upp
+  till 1 poäng LÄGRE än målets), och respekterar sköldar
+  (`specialBlockedByShield`-koll finns).
+- **Den nya bilden**: "If Tahabata wins a battle by 2 or more, he flips
+  the enemy card. Shield effects do not prevent this from happening." —
+  ett riktigt marginalkrav (måste vara STARKARE, inte bara "inte alltför
+  mycket svagare"), och uttryckligen ospärrbart av sköldar — motsatsen
+  till nuvarande beteende på båda punkterna.
+- Väntar på användarens beslut (A: behåll kod, B: matcha bild, C:
+  kombinera) innan Inferno Dominion rörs. Två mindre fynd flaggade
+  samtidigt: bilden har "Pyrelord" som underrubrik (`role` är för
+  närvarande `'Legendary Card'`, dubblerar rarity-badgen) och
+  "Type: Dragon" (ingen `isDragon`-tagg finns på kortet idag).
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

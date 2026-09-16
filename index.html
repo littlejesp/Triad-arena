@@ -1441,7 +1441,7 @@ const HEROES = [
     {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
     {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
   ] },
-  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
+  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
     {name:"Dragonfire's Fury", desc:'Once per match, Tahabata gets +2 Power on a chosen side during an attack.'},
     {name:'Soul Petrification', desc:"When Tahabata takes a card, that card can't be won back during the next battle."},
@@ -1791,7 +1791,7 @@ const FOREST_FOES = [
     {name:'Five Heads, One Will', desc:'While Tiamat has 2 or more enemy cards adjacent to her, she gets +1 Power on the side used in any of her attacks.'},
     {name:'Special Attack: The Fivefold Apocalypse', desc:'Costs 2 wins. Choose an adjacent enemy card and one of five powers: Fire, Ice, Storm, Void, or Nature (flavor only — all five resolve the same way). Tiamat attacks with +5 Power; if she wins, she keeps +1 Power on all sides for the rest of the match.'},
   ] },
-  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
+  { id:'tahabata', name:'Tahabata', role:'Legendary Card', element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a0f08,#0d0b18 60%)', accent:'#d9622b', active: {shield:true, oncePerMatchAttackBoost:{amount:2}, onCaptureGrantShield:true, onWinAdjacentEnemyDebuff:1, adjacentEnemiesBoostAnyRole:{minCount:2, amount:1}}, special:{ name:'Inferno Dominion', cost:2, once:true, targets:'single' }, skills: [    {name:"Pyrelord's Shield (Passive)", desc:'The first time Tahabata would lose a battle, the loss is ignored and he keeps his position.'},
     {name:'Wrath Eruption', desc:'After Tahabata wins a card, all adjacent enemy cards get -1 on the side facing him this round.'},
     {name:"Dragonfire's Fury", desc:'Once per match, Tahabata gets +2 Power on a chosen side during an attack.'},
     {name:'Soul Petrification', desc:"When Tahabata takes a card, that card can't be won back during the next battle."},
@@ -3390,6 +3390,39 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
     winnerEntry.umbralStepSide = sides[Math.floor(Math.random()*sides.length)];
     winnerEntry.umbralStepUntilTurnCount = state.turnCount + 4;
   }
+  // Tahabata's Soul Petrification: "that card can't be won back during the
+  // next battle" — a plain SpecialVerbs.grantShield() call (same primitive
+  // Pallis's Wave of Loyalty already uses), fired once per individual
+  // capture since checkOnWinBonuses already runs per-flip.
+  if(a.onCaptureGrantShield){
+    SpecialVerbs.grantShield(loserEntry);
+  }
+  // Tahabata's Wrath Eruption: "-1 Power on the side facing him, this
+  // round" to every adjacent ENEMY card after he wins — same
+  // opposite-side-facing computation as Templaren's Holy Aura, but
+  // triggered on win (around the WINNER's own cell, winnerIndex — not the
+  // just-captured cell) instead of on placement, debuffing instead of
+  // buffing, and temporary instead of permanent. directionalBoost() is
+  // always permanent (checked — every other caller uses it that way), so
+  // this uses the same live, self-expiring entry.xUntilTurnCount idiom
+  // Umbral Step above already established, just applied to each affected
+  // neighbor's OWN entry instead of the caster's. Read unconditionally in
+  // fullEffectiveValue (not gated by that neighbor's own active.*, since
+  // the flag lives on the victim, not the source) — same as
+  // entry.sideBonus is already read unconditionally there.
+  if(a.onWinAdjacentEnemyDebuff && winnerIndex != null){
+    const row = Math.floor(winnerIndex/3), col = winnerIndex%3;
+    const dirs = [[-1,0,'bottom'],[1,0,'top'],[0,-1,'right'],[0,1,'left']];
+    dirs.forEach(([dr,dc,side])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== winnerEntry.owner && !isDebuffImmuneNow(n.card)){
+        n.wrathEruptionSide = side;
+        n.wrathEruptionUntilTurnCount = state.turnCount + 4;
+      }
+    });
+  }
   // Three Head Dragon's Fire's Wrath: every enemy card orthogonally around
   // the just-captured square also gets hit — no "once per match" cap in
   // the source text, unlike the two hooks above, so this fires on every win.
@@ -3834,6 +3867,13 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   if(entry && entry.umbralStepSide === edgeKey && entry.umbralStepUntilTurnCount > state.turnCount && card.active && card.active.onWinRandomDirectionalBoost){
     v += card.active.onWinRandomDirectionalBoost;
   }
+  // Tahabata's Wrath Eruption, set in checkOnWinBonuses on the VICTIM's own
+  // entry — read unconditionally here (not gated by this card's own
+  // active.*, since the flag was placed by an opponent's win), same as
+  // entry.sideBonus above. Live and self-expiring, nothing to reverse.
+  if(entry && entry.wrathEruptionSide === edgeKey && entry.wrathEruptionUntilTurnCount > state.turnCount){
+    v -= 1;
+  }
   if(card.active && card.active.pairPresence){
     const pp = card.active.pairPresence;
     const present = state.board.some(e => e && e.owner === owner && e.card.id === pp.partner);
@@ -3874,6 +3914,25 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   // just "whenever the condition holds during one of her attacks".
   if(card.active && card.active.adjacentEnemiesBoost && role === 'attack'){
     const ab = card.active.adjacentEnemiesBoost;
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    let enemyNeighbors = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner) enemyNeighbors++;
+    });
+    if(enemyNeighbors >= ab.minCount) v += ab.amount;
+  }
+  // Tahabata's Pyrelord's Awakening: the enemy-counting mirror of
+  // adjacentEnemiesBoost above, but per the user's explicit choice
+  // (variant "a"), NOT gated to role==='attack' — his card text has no
+  // "while attacking" qualifier, unlike Tiamat's. Same shape as Medusa's
+  // adjacentAlliesBoost below, just counting enemy neighbors instead of
+  // allied ones.
+  if(card.active && card.active.adjacentEnemiesBoostAnyRole){
+    const ab = card.active.adjacentEnemiesBoostAnyRole;
     const row = Math.floor(cellIndex/3), col = cellIndex%3;
     const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
     let enemyNeighbors = 0;
@@ -6162,8 +6221,19 @@ function battleNeighbors(index, owner, result){
       const marginThreshold = staticMarginThreshold + weightOfAgesBonus;
       const marginBlocked = !shielded && marginThreshold > 0 && (placedVal - targetVal) <= marginThreshold;
       if(shielded || marginBlocked){
+        // Bug fix (found via Tahabata's Soul Petrification, which uses a
+        // purely EXTERNALLY GRANTED shield with no native active.shield of
+        // its own): shieldUsed used to only be set inside the
+        // targetActive.shield branch below, so a grantedShield-only block
+        // (isShielded() checks grantedShield first, see its own comment)
+        // never actually got consumed via this normal-battle path -- it
+        // would silently block every future battle for the rest of the
+        // match instead of just the one, unlike the Ultimate path
+        // (specialBlockedByShield already consumes ANY shield source
+        // unconditionally). Now mirrors that: any shielded block gets
+        // consumed here, regardless of source.
+        if(shielded) target.shieldUsed = true;
         if(targetActive && targetActive.shield){
-          target.shieldUsed = true;
           // Medusa's Living Statue: her own shield trigger also grants a
           // permanent Power bonus, unlike every other shield in the
           // roster — scoped to her own active.shield specifically (not

@@ -2860,6 +2860,130 @@ test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Mar
   await page.close();
 });
 
+test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoost), Soul Petrification (grantShield), Wrath Eruption (on-win directional debuff, live-expiring), Pyrelord\'s Awakening (any-role adjacent-enemy aura), Shield/Inferno Dominion unchanged, mirrored in HEROES and FOREST_FOES', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const tahabata = findCardById('tahabata');
+    out.statsUnchanged = tahabata.top === 10 && tahabata.right === 10 && tahabata.bottom === 8 && tahabata.left === 9;
+    out.skillCount = tahabata.skills.length === 6;
+    out.hasPyrelordsShield = tahabata.active.shield === true;
+    out.specialName = tahabata.special.name === 'Inferno Dominion';
+    out.specialCost = tahabata.special.cost === 2;
+
+    // Mirrored in both HEROES (player) and FOREST_FOES (AI) — same active fields.
+    const forestTahabata = FOREST_FOES.find(f => f.id === 'tahabata');
+    out.mirroredInForestFoes = forestTahabata
+      && forestTahabata.active.oncePerMatchAttackBoost.amount === 2
+      && forestTahabata.active.onCaptureGrantShield === true
+      && forestTahabata.active.onWinAdjacentEnemyDebuff === 1
+      && forestTahabata.active.adjacentEnemiesBoostAnyRole.minCount === 2
+      && forestTahabata.active.adjacentEnemiesBoostAnyRole.amount === 1;
+
+    // Dragonfire's Fury: reuses the existing oncePerMatchAttackBoost primitive.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    out.dragonfiresFuryField = tahabata.active.oncePerMatchAttackBoost.amount === 2;
+    const dfSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = dfSrc;
+    const dfTarget = freshEntry({ id:'dft', name:'DFT', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = dfTarget;
+    out.dragonfiresFuryAppliesOnAttack = fullEffectiveValue(tahabata, 'top', dfTarget, 4, 'blue', 'attack') - tahabata.top === 2;
+    resolveFlips(4, 'blue');
+    out.dragonfiresFuryConsumed = dfSrc.oncePerMatchAttackBoostUsed === true;
+
+    // Soul Petrification: the just-captured card gets a one-time shield
+    // (SpecialVerbs.grantShield), blocking the very next attempt to flip
+    // it back even against overwhelming power.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const spSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = spSrc;
+    const spWeak = freshEntry({ id:'spw', name:'SPW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = spWeak;
+    resolveFlips(4, 'blue');
+    out.soulPetrificationCaptured = state.board[1].owner === 'blue';
+    out.soulPetrificationGrantedShield = spWeak.grantedShield === true;
+    // index 0 is horizontally adjacent to index 1 (row 0, col 0/1), so the
+    // relevant attacking side is 'right', not 'bottom'.
+    const spCrusher = freshEntry({ id:'spc', name:'SPC', top:1,right:20,bottom:1,left:1 }, 'red');
+    state.board[0] = spCrusher;
+    resolveFlips(0, 'red');
+    out.soulPetrificationBlockedRecapture = state.board[1].owner === 'blue';
+    out.soulPetrificationShieldConsumed = spWeak.shieldUsed === true;
+
+    // Wrath Eruption: after Tahabata wins ONE battle, every OTHER still-
+    // enemy-owned adjacent card gets -1 live on the side facing him, this
+    // round. Down neighbor (index 7) survives (crusher stats), so it's
+    // still enemy-owned when checkOnWinBonuses runs off the up neighbor's
+    // capture -- its facing side is 'top' (opposite of Tahabata's [1,0]
+    // offset onto it).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const weSrc = freshEntry(tahabata, 'blue');
+    state.board[4] = weSrc;
+    const weWeak = freshEntry({ id:'wew', name:'WEW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weWeak;
+    const weSurvivor = freshEntry({ id:'wes', name:'WES', top:20,right:1,bottom:1,left:1 }, 'red');
+    state.board[7] = weSurvivor;
+    resolveFlips(4, 'blue');
+    out.wrathEruptionCapturedWeak = state.board[1].owner === 'blue';
+    out.wrathEruptionSurvivorStillEnemy = state.board[7].owner === 'red';
+    out.wrathEruptionSideSet = weSurvivor.wrathEruptionSide === 'top';
+    const dummyOpp = { id:'dummy', name:'D', top:1,right:1,bottom:1,left:1 };
+    out.wrathEruptionLiveDebuff = fullEffectiveValue(weSurvivor.card, 'top', dummyOpp, 7, 'red', 'defense') - weSurvivor.card.top === -1;
+    out.wrathEruptionNoDebuffOtherSide = fullEffectiveValue(weSurvivor.card, 'right', dummyOpp, 7, 'red', 'defense') - weSurvivor.card.right === 0;
+    const savedTurnCount = state.turnCount;
+    state.turnCount = weSurvivor.wrathEruptionUntilTurnCount;
+    out.wrathEruptionExpired = fullEffectiveValue(weSurvivor.card, 'top', dummyOpp, 7, 'red', 'defense') - weSurvivor.card.top === 0;
+    state.turnCount = savedTurnCount;
+
+    // Pyrelord's Awakening: +1 all sides while surrounded by 2+ enemies,
+    // on BOTH attack and defense (variant "a", no role gate) -- the key
+    // difference from Tiamat's attack-only adjacentEnemiesBoost. Marks
+    // oncePerMatchAttackBoostUsed so Dragonfire's Fury doesn't also add
+    // its own +2 and muddy the attack-role assertion.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const paEntry = freshEntry(tahabata, 'blue');
+    paEntry.oncePerMatchAttackBoostUsed = true;
+    state.board[4] = paEntry;
+    state.board[1] = freshEntry({ id:'pae1', name:'PAE1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = freshEntry({ id:'pae2', name:'PAE2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.awakeningAppliesOnAttack = fullEffectiveValue(tahabata, 'top', dummyOpp, 4, 'blue', 'attack') - tahabata.top === 1;
+    out.awakeningAppliesOnDefense = fullEffectiveValue(tahabata, 'top', dummyOpp, 4, 'blue', 'defense') - tahabata.top === 1;
+    state.board[3] = null;
+    out.awakeningNoBonusBelowThreshold = fullEffectiveValue(tahabata, 'top', dummyOpp, 4, 'blue', 'defense') - tahabata.top === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.skillCount, true);
+  assert.equal(result.hasPyrelordsShield, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.mirroredInForestFoes, true, 'the FOREST_FOES copy must carry the same new active fields');
+  assert.equal(result.dragonfiresFuryField, true);
+  assert.equal(result.dragonfiresFuryAppliesOnAttack, true);
+  assert.equal(result.dragonfiresFuryConsumed, true);
+  assert.equal(result.soulPetrificationCaptured, true);
+  assert.equal(result.soulPetrificationGrantedShield, true, 'Soul Petrification grants the just-captured card a one-time shield');
+  assert.equal(result.soulPetrificationBlockedRecapture, true, "the shield blocks the enemy's immediate attempt to win it back");
+  assert.equal(result.soulPetrificationShieldConsumed, true);
+  assert.equal(result.wrathEruptionCapturedWeak, true);
+  assert.equal(result.wrathEruptionSurvivorStillEnemy, true);
+  assert.equal(result.wrathEruptionSideSet, true, "the surviving neighbor's facing side is marked");
+  assert.equal(result.wrathEruptionLiveDebuff, true);
+  assert.equal(result.wrathEruptionNoDebuffOtherSide, true);
+  assert.equal(result.wrathEruptionExpired, true);
+  assert.equal(result.awakeningAppliesOnAttack, true);
+  assert.equal(result.awakeningAppliesOnDefense, true, "Pyrelord's Awakening applies on defense too, unlike Tiamat's attack-only adjacentEnemiesBoost");
+  assert.equal(result.awakeningNoBonusBelowThreshold, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
