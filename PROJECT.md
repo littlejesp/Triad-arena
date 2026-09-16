@@ -1114,6 +1114,44 @@ dekorativa lager har `pointer-events:none`.
 inget ljud, ingen fortsättning till nästa fas utan att användaren
 speltestat detta steget först.
 
+**Uppdatering, samma session: fas 1 speltestad ("Kändes bra faktiskt",
+inget negativt på mobilen heller — bara sett gnistorna röra sig) — fas
+2 påbörjad direkt efter.**
+
+**Fas 2: kortrespons + placerings-/erövringsimpact.** Samma
+avgränsning som fas 1 (bara presentation, ingen spellogik), och samma
+"pure CSS, triggat av redan existerande klasser"-teknik — INGEN
+JS/markup ändrad alls den här gången, bara CSS på klasser
+(`.selected`/`.placing`/`.flipping`) som redan sätts/tas bort av
+befintlig kod. Maximalt reversibelt (en ren CSS-diff).
+
+- **`.card.selected`** (handkort/draft-val) — bytte den statiska
+  guld-kanten mot `scale(1.06)` + en pulserande `selectedGlow`-andning
+  (1.3s). Medvetet INGEN `translateY`-lyft: på mobil
+  (`@media max-width:640px`) blir handraden `.side-hand.hand-row` med
+  `overflow-x:auto`, vilket enligt CSS overflow-specen även gör
+  `overflow-y` till `auto` (bara EN axel får vara `visible`) — med bara
+  1-2px padding där hade en vertikal lyft klippts av upptill. En
+  center-ankrad `scale()` påverkar aldrig layout/overflow, bara
+  compositing, så den är riskfri på alla skärmstorlekar.
+- **`.cell .card.placing::after`** — ny `placeImpact`-blixt (radial
+  vit/guld, 0.48s) synkad mot `cardLand`s egna "landning" vid 60%.
+  Ny `::after`-pseudo-element, inget nytt DOM-element — begränsad av
+  `.cell`s redan existerande `overflow:hidden` precis som allt annat
+  inuti en ruta, så `scale(1.4)`-slutläget bara klipps naturligt vid
+  rutkanten (läses som en stjärnbrist, inte en bugg).
+- **`.cell .card.flipping::after`** — ny `flipSpark`-blixt vid flip-
+  animationens redan existerande liggande-på-kant-ögonblick (45–55%,
+  `rotateY(90deg)`), samma `--fx-delay` som `flip`/`captureRingBlue`/
+  `captureRingRed` så den håller sig synkad även i staplade Same/Plus/
+  Combo-kedjor.
+
+**Verifiering:** hela testsviten (88 tester) grön igen. Samma
+fristående Playwright-verifiering som fas 1 (riktiga DOM-klick, inte
+state-injicering) — kortval, placering och en tvingad erövring
+(anpassad state) kördes igenom utan konsolfel, existerande
+"Erövrad"-banderoll lager fint ovanpå de nya blixtarna utan krock.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

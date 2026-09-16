@@ -263,9 +263,22 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .card:active{ transform:scale(0.97); }
 .card.selectable:hover{ border-color:var(--gold); }
+/* Game-feel phase 2: a stronger, more alive "this card is armed and ready
+   to place" state. Deliberately scale-only, no translateY -- at mobile
+   widths the hand row becomes .side-hand.hand-row with overflow-x:auto
+   (which per the CSS overflow spec also makes overflow-y compute to auto,
+   not visible, since only one axis may stay visible), and its padding
+   there is just 1-2px, so a vertical lift would get clipped at the top
+   edge. A center-anchored scale has no such risk -- transform doesn't
+   affect layout/the box's overflow, only compositing. */
 .card.selected{
   border-color:var(--gold-bright);
-  box-shadow:0 0 0 2px rgba(240,216,121,0.25), 0 0 18px rgba(240,216,121,0.35);
+  transform:scale(1.06);
+  animation:selectedGlow 1.3s ease-in-out infinite;
+}
+@keyframes selectedGlow{
+  0%,100%{ box-shadow:0 0 0 2px rgba(240,216,121,0.3), 0 0 14px rgba(240,216,121,0.3); }
+  50%{ box-shadow:0 0 0 2px rgba(240,216,121,0.5), 0 0 24px rgba(240,216,121,0.55); }
 }
 .card.disabled{ opacity:0.35; cursor:default; }
 .card.inplay{ opacity:0.3; cursor:default; }
@@ -775,6 +788,23 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   60%{ transform:translateY(4px) scale(1.03); opacity:1; }
   100%{ transform:translateY(0) scale(1); filter:brightness(1); }
 }
+/* Game-feel phase 2: a brief impact flash right as the card touches down,
+   timed to cardLand's own 60% "landing" mark above. A ::after pseudo-element
+   rather than a new template element -- pure CSS, no JS/markup change, so
+   this is trivially reversible. Confined to .cell's existing overflow:hidden
+   (already true of every other in-cell effect, e.g. cellPulse below), so
+   the scale(1.4) endpoint just crops naturally at the cell edge instead of
+   spilling into neighboring cells -- reads as a starburst, not a bug. */
+.cell .card.placing::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.9), rgba(240,216,121,0.4) 40%, transparent 70%);
+  opacity:0; animation:placeImpact .48s cubic-bezier(.22,1.6,.4,1);
+}
+@keyframes placeImpact{
+  0%,50%{ opacity:0; transform:scale(0.4); }
+  62%{ opacity:0.85; transform:scale(1.15); }
+  100%{ opacity:0; transform:scale(1.4); }
+}
 .cell .card.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both; }
 .cell .card.owner-blue.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both, captureRingBlue .55s ease var(--fx-delay,0ms) both; }
 .cell .card.owner-red.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both, captureRingRed .55s ease var(--fx-delay,0ms) both; }
@@ -783,6 +813,19 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   45%{ transform:rotateY(90deg) scale(1.07); filter:brightness(1.7);}
   55%{ transform:rotateY(90deg) scale(1.07); filter:brightness(1.7);}
   100%{ transform:rotateY(0deg) scale(1); filter:brightness(1);}
+}
+/* A quick "sword flash" spark right at the flip's edge-on midpoint (45-55%,
+   matching flip's own rotateY(90deg) hold above) -- same --fx-delay so it
+   stays in sync with staggered Same/Plus/Combo chain flips. */
+.cell .card.flipping::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95), transparent 70%);
+  opacity:0; animation:flipSpark .55s ease var(--fx-delay,0ms) both;
+}
+@keyframes flipSpark{
+  0%,40%{ opacity:0; }
+  48%,52%{ opacity:0.9; }
+  60%,100%{ opacity:0; }
 }
 @keyframes captureRingBlue{
   0%{ box-shadow:0 0 0 3px var(--blue-side) inset, 0 0 0 rgba(63,111,209,0); }
