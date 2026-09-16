@@ -773,8 +773,16 @@ Lyrith (`SPECIAL_HANDLERS.tilda`, kopierad nästan rakt av från Sarahs
 → miss, annars flip + `SpecialVerbs.attackBoost(srcEntry, 1)` permanent).
 Inga nya primitives — bara ett nytt kort i samma redan etablerade familj.
 Femte skill-raden ("Special Attack: Nightfall") tillagd i `skills`-arrayen
-med samma standardformulering som Sarahs egen. Väntar fortfarande på en
-bildbrief-uppdatering som inkluderar Nightfall.
+med samma standardformulering som Sarahs egen.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd
+(inklusive Nightfall).** Matchade allt exakt — stats 7/8/8/8, namn/roll,
+alla fyra bas-skill-texter OCH den nya Nightfall-texten ord för ord.
+Inga kodändringar, bara nya bildfiler. Samma UUID-till-standardnamn-
+migrering som Templaren/Vorathos/Pallispell
+(`2EB4B914-42A1-4340-843C-D4213EA510E4.jpg` → `card-tilda-full.jpg`),
+samma förhöjda beskärning som Templaren ((10,60)-(930,660)) för att
+få med ansiktet ovanför namnplattan.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen
