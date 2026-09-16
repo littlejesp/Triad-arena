@@ -36,6 +36,40 @@ Consume, Endless Void) fått sin nya motorlogik). Fråga alltid
 explicit innan nästa merge när mer arbete samlats där, anta ALDRIG
 tillstånd från en tidigare bekräftelse.
 
+**Punkt 41–49 (Zaevir, Ragnar, Maximus, Darum, Daron, Vorathos, Pallispell,
+Templaren, Tilda) ligger committade på feature-branchen, INTE mergade till
+`main` än.**
+
+**NY 16-korts audit-lista (2026-09-16)** — till skillnad från den
+ursprungliga 68-korts Tier-auditen (som ALDRIG sparades här, ett
+misstag vi inte upprepar), är den här listan sparad för framtida
+sessioner. En bakgrundsagent gick igenom HELA rostret (utom de ~35
+korten som redan var åtgärdade vid det laget) och hittade 16 kort med
+"tysta" luckor (skills utan egen "Flavor only"-disclaimer som ändå
+saknar kod-backing), sämst kopplade först:
+1. **Zaevir** 0/4 — KLAR (punkt 41 nedan).
+2. **Ragnar** 0/4 — KLAR (punkt 42 nedan).
+3. **Maximus** 1/6 — KLAR (punkt 43 nedan).
+4. **Darum** 1/6 — KLAR (punkt 44 nedan).
+5. **Daron** 1/6 — KLAR (punkt 45 nedan).
+6. **Vorathos** 1/5 — KLAR (punkt 46 nedan).
+7. **Pallispell** 1/5 — KLAR (punkt 47 nedan).
+8. **Templaren** 1/4 — KLAR (punkt 48 nedan, medvetet 3/4 — se nedan).
+9. **Tilda** 1/4 — KLAR (punkt 49 nedan).
+10. **Tahabata** 2/6
+11. **Pallis** (solo) 2/6
+12. **Ifrit** 2/6
+13. **Evil Twist Yang** 2/4
+14. **Evil Twist Yin** 2/4
+15. **Twin Brothers** 4/6
+16. **Twin Sisters** 4/6
+
+Redan kontrollerade och bekräftat HELT rena (inga tysta luckor):
+Celestial Judgment, Infinite Seraph, Fenrir, Tiamat, Odin, Yojimbo,
+Chocobo King, Morvath, Vorgrath, Zalazar, samt enkla 1-skill-mobs
+(Shadowking, Harpy, Lich, Wyrm, Revenant, Wendigo). Direbear/Ogre har
+inga skills alls (statlösa fyllnadsmobs, inget att åtgärda).
+
 **29. Sarah ombyggd (Aion's Last Light)** — ursprungligen bedömd 🟡
 POLISH i auditen, men samma missbedömning som Graff/Voidqueen: bara 1
 av 4 skills hade backing (Light Shield, `active.shield`), och hon
@@ -412,6 +446,343 @@ flavor-only (uttryckligen lämnad orörd på användarens begäran).
   och det testet. Löst genom att INTE lägga till `noRevive` — Void
   Dominion fungerar exakt som förut, `SPECIAL_HANDLERS.nyxara`
   oförändrad, bildens "(cannot be revived)"-text följdes inte.
+
+**41. Zaevir — full ombyggnad från en 0/4-wired stubbe** — första kortet
+från den NYA 16-korts audit-listan (se avsnitt 1b). Till skillnad från
+POLISH-korten hade Zaevir INGET `special`-fält alls (ingen Ultimate
+över huvud taget) och ett `active.bonus`-fält som inte matchade någon
+av hans 4 skills — en ren kvarleva. 0 av 4 skills hade backing.
+
+- **Eternal Aim (Passiv)** — helt befintligt fält `active.onPlaceBoost:2`
+  (slumpad sida, permanent), samma primitive som Tiamat/Astrael.
+- **Focus (Passiv)** — helt befintligt fält `active.shield:true`,
+  medvetet omtolkad från "obesegrad → bonus" (ospårbart utan en ny
+  räknare) till "första förlusten ignoreras" — användaren bad
+  uttryckligen om att texten ska beskriva exakt vad Shield-mekaniken
+  gör, inget annat.
+- **Special Attack: "Eternal Arrow"** — hans FÖRSTA Ultimate någonsin,
+  ny `SPECIAL_HANDLERS.zaevir`, byggd i exakt samma form som Sarah/
+  Vayra/Ysaras Eclipse-mönster (total-power-tröskel +3, permanent +1
+  alla sidor på vinst). Bildens eget aktiveringsvillkor ("kontrollera
+  minst 3 kort") följdes INTE — det hade krävt en ny resurstyp vid
+  sidan av det redan etablerade Wins-kostnadssystemet alla andra
+  Special Attacks använder, flaggat till användaren och medvetet
+  avvisat till förmån för det redan godkända, återanvända mönstret.
+- Stats matchade till godkänd konst (vänster/botten omkastade):
+  top:10, right:10, bottom:9, left:8 (tidigare 10/10/8/9).
+
+Bort: Forest's Path (skulle kräva en helt ny räckvidds-mekanik för
+icke-angränsande attacker, inte värt det för ett enda filler-kort) och
+den gamla Eternal Arrow-kedjeattacks-idén (ingen kedjeattack-mekanik
+finns). Inga nya primitives.
+
+**42. Ragnar — full ombyggnad från en 0/4-wired stubbe** — andra kortet
+från 16-korts audit-listan, samma mönster som Zaevir: INGET
+`special`-fält alls och ett `active.bonus`-fält som inte matchade
+någon av hans 4 skills. 0 av 4 skills hade backing.
+
+- **War Breaker (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:2}`, samma primitive som
+  Yojimbo/Ysara/Sarah/Lyrith. Omtolkad från "valfri fiende" (ingen
+  mål-väljar-UI finns) till "en starkare fiende".
+- **Blood Rush (Passiv)** — helt befintligt fält
+  `active.onCaptureBonus:1`, samma primitive som Ifrit/Graff/Vayra/
+  Yojimbo. "Nästa strid" blev permanent, samma simplifiering som redan
+  gjorts flera gånger.
+- **Special Attack: "Blood Fury"** — hans FÖRSTA Ultimate någonsin,
+  samma Eclipse-mönster som Zaevir/Sarah/Vayra/Ysara. Bildens eget
+  "kontrollera minst 3 kort"-aktiveringsvillkor följdes INTE igen —
+  samma återkommande mönster i bildverktyget som redan avvisades för
+  Zaevir, av samma anledning (ny resurstyp utanför Wins-systemet).
+- Stats matchade till godkänd konst (tre av fyra sidor omkastade):
+  top:9, right:6, bottom:9, left:5 (tidigare 9/5/6/9).
+
+Bort: Double Strike (kedjeattack finns inte, samma som Zaevirs
+strukna koncept) och Last Fury (redundant mot spelets globala
+`lastStandBonus()`, samma anledning Sarahs gamla "Last Arrow"
+ströks). Inga nya primitives.
+
+**43. Maximus — trimmad från en 1/6-wired stubbe** — tredje kortet
+från audit-listan. Till skillnad från Zaevir/Ragnar hade Maximus
+faktiskt en riktig, redan bra Ultimate (`SPECIAL_HANDLERS.maximus`:
+tröskel +4, flip, permanent +2, extra tur om målet var starkare) —
+bara de 5 vanliga skillsen saknade backing, och flera av dem
+överlappade varandra (Gladiator's Dominion och Arena Rage triggade
+båda på erövring, bara permanent vs tillfällig).
+
+- **Gladiator's Dominion (Passiv)** — helt befintligt fält
+  `active.onCaptureBonus:1`. Behöll den starkare/tydligare av de två
+  ursprungliga ihopklumpade effekterna, strök den tillfälliga
+  dubbleringen.
+- **Blood for Glory (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, matchade hans egen
+  text exakt.
+- **Special Attack: "Axe of Dominion"** — koden HELT oförändrad. Bildens
+  eget "kontrollera minst 4 kort"-aktiveringsvillkor följdes INTE —
+  tredje gången samma mönster dyker upp i bildverktyget (Zaevir "3
+  kort", Ragnar "3 kort", nu Maximus "4 kort"), avvisat av samma
+  anledning varje gång. UI-texten synkades bara till att beskriva vad
+  koden redan gör.
+- Stats **oförändrade** — matchade redan bilden exakt (första kortet
+  i den nya omgången utan någon stat-avvikelse).
+
+Bort: Spinning Axe (otydligt villkor, överlappade med grundstats),
+Arena Rage (redundant med Gladiator's Dominion), Champion's Will
+(ingen befintlig "välj en allierad"-mekanik finns). Inga nya
+primitives.
+
+**44. Darum — trimmad från en 0/5-wired stubbe** — fjärde kortet från
+audit-listan. Precis som Maximus hade Darum en redan fungerande
+Ultimate (`SPECIAL_HANDLERS.darum`, tröskel +4/flip/permanent +2),
+bara de 5 vanliga skillsen saknade backing.
+
+- **Wall of Resolve (Passiv)** — helt befintligt fält
+  `active.onWinDirectionalBoost:1`. VIKTIG LÄRDOM under
+  implementationen: kortets ursprungliga text sa "vinner en
+  DEFENSIV strid", men `onWinDirectionalBoost` (och alla `checkOnWin-
+  Bonuses`-hooks överlag) triggas bara för den ANFALLANDE/placerande
+  sidans vinster i den här motorn — en försvarare som lyckas hålla
+  emot en attack räknas aldrig som en "vinst" i motorns egen mening.
+  Texten justerades till "vinner en strid" (utan "defensiv") för att
+  matcha vad primitiven faktiskt gör, upptäckt när det första
+  testförsöket floppade.
+- **Crushing Counter (Passiv)** — helt befintligt fält
+  `active.vsStrongerTotalPowerBoost:{amount:3}`, matchade hans text
+  exakt.
+- **Ironwall (Passiv)** — helt befintligt fält `active.shield:true`.
+- **Special Attack: "Gate of Dominion"** — koden HELT oförändrad.
+  Bildens "kontrollera minst 4 kort"-villkor följdes INTE igen (fjärde
+  gången detta mönster dyker upp: Zaevir/Ragnar "3 kort", Maximus/
+  Darum "4 kort").
+- Stats **oförändrade** — matchade redan bilden exakt.
+
+Bort: Boulder Bash och Fortress Stance (båda otydliga/obetingade,
+överlappade varandra och grundidentiteten "tank"), samt "immun mot
+Special Attacks"-klausulen i Wall of Resolve (inget spårningssystem
+för det finns). Inga nya primitives.
+
+**45. Daron — trimmad från en 0/5-wired stubbe** — femte kortet från
+audit-listan, och **Darums son** ("Son of Darum, The Fallen Prince of
+the North") — flera av hans skills ekar bokstavligen sin fars
+mekaniker, vilket gjorde återanvändningen extra naturlig. Ultimaten
+(`SPECIAL_HANDLERS.daron`, tröskel +4/flip/`stealPower:2`) var redan
+wired och matchade texten exakt. Bara de 5 vanliga skillsen saknade
+backing.
+
+- **Corrupted Bloodline (Passiv)** — TVÅ helt befintliga fält
+  tillsammans: `active.onWinDirectionalBoost:1` +
+  `active.vsStrongerTotalPowerBoost:{amount:1}` — samma två primitives
+  som pappa Darums Wall of Resolve/Crushing Counter, fast lägre
+  belopp. "Som far, så son."
+- **Soul Drain (Passiv)** — TVÅ helt befintliga fält tillsammans:
+  `active.onWinDebuffLoserPermanent:1` + `active.onCaptureBonus:1` —
+  exakt samma "stöld"-kombination som Twisted Gipsys The House Always
+  Wins.
+- **Special Attack: "Shattered Crown"** — koden HELT oförändrad.
+  Bildens "kontrollera minst 4 kort"-villkor följdes INTE igen (femte
+  gången: Zaevir/Ragnar "3 kort", Maximus/Darum/Daron "4 kort").
+- Stats **oförändrade** — matchade redan bilden exakt.
+
+Bort: Dark Sorcery (kräver "rikta in på högsta sidan"-logik som inte
+finns), Twisted Royalty (två ihopklumpade effekter, ingen ren
+mappning), Mother's Torment (redundant/överdrivet i kombination med
+de andra två). Inga nya primitives.
+
+**46. Vorathos — trimmad + en riktig kod-vs-bild-konflikt löst med
+"kombinera båda"** — sjätte kortet från audit-listan. Hade ett
+`active.shield:true` som inte matchade NÅGON av hans 4 namngivna
+skills — en oförklarlig kvarleva, borttagen helt snarare än att gissa
+vad den var tänkt för. Ultimaten (`SPECIAL_HANDLERS.vorathos`, tröskel
++4/flip/riktad permanent +1) var redan wired.
+
+- **Time Barrier (Passiv)** — helt befintligt fält
+  `active.onWinDirectionalBoost:1`, "resten av ronden" blev permanent.
+- **Eternal Boundary (Passiv)** — helt befintligt fält
+  `active.oncePerMatchAttackBoost:{amount:2}`, samma som Yojimbos
+  Kozuka. "Vald riktning, resten av ronden" blev "nästa attack".
+- **Special Attack: "Time Collapse" — RIKTIG mekanik-konflikt, inte
+  bara "kontrollera N kort"-mönstret**: koden gav Vorathos SJÄLV
+  permanent +1 på vald riktning (självbuff), men bilden beskrev att
+  DET BESEGRADE KORTET permanent förlorar -1 på samma riktning
+  (fiendedebuff) — helt motsatt mål. Användaren valde "C" (kombinera
+  båda): `SPECIAL_HANDLERS.vorathos` fick en ny rad,
+  `SpecialVerbs.directionalBoost(targetEntry, [side], -1)`, som körs
+  TILLSAMMANS med den befintliga självbuffen. Samma
+  "kontrollera N kort"-aktiveringsvillkor i bilden följdes INTE
+  (sjätte gången).
+- Stats **oförändrade** — matchade redan bilden exakt.
+
+Bort: Standstill (skulle kräva en ny "försvarare försvagar angripare
+live"-primitive), Reversed Shield (ingen on-loss-trigger-typ finns).
+Inga nya primitives utöver den redan existerande
+`SpecialVerbs.directionalBoost()` (bara ett nytt anrop till en
+befintlig funktion).
+
+**47. Pallispell — en riktig kod-vs-bild-konflikt löst med "kombinera
+båda" (samma användarval som Vorathos)** — sjunde kortet från
+audit-listan, redan 4/5 wired (Keen Eye, Loyal Strike, Double Fury,
+Strong Together matchade bilden exakt, ingen ändring). Den enda luckan
+var Ultimaten, och den var en RIKTIG mekanik-konflikt, inte bara
+"kontrollera N kort"-mönstret:
+
+- **Koden** (`SPECIAL_HANDLERS.pallispell`, redan wired sedan tidigare
+  session): AOE-dubbelstrid — hittar automatiskt upp till 2 angränsande
+  fiendekort och jämför rå totalPower (inget attack-bonus), flippar de
+  som förlorar. Om BÅDA flippas får Pallis & Pell permanent +1 alla
+  sidor.
+- **Den nya godkända bilden**: enkel-mål flip+debuff — välj ETT
+  fiendekort, om striden vinns förlorar det kortet permanent 2 Power på
+  alla sidor.
+- Helt olika mål (AOE mot enkel-mål) och helt olika effekt (självbuff
+  mot fiendedebuff) — samma typ av konflikt som Vorathos Time Collapse.
+  Användaren valde "C" (kombinera båda) igen: AOE-dubbelstriden ligger
+  kvar oförändrad, men varje enskilt kort som flippas av den får NU
+  också bildens permanenta -2 alla sidor-debuff, via ett nytt anrop till
+  den redan existerande `SpecialVerbs.debuff()` (samma primitive som
+  Sarahs Poisoned Edge). Den befintliga "båda flippade → +1
+  självbuff"-bonusen är oförändrad och läggs ovanpå.
+- Stats, badges, Keen Eye, Strong Together **oförändrade** — matchade
+  redan bilden exakt.
+
+Inga nya primitives — bara ett nytt anrop till den redan existerande
+`SpecialVerbs.debuff()`.
+
+**48. Templaren — medvetet 3/4, en fjärde skill struken helt (inte
+byggd) efter diskussion med användaren** — åttonde kortet från
+audit-listan, hade `active: {conditionalShield:'adjacentAllies2'}`
+(bara Faithful Defense) och `skills` för alla fyra namn, men Holy Aura,
+Shield Wall och Divine Retribution saknade all kod-backing (0/3). Inget
+`special`-fält alls (ingen Ultimate) — oförändrat, ingen bildbrief för
+det ännu.
+
+- **Holy Aura** — ny handler `ON_PLACE_HANDLERS.templaren(entry, owner,
+  cellIndex)`. "+1 Power i riktningen som pekar mot Templaren" på varje
+  angränsande allierat kort: räknar ut den MOTSATTA sidan från
+  Templarens offset (en allierad ovanför honom får bonusen på sin EGEN
+  botten-sida, osv.) och anropar den redan existerande
+  `SpecialVerbs.directionalBoost()` per granne — samma
+  `adjacentEntries()`-familj av hooks som Shiva/Leviathan/Chocobo King
+  redan använder, bara med en beräknad riktning istället för alla
+  sidor.
+- **Divine Retribution** — helt befintligt fält
+  `active.onCaptureBuffSelfThisRound:1`, exakt samma primitive som
+  Leviathan redan använder (där med värdet 2). "Resten av ronden"
+  matchar ordagrant vad fältet redan gör.
+- **Shield Wall — struken helt, inte byggd.** Texten ("If Templaren
+  wins against a dark or monster-type card, you take control regardless
+  of the numbers") skulle krävt TVÅ nya saker samtidigt: (1) en helt ny
+  "ovillkorlig vinst oavsett siffror"-primitive — inget sådant finns
+  någonstans i motorn (närmaste är `weakVsElement`, som bara ger ett
+  stort men ändligt bonus, aldrig en garanterad vinst), och (2) en ny
+  `isMonster`-tagg på rostret (`element:'dark'` finns redan för
+  "dark", men "monster-type" har ingen datarepresentation alls —
+  skulle krävt omtaggning av de enkla mobbarna Ogre/Direbear/Wyrm/
+  Lich/Revenant/Wendigo/Harpy/Shadowking). Användaren stoppade detta
+  explicit: **"Det går emot hela linjen vi har kört: vi bygger inte
+  nya primitives för ett enda kort när det finns en renare lösning."**
+  Skillen är helt borttagen ur `skills`-arrayen (inte kvarlämnad som
+  en obackad textrad) — Templaren har nu 3 riktiga, fungerande
+  abilities istället för 4 där en är fejk.
+- Stats **oförändrade**. Faithful Defense **oförändrad**
+  (`conditionalShield:'adjacentAllies2'`, redan wired sedan tidigare).
+
+Inga nya primitives — `directionalBoost()` och
+`onCaptureBuffSelfThisRound` fanns båda redan. Ingen Ultimate tillagd
+(väntar på bildbrief).
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd.**
+Matchade det redan ombyggda kortet EXAKT — stats 10/9/8/8, namn/roll,
+och alla tre skill-texter (Holy Aura, Divine Retribution, Faithful
+Defense) ord för ord, ingen Ultimate synlig på kortet. Inga kodändringar
+alls den här gången, bara nya bildfiler. Flyttade full-bilden från det
+gamla GitHub-UUID-filnamnet (`27D992DB-122B-4BB7-917C-1734ACDFEFA8.jpg`,
+borttaget) till standardnamnet `card-templaren-full.jpg`, samma mönster
+som Vorathos/Pallispell. Ny beskuren `cards/card-templaren.jpg` använder
+en högre beskärning ((10,60)-(930,660) istället för standard-
+(140,300)-(800,731)) för att få med ansiktet/hjälmen ovanför skölden
+utan att gå in i stat-diamant-området längst ner.
+
+**49. Tilda — stats buffade + en fjärde skill omdöpt för
+namnkollision** — nionde kortet från audit-listan, hade bara
+`active.underdogBonus:2` (Night's Advantage), övriga tre skills (0/3)
+saknade all kod-backing. Inget `special`-fält alls (ingen Ultimate),
+oförändrat. Objektivt rostrets svagaste kort statistiskt (4/7/7/6 =
+24, exakt vid golvet av hela rostrets 24–44-spann) — användaren valde
+explicit att buffa henne som en del av omjobbet, inte bara koppla in
+skills.
+
+- **Stats: 7/8/8/8 (totalt 31)** — användarens val, uppvägt mot
+  förslaget 6/8/8/7 (30). Tydlig uppgradering från golvet utan att
+  närma sig toppskiktet.
+- **Piercing Shot** — ny `ON_PLACE_HANDLERS.tilda`, buntar ihop med
+  Marked Target (samma "ingen sekundär-aktivering, så båda kör vid
+  placering"-resonemang som Vorgrath/Zalazar/Naline/Zlaizer). Ingen
+  rad-mål-väljar-UI finns, så en slumpad riktning väljs först (samma
+  mönster som Fenrir/Zalazars egna riktningsval), sedan ett slumpat
+  fiendekort inom den `enemiesInDirection()`-linjen, `debuffThisRound`
+  -2.
+- **Marked Target** — samma bunt. Slumpat fiendekort var som helst på
+  brädet, `entry.tildaMarked` satt precis som Seraphines
+  `seraphineMarked`. Två hårdkodade checks (`battleNeighbors` +
+  `simulateFlips`), samma anledning som Seraphine (`fullEffectiveValue`
+  ser aldrig den levande motståndar-entryn). **Skillnad mot Seraphine:**
+  INTE låst till en specifik anfallar-id — källtexten säger "one of
+  YOUR cards", inte bara Tilda själv, så vilken alliansbricka som helst
+  som anfaller det märkta kortet får +2.
+- **Umbral Step (omdöpt från "Shadow Step")** — namnkollision med
+  Vayras redan existerande, helt orelaterade Shadow Step-passiv
+  (blockerar attacker ≤2 marginal). Användaren valde "Umbral Step".
+  **Viktig precisering från användaren:** originalets "nästa tur"-
+  identitet fick INTE tystas ner till permanent bara för att det var
+  enklare — motorns EXISTERANDE `xUntilTurnCount`-mönster (samma
+  runda-klocka som Medusas `petrifiedUntilTurnCount`,
+  `state.turnCount + 4`, beskrivet på annat håll som "genom kastarens
+  egen nästa tur") återanvändes rakt av istället för
+  `SpecialVerbs.directionalBoost()` (som är permanent i alla dess
+  andra användningar, kollat — Vorathos/Darum/Daron/Aurelian/Vorlix
+  använder den aldrig temporärt). Två nya, helt vanliga runtime-fält
+  (`entry.umbralStepSide`, `entry.umbralStepUntilTurnCount`) sätts i
+  `checkOnWinBonuses` (slumpad sida per vinst, samma
+  "ingen riktningsväljare"-förenkling) och läses LIVE i
+  `fullEffectiveValue` — samma "beräkna direkt, inget att återställa"
+  -form som `boardLeadBonus`/`pairPresence`-kollarna redan har där,
+  så ingenting behöver röra `sweepExpiredRoundEffects()`. **Upptäckt
+  under arbetet:** `checkOnWinBonuses` anropas EXKLUSIVT när det just
+  placerade kortet vinner (aldrig när ett redan liggande kort försvarar
+  framgångsrikt) — så bonusen kan bara TRIGGAS av Tildas egen placering,
+  men eftersom hon aldrig "anfaller" igen efter det konsumeras den i
+  praktiken nästan alltid av en FÖRSVARSstrid senare (en fiende som
+  placerar sig intill henne inom fönstret). Därför fick kollen INTE
+  gates till `role==='attack'` (till skillnad från
+  `oncePerMatchAttackBoost`s mönster) — annars hade ability:n nästan
+  alltid varit dödkod.
+- **Night's Advantage** — oförändrad (`active.underdogBonus:2`).
+
+Inga nya primitives — `debuffThisRound()`, `enemiesInDirection()` och
+Seraphine-märkningsmönstret fanns alla redan; Umbral Step återanvänder
+det redan existerande `xUntilTurnCount`-idiomet snarare än att bygga en
+ny "temporär riktad bonus"-primitive i `SpecialVerbs`.
+
+**Uppdatering, samma session: första Ultimate tillagd.** Användaren gav
+en konkret spec direkt (inte en bild) för **"Nightfall"** (kostnad 2
+wins, `targets:'single'`): "+3 Power på den attackerande sidan i denna
+strid, om hon vinner permanent +1 alla sidor" — beordrat att återanvända
+exakt samma total-power-tröskel-mönster som Vayra/Sarah/Ysara/Aurelia/
+Lyrith (`SPECIAL_HANDLERS.tilda`, kopierad nästan rakt av från Sarahs
+`Aion's Last Light`: `totalPower(srcEntry)+3 <= totalPower(targetEntry)`
+→ miss, annars flip + `SpecialVerbs.attackBoost(srcEntry, 1)` permanent).
+Inga nya primitives — bara ett nytt kort i samma redan etablerade familj.
+Femte skill-raden ("Special Attack: Nightfall") tillagd i `skills`-arrayen
+med samma standardformulering som Sarahs egen.
+
+**Uppdatering, samma session: ny godkänd konst mottagen och inlagd
+(inklusive Nightfall).** Matchade allt exakt — stats 7/8/8/8, namn/roll,
+alla fyra bas-skill-texter OCH den nya Nightfall-texten ord för ord.
+Inga kodändringar, bara nya bildfiler. Samma UUID-till-standardnamn-
+migrering som Templaren/Vorathos/Pallispell
+(`2EB4B914-42A1-4340-843C-D4213EA510E4.jpg` → `card-tilda-full.jpg`),
+samma förhöjda beskärning som Templaren ((10,60)-(930,660)) för att
+få med ansiktet ovanför namnplattan.
 
 **28. Voidqueen ombyggd och omdöpt till "The Hungering Void"** —
 ursprungligen bedömd 🟠 REWORK i auditen enbart för namnkollisionen

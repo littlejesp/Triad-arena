@@ -164,6 +164,35 @@ test('conquest banner: an AOE special (Pallis & Pell) triggers it on an actual c
   await page.close();
 });
 
+test('Hunter\'s Wrath: each defeated card permanently loses 2 Power on all sides, on top of the both-flipped self-buff', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('pallispell'), 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[7] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    runSpecialResolution(4, null, {});
+    return {
+      firstFlipped: state.board[1].owner === 'blue',
+      secondFlipped: state.board[7].owner === 'blue',
+      firstDebuff: state.board[1].captureBonus,
+      secondDebuff: state.board[7].captureBonus,
+      selfBuffApplied: src.captureBonus,
+    };
+  })()`);
+  assert.equal(result.firstFlipped, true);
+  assert.equal(result.secondFlipped, true);
+  assert.equal(result.firstDebuff, -2, 'defeated card permanently loses 2 Power on all sides');
+  assert.equal(result.secondDebuff, -2, 'defeated card permanently loses 2 Power on all sides');
+  assert.equal(result.selfBuffApplied, 1, 'both targets flipped, so Pallis and Pell still gain the existing +1 self-buff');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('conquest banner: a non-capturing special (Deathblade\'s swap) does not trigger it', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
@@ -2636,6 +2665,201 @@ test('Chocobo King: Golden Feathers (isBeast tag), Choco Dash/Royal Plumage/Feat
   await page.close();
 });
 
+test('Templaren: reworked per audit — Holy Aura (on-place directional ally buff), Divine Retribution (on-capture self buff), Faithful Defense unchanged, Shield Wall dropped', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const templaren = findCardById('templaren');
+    // Templaren is a campaign unlock reward (CAMPAIGN_STAGES unlockIds),
+    // intentionally player-only — unlike most heroes he's never in
+    // FOREST_FOES, so only HEROES membership is checked here.
+    out.playable = HEROES.some(h => h.id === 'templaren');
+    out.skillCount = templaren.skills.length === 3;
+    out.shieldWallDropped = !templaren.skills.some(s => s.name === 'Shield Wall');
+
+    // Holy Aura: each adjacent ally gets +1 on the side FACING Templaren
+    // (opposite of the direction he's offset from them), a non-adjacent
+    // ally and an adjacent enemy are both untouched.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const templarenEntry = freshEntry(templaren, 'blue');
+    const upAlly = freshEntry({ id:'ua', name:'UA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const leftAlly = freshEntry({ id:'la', name:'LA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const rightAlly = freshEntry({ id:'ra', name:'RA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const downAlly = freshEntry({ id:'da', name:'DA', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const adjEnemy = freshEntry({ id:'ae', name:'AE', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = upAlly; state.board[3] = leftAlly; state.board[5] = rightAlly; state.board[7] = downAlly;
+    state.board[4] = templarenEntry;
+    ON_PLACE_HANDLERS.templaren(templarenEntry, 'blue', 4);
+    out.upAllyGetsBottom = upAlly.sideBonus && upAlly.sideBonus.bottom === 1 && !upAlly.sideBonus.top && !upAlly.sideBonus.left && !upAlly.sideBonus.right;
+    out.leftAllyGetsRight = leftAlly.sideBonus && leftAlly.sideBonus.right === 1 && !leftAlly.sideBonus.left;
+    out.rightAllyGetsLeft = rightAlly.sideBonus && rightAlly.sideBonus.left === 1 && !rightAlly.sideBonus.right;
+    out.downAllyGetsTop = downAlly.sideBonus && downAlly.sideBonus.top === 1 && !downAlly.sideBonus.bottom;
+    out.enemyUntouched = !adjEnemy.sideBonus;
+
+    // Divine Retribution: capturing an enemy grants +1 all sides this round.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const templarenWinner = freshEntry(templaren, 'blue');
+    state.board[4] = templarenWinner;
+    const weakFoe = freshEntry({ id:'wf', name:'WF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    resolveFlips(4, 'blue');
+    out.divineRetributionBuffed = templarenWinner.captureBonus === 1;
+
+    // Faithful Defense: unchanged, still a live conditional shield.
+    state.board = Array(9).fill(null);
+    const templarenShielded = freshEntry(templaren, 'blue');
+    state.board[4] = templarenShielded;
+    state.board[1] = freshEntry({ id:'a1', name:'A1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[3] = freshEntry({ id:'a2', name:'A2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.faithfulDefenseHolds = isShielded(templarenShielded, 4) === true;
+
+    return out;
+  })()`);
+  assert.equal(result.playable, true);
+  assert.equal(result.skillCount, true);
+  assert.equal(result.shieldWallDropped, true);
+  assert.equal(result.upAllyGetsBottom, true);
+  assert.equal(result.leftAllyGetsRight, true);
+  assert.equal(result.rightAllyGetsLeft, true);
+  assert.equal(result.downAllyGetsTop, true);
+  assert.equal(result.enemyUntouched, true);
+  assert.equal(result.divineRetributionBuffed, true);
+  assert.equal(result.faithfulDefenseHolds, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Marked Target (on-place), Umbral Step (renamed, on-win, live-expiring), Night\'s Advantage unchanged, first-ever Ultimate Nightfall', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const tilda = findCardById('tilda');
+    out.statsBuffed = tilda.top === 7 && tilda.right === 8 && tilda.bottom === 8 && tilda.left === 8;
+    out.skillCount = tilda.skills.length === 5;
+    out.shadowStepRenamed = !tilda.skills.some(s => s.name === 'Shadow Step') && tilda.skills.some(s => s.name === 'Umbral Step');
+    out.hasNightsAdvantage = tilda.active.underdogBonus === 2;
+    out.specialName = tilda.special.name === 'Nightfall';
+    out.specialCost = tilda.special.cost === 2;
+
+    // Piercing Shot + Marked Target both fire on placement. Math.random
+    // forced to 0 so the random direction picks 'up' (dirs[0]) and any
+    // random-index picks land on index 0 of their candidate list.
+    const realRandom = Math.random;
+
+    // Case A: enemy directly above Tilda (in the forced 'up' line) — both
+    // Piercing Shot (-2 this round) AND Marked Target (tildaMarked) should
+    // land on it, since it's also the only enemy on the board.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const tildaA = freshEntry(tilda, 'blue');
+    state.board[4] = tildaA;
+    const inLineFoe = freshEntry({ id:'ilf', name:'ILF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = inLineFoe;
+    Math.random = () => 0;
+    ON_PLACE_HANDLERS.tilda(tildaA, 'blue', 4);
+    Math.random = realRandom;
+    out.piercingShotHitInLineTarget = inLineFoe.captureBonus === -2;
+    out.markedTargetHitInLineTarget = inLineFoe.tildaMarked === true;
+
+    // Case B: enemy at a CORNER (index 0) — not orthogonally aligned with
+    // Tilda at center (index 4), so Piercing Shot's line-scan (forced
+    // 'up') never reaches it, but Marked Target (whole-board random pick)
+    // still marks it regardless of position.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const tildaB = freshEntry(tilda, 'blue');
+    state.board[4] = tildaB;
+    const cornerFoe = freshEntry({ id:'cf', name:'CF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[0] = cornerFoe;
+    Math.random = () => 0;
+    ON_PLACE_HANDLERS.tilda(tildaB, 'blue', 4);
+    Math.random = realRandom;
+    out.piercingShotMissedCorner = cornerFoe.captureBonus === 0;
+    out.markedTargetStillHitsCorner = cornerFoe.tildaMarked === true;
+
+    // Marked Target's +2 applies to ANY allied attacker, not just Tilda
+    // (unlike Seraphine's self-only Celestial Mark) — checked directly via
+    // battleNeighbors' real resolution path.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    // Without the +2 mark bonus, otherAlly's 5 loses to markedFoe's 6 on
+    // every side — only the mark makes this a win (5+2=7 > 6), proving the
+    // bonus is what flips the outcome.
+    const markedFoe = freshEntry({ id:'mf', name:'MF', top:6,right:6,bottom:6,left:6 }, 'red');
+    markedFoe.tildaMarked = true;
+    state.board[1] = markedFoe;
+    const otherAlly = freshEntry({ id:'oa', name:'OA', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = otherAlly;
+    resolveFlips(4, 'blue');
+    out.markedTargetBoostsAnyAlly = state.board[1].owner === 'blue';
+
+    // Umbral Step: on win, a random side (forced to 'top', sides[0]) gets
+    // live +1 for the round-clock window, then expires — nothing to
+    // reverse since it's never written into sideBonus/captureBonus.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const tildaWinner = freshEntry(tilda, 'blue');
+    state.board[4] = tildaWinner;
+    const weakFoe = freshEntry({ id:'wf', name:'WF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakFoe;
+    Math.random = () => 0;
+    resolveFlips(4, 'blue');
+    Math.random = realRandom;
+    out.umbralStepSideChosen = tildaWinner.umbralStepSide === 'top';
+    const dummyOpp = { id:'dummy', name:'D', top:1,right:1,bottom:1,left:1 };
+    out.umbralStepLiveBonusOnChosenSide = fullEffectiveValue(tilda, 'top', dummyOpp, 4, 'blue', 'defense') - tilda.top === 1;
+    out.umbralStepNoBonusOnOtherSide = fullEffectiveValue(tilda, 'right', dummyOpp, 4, 'blue', 'defense') - tilda.right === 0;
+    const savedTurnCount = state.turnCount;
+    state.turnCount = tildaWinner.umbralStepUntilTurnCount;
+    out.umbralStepExpiredAfterWindow = fullEffectiveValue(tilda, 'top', dummyOpp, 4, 'blue', 'defense') - tilda.top === 0;
+    state.turnCount = savedTurnCount;
+
+    // Nightfall: first-ever Ultimate, same total-power-threshold shape as
+    // Sarah/Vayra/Ysara/Aurelia/Lyrith (+3 temp threshold, +1 permanent
+    // all-sides on a win).
+    state.board = Array(9).fill(null);
+    const nfSrc = freshEntry(tilda, 'blue');
+    state.board[4] = nfSrc;
+    const nfWeak = freshEntry({ id:'nf-weak', name:'NFWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = nfWeak;
+    SPECIAL_HANDLERS.tilda({ srcEntry: nfSrc, targetEntry: nfWeak, targetIndex: 1, owner: 'blue' });
+    out.nightfallCapturedAndBuffed = nfWeak.owner === 'blue' && nfSrc.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const nfSrc2 = freshEntry(tilda, 'blue'); // total 31
+    state.board[4] = nfSrc2;
+    const nfStrong = freshEntry({ id:'nf-strong', name:'NFStrong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, 31+3 <= 80
+    state.board[1] = nfStrong;
+    SPECIAL_HANDLERS.tilda({ srcEntry: nfSrc2, targetEntry: nfStrong, targetIndex: 1, owner: 'blue' });
+    out.nightfallNoEffectVsMuchStronger = nfStrong.owner === 'red' && nfSrc2.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.statsBuffed, true);
+  assert.equal(result.skillCount, true);
+  assert.equal(result.shadowStepRenamed, true);
+  assert.equal(result.hasNightsAdvantage, true);
+  assert.equal(result.specialName, true);
+  assert.equal(result.specialCost, true);
+  assert.equal(result.piercingShotHitInLineTarget, true);
+  assert.equal(result.markedTargetHitInLineTarget, true);
+  assert.equal(result.piercingShotMissedCorner, true, "Piercing Shot's line-scan should not reach a diagonal corner");
+  assert.equal(result.markedTargetStillHitsCorner, true, "Marked Target is a whole-board pick, unaffected by position");
+  assert.equal(result.markedTargetBoostsAnyAlly, true, "Marked Target boosts ANY allied attacker, not just Tilda herself");
+  assert.equal(result.umbralStepSideChosen, true);
+  assert.equal(result.umbralStepLiveBonusOnChosenSide, true);
+  assert.equal(result.umbralStepNoBonusOnOtherSide, true);
+  assert.equal(result.umbralStepExpiredAfterWindow, true);
+  assert.equal(result.nightfallCapturedAndBuffed, true, 'Nightfall captures and grants +1 permanent on a win');
+  assert.equal(result.nightfallNoEffectVsMuchStronger, true, 'Nightfall fails against a target whose total power exceeds the +3 threshold');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's Soul, Valhalla's Call (board-wide on-capture), Zantetsuken ultimate", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
@@ -3902,6 +4126,357 @@ test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, and her 
   assert.equal(result.fearedVsWeaker, true, 'Feared Huntress grants nothing against an equal-or-weaker foe');
   assert.equal(result.capturedAndBuffed, true, "Aion's Last Light captures and grants +1 permanent on a win");
   assert.equal(result.noEffectVsMuchStronger, true, "Aion's Last Light fails against a target whose total power exceeds the +3 threshold");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Zaevir: card rebuilt from a 0/4-wired stub -- Eternal Aim (onPlaceBoost), Focus (shield), and his first-ever Ultimate Eternal Arrow", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const zaevir = findCardById('zaevir');
+    out.statsMatchArt = zaevir.top === 10 && zaevir.right === 10 && zaevir.bottom === 9 && zaevir.left === 8 && zaevir.element === 'wind';
+    out.hasEternalAim = zaevir.active.onPlaceBoost === 2;
+    out.hasFocus = zaevir.active.shield === true;
+    out.skillCount = zaevir.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Eternal Aim: placing him grants +2 Power on exactly one random side.
+    state.board = Array(9).fill(null);
+    state.playerHand = [zaevir, {id:'filler1'}];
+    placeCard(4, 'zaevir', 'blue');
+    const placed = state.board[4];
+    const sb = placed.sideBonus || {};
+    const boostedSides = ['top','right','bottom','left'].filter(s => (sb[s]||0) === 2);
+    out.eternalAimBoostedExactlyOneSide = boostedSides.length === 1;
+
+    // Focus: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    const shieldedDefender = freshEntry(zaevir, 'blue'); // top:10
+    state.board[4] = shieldedDefender;
+    const attacker = freshEntry({ id:'zae-attacker', name:'ZaeAttacker', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = attacker;
+    resolveFlips(1, 'red');
+    out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Eternal Arrow (same Eclipse shape as Sarah/Vayra/Ysara): non-crit win
+    // flips the target and grants permanent +1 Power all sides.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(zaevir, 'blue');
+    const target = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = src; state.board[1] = target;
+    SPECIAL_HANDLERS.zaevir({ srcEntry: src, targetEntry: target, targetIndex: 1, owner: 'blue' });
+    out.arrowFlippedTarget = target.owner === 'blue';
+    out.arrowPermanentBoost = src.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 10/10/9/8 (top/right/bottom/left)');
+  assert.equal(result.hasEternalAim, true);
+  assert.equal(result.hasFocus, true);
+  assert.equal(result.skillCount, 3, "the printed card carries Eternal Aim, Focus, and Eternal Arrow -- Forest's Path and the old Eternal Arrow chain-attack concept are gone");
+  assert.equal(result.eternalAimBoostedExactlyOneSide, true);
+  assert.equal(result.shieldBlockedFirstLoss, true);
+  assert.equal(result.arrowFlippedTarget, true);
+  assert.equal(result.arrowPermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Ragnar: card rebuilt from a 0/4-wired stub -- War Breaker (vsStrongerTotalPowerBoost), Blood Rush (onCaptureBonus), and his first-ever Ultimate Blood Fury', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ragnar = findCardById('ragnar');
+    out.statsMatchArt = ragnar.top === 9 && ragnar.right === 6 && ragnar.bottom === 9 && ragnar.left === 5 && ragnar.element === 'fire';
+    out.hasWarBreaker = ragnar.active.vsStrongerTotalPowerBoost && ragnar.active.vsStrongerTotalPowerBoost.amount === 2;
+    out.hasBloodRush = ragnar.active.onCaptureBonus === 1;
+    out.skillCount = ragnar.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // War Breaker: +2 Power attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.warBreakerVsStronger = fullEffectiveValue(ragnar, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - ragnar.top;
+    out.warBreakerVsWeaker = fullEffectiveValue(ragnar, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - ragnar.top;
+
+    // Blood Rush: capturing a card permanently grants +1 Power.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(ragnar, 'blue'); // top:9
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'rag-weak', name:'RagWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.bloodRushGainedPower = src.captureBonus === 1;
+
+    // Blood Fury (same Eclipse shape as Zaevir/Sarah/Vayra/Ysara): non-crit
+    // win flips the target and grants permanent +1 Power all sides.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(ragnar, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.ragnar({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.furyFlippedTarget = wtarget.owner === 'blue';
+    out.furyPermanentBoost = wsrc.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 9/6/9/5 (top/right/bottom/left)');
+  assert.equal(result.hasWarBreaker, true);
+  assert.equal(result.hasBloodRush, true);
+  assert.equal(result.skillCount, 3, 'the printed card carries War Breaker, Blood Rush, and Blood Fury -- Double Strike and Last Fury are gone');
+  assert.equal(result.warBreakerVsStronger, 2);
+  assert.equal(result.warBreakerVsWeaker, 0);
+  assert.equal(result.bloodRushGainedPower, true);
+  assert.equal(result.furyFlippedTarget, true);
+  assert.equal(result.furyPermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Maximus: card trimmed from a 1/6-wired stub -- Gladiator\'s Dominion (onCaptureBonus), Blood for Glory (vsStrongerTotalPowerBoost), Axe of Dominion unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const maximus = findCardById('maximus');
+    out.statsUnchanged = maximus.top === 10 && maximus.right === 10 && maximus.bottom === 8 && maximus.left === 9 && maximus.element === 'fire';
+    out.hasGladiatorsDominion = maximus.active.onCaptureBonus === 1;
+    out.hasBloodForGlory = maximus.active.vsStrongerTotalPowerBoost && maximus.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.skillCount = maximus.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Gladiator's Dominion: capturing a card permanently grants +1 all sides.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(maximus, 'blue'); // top:10
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'max-weak', name:'MaxWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.dominionGainedPower = src.captureBonus === 1;
+
+    // Blood for Glory: +3 Power attacking a stronger-total-power foe, nothing vs a weaker one.
+    out.gloryVsStronger = fullEffectiveValue(maximus, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - maximus.top;
+    out.gloryVsWeaker = fullEffectiveValue(maximus, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - maximus.top;
+
+    // Axe of Dominion (unchanged): threshold +4, flip, permanent +2, extra
+    // turn only when the defeated card was stronger.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(maximus, 'blue'); // total 37
+    const weakTarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = weakTarget;
+    state.extraTurnPending = null;
+    SPECIAL_HANDLERS.maximus({ srcEntry: wsrc, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
+    out.axeFlippedWeakTarget = weakTarget.owner === 'blue';
+    out.axePermanentBoost = wsrc.captureBonus === 2;
+    out.axeNoExtraTurnVsWeaker = state.extraTurnPending === null;
+
+    state.board = Array(9).fill(null);
+    const wsrc2 = freshEntry(maximus, 'blue');
+    const strongTarget = freshEntry({ id:'max-strong', name:'MaxStrong', top:10,right:10,bottom:10,left:9 }, 'red'); // total 39: > Maximus's 37, still < 37+4=41
+    state.board[4] = wsrc2; state.board[1] = strongTarget;
+    state.extraTurnPending = null;
+    SPECIAL_HANDLERS.maximus({ srcEntry: wsrc2, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
+    out.axeGrantsExtraTurnVsStronger = state.extraTurnPending === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasGladiatorsDominion, true);
+  assert.equal(result.hasBloodForGlory, true);
+  assert.equal(result.skillCount, 3, "the printed card carries Gladiator's Dominion, Blood for Glory, and Axe of Dominion -- Spinning Axe, Arena Rage, and Champion's Will are gone");
+  assert.equal(result.dominionGainedPower, true);
+  assert.equal(result.gloryVsStronger, 3);
+  assert.equal(result.gloryVsWeaker, 0);
+  assert.equal(result.axeFlippedWeakTarget, true);
+  assert.equal(result.axePermanentBoost, true);
+  assert.equal(result.axeNoExtraTurnVsWeaker, true, 'no extra turn when the defeated card was NOT stronger');
+  assert.equal(result.axeGrantsExtraTurnVsStronger, true, 'extra turn granted when the defeated card had higher total Power');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Darum: card trimmed from a 0/5-wired stub -- Wall of Resolve (onWinDirectionalBoost), Crushing Counter (vsStrongerTotalPowerBoost), Ironwall (shield), Gate of Dominion unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const darum = findCardById('darum');
+    out.statsUnchanged = darum.top === 10 && darum.right === 10 && darum.bottom === 8 && darum.left === 9 && darum.element === 'earth';
+    out.hasWallOfResolve = darum.active.onWinDirectionalBoost === 1;
+    out.hasCrushingCounter = darum.active.vsStrongerTotalPowerBoost && darum.active.vsStrongerTotalPowerBoost.amount === 3;
+    out.hasIronwall = darum.active.shield === true;
+    out.skillCount = darum.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Wall of Resolve: winning a battle (as the attacker -- checkOnWinBonuses
+    // only ever fires for the placing/attacking side in this engine, never
+    // a defender that merely resists) grants permanent +1 on the winning
+    // side, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(darum, 'blue'); // top:10
+    src.shieldUsed = true; // isolate from Ironwall's own shield
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'dar-weak', name:'DarWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.wallOfResolveBoosted = src.sideBonus && src.sideBonus.top === 1;
+
+    // Crushing Counter: +3 Power vs a stronger-total-power foe, nothing vs a weaker one.
+    out.counterVsStronger = fullEffectiveValue(darum, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - darum.top;
+    out.counterVsWeaker = fullEffectiveValue(darum, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - darum.top;
+
+    // Ironwall: the first loss is ignored (generic active.shield:true).
+    state.board = Array(9).fill(null);
+    const shieldedDefender = freshEntry(darum, 'blue');
+    state.board[4] = shieldedDefender;
+    const bigAttacker = freshEntry({ id:'dar-big', name:'DarBig', top:1,right:1,bottom:20,left:1 }, 'red');
+    state.board[1] = bigAttacker;
+    resolveFlips(1, 'red');
+    out.ironwallBlockedFirstLoss = state.board[4].owner === 'blue';
+
+    // Gate of Dominion (unchanged): threshold +4, flip, permanent +2.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(darum, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.darum({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.gateFlippedTarget = wtarget.owner === 'blue';
+    out.gatePermanentBoost = wsrc.captureBonus === 2;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasWallOfResolve, true);
+  assert.equal(result.hasCrushingCounter, true);
+  assert.equal(result.hasIronwall, true);
+  assert.equal(result.skillCount, 4, "the printed card carries Wall of Resolve, Crushing Counter, Ironwall, and Gate of Dominion -- Boulder Bash, Fortress Stance, and the Special-Attack immunity are gone");
+  assert.equal(result.wallOfResolveBoosted, true);
+  assert.equal(result.counterVsStronger, 3);
+  assert.equal(result.counterVsWeaker, 0);
+  assert.equal(result.ironwallBlockedFirstLoss, true);
+  assert.equal(result.gateFlippedTarget, true);
+  assert.equal(result.gatePermanentBoost, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Daron: card trimmed from a 0/5-wired stub -- Corrupted Bloodline (onWinDirectionalBoost + vsStrongerTotalPowerBoost), Soul Drain (onWinDebuffLoserPermanent + onCaptureBonus), Shattered Crown unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const daron = findCardById('daron');
+    out.statsUnchanged = daron.top === 10 && daron.right === 10 && daron.bottom === 9 && daron.left === 8 && daron.element === 'water';
+    out.hasOnWinBoost = daron.active.onWinDirectionalBoost === 1;
+    out.hasVsStronger = daron.active.vsStrongerTotalPowerBoost && daron.active.vsStrongerTotalPowerBoost.amount === 1;
+    out.hasSoulDrainDebuff = daron.active.onWinDebuffLoserPermanent === 1;
+    out.hasSoulDrainGain = daron.active.onCaptureBonus === 1;
+    out.skillCount = daron.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Corrupted Bloodline, part 1: winning a battle (as attacker) grants
+    // permanent +1 on the winning side, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(daron, 'blue'); // top:10
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'dn-weak', name:'DnWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.onWinBoostApplied = src.sideBonus && src.sideBonus.top === 1;
+
+    // Corrupted Bloodline, part 2: +1 Power attacking a stronger-total-power foe.
+    out.strongerVsStronger = fullEffectiveValue(daron, 'top', {top:20,right:20,bottom:20,left:20}, 0, 'blue', 'attack') - daron.top;
+    out.strongerVsWeaker = fullEffectiveValue(daron, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - daron.top;
+
+    // Soul Drain: winning permanently steals 1 Power (loser -1, Daron +1).
+    // Reuses src from above, which already has +1 from onWinDirectionalBoost.
+    state.board[1] = freshEntry({ id:'dn-weak2', name:'DnWeak2', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.soulDrainDebuffedLoser = state.board[1].captureBonus === -1;
+    // src already captured once in the first resolveFlips above too, so
+    // onCaptureBonus (uncapped, unlike onWinDirectionalBoost) has now
+    // fired twice: +2 total.
+    out.soulDrainGainedSelf = src.captureBonus === 2;
+
+    // Shattered Crown (unchanged): threshold +4, flip, steals 2 Power permanently.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(daron, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.daron({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue' });
+    out.crownFlippedTarget = wtarget.owner === 'blue';
+    out.crownStoleTwoPower = wtarget.captureBonus === -2;
+    out.crownGainedTwoPower = wsrc.captureBonus === 2;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasOnWinBoost, true);
+  assert.equal(result.hasVsStronger, true);
+  assert.equal(result.hasSoulDrainDebuff, true);
+  assert.equal(result.hasSoulDrainGain, true);
+  assert.equal(result.skillCount, 3, "the printed card carries Corrupted Bloodline, Soul Drain, and Shattered Crown -- Dark Sorcery, Twisted Royalty, and Mother's Torment are gone");
+  assert.equal(result.onWinBoostApplied, true);
+  assert.equal(result.strongerVsStronger, 1);
+  assert.equal(result.strongerVsWeaker, 0);
+  assert.equal(result.soulDrainDebuffedLoser, true);
+  assert.equal(result.soulDrainGainedSelf, true, 'onCaptureBonus fired on both captures (uncapped), unlike the once-only onWinDirectionalBoost');
+  assert.equal(result.crownFlippedTarget, true);
+  assert.equal(result.crownStoleTwoPower, true);
+  assert.equal(result.crownGainedTwoPower, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Vorathos: card cleaned up from an orphan active.shield -- Time Barrier (onWinDirectionalBoost), Eternal Boundary (oncePerMatchAttackBoost), Time Collapse now also debuffs the target (combined resolution)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vorathos = findCardById('vorathos');
+    out.statsUnchanged = vorathos.top === 7 && vorathos.right === 10 && vorathos.bottom === 8 && vorathos.left === 9 && vorathos.element === 'wind';
+    out.hasTimeBarrier = vorathos.active.onWinDirectionalBoost === 1;
+    out.hasEternalBoundary = vorathos.active.oncePerMatchAttackBoost && vorathos.active.oncePerMatchAttackBoost.amount === 2;
+    out.orphanShieldRemoved = vorathos.active.shield === undefined;
+    out.skillCount = vorathos.skills.length;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Time Barrier: winning a battle grants permanent +1 on the winning side, once per match.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(vorathos, 'blue'); // right:10
+    state.board[4] = src;
+    state.board[5] = freshEntry({ id:'vt-weak', name:'VtWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.timeBarrierApplied = src.sideBonus && src.sideBonus.right === 1;
+
+    // Eternal Boundary: +2 Power on the next attack, once per match. The
+    // read needs a live board entry at cellIndex to check the used-flag.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(vorathos, 'blue');
+    out.eternalBoundaryBoost = fullEffectiveValue(vorathos, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'attack') - vorathos.top;
+
+    // Time Collapse (combined resolution): non-crit win flips the target,
+    // grants Vorathos permanent +1 on the chosen direction, AND the target
+    // permanently loses 1 on that same direction.
+    state.board = Array(9).fill(null);
+    const wsrc = freshEntry(vorathos, 'blue');
+    const wtarget = freshEntry(findCardById('ogre'), 'red');
+    state.board[4] = wsrc; state.board[1] = wtarget;
+    SPECIAL_HANDLERS.vorathos({ srcEntry: wsrc, targetEntry: wtarget, targetIndex: 1, owner: 'blue', direction: 'up' });
+    out.collapseFlippedTarget = wtarget.owner === 'blue';
+    out.collapseBoostedSelf = wsrc.sideBonus && wsrc.sideBonus.top === 1;
+    out.collapseDebuffedTarget = wtarget.sideBonus && wtarget.sideBonus.top === -1;
+
+    return out;
+  })()`);
+  assert.equal(result.statsUnchanged, true);
+  assert.equal(result.hasTimeBarrier, true);
+  assert.equal(result.hasEternalBoundary, true);
+  assert.equal(result.orphanShieldRemoved, true, 'the old undocumented active.shield (matched no named skill) was removed, not silently kept');
+  assert.equal(result.skillCount, 3, "the printed card carries Time Barrier, Eternal Boundary, and Time Collapse -- Standstill and Reversed Shield are gone");
+  assert.equal(result.timeBarrierApplied, true);
+  assert.equal(result.eternalBoundaryBoost, 2);
+  assert.equal(result.collapseFlippedTarget, true);
+  assert.equal(result.collapseBoostedSelf, true, "Vorathos's own +1 self-buff is kept");
+  assert.equal(result.collapseDebuffedTarget, true, "the approved art's enemy-debuff reading was added on top, per the user's combined ('C') resolution");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

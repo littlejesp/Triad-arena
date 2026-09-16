@@ -1224,12 +1224,12 @@ const FULL_CARD_IMAGES = {
   ysara: 'card-ysara-full.jpg',
   torn: 'card-torn-full.jpg',
   vorathos: 'card-vorathos-full.jpg',
-  templaren: '27D992DB-122B-4BB7-917C-1734ACDFEFA8.jpg',
+  templaren: 'card-templaren-full.jpg',
   sylvarion: 'card-sylvarion-full.jpg',
   ragnar: '1978CAB7-874C-433E-B657-0B9B508BB1AB.jpg',
   naline: 'card-naline-full.jpg',
   deathblade: 'card-deathblade-full.jpg',
-  tilda: '2EB4B914-42A1-4340-843C-D4213EA510E4.jpg',
+  tilda: 'card-tilda-full.jpg',
   littlejesp: 'card-littlejesp-full.jpg',
   pallispell: 'card-pallispell-full.jpg',
   voidqueen: 'A793F95F-8408-43E3-8EFC-CE1F2A80CC48.jpg',
@@ -1302,7 +1302,11 @@ const HEROES = [
     {name:"Elara's Bond (Passive)", desc:"Darien gets +2 Power on all sides while Elara is anywhere on your board. (Stacks with the existing +1 when adjacent, from the game's rivalry-pair rule.)"},
     {name:"Special Attack: Shadow Breaker", desc:"Cost 2 Wins. Choose 1 enemy card — unblockable. If its average side Power is 7 or lower, it's destroyed outright. If 8 or higher, it's permanently weakened by -3 Power instead and stays enemy-owned."},
   ]},
-  { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{bonus:{dir:'right',amount:1}}, skills:[{name:"Eternal Aim", desc:"On placement, choose a direction — Zaevir's attack there gets +2 for the next battle."}, {name:"Forest's Path", desc:"Once per match, Zaevir may attack a card one space away in a straight line, if the path is clear."}, {name:"Focus", desc:"If Zaevir hasn't lost a battle yet, he gets +1 on his next attack."}, {name:"Eternal Arrow", desc:"When Zaevir defeats a card, he may keep attacking in the same direction if another card borders it."}]},
+  { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:9, left:8, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{onPlaceBoost:2, shield:true}, special:{ name:'Eternal Arrow', cost:2, once:true, targets:'single' }, skills:[
+    {name:'Eternal Aim (Passive)', desc:'When Zaevir is placed, he gains +2 Power on a random side for the rest of the match.'},
+    {name:'Focus (Passive)', desc:'The first time Zaevir would lose a battle, the loss is ignored.'},
+    {name:'Special Attack: Eternal Arrow', desc:"Costs 2 wins. Choose an enemy card — Zaevir gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
+  ]},
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', active:{shield:true, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:"Aion's Last Light", cost:2, once:true, targets:'single' }, skills:[
     {name:'Light Shield (Passive)', desc:'The first time Sarah would lose a battle, the loss is ignored.'},
     {name:'Feared Huntress (Passive)', desc:'If Sarah attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
@@ -1333,20 +1337,22 @@ const HEROES = [
     {name:'Poisoned Edge (Passive)', desc:'The defeated card gets -1 Power on all sides for the rest of the match.'},
     {name:'Special Attack: Lethal Volley', desc:"Costs 2 wins. Unleashes a storm of arrows across the whole board — every enemy card permanently loses 2 Power, unblockable."},
   ]},
-  { id:'vorathos', name:"Vorathos", role:"The Timelancer — Order of the Timekeepers", top:7, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#1a1440,#0d0b18 60%)', accent:'#8b6ef2', active: {shield:true}, special:{ name:'Time Collapse', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Time Barrier (Passive)', desc:'When Vorathos wins a battle, he gains +1 Power on the direction that battle was fought, for the rest of the round.'},
-    {name:'Standstill', desc:"When an enemy card attacks Vorathos, it gets -1 Power on its attacking direction for that battle."},
-    {name:'Reversed Shield', desc:'When Vorathos loses a battle, he gains +2 Power on that direction the next time he attacks.'},
-    {name:'Eternal Boundary', desc:'Once per match: choose a direction on Vorathos — it gains +2 Power for the rest of the round.'},
-    {name:'Special Attack: Time Collapse', desc:"Costs 2 wins. Choose an enemy card, then a direction — Vorathos gains +4 Power for this attack only. If the attack wins, that direction keeps +1 Power permanently."},
+  { id:'vorathos', name:"Vorathos", role:"The Timelancer — Order of the Timekeepers", top:7, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#1a1440,#0d0b18 60%)', accent:'#8b6ef2', active:{onWinDirectionalBoost:1, oncePerMatchAttackBoost:{amount:2}}, special:{ name:'Time Collapse', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Time Barrier (Passive)', desc:'The first time Vorathos wins a battle, he permanently gains +1 Power on that direction.'},
+    {name:'Eternal Boundary (Passive)', desc:'Once per match, Vorathos gains +2 Power on his next attack.'},
+    {name:'Special Attack: Time Collapse', desc:"Costs 2 wins. Choose an enemy card, then a direction — Vorathos gains +4 Power for this attack only. If the attack wins, that direction keeps +1 Power permanently on Vorathos, and the defeated card permanently loses 1 Power on that same direction."},
   ]},
-  { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Shield Wall", desc:"If Templaren wins against a dark or monster-type card, you take control regardless of the numbers."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2'}},
+  { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2', onCaptureBuffSelfThisRound:1}},
   { id:'sylvarion', name:"Sylvarion", role:"Herald of the Wild Hunt — The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', active: {flatAttackBonus:2, boardUnderdogAttackBonus:2}, special:{ name:"Herald's Gale", cost:2, once:true, targets:'aoe' }, skills:[
     {name:'Windrush', desc:'Sylvarion gets +2 Power on the attacking side.'},
     {name:'Vanguard of the Hunt (Passive)', desc:'While your side controls fewer cards than your opponent, Sylvarion gets +2 Power on the attacking side.'},
     {name:"Special Attack: Herald's Gale", desc:"Costs 2 wins. A gale sweeps the board: every enemy card gets -2 Power this round. Sylvarion permanently gains +1 Power on all sides for every card fewer his side controls compared to the opponent at the moment of casting (max +3), locked in at activation. Usable once per match."},
   ]},
-  { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:5, bottom:6, left:9, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', skills:[{name:"Double Strike", desc:"When Ragnar wins a battle, he may attack again this round (once per round)."}, {name:"War Breaker", desc:"Choose an enemy card — Ragnar gets +2 Power when attacking it."}, {name:"Blood Rush", desc:"When Ragnar defeats an enemy card, he gets +1 Power for his next battle."}, {name:"Last Fury", desc:"If Ragnar is your only card left on the board, he gets +3 Power until the round ends."}], active: {bonus:{dir:'top',amount:1}}},
+  { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:6, bottom:9, left:5, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', active:{vsStrongerTotalPowerBoost:{amount:2}, onCaptureBonus:1}, special:{ name:'Blood Fury', cost:2, once:true, targets:'single' }, skills:[
+    {name:'War Breaker (Passive)', desc:'If Ragnar attacks an enemy card with higher total Power than his own, he gets +2 Power on the attacking side.'},
+    {name:'Blood Rush (Passive)', desc:'Each time Ragnar takes control of an enemy card, he permanently gains +1 Power.'},
+    {name:'Special Attack: Blood Fury', desc:"Costs 2 wins. Choose an enemy card — Ragnar gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
+  ]},
   // Naline was fully redesigned in a later session from a new poster the
   // user sent ("Naline, The Soul Healer") — same full-rebuild treatment
   // Tiamat got earlier: name and id unchanged (existing unlockIds/rivalry
@@ -1392,7 +1398,7 @@ const HEROES = [
     {name:'Executioner (Passive)', desc:"Whenever Deathblade wins a battle against a card with 6 or lower total Power, that card is destroyed outright instead of captured."},
     {name:'Special Attack: Shadow Assault', desc:"Choose an enemy card — Deathblade swaps physical position with the target, and the target permanently loses 2 Power on all directions."},
   ]},
-  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:4, right:7, bottom:7, left:6, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Piercing Shot", desc:"Choose an enemy card in a straight line — it gets -2 Power this round."}, {name:"Shadow Step", desc:"After Tilda wins a battle, you may change one of her directions by +1 for the next turn."}, {name:"Marked Target", desc:"Choose an enemy card — the next time one of your cards attacks it, it gets +2 Power."}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}], active: {underdogBonus:2}},
+  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:7, right:8, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', special:{ name:'Nightfall', cost:2, once:true, targets:'single' }, skills:[{name:"Piercing Shot", desc:"When Tilda is placed, a random direction is chosen — a random enemy card along that line gets -2 Power this round. (Source text lets you choose the direction and target; simplified to random, same as Fenrir/Zalazar's own on-place directional effects.)"}, {name:"Umbral Step", desc:"After Tilda wins a battle, a random one of her directions gets +1 Power for the next turn. (Source text lets you choose the direction; simplified to random, same as every other direction-choice ability in this game. Renamed from 'Shadow Step' to avoid a name collision with Vayra's own unrelated Shadow Step passive.)"}, {name:"Marked Target", desc:"When Tilda is placed, she marks a random enemy card — the next time one of your cards attacks it, it gets +2 Power. (Source text lets you choose the target; simplified to random, same as Seraphine's own Celestial Mark.)"}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}, {name:"Special Attack: Nightfall", desc:"Costs 2 wins. Choose an enemy card — Tilda gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."}], active: {underdogBonus:2, onWinRandomDirectionalBoost:1}},
   // Divine Bond's card text says "placed ADJACENT to Little Jesp", but the
   // engine's only board-presence passive (pairPresence, see Twin Brothers/
   // Evil Twist) checks "partner anywhere on your board" — reused as-is
@@ -1406,7 +1412,7 @@ const HEROES = [
     {name:'Even Ground (Passive)', desc:"While you and your opponent control an equal number of cards on the board, Little Jesp gets +2 Power on all sides."},
     {name:'Special Attack: Scales of Judgment', desc:"Costs 2 wins. Compares total Wins claimed by each side. Little Jesp permanently gains +1 Power on all sides for every point the gap is under 3 (max +3, locked in at activation — a gap of 0 means the sides are perfectly tied). Then, every card belonging to whichever side currently has more Wins gets -1 Power this round — even if that's your own side. If the two sides are exactly tied, no debuff is applied. Usable once per match."},
   ]},
-  { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', special:{ name:'Hunter\'s Wrath', cost:2, once:true, targets:'aoe' }, skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}, {name:"Special Attack: Hunter's Wrath", desc:"Cost 2 Wins. Immediately battles up to 2 adjacent enemy cards (no attack bonus, just their raw Power). If both are defeated, Pallis and Pell gain +1 Power on all sides for the rest of the match."}]},
+  { id:'pallispell', name:"Pallis & Pell", role:"Wardens of the Wild Hunt", top:9, right:9, bottom:10, left:8, element:'earth', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', special:{ name:'Hunter\'s Wrath', cost:2, once:true, targets:'aoe' }, skills:[{name:"Keen Eye", desc:"When Pallis wins a battle, she deals heavy damage and takes control of the card."}, {name:"Loyal Strike", desc:"When Pell wins a battle, he leaps forward with overwhelming force and stuns the enemy card for one round."}, {name:"Double Fury", desc:"Once per round, when Pallis wins a battle, she may immediately attack another adjacent card together with Pell."}, {name:"Strong Together", desc:"If Pallis and Pell are placed adjacent to each other, both get +1 Power on all sides."}, {name:"Special Attack: Hunter's Wrath", desc:"Cost 2 Wins. Immediately battles up to 2 adjacent enemy cards (no attack bonus, just their raw Power). Each one defeated this way permanently loses 2 Power on all sides. If both are defeated, Pallis and Pell also gain +1 Power on all sides for the rest of the match."}]},
   { id:'voidqueen', name:'The Hungering Void', role:'Hunger of the Void', element:'water', top:10, right:9, bottom:10, left:8, hue:'linear-gradient(160deg,#180a28,#0d0b18 60%)', accent:'#a568f2', active:{underdogBonus:3, onCaptureBonus:1}, special:{ name:"Oblivion's Call", cost:2, once:true, targets:'single' }, skills: [
     {name:'Hunger of the Void (Passive)', desc:'While she controls fewer cards than her opponent, she gets +3 Power on all sides.'},
     {name:'Insatiable (Passive)', desc:'Each time she takes control of an enemy card, she permanently gains +1 Power.'},
@@ -1609,29 +1615,21 @@ const HEROES = [
     {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
     {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
-    {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
-    {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
-    {name:'Blood for Glory', desc:'If Maximus has lower total Power than his opponent in a battle, he gets +3 Power on the attacking side during that battle.'},
-    {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
-    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:"Gladiator's Dominion (Passive)", desc:'Each time Maximus takes control of a card, he permanently gains +1 Power on all sides.'},
+    {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
+    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
-  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
-    {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
-    {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
-    {name:'Crushing Counter', desc:'When Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
-    {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
-    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:3}, shield:true}, special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Wall of Resolve (Passive)', desc:'The first time Darum wins a battle, he permanently gains +1 Power on that side.'},
+    {name:'Crushing Counter (Passive)', desc:'If Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
+    {name:'Ironwall (Passive)', desc:'The first time Darum would lose a battle, the loss is ignored.'},
+    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently."},
   ] },
-  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
-    {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
-    {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
-    {name:'Twisted Royalty', desc:'Once per match, choose a side — Daron gets +3 Power on that side and the enemy card gets -2 Power on all sides this round.'},
-    {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
-    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:1}, onWinDebuffLoserPermanent:1, onCaptureBonus:1}, special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Corrupted Bloodline (Passive)', desc:'The first time Daron wins a battle, he permanently gains +1 Power on that side. If he attacks an enemy card with higher total Power than his own, he gets +1 Power on the attacking side.'},
+    {name:'Soul Drain (Passive)', desc:'When Daron wins a battle, the defeated card permanently loses 1 Power on all sides, and Daron permanently gains +1 Power.'},
+    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power for this attack only. If he wins, he steals 2 Power from the defeated card, permanently."},
   ] },
   { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', active: {shield:true, onWinFrostmark:true, auraPerFrostmarkedEnemy:{amount:1, max:3}}, special:{ name:'The Frozen Crown', cost:3, once:true, targets:'aoe' }, skills: [
     {name:'Frostmark (Passive)', desc:'When Ferea wins a battle, the defeated enemy card becomes Frostmarked for the rest of the match.'},
@@ -1934,29 +1932,21 @@ const FOREST_FOES = [
     {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
     {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:"Gladiator's Dominion (Passive)", desc:'When Maximus wins a battle, he gets +1 Power on that side for the rest of the match. If he takes control of a card, he also gets +1 Power on all sides.'},
-    {name:'Spinning Axe', desc:'Maximus spins his axe and attacks — he gets +2 Power on all sides during this battle.'},
-    {name:'Arena Rage', desc:'When Maximus takes control of a card, he gets +2 Power on all sides for the rest of the round.'},
-    {name:'Blood for Glory', desc:'If Maximus has lower total Power than his opponent in a battle, he gets +3 Power on the attacking side during that battle.'},
-    {name:"Champion's Will", desc:'Once per match, choose an allied card — it gets +3 Power on all sides for the rest of the round.'},
-    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Maximus spins his giant axe and crushes everything in his path. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. If the defeated card had higher total Power than Maximus, he also gets an extra turn next round. Usable once per match."},
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:"Gladiator's Dominion (Passive)", desc:'Each time Maximus takes control of a card, he permanently gains +1 Power on all sides.'},
+    {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
+    {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
-  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Wall of Resolve (Passive)', desc:"When Darum defends a side and wins a battle, he gets +1 Power on that side for the rest of the match. Darum can't lose a battle against a Special Attack."},
-    {name:'Boulder Bash', desc:'Darum strikes with his enormous strength and crushes the opponent — he gets +2 Power on all sides this round.'},
-    {name:'Fortress Stance', desc:'Darum takes an unbreakable stance behind his door. He gets +2 Power on the defending side for the rest of the round.'},
-    {name:'Crushing Counter', desc:'When Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
-    {name:'Ironwall', desc:"Darum stands like an unbreakable wall. The next time he defends, he gains a shield that blocks the loss entirely."},
-    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum takes the fight to that side. He gets +4 Power on the attacking side; if he wins, +2 Power on all sides for the rest of the round. Usable once per match."},
+  { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:3}, shield:true}, special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Wall of Resolve (Passive)', desc:'The first time Darum wins a battle, he permanently gains +1 Power on that side.'},
+    {name:'Crushing Counter (Passive)', desc:'If Darum wins a battle against a card with higher total Power than his own, he gets +3 Power on all sides.'},
+    {name:'Ironwall (Passive)', desc:'The first time Darum would lose a battle, the loss is ignored.'},
+    {name:'Special Attack: Gate of Dominion', desc:"Costs 2 wins. Choose an enemy card — Darum gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently."},
   ] },
-  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
-    {name:'Corrupted Bloodline (Passive)', desc:'When Daron wins a battle, he gets +1 Power on that side for the rest of the match. If he defeats a card with higher total Power than his own, he also gets +1 Power on all sides.'},
-    {name:'Dark Sorcery', desc:"Daron curses the enemy's card — its highest-value side gets -2 Power this round."},
-    {name:'Soul Drain', desc:'When Daron wins a battle, he steals 1 Power from the enemy card and adds it to that side for the rest of the match.'},
-    {name:'Twisted Royalty', desc:'Once per match, choose a side — Daron gets +3 Power on that side and the enemy card gets -2 Power on all sides this round.'},
-    {name:"Mother's Torment", desc:'If Daron wins a battle against a card with lower total Power, he gets +2 Power on all sides for the rest of the match.'},
-    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power on the attacking side. If he wins, he steals 2 Power on all sides from the enemy card for the rest of the match. Usable once per match."},
+  { id:'daron', name:'Daron', role:'Son of Darum, The Fallen Prince of the North — Legendary Card', element:'water', top:10, right:10, bottom:9, left:8, hue:'linear-gradient(160deg,#1c0f28,#0d0b18 60%)', accent:'#8b5ef2', icon:'👑', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:1}, onWinDebuffLoserPermanent:1, onCaptureBonus:1}, special:{ name:'Shattered Crown', cost:2, once:true, targets:'single' }, skills: [
+    {name:'Corrupted Bloodline (Passive)', desc:'The first time Daron wins a battle, he permanently gains +1 Power on that side. If he attacks an enemy card with higher total Power than his own, he gets +1 Power on the attacking side.'},
+    {name:'Soul Drain (Passive)', desc:'When Daron wins a battle, the defeated card permanently loses 1 Power on all sides, and Daron permanently gains +1 Power.'},
+    {name:'Special Attack: Shattered Crown', desc:"Costs 2 wins. Choose an enemy card — Daron gets +4 Power for this attack only. If he wins, he steals 2 Power from the defeated card, permanently."},
   ] },
   { id:'ferea', name:'Ferea', role:'Grand Queen & Enchantress of the North — Legendary Card', element:'water', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1830,#0d0b18 60%)', accent:'#8fe0ff', icon:'❄️', active: {shield:true, onWinFrostmark:true, auraPerFrostmarkedEnemy:{amount:1, max:3}}, special:{ name:'The Frozen Crown', cost:3, once:true, targets:'aoe' }, skills: [
     {name:'Frostmark (Passive)', desc:'When Ferea wins a battle, the defeated enemy card becomes Frostmarked for the rest of the match.'},
@@ -3383,6 +3373,23 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
     SpecialVerbs.debuff(loserEntry, a.onWinDebuffOnce);
     winnerEntry.onWinDebuffOnceUsed = true;
   }
+  // Tilda's Umbral Step: "change one of her directions by +1 for the next
+  // turn" — no direction-choice UI exists, so a random side is picked
+  // each win (same simplification as Fenrir/Zalazar's own directional
+  // picks), replacing whichever side was previously chosen. Modeled as a
+  // live, self-expiring read in fullEffectiveValue (entry.umbralStepSide +
+  // entry.umbralStepUntilTurnCount) rather than a permanent
+  // SpecialVerbs.directionalBoost call or a captureBonus/tempEffects
+  // route like buffThisRound — same "compute live off two plain runtime
+  // fields, nothing to reverse" shape as the boardLeadBonus/pairPresence
+  // checks in fullEffectiveValue, gated by the same state.turnCount+4
+  // round-clock window Medusa's Stone Gaze (petrifiedUntilTurnCount)
+  // already uses for "this round"/"next turn" effects.
+  if(a.onWinRandomDirectionalBoost){
+    const sides = ['top','right','bottom','left'];
+    winnerEntry.umbralStepSide = sides[Math.floor(Math.random()*sides.length)];
+    winnerEntry.umbralStepUntilTurnCount = state.turnCount + 4;
+  }
   // Three Head Dragon's Fire's Wrath: every enemy card orthogonally around
   // the just-captured square also gets hit — no "once per match" cap in
   // the source text, unlike the two hooks above, so this fires on every win.
@@ -3821,6 +3828,12 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   const entry = state.board[cellIndex];
   if(entry && entry.captureBonus) v += entry.captureBonus;
   if(entry && entry.sideBonus && entry.sideBonus[edgeKey]) v += entry.sideBonus[edgeKey];
+  // Tilda's Umbral Step, set in checkOnWinBonuses — live and self-expiring
+  // (see the comment there), so nothing needs to reverse it once the
+  // round-clock window passes.
+  if(entry && entry.umbralStepSide === edgeKey && entry.umbralStepUntilTurnCount > state.turnCount && card.active && card.active.onWinRandomDirectionalBoost){
+    v += card.active.onWinRandomDirectionalBoost;
+  }
   if(card.active && card.active.pairPresence){
     const pp = card.active.pairPresence;
     const present = state.board.some(e => e && e.owner === owner && e.card.id === pp.partner);
@@ -4276,6 +4289,52 @@ const ON_PLACE_HANDLERS = {
   chocoboking(entry, owner, cellIndex){
     SpecialVerbs.buffThisRound(entry, 1);
     adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner === owner && n.card.isBeast) SpecialVerbs.buffThisRound(n, 1); });
+  },
+  // Templaren's Holy Aura: "+1 Power in the direction facing Templaren" on
+  // every adjacent allied card, permanent (no "this round" wording on the
+  // card, unlike Shiva/Leviathan/Chocobo King above). The side that "faces"
+  // Templaren from an ally's position is simply the opposite of the
+  // direction Templaren is offset from that ally (an ally above him gets a
+  // bonus on ITS bottom side, etc.) — computed inline since adjacentEntries()
+  // only returns index+entry, not which side touches the source.
+  templaren(entry, owner, cellIndex){
+    const row = Math.floor(cellIndex/3), col = cellIndex%3;
+    const dirs = [[-1,0,'bottom'],[1,0,'top'],[0,-1,'right'],[0,1,'left']];
+    dirs.forEach(([dr,dc,side])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner === owner) SpecialVerbs.directionalBoost(n, [side], 1);
+    });
+  },
+  // Tilda bundles two independent, untriggered "Choose an enemy card"
+  // abilities into her one placement — same "no secondary-activation
+  // system, so both fire on-place instead" reasoning as Vorgrath/Zalazar/
+  // Naline/Zlaizer above.
+  tilda(entry, owner, cellIndex){
+    // Piercing Shot: no line-target-choice UI exists, so a random
+    // direction is picked first (same shape as Fenrir/Zalazar's own
+    // on-place directional picks), then one random enemy along that line.
+    const dirs = ['up','right','down','left'];
+    const direction = dirs[Math.floor(Math.random()*dirs.length)];
+    const lineTargets = enemiesInDirection(cellIndex, direction, owner);
+    if(lineTargets.length > 0){
+      const shot = lineTargets[Math.floor(Math.random()*lineTargets.length)].entry;
+      SpecialVerbs.debuffThisRound(shot, 2);
+    }
+    // Marked Target: random enemy anywhere on the board (same "pick 1
+    // random enemy" shape as Nyxara/Vaelira/Kaeldryx/Morvath/Umbrael
+    // above). entry.tildaMarked is read by two hardcoded-by-id checks in
+    // battleNeighbors and simulateFlips — same reasoning as Seraphine's
+    // own seraphineMarked flag (fullEffectiveValue only ever sees the
+    // opponent's static card data, never the live entry the flag lives
+    // on) — except NOT gated to a specific attacker id, since the card
+    // text says "one of YOUR cards", not just Tilda herself.
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    if(enemies.length > 0){
+      const marked = enemies[Math.floor(Math.random()*enemies.length)];
+      marked.tildaMarked = true;
+    }
   },
 };
 
@@ -5167,7 +5226,9 @@ const SPECIAL_HANDLERS = {
   // Standard temp-boost-then-permanent-on-win pattern (see Astrael), plus a
   // direction choice for where the permanent +1 lands on a win — the
   // "this round"/"next attack" wording elsewhere on the card is simplified
-  // to permanent, per the engine's existing convention.
+  // to permanent, per the engine's existing convention. Combines both the
+  // pre-existing self-buff and the approved art's enemy-debuff reading on
+  // the same chosen direction (user's choice "C" when the two conflicted).
   vorathos({ srcEntry, targetEntry, targetIndex, owner, direction }){
     const name = srcEntry.card.name;
     const dirMap = { up:'top', right:'right', down:'bottom', left:'left' };
@@ -5182,6 +5243,7 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.directionalBoost(srcEntry, [side], 1);
+    SpecialVerbs.directionalBoost(targetEntry, [side], -1);
     const dirLabel = direction[0].toUpperCase() + direction.slice(1);
     return `${name}'s Time Collapse claims ${targetEntry.card.name} — power surges on ${dirLabel}!`;
   },
@@ -5219,6 +5281,61 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls!`;
+  },
+  // Tilda's first-ever Ultimate, in the same total-power-threshold shape as
+  // Sarah/Vayra/Ysara/Aurelia/Lyrith's own (+3 temp boost folded into the
+  // threshold check, +1 permanent all-sides on a win) — per the user,
+  // reused as-is rather than inventing a new pattern.
+  tilda({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Nightfall fails to find purchase — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Nightfall!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Nightfall descends — ${targetEntry.card.name} is claimed by the dark!`;
+  },
+  // Zaevir's first-ever Ultimate, in the same total-power-threshold shape as
+  // Sarah/Vayra/Ysara's own (+3 temp boost, +1 permanent all-sides on a
+  // win) rather than inventing a new "control 3+ cards" activation gate the
+  // approved art described — that would be a different resource than the
+  // existing Wins-cost system every other Special Attack uses.
+  zaevir({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Eternal Arrow flies wide — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Eternal Arrow!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Eternal Arrow finds its mark — ${targetEntry.card.name} falls!`;
+  },
+  // Ragnar's first-ever Ultimate, same Eclipse shape as Zaevir/Sarah/Vayra/
+  // Ysara. The approved art described a "control 3+ cards" activation gate
+  // instead of a Wins cost -- not adopted, same call as Zaevir, since it
+  // would need a new resource type outside the existing Wins-cost system.
+  ragnar({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Blood Fury finds no opening — ${targetEntry.card.name} holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Blood Fury!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Blood Fury overwhelms ${targetEntry.card.name}!`;
   },
   ysara({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
@@ -5272,6 +5389,11 @@ const SPECIAL_HANDLERS = {
   // same shield rules as a normal battle. "Choose up to 2" is simplified to
   // "the up to 2 adjacent enemies found automatically" (up/right/down/left
   // order) since the engine has no multi-select board-click flow yet.
+  // Combines both conflicting readings (user's choice "C", same as Vorathos):
+  // the existing AOE dual-battle stays as-is, and each individual card
+  // defeated this way also takes the approved art's permanent -2 all-sides
+  // debuff via the existing SpecialVerbs.debuff(), on top of the pre-existing
+  // both-flipped +1 self-buff.
   pallispell({ srcEntry, sourceIndex, owner }){
     const name = srcEntry.card.name;
     const row = Math.floor(sourceIndex/3), col = sourceIndex%3;
@@ -5296,6 +5418,7 @@ const SPECIAL_HANDLERS = {
       entry.owner = owner;
       entry.justFlipped = true;
       flipped.push(entry.card.name);
+      SpecialVerbs.debuff(entry, 2);
     });
     if(flipped.length === 0){
       return `${name}'s Hunter's Wrath is fought off without a single flip!`;
@@ -5986,6 +6109,11 @@ function battleNeighbors(index, owner, result){
     // runtime flags like seraphineMarked — this is the one place in the
     // real battle-resolution path that actually has the live target entry.
     if(placed.id === 'seraphine' && target.seraphineMarked) placedVal += 2;
+    // Tilda's Marked Target: same hardcoded shape as Seraphine's Celestial
+    // Mark above, but NOT gated to a specific attacker id — the card text
+    // says "the next time ONE OF YOUR CARDS attacks it", not just Tilda
+    // herself, so any allied attacker benefits.
+    if(target.tildaMarked) placedVal += 2;
     // Omega Weapon's Anti-Matter Cannon / Yojimbo's Kozuka: fullEffectiveValue
     // above already read these as "not yet used" and folded the bonus into
     // placedVal if eligible — mark them used now that this is a real attack
@@ -6349,6 +6477,10 @@ function simulateFlips(index, card, owner){
     // Seraphine's Celestial Mark, mirrored here so the AI's own move
     // evaluation accounts for it too — same hardcoded check as battleNeighbors.
     if(card.id === 'seraphine' && target.seraphineMarked) myVal += 2;
+    // Tilda's Marked Target, mirrored here so the AI's own move evaluation
+    // accounts for it too — same hardcoded check as battleNeighbors, not
+    // gated to a specific attacker id (see the comment there).
+    if(target.tildaMarked) myVal += 2;
     if(myVal > theirVal){
       score += isShielded(target, ni) ? 0.25 : 1;
     }
