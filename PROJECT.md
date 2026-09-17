@@ -1494,6 +1494,25 @@ samma UI-klick-sekvens (hennes special är också AOE) — bekräftade
 `window.Audio`-anrop med `voices/triunedesire.mp3` och banderoll
 "Forbidden Harmony". Hela testsviten grön (91/91).
 
+**Uppdatering, samma session: användaren bad om rekommendation för
+nästa omgång röstlinjer.** Föreslog de andra stora "Ultimate-momenten"
+med samma tunga banderoll-presentation (Tiamat/Three Head
+Dragon/Bahamut/Omega Weapon) istället för vanliga händelser (placering/
+fångst), eftersom vanliga ljud skulle konkurrera med de procedurella
+tonerna från fas 1–3 istället för att förstärka känslan. Gav
+Ultimate-namnen i versaler på begäran (MEGAFLARE/THE FIVEFOLD
+APOCALYPSE/APOKALYPS/OMEGA PROTOCOL) så användaren kunde generera
+filerna själv i ElevenLabs.
+
+**Uppdatering, samma session: röstlinje för Bahamut (Megaflare) —
+sjätte kortet.** Sjätte ElevenLabs-filen ("MEGAFLARE"). Filen kopierad
+in som `voices/bahamut.mp3`. Sjätte raden i `ULTIMATE_VOICE_LINES`
+(`bahamut: 'voices/bahamut.mp3'`). Isolerade hjälpfunktions-testet
+utökat med Bahamut. Verifierat manuellt med samma UI-klick-sekvens
+(hans special är också AOE) — bekräftade `window.Audio`-anrop med
+`voices/bahamut.mp3`, banderoll "Megaflare", och att fiendekortet
+förstördes. Hela testsviten grön (91/91).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
