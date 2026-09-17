@@ -1353,6 +1353,74 @@ Testet uppdaterat för den nya "… namn."-textformen (kollar att namnet
 finns MED i den upplästa texten, inte exakt match). Hela testsviten
 grön (91/91).
 
+**Uppdatering, samma session: rösten struken helt.** Efter buggfixen
+hördes rösten (bekräftat), men kvaliteten var för dålig för att vara
+värd det — "Det funkar men det låter inte bra". Erbjöd tre vägar
+(mjuka upp TTS-inställningarna / bygg riktiga ljudfiler / strunta i
+rösten helt); användaren valde att strunta i den helt. `announceUltimate`-
+funktionen, `lastAnnounceUtterance`-variabeln och anropet i
+`playUltimateSequence` togs bort igen, liksom det tillhörande testet
+(tillbaka till 90 totalt). Banderollen/glöden (fas 4) påverkas inte
+— bara röstdelen är borta. Om röst ska tas upp igen någon gång är
+slutsatsen redan dragen: börja direkt med riktiga ljudfiler, inte
+`speechSynthesis` — den här sessionen visade tydligt att
+webbläsarens generiska TTS inte håller måttet för känslan spelet vill åt.
+
+**Fas 4c: riktig röstlinje (ElevenLabs) för Ifrit — samma session,
+den utlovade "riktiga ljudfiler"-vägen från fas 4b:s slutsats.**
+Användaren laddade upp en egen ElevenLabs-genererad ljudfil ("Kan vi
+använda denna till ifrit ?"), matchande Ifrits Ultimate-namn
+("Hellfire"). Filen kopierad in i repot som `voices/ifrit.mp3`
+(32948 bytes, MPEG layer III, mono, 128kbps/44.1kHz — verifierat med
+`file`).
+
+Byggd som ett återanvändbart ramverk istället för en hårdkodad
+engångslösning åt bara Ifrit, i linje med hela fasens princip om
+generella system: en `ULTIMATE_VOICE_LINES`-mapping (kort-id →
+ljudfilsväg) plus en `playUltimateVoiceLine(cardId)`-funktion som slår
+upp kortets id i mappingen och spelar upp filen via `new Audio(src)`
+om en post finns, annars gör den ingenting. Framtida kort får en röst
+genom att bara lägga till en rad i mappingen och en ljudfil i
+`voices/` — ingen ny kod krävs. Respekterar `soundOn` precis som all
+annan SFX, och `audio.play()`s promise-rejection fångas tyst (samma
+"ren smak, får aldrig krascha sekvensen"-princip som fas 4b).
+Anropas i `playUltimateSequence`s cast-fas, samma plats
+`announceUltimate` satt tidigare (nu borttaget).
+
+**Verifiering:** ett nytt permanent test (91 totalt) spionerar på
+`window.Audio` och bekräftar tre saker: `playUltimateVoiceLine('ifrit')`
+spelar exakt `voices/ifrit.mp3`; ett kort utan mapping-post (t.ex.
+Pallispell) spelar ingenting; `soundOn = false` tystar den precis som
+all annan SFX. Ett andra delprov kör igenom hela den riktiga
+cast-vägen (`runSpecialResolution` → `playUltimateSequence`) istället
+för att bara testa hjälpfunktionen isolerat, för att bekräfta själva
+kopplingen. Verifierat även manuellt med ett fristående
+Playwright-skript som klickade igenom en RIKTIG UI-sekvens (aktivera
+Ifrits special, välj mål, kolla att `window.Audio` triggades mitt i
+väntetiden med rätt filväg, skärmdump av banderollen "Special Attack
+— Hellfire") samt en riktig `fetch('voices/ifrit.mp3')` som bekräftade
+att filen faktiskt går att hämta från servern (200, audio/mpeg, exakt
+byte-match). Hela testsviten grön (91/91).
+
+**Uppdatering, samma session: samma sak för Nyxara.** Användaren
+laddade upp en andra ElevenLabs-fil ("Till nyxara"), matchande hennes
+Ultimate-namn ("Void Dominion"). Filen kopierad in som
+`voices/nyxara.mp3` (38799 bytes, samma format som Ifrits fil).
+Eftersom ramverket redan byggdes återanvändbart i fas 4c behövdes bara
+en ny rad i `ULTIMATE_VOICE_LINES` (`nyxara: 'voices/nyxara.mp3'`) —
+ingen ny kod. Testet utökat till att täcka båda korten, inklusive att
+verifiera den riktiga cast-vägen för BÅDA targeting-lägena (Ifrits
+`targets:'single'` med explicit targetIndex, och Nyxaras
+`targets:'aoe'` med `targetIndex: null`, precis som `executeSpecial`
+faktiskt anropar den). Verifierat även manuellt med en riktig
+UI-klick-sekvens (Nyxaras special är AOE så ett enda klick på hennes
+egen ruta aktiverar OCH löser ut den direkt, ingen separat mål-klick
+behövs) — bekräftade att `window.Audio` triggades med
+`voices/nyxara.mp3` och att banderollen visade "Void Dominion", samt
+att fiendekortet faktiskt förstördes (Nyxaras AOE förstör, fångar
+inte). Hela testsviten grön (91/91, fortfarande samma antal — samma
+test utökat, inget nytt test tillagt).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

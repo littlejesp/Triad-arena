@@ -5427,34 +5427,90 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
-test('Game feel phase 4b: announceUltimate speaks the Ultimate\'s name via speechSynthesis, and respects the sound toggle', async () => {
+test('Game feel phase 4c: Ifrit and Nyxara\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
+
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
 
-    // Spy on speechSynthesis.speak instead of letting it actually run --
-    // headless Chromium has no audio output device, but the call itself
-    // (and what it's called WITH) is what we're verifying here.
-    const calls = [];
-    window.speechSynthesis.speak = (utter) => calls.push(utter.text);
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
 
-    announceUltimate("Hunter's Wrath");
-    // Text now carries a leading pause hint ("… name.") for the dramatic
-    // delivery — check the name is IN there rather than an exact match.
-    out.spokenWhenSoundOn = calls.length === 1 && calls[0].includes("Hunter's Wrath");
+    playUltimateVoiceLine('ifrit');
+    out.ifritCall = playCalls.slice();
 
-    calls.length = 0;
+    playCalls.length = 0;
+    playUltimateVoiceLine('nyxara');
+    out.nyxaraCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('pallispell'); // no voice line entry for this card
+    out.noEntryCall = playCalls.slice();
+
+    playCalls.length = 0;
     soundOn = false;
-    announceUltimate('Megaflare');
-    out.silentWhenSoundOff = calls.length === 0;
+    playUltimateVoiceLine('ifrit');
+    out.silentWhenSoundOff = playCalls.slice();
     soundOn = true;
 
+    window.Audio = OrigAudio;
     return out;
   })()`);
-  assert.equal(result.spokenWhenSoundOn, true, 'announceUltimate should call speechSynthesis.speak with the exact Ultimate name');
-  assert.equal(result.silentWhenSoundOff, true, 'announceUltimate should respect the existing sound-on/off toggle, same as every other SFX');
+  assert.deepEqual(result.ifritCall, ['voices/ifrit.mp3'], "Ifrit's Ultimate cast should play his voice-line file");
+  assert.deepEqual(result.nyxaraCall, ['voices/nyxara.mp3'], "Nyxara's Ultimate cast should play her voice-line file");
+  assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
+  assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
   assert.deepEqual(pageErrors, []);
+
+  // Also runs through the real casting flow (playUltimateSequence), not just
+  // the helper in isolation, to confirm the wiring itself is correct -- once
+  // for a single-target Ultimate (Ifrit) and once for an AOE one (Nyxara,
+  // targetIndex null) since executeSpecial calls runSpecialResolution
+  // differently for each targeting mode.
+  const viaCast = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('ifrit'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+    out.ifritPlayedDuringWindup = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 100));
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.nyxaraPlayedDuringWindup = playCalls.slice();
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.deepEqual(viaCast.ifritPlayedDuringWindup, ['voices/ifrit.mp3'], 'the real cast flow (runSpecialResolution/playUltimateSequence) must trigger the voice line too');
+  assert.deepEqual(viaCast.nyxaraPlayedDuringWindup, ['voices/nyxara.mp3'], 'the AOE cast flow must trigger the voice line the same way');
+  assert.deepEqual(pageErrors, []);
+
   await page.close();
 });
 
