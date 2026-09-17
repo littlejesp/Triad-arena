@@ -234,6 +234,20 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .card-back{
   width:220px; cursor:pointer; transition:transform .15s ease;
 }
+/* Idle "alive" animation (user feedback: "kortet man trycker på för
+   random draft kan vi få det mer levande") -- previously completely
+   static until the moment you actually tapped it (only .drawing's
+   one-shot pulse below). A gentle float (translateY bob) so the card
+   itself feels like it's hovering rather than pinned flat, combined
+   with the breathing border-glow below and the shimmer sweep on
+   .card-back-face::before. Paused while .disabled (no champions to
+   draw) or .drawing (mid-tap) so it doesn't visually compete with
+   drawPulse's own one-shot burst. */
+.card-back:not(.disabled):not(.drawing){ animation: cardBackFloat 3.4s ease-in-out infinite; }
+@keyframes cardBackFloat{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-6px); }
+}
 .card-back:active{ transform:scale(0.97); }
 .card-back.disabled{ cursor:default; opacity:0.5; }
 .card-back-face{
@@ -243,10 +257,44 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
   padding:14px;
 }
+/* Breathing gold glow -- same "pulsing border+box-shadow" language as
+   .card.special-ready's specialReadyPulse, just in gold to match this
+   card's own border color instead of arcane purple. */
+.card-back:not(.disabled):not(.drawing) .card-back-face{
+  animation: cardBackGlow 2.8s ease-in-out infinite;
+}
+@keyframes cardBackGlow{
+  0%,100%{
+    border-color:var(--gold);
+    box-shadow:0 0 0 1px rgba(201,162,39,0.25), 0 0 12px rgba(201,162,39,0.3);
+    filter:brightness(1);
+  }
+  50%{
+    border-color:var(--gold-bright);
+    box-shadow:0 0 0 2px rgba(240,216,121,0.6), 0 0 30px rgba(240,216,121,0.55), 0 0 50px rgba(201,162,39,0.25);
+    filter:brightness(1.12);
+  }
+}
+/* Diagonal shimmer sweep across the artwork -- a classic "magic card
+   glint", reads as light catching the card's own gilding rather than a
+   flat printed image. A wide, softly-edged band translated across the
+   full width+height on a loop; ::before rather than a real element
+   since it needs no content, just a moving gradient layer on top of the
+   background-image already set inline on this same element. */
+.card-back:not(.disabled):not(.drawing) .card-back-face::before{
+  content:''; position:absolute; inset:-40% -60%; pointer-events:none;
+  background:linear-gradient(115deg, transparent 42%, rgba(255,255,255,0.22) 50%, transparent 58%);
+  animation: cardBackShimmer 3.6s ease-in-out infinite;
+}
+@keyframes cardBackShimmer{
+  0%{ transform:translateX(-60%); }
+  45%,100%{ transform:translateX(60%); }
+}
 .card-back-hint{
   font-size:10px; color:var(--gold-bright); text-transform:uppercase; letter-spacing:0.1em;
   background:rgba(6,5,12,0.72); border:1px solid var(--gold); border-radius:6px;
   padding:4px 10px; text-shadow:0 1px 3px rgba(0,0,0,0.9);
+  position:relative; z-index:1;
 }
 .card-back.drawing .card-back-face{ animation: drawPulse 0.6s ease; }
 @keyframes drawPulse{

@@ -2409,6 +2409,39 @@ ambient-lager täcks inte av testsviten, som uttryckligen bara testar
 motorlogik, inte UI-rendering). Verifierat manuellt istället. Hela
 testsviten grön (100/100, oförändrat testantal).
 
+**Fas 4p: "Triad Arena"-dragkortet (Random Draft) fick liv** —
+användarfeedback: "kortet man trycker på för random draft kan vi få det
+mer levande". Kortet (`#draw-pile-btn`/`.card-back`) var tidigare helt
+statiskt tills man faktiskt tryckte (bara `drawPulse`, en engångs-burst
+vid klick) — ingen idle-animation alls medan det bara låg och väntade.
+Tre lager tillagda, alla pausade via `:not(.disabled):not(.drawing)` så
+de aldrig krockar med det befintliga klick-momentet:
+
+- **Flytande bob** (`cardBackFloat`, translateY ±6px, 3.4s) på hela
+  `.card-back` — kortet känns som det svävar istället för att ligga
+  platt fastspikat.
+- **Andande guldglöd** (`cardBackGlow`) på `.card-back-face` — samma
+  "pulserande border+box-shadow"-språk som `.card.special-ready`s
+  befintliga `specialReadyPulse` redan använder, bara i guld istället
+  för arkan-lila för att matcha kortets egen `border:2px solid
+  var(--gold)`.
+- **Diagonal glimt-sweep** (`cardBackShimmer`) via `::before` på
+  `.card-back-face` — ett mjukt vitt gradient-band som sveper diagonalt
+  över konstverket på en loop, som ljus som fångas i kortets egen
+  guldram, sedan håller still en stund innan det sveper igen (45%/100%-
+  keyframe-hållpunkten). `.card-back-hint`-texten fick `position:
+  relative; z-index:1` så den garanterat ligger ovanpå glimten.
+
+Verifierat via en Playwright-koll som samplar `getComputedStyle` vid
+flera tidpunkter (inte bara skärmdumpar, eftersom kortets kontinuerliga
+rörelse gjorde Playwrights egen "vänta tills stabilt"-logik i
+`scrollIntoViewIfNeeded` tidsgränsöverskriden — själva beviset på att
+animationen faktiskt aldrig stannar): `transform`, `box-shadow`-alpha
+och glimtens `translateX` bekräftat föränderliga över tid. Ren CSS,
+ingen JS-logik rörd, inget permanent test (samma "kosmetiskt ambient-
+lager"-konvention som `.soul-stream` ovan). Hela testsviten grön
+(100/100, oförändrat testantal).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
