@@ -1152,6 +1152,62 @@ state-injicering) — kortval, placering och en tvingad erövring
 (anpassad state) kördes igenom utan konsolfel, existerande
 "Erövrad"-banderoll lager fint ovanpå de nya blixtarna utan krock.
 
+**Uppdatering, samma session: fas 2 speltestad direkt, gick vidare till
+fas 3 samma dag.**
+
+**Fas 3: Same/Combo-kedjekänsla.** Till skillnad från fas 1–2 (ren CSS,
+inga JS-ändringar) krävde den här fasen faktisk motorlogik — första
+riktiga JS-ändringen i hela game feel-initiativet, så den fick ett
+riktigt permanent test i `tests/game.test.mjs` (till skillnad från
+fas 1–2:s engångs-Playwright-skript som kastades efter verifiering).
+
+- **Ny `--fx-step`-CSS-variabel**, parallell med den redan existerande
+  `--fx-delay`. `fxDelay` (som redan fanns) capar vid `FX_STAGGER_CAP`
+  (5 steg × 130ms) rent för TIMING-syften — annars skulle en riktigt
+  lång kedja dra ut stagger-fördröjningen orimligt länge. `fxStep` är
+  SAMMA råa, okappade räknare (`result.flipSeq`), sparad separat för
+  INTENSITETS-skalning istället för timing. Satt på två ställen
+  (`battleNeighbors`s per-granne-loop, samt `resolveFlips`s Same/Plus-
+  loop) — båda delar samma `result.flipSeq`-räknare, så en hel
+  placerings alla flippar (Same/Plus + vanlig strid + Combo-kedjan) får
+  en kontinuerligt stigande sekvens.
+- **`flipSpark`/`captureRingBlue`/`captureRingRed`** (från fas 2)
+  skalar nu med `--fx-step` via `calc()` — opacitet/spridningsradie
+  växer per steg i kedjan. Det här ger "första flippen skapar impact,
+  efterföljande flippar eskalerar, sista flippen känns starkast" HELT
+  GRATIS, utan att behöva identifiera/tagga vilken specifik entry som
+  är "sista flippen" — det faller ut naturligt ur en kontinuerlig
+  eskalering baserad på position i sekvensen. En ensam vanlig erövring
+  (`--fx-step` ospecificerad → `var(--fx-step,0)` → 0) ser exakt ut som
+  innan den här fasen.
+- **Screen shake för stora kedjor** — ny `state.chainShake`-flagga,
+  satt i `placeCard` när `result.sameOrPlus + result.combo >= 4`
+  (medvetet INTE bara `result.flips >= 4`, så en vanlig placering som
+  råkar besegra alla 4 grannar via helt vanliga styrke-strider ALDRIG
+  skakar — bara riktiga Same/Plus/Combo-kedjor gör det, matchar
+  användarens "particularly large chain reactions"-formulering).
+  `.arena-frame.chain-shake` — ren `transform`-baserad `chainShake`-
+  keyframe (0.42s, avtagande amplitud). Rensas i den REDAN
+  EXISTERANDE 500ms `justPlaced`-timeouten (inte den senare 1300ms-
+  timeouten) — annars hade den 1300ms-timeoutens egen `render()`
+  startat om shake-animationen mitt i, eftersom hela `#app`-trädet
+  byggs om vid varje render (samma restart-on-render-princip som
+  dokumenterad i fas 1/2).
+- `state.chainShake:false` tillagt i det initiala `state`-objektet
+  samt i `resetGame()`s fältlista, för konsekvens.
+- AI:t (`enemyTurn` → `placeCard`) delar EXAKT samma kodväg som
+  spelarens placeringar — ingen separat AI-specialhantering behövdes,
+  stora kedjor känns lika impactful oavsett vem som orsakar dem.
+
+**Verifiering:** ett nytt permanent test (89 totalt nu) bygger en
+deterministisk 4-vägs Same-fångst (alla fyra grannars vända kant matchar
+det placerade kortets motsvarande sida, samtliga femmor) via den
+RIKTIGA `placeCard()`/`resolveFlips()`-koden (ingen handsimulerad
+kedjelogik) och verifierar: alla fyra fångade, `chainShake` sant direkt
+efteråt, alla fyra flippar fick distinkta `fxStep`-värden 0–3,
+`chainShake` rensat efter ~500ms, `fxStep` rensat efter 1300ms. Hela
+testsviten grön (89/89).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

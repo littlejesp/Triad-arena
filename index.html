@@ -641,6 +641,24 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     -20px 0 36px -16px rgba(184,69,46,0.4),
     20px 0 36px -16px rgba(63,111,209,0.4);
 }
+/* Game-feel phase 3: a brief shake for a genuinely large Same/Plus/Combo
+   chain (see placeCard's sameOrPlus+combo>=4 gate). transform-only (no
+   layout properties touched), decaying amplitude so it reads as a settling
+   impact rather than a constant wobble. .chain-shake is added/removed by
+   render() based on state.chainShake, cleared ~500ms after the triggering
+   placement -- see that setTimeout for why 500ms and not the later 1300ms
+   cleanup. */
+.arena-frame.chain-shake{ animation: chainShake 0.42s ease; }
+@keyframes chainShake{
+  0%{ transform:translate(0,0); }
+  15%{ transform:translate(-6px,3px); }
+  30%{ transform:translate(5px,-3px); }
+  45%{ transform:translate(-4px,2px); }
+  60%{ transform:translate(3px,-2px); }
+  75%{ transform:translate(-2px,1px); }
+  90%{ transform:translate(1px,0); }
+  100%{ transform:translate(0,0); }
+}
 .arena-rosette{ position:absolute; inset:12%; z-index:0; pointer-events:none; opacity:0.85; }
 
 /* Game-feel phase 1: ambient arena life (drifting energy motes + a slow
@@ -822,20 +840,28 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95), transparent 70%);
   opacity:0; animation:flipSpark .55s ease var(--fx-delay,0ms) both;
 }
+/* Game-feel phase 3: all three scale with --fx-step (see cardFace's
+   fxDelayStyle) so a flip further into a Same/Plus/Combo chain hits
+   visibly harder than the first one -- "first flip creates an impact,
+   subsequent flips propagate... the final flip can have a stronger
+   finishing impact" falls out naturally from a continuous per-step
+   escalation, no separate "is this the last flip" bookkeeping needed.
+   Defaults to 0 (calc(0.6 + 0) etc) for any flip outside a chain, so a
+   single ordinary capture looks exactly as it did before this phase. */
 @keyframes flipSpark{
   0%,40%{ opacity:0; }
-  48%,52%{ opacity:0.9; }
+  48%,52%{ opacity:calc(0.6 + var(--fx-step, 0) * 0.07); }
   60%,100%{ opacity:0; }
 }
 @keyframes captureRingBlue{
   0%{ box-shadow:0 0 0 3px var(--blue-side) inset, 0 0 0 rgba(63,111,209,0); }
-  50%{ box-shadow:0 0 0 3px var(--blue-side) inset, 0 0 0 12px rgba(63,111,209,0.5); }
-  100%{ box-shadow:0 0 0 3px var(--blue-side) inset, 0 0 26px rgba(63,111,209,0); }
+  50%{ box-shadow:0 0 0 3px var(--blue-side) inset, 0 0 0 calc(12px + var(--fx-step, 0) * 3px) rgba(63,111,209,0.5); }
+  100%{ box-shadow:0 0 0 3px var(--blue-side) inset, 0 0 calc(26px + var(--fx-step, 0) * 4px) rgba(63,111,209,0); }
 }
 @keyframes captureRingRed{
   0%{ box-shadow:0 0 0 3px var(--red-side) inset, 0 0 0 rgba(184,69,46,0); }
-  50%{ box-shadow:0 0 0 3px var(--red-side) inset, 0 0 0 12px rgba(184,69,46,0.5); }
-  100%{ box-shadow:0 0 0 3px var(--red-side) inset, 0 0 26px rgba(184,69,46,0); }
+  50%{ box-shadow:0 0 0 3px var(--red-side) inset, 0 0 0 calc(12px + var(--fx-step, 0) * 3px) rgba(184,69,46,0.5); }
+  100%{ box-shadow:0 0 0 3px var(--red-side) inset, 0 0 calc(26px + var(--fx-step, 0) * 4px) rgba(184,69,46,0); }
 }
 
 .card.shield-flash{ animation: shieldRing 0.9s ease; }
@@ -2435,6 +2461,7 @@ let state = {
   showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
+  chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
   rules: { same:false, plus:false, combo:false, elemental:false, graveyard:false }, // optional Triple-Triad-style rules
   graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
@@ -2646,7 +2673,14 @@ function cardFace(card, opts={}){
   const specialReadyClass = (opts.specialInfo && opts.specialInfo.ready) ? 'special-ready' : '';
   const destroyedClass = opts.destroyed ? 'destroy-ghost' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
-  const fxDelayStyle = opts.fxDelay ? ` style="--fx-delay:${opts.fxDelay}ms"` : '';
+  // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
+  // doesn't produce an absurdly huge flash) drives per-flip escalating
+  // impact intensity in CSS (see flipSpark/captureRingBlue/captureRingRed) —
+  // a separate concern from --fx-delay's timing-only stagger above.
+  const fxStyleParts = [];
+  if(opts.fxDelay) fxStyleParts.push(`--fx-delay:${opts.fxDelay}ms`);
+  if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
+  const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
     <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
@@ -2871,7 +2905,7 @@ function boardCellHtml(cell, i){
       ${cell ? cardFace(cell.card, {
           owner:cell.owner, flipping:cell.justFlipped, placing:cell.justPlaced,
           shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
-          attackFlash:cell.attackFlash, fxDelay:cell.fxDelay,
+          attackFlash:cell.attackFlash, fxDelay:cell.fxDelay, fxStep:cell.fxStep,
           petrified: cell.petrifiedUntilTurnCount > state.turnCount,
           captureBonus: cell.captureBonus, sideBonus: cell.sideBonus,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
@@ -2953,7 +2987,7 @@ function renderBattle(){
         ${state.enemyHand.map(() => mysteryCard()).join('')}
       </div>
 
-      <div class="arena-frame">
+      <div class="arena-frame ${state.chainShake ? 'chain-shake' : ''}">
       <div class="arena-rosette" aria-hidden="true">
         <svg viewBox="0 0 200 200" width="100%" height="100%">
           <polygon points="100,8 118,84 192,100 118,116 100,192 82,116 8,100 82,84" fill="none" stroke="rgba(139,110,242,0.3)" stroke-width="2"/>
@@ -4702,6 +4736,14 @@ function placeCard(cellIndex, cardId, owner){
   const result = resolveFlips(cellIndex, owner);
   const flips = result.flips, shielded = result.shielded, bonusTriggered = result.bonusTriggered;
   const sameOrPlus = result.sameOrPlus, combo = result.combo;
+  // Game-feel phase 3: a brief screen shake for a genuinely large Same/Plus/
+  // Combo chain -- gated on sameOrPlus+combo specifically (not raw flips),
+  // so an ordinary placement that happens to beat all 4 adjacent enemies via
+  // plain battles never shakes; only real chain-reaction captures do. Cleared
+  // in the existing 500ms justPlaced timeout below (not the later 1300ms
+  // one) so the ~420ms shake animation finishes on its own before that
+  // render() would otherwise restart it from frame 0.
+  if(sameOrPlus + combo >= 4) state.chainShake = true;
   if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) state.winsPopup = { owner, amount: flips };
   if(flips > 0) showConquestPopup(owner);
@@ -4727,12 +4769,14 @@ function placeCard(cellIndex, cardId, owner){
 
   setTimeout(()=>{
     const placed = state.board[cellIndex];
-    if(placed){ placed.justPlaced = false; render(); }
+    if(placed) placed.justPlaced = false;
+    state.chainShake = false;
+    render();
   }, 500);
 
   setTimeout(()=>{
     state.board.forEach(entry=>{
-      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; }
+      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; entry.fxStep = 0; }
     });
     state.destroyGhosts = [];
     render();
@@ -6412,7 +6456,7 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
 
   setTimeout(()=>{
     state.board.forEach(entry=>{
-      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; }
+      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; entry.fxStep = 0; }
     });
     state.destroyGhosts = [];
     render();
@@ -6497,7 +6541,13 @@ function battleNeighbors(index, owner, result){
     const target = state.board[p.ni];
     if(!target || target.owner === owner) return; // may have been captured already by Same/Plus
     target.attackFlash = true; // purely visual — every real battle gets a slash, win or lose
-    target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
+    // Game-feel phase 3: fxStep is the SAME raw counter as fxDelay's input,
+    // just kept uncapped (fxDelay caps at FX_STAGGER_CAP for timing so a long
+    // chain doesn't drag the stagger out forever, but the impact-intensity
+    // scaling below wants the real, ever-growing position in the sequence).
+    const fxStep = result.flipSeq++;
+    target.fxDelay = Math.min(fxStep, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
+    target.fxStep = fxStep;
 
     let placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     let targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
@@ -6683,7 +6733,9 @@ function resolveFlips(index, owner){
       target.owner = owner;
       target.justFlipped = true;
       checkSisterFlip(target);
-      target.fxDelay = Math.min(result.flipSeq++, FX_STAGGER_CAP) * FX_STAGGER_MS;
+      const fxStep = result.flipSeq++;
+      target.fxDelay = Math.min(fxStep, FX_STAGGER_CAP) * FX_STAGGER_MS;
+      target.fxStep = fxStep;
       result.flips++;
       result.sameOrPlus++;
       samePlusSeeds.push(ni);
@@ -7008,7 +7060,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [],
   };

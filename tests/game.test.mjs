@@ -5262,6 +5262,63 @@ test('Vorathos: card cleaned up from an orphan active.shield -- Time Barrier (on
   await page.close();
 });
 
+test('Game feel phase 3: chainShake triggers on a large Same/Combo chain, fxStep escalates per flip, both clear on schedule', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+
+    // A clean 4-way Same capture at the center: all four neighbors' facing
+    // edge equals the placed card's matching edge (all 5s). Same captures
+    // EVERY match once >=2 match, so this deterministically flips all 4
+    // neighbors in one placement via the real placeCard()/resolveFlips()
+    // path -- no hand-simulation of the chain logic itself.
+    state.rules.same = true;
+    state.rules.plus = false;
+    state.rules.combo = true;
+    state.board = Array(9).fill(null);
+    const mk = (id, top, right, bottom, left, owner) => ({
+      card: { id, name: id, top, right, bottom, left },
+      owner, shieldUsed:false, grantedShield:false, captureBonus:0,
+    });
+    state.board[1] = mk('e-up',    1,1,5,1, 'red'); // bottom=5 matches placed top=5
+    state.board[3] = mk('e-left',  1,5,1,1, 'red'); // right=5 matches placed left=5
+    state.board[5] = mk('e-right',1,1,1,5, 'red'); // left=5 matches placed right=5
+    state.board[7] = mk('e-down',  5,1,1,1, 'red'); // top=5 matches placed bottom=5
+    state.playerHand = [{ id:'chain-src', name:'ChainSrc', top:5, right:5, bottom:5, left:5 }];
+    state.enemyHand = [];
+    state.turn = 'blue';
+    state.placedThisTurn = false;
+    placeCard(4, 'chain-src', 'blue');
+
+    out.allCaptured = [1,3,5,7].every(i => state.board[i].owner === 'blue');
+    out.chainShakeImmediatelyAfter = state.chainShake === true;
+    // Every flipped neighbor should have gotten a DISTINCT fxStep (0-3, in
+    // whatever order getEnemyNeighbors' NEIGHBOR_DIRS iterates: top/bottom/
+    // left/right) -- proving the escalating-intensity CSS hook actually
+    // receives different values per flip in the chain, not the same one.
+    const steps = [1,3,5,7].map(i => state.board[i].fxStep).sort((a,b)=>a-b);
+    out.fxStepsDistinct0to3 = JSON.stringify(steps) === JSON.stringify([0,1,2,3]);
+
+    return out;
+  })()`);
+  assert.equal(result.allCaptured, true, 'all four Same-matched neighbors should be captured');
+  assert.equal(result.chainShakeImmediatelyAfter, true, 'a 4-card Same/Combo chain should trigger chainShake');
+  assert.equal(result.fxStepsDistinct0to3, true, 'each flip in the chain should get a distinct, escalating fxStep');
+
+  // chainShake clears ~500ms after the triggering placement (see placeCard),
+  // separately from fxStep/fxDelay's own later 1300ms cleanup.
+  await page.waitForTimeout(650);
+  const afterShakeWindow = await page.evaluate(() => state.chainShake);
+  assert.equal(afterShakeWindow, false, 'chainShake should clear on its own ~500ms after the placement');
+
+  await page.waitForTimeout(700); // total >1300ms since placeCard
+  const fxStepsClearedAfter1300 = await page.evaluate(() => state.board.filter(Boolean).every(e => !e.fxStep));
+  assert.equal(fxStepsClearedAfter1300, true, 'fxStep should be cleared by the existing 1300ms flag-clear cleanup');
+
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
