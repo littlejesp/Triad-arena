@@ -1909,7 +1909,7 @@ const HEROES = [
       {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
       {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
-      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
+      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Destroys every enemy card on the board. Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
     top:10, right:9, bottom:10, left:10,
@@ -2228,7 +2228,7 @@ const FOREST_FOES = [
       {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
       {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
-      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Strips every positive bonus from every enemy card on the board and hits them all for -2 Power, ignoring shields. Usable once per match.'},
+      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Destroys every enemy card on the board. Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
     top:10, right:9, bottom:10, left:10,
@@ -5993,16 +5993,19 @@ const SPECIAL_HANDLERS = {
   },
   seraphine({ srcEntry, owner }){
     const name = srcEntry.card.name;
-    const enemies = state.board.filter(e => e && e.owner !== owner);
-    if(enemies.length === 0){
+    if(protectedByInfiniteSeraph(owner === 'blue' ? 'red' : 'blue')){
+      return `${name}'s Silver Judgment shatters against The Infinite Seraph's Eternal Presence!`;
+    }
+    let destroyed = 0;
+    state.board.forEach((entry, i) => {
+      if(entry && entry.owner !== owner && !isDestroyImmune(entry)){
+        destroyCard(i); destroyed++;
+      }
+    });
+    if(destroyed === 0){
       return `${name}'s Silver Judgment finds no enemies in its line!`;
     }
-    enemies.forEach(e => {
-      if(e.captureBonus > 0) e.captureBonus = 0;
-      e.sideBonus = { top:0, right:0, bottom:0, left:0 };
-      SpecialVerbs.debuff(e, 2);
-    });
-    return `${name}'s Silver Judgment strips every ward and burns ${enemies.length} enem${enemies.length>1?'ies':'y'} with pure light!`;
+    return `${name}'s Silver Judgment burns ${destroyed} enemy card${destroyed>1?'s':''} away with pure light!`;
   },
   nyxara({ srcEntry, owner }){
     const name = srcEntry.card.name;

@@ -1447,10 +1447,40 @@ Seraphine, samma mönster som Vaelira (ingen separat cast-vägs-
 verifiering, hennes AOE-flöde är mekaniskt samma väg som redan
 täckt). Verifierat manuellt med samma UI-klick-sekvens — bekräftade
 `window.Audio`-anrop med `voices/seraphine.mp3`, banderoll "Silver
-Judgment". (Till skillnad från Nyxara/Vaelira förstör inte Silver
-Judgment fiendekorten — den stryper bonusar och ger -2 Power, så
-motståndarkortet stannar kvar på brädet efteråt, vilket stämmer med
-hennes redan existerande mekanik.) Hela testsviten grön (91/91).
+Judgment". (Vid det här laget stryper Silver Judgment fortfarande
+bara bonusar/-2 Power istället för att förstöra som sina systrar —
+se nästa uppdatering nedan där det ändras.) Hela testsviten grön
+(91/91).
+
+**Uppdatering, samma session: Silver Judgment gjord om till ett
+riktigt förstör-allt, på användarens egen begäran** ("Can you do so
+she destroys enemy cards? Like it [does for the other sisters'
+cards]"). En riktig spelmekanik-ändring, inte VFX/game-feel — Seraphine
+matchar nu sina systrar Vaelira (Infernal Pact) och Nyxara (Void
+Dominion): `SPECIAL_HANDLERS.seraphine` skriven om att gå igenom
+`state.board`, förstöra varje fiendekort som inte är
+`isDestroyImmune` via `destroyCard()`, och respektera samma
+`protectedByInfiniteSeraph`-spärr som systrarna redan hade. Den gamla
+strip-bonus/-2 Power-logiken är helt borttagen (inget hybrid-läge —
+förstörda kort behöver ingen debuff). Ingen extra bonus (ingen extra
+sväng som Vaelira, ingen Power-boost som Nyxara) lades till, eftersom
+det inte efterfrågades — höll ändringen minimal och matchad mot vad
+som faktiskt begärdes. Kortets `skills`-text uppdaterad i båda
+kopiorna av kortdatat (HEROES/FOREST_FOES-arrayerna) till "Costs 2
+wins. Destroys every enemy card on the board. Usable once per match."
+
+**Verifiering:** befintliga testet döpt om och utökat med tre nya
+kontroller — Silver Judgment förstör fiender men skonar allierade,
+meddelandet nämner förstörelse, och Infinite Seraphs Eternal Presence
+blockerar den precis som för Vaelira/Nyxara. Det gemensamma
+Graveyard-testet ("every destroy-capable Special routes through
+destroyCard()") utökat med Seraphine också, eftersom hon nu
+kvalificerar. Verifierat även manuellt med en riktig UI-klick-sekvens
+— fiendekortet visar "Destroyed!"-overlayen och försvinner (blir
+`null`) från brädet, stridsloggen säger "Seraphine's Silver Judgment
+burns 1 enemy card away with pure light!". Hela testsviten grön
+(91/91, samma antal — befintliga tester utökade, inget nytt testfall
+tillagt).
 
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
