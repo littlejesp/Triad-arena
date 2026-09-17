@@ -1833,6 +1833,20 @@ crimson auran/sigillet under cast, och båda "Destroyed!"-overlayen
 plus den expanderande crimson-vågen vid impact. Hela testsviten grön
 (95/95, +1 nytt test).
 
+**Uppdatering, samma session: fjärde impact-SFX:et, för Seraphine
+(Silver Judgment).** Användaren laddade upp en fjärde egen ljudeffekt
+("Divine celestial magic", ~2s) med "Här kommer Seraphine ljud i
+ultimate". Filen kopierad in som `sfx/seraphine.mp3`. Fjärde raden i
+`ULTIMATE_IMPACT_SFX` (`seraphine: 'sfx/seraphine.mp3'`) — samma
+ramverk, ingen ny kod. Fas 4d-testet utökat igen: mapping-kontrollen
+fick en fjärde rad, "no entry"-kontrollen bytt från Seraphine (som nu
+har en post) till Triune Desire, och real-cast-vägs-verifieringen
+utökad med ett fjärde AOE-steg. Verifierat manuellt med samma
+UI-klick-sekvens — bekräftade `window.Audio`-anrop med
+`sfx/seraphine.mp3` exakt vid impact-fasen, och att fiendekortet
+förstördes (matchar hennes redan ombyggda destroy-all-mekanik). Hela
+testsviten grön (95/95, samma antal — befintligt testfall utökat).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
