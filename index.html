@@ -2317,7 +2317,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
      stretching edge-to-edge of the now-wider hand-row-to-hand-row span. */
   .stage{ max-width:1600px; height:100dvh; overflow:hidden; }
   .wrap{
-    padding:22px 26px 30px;
+    padding:14px 26px 16px;
     height:100%;
     display:flex; flex-direction:column;
     overflow-y:auto;
@@ -2343,11 +2343,24 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     flex:0 1 auto;
   }
 
-  .scoreboard{ padding:11px 20px; margin-bottom:16px; max-width:960px; margin-left:auto; margin-right:auto; }
-  .wins-row{ max-width:960px; margin-left:auto; margin-right:auto; }
+  .scoreboard{ padding:8px 20px; margin-bottom:8px; max-width:960px; margin-left:auto; margin-right:auto; }
+  .wins-row{ max-width:960px; margin-left:auto; margin-right:auto; margin:2px auto 6px; }
   .score-num{ font-size:21px; }
   .turn-indicator{ font-size:13px; }
   .score-flame{ width:44px; height:44px; }
+
+  /* Reclaims vertical space for .battle-row/.arena-frame above (see its
+     own comment -- height-bound, so every pixel freed from the masthead/
+     scoreboard/log/buttons directly grows the board). User feedback:
+     "jag vill ha mitten delen större" -- on a wide-but-not-very-tall
+     desktop window, the masthead+scoreboard+log+buttons chrome was eating
+     roughly half the available height, leaving the board a small square
+     in the middle of a lot of horizontal space. Pure spacing trims here,
+     no font-size/element changes, so nothing gets harder to read. */
+  .masthead{ margin:2px 0 8px; }
+  .log{ margin-bottom:4px; }
+  button.end-turn{ margin-top:6px; }
+  button.ghost{ margin-top:6px; }
 }
 
 /* ---------- true browser fullscreen (the ⛶ button): the game fills the
