@@ -2493,48 +2493,6 @@ function toggleSound(){
   render();
 }
 
-// Game feel phase 4b: a spoken announcement of an Ultimate's name, read via
-// the browser's built-in text-to-speech (no audio asset/pipeline needed —
-// every SFX in this file so far is procedural Web Audio, same spirit).
-// Deliberately does NOT call speechSynthesis.cancel() first: the browser's
-// own utterance queue already plays consecutive calls back to back rather
-// than overlapping, which matches playUltimateSequence's own visual
-// queueing (ultimateQueue) — a second Ultimate's windup never starts until
-// the first's full sequence has finished, so there's no real risk of two
-// announcements racing anyway. Wrapped in try/catch since speechSynthesis
-// can be missing or throw in odd embedded webview environments — this is
-// pure flavor, never allowed to break the actual game.
-//
-// lastAnnounceUtterance holds the only reference to the most recent
-// utterance on purpose: Chrome has a long-standing bug where a
-// SpeechSynthesisUtterance with no external reference can be silently
-// garbage-collected before speak() finishes firing it — the call succeeds,
-// nothing throws, and nothing is ever heard. Keeping a live reference here
-// is the standard workaround (this was very likely why the first version
-// of this feature produced no sound at all).
-let lastAnnounceUtterance = null;
-function announceUltimate(name){
-  if(!soundOn) return;
-  if(!('speechSynthesis' in window)) return;
-  try{
-    // Delivery per the approved direction: deep, slow, controlled, a short
-    // dramatic beat before the word rather than a jump straight into it.
-    // The leading "…" is a real pause hint most TTS engines honor; rate/
-    // pitch are pushed as far toward "slow and heavy" as stays intelligible
-    // (much lower and some voices start mangling words instead of just
-    // sounding deeper). This tunes DELIVERY, not voice character — the
-    // actual timbre (which specific voice speaks) is whatever's installed
-    // on the device, out of this code's control; see PROJECT.md for the
-    // "real recorded/generated voice line" alternative if that ever matters
-    // more than it costs to build.
-    lastAnnounceUtterance = new SpeechSynthesisUtterance(`… ${name}.`);
-    lastAnnounceUtterance.rate = 0.72;
-    lastAnnounceUtterance.pitch = 0.55;
-    lastAnnounceUtterance.volume = 1;
-    speechSynthesis.speak(lastAnnounceUtterance);
-  }catch(e){ /* never let a TTS failure break the Ultimate sequence */ }
-}
-
 function masthead(compact){
   return `
     <div class="masthead ${compact ? 'compact' : ''}">
@@ -6605,7 +6563,6 @@ function playUltimateSequence(job){
   state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex };
   srcEntry.ultimateCasting = true;
   SFX.select();
-  announceUltimate(special.name);
   render();
 
   setTimeout(()=>{

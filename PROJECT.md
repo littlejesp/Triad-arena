@@ -1353,6 +1353,19 @@ Testet uppdaterat för den nya "… namn."-textformen (kollar att namnet
 finns MED i den upplästa texten, inte exakt match). Hela testsviten
 grön (91/91).
 
+**Uppdatering, samma session: rösten struken helt.** Efter buggfixen
+hördes rösten (bekräftat), men kvaliteten var för dålig för att vara
+värd det — "Det funkar men det låter inte bra". Erbjöd tre vägar
+(mjuka upp TTS-inställningarna / bygg riktiga ljudfiler / strunta i
+rösten helt); användaren valde att strunta i den helt. `announceUltimate`-
+funktionen, `lastAnnounceUtterance`-variabeln och anropet i
+`playUltimateSequence` togs bort igen, liksom det tillhörande testet
+(tillbaka till 90 totalt). Banderollen/glöden (fas 4) påverkas inte
+— bara röstdelen är borta. Om röst ska tas upp igen någon gång är
+slutsatsen redan dragen: börja direkt med riktiga ljudfiler, inte
+`speechSynthesis` — den här sessionen visade tydligt att
+webbläsarens generiska TTS inte håller måttet för känslan spelet vill åt.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
