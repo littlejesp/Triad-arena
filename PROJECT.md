@@ -1750,6 +1750,23 @@ sekvenser (aktivera Ifrit, välj mål, båda klicken eftersom hans special
 lägen (cast med synlig lava-aura, impact med den expanderande
 eld-ringen). Hela testsviten grön (94/94, +1 nytt test).
 
+**Uppdatering, samma session: tredje impact-SFX:et, för Vaelira
+(Infernal Pact).** Användaren laddade upp en tredje egen ljudeffekt
+("Sharp magical fire", ~2s) med "Ljudet när Vaelira attackerar med sin
+ultimate". Filen kopierad in som `sfx/vaelira.mp3`. Tredje raden i
+`ULTIMATE_IMPACT_SFX` (`vaelira: 'sfx/vaelira.mp3'`) — samma ramverk
+från fas 4d, ingen ny kod. Fas 4d-testet utökat igen (inte ett nytt
+testfall): mapping-kontrollen fick en tredje rad, och "no entry"-
+kontrollen bytt från Vaelira (som nu har en post) till Seraphine.
+Real-cast-vägs-verifieringen utökad med ett tredje AOE-steg för
+Vaelira, med samma fulla cleanup-väntan mellan varje korts sekvens som
+redan användes mellan Ifrit och Nyxara (förhindrar att den föregående
+Ultimate-kön fortfarande är aktiv när nästa kort testas). Verifierat
+manuellt med samma UI-klick-sekvens (hennes special är AOE) —
+bekräftade `window.Audio`-anrop med `sfx/vaelira.mp3` exakt vid
+impact-fasen, och att fiendekortet förstördes. Hela testsviten grön
+(94/94, samma antal — befintligt testfall utökat).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

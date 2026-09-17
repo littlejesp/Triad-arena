@@ -5588,7 +5588,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   await page.close();
 });
 
-test('Game feel phase 4d: Ifrit\'s Hellfire and Nyxara\'s Void Dominion also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion and Vaelira\'s Infernal Pact also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5610,7 +5610,11 @@ test('Game feel phase 4d: Ifrit\'s Hellfire and Nyxara\'s Void Dominion also pla
     out.nyxaraCall = playCalls.slice();
 
     playCalls.length = 0;
-    playUltimateImpactSfx('vaelira'); // no impact-SFX entry for this card
+    playUltimateImpactSfx('vaelira');
+    out.vaeliraCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateImpactSfx('seraphine'); // no impact-SFX entry for this card
     out.noEntryCall = playCalls.slice();
 
     playCalls.length = 0;
@@ -5624,6 +5628,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire and Nyxara\'s Void Dominion also pla
   })()`);
   assert.deepEqual(result.ifritCall, ['sfx/ifrit.mp3'], "Ifrit's Ultimate impact should play his impact SFX file");
   assert.deepEqual(result.nyxaraCall, ['sfx/nyxara.mp3'], "Nyxara's Ultimate impact should play her impact SFX file");
+  assert.deepEqual(result.vaeliraCall, ['sfx/vaelira.mp3'], "Vaelira's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -5668,6 +5673,21 @@ test('Game feel phase 4d: Ifrit\'s Hellfire and Nyxara\'s Void Dominion also pla
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     out.nyxaraAtImpact = playCalls.slice();
 
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.vaeliraDuringWindup = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.vaeliraAtImpact = playCalls.slice();
+
     window.Audio = OrigAudio;
     return out;
   })()`);
@@ -5675,6 +5695,8 @@ test('Game feel phase 4d: Ifrit\'s Hellfire and Nyxara\'s Void Dominion also pla
   assert.deepEqual(viaCast.ifritAtImpact, ['voices/ifrit.mp3', 'sfx/ifrit.mp3'], 'the impact SFX joins once the windup beat elapses and the effect actually lands');
   assert.deepEqual(viaCast.nyxaraDuringWindup, ['voices/nyxara.mp3'], 'same timing split for the AOE cast flow');
   assert.deepEqual(viaCast.nyxaraAtImpact, ['voices/nyxara.mp3', 'sfx/nyxara.mp3'], 'the AOE impact SFX joins once its own windup beat elapses');
+  assert.deepEqual(viaCast.vaeliraDuringWindup, ['voices/vaelira.mp3'], 'same timing split for Vaelira\'s AOE cast flow');
+  assert.deepEqual(viaCast.vaeliraAtImpact, ['voices/vaelira.mp3', 'sfx/vaelira.mp3'], 'Vaelira\'s impact SFX joins once its own windup beat elapses');
   assert.deepEqual(pageErrors, []);
 
   await page.close();
