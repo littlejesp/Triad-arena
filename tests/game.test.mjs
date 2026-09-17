@@ -5466,7 +5466,7 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
-test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire and Bahamut\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat and Three Head Dragon\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5504,6 +5504,14 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire and B
     out.bahamutCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateVoiceLine('tiamat');
+    out.tiamatCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('threeheaddragon');
+    out.threeheaddragonCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateVoiceLine('pallispell'); // no voice line entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5522,6 +5530,8 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire and B
   assert.deepEqual(result.seraphineCall, ['voices/seraphine.mp3'], "Seraphine's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.triunedesireCall, ['voices/triunedesire.mp3'], "Triune Desire's Ultimate cast should play its voice-line file");
   assert.deepEqual(result.bahamutCall, ['voices/bahamut.mp3'], "Bahamut's Ultimate cast should play his voice-line file");
+  assert.deepEqual(result.tiamatCall, ['voices/tiamat.mp3'], "Tiamat's Ultimate cast should play her voice-line file");
+  assert.deepEqual(result.threeheaddragonCall, ['voices/threeheaddragon.mp3'], "Three Head Dragon's Ultimate cast should play its voice-line file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
   assert.deepEqual(pageErrors, []);

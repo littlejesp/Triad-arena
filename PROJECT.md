@@ -1513,6 +1513,35 @@ utökat med Bahamut. Verifierat manuellt med samma UI-klick-sekvens
 `voices/bahamut.mp3`, banderoll "Megaflare", och att fiendekortet
 förstördes. Hela testsviten grön (91/91).
 
+**Uppdatering, samma session: röstlinje för Tiamat (The Fivefold
+Apocalypse) — sjunde kortet.** Sjunde ElevenLabs-filen ("THE FIVEFOLD
+APOCALYPSE"). Filen kopierad in som `voices/tiamat.mp3`. Sjunde raden
+i `ULTIMATE_VOICE_LINES` (`tiamat: 'voices/tiamat.mp3'`). Till
+skillnad från de tidigare AOE-korten har Tiamats special
+`targets:'single'` PLUS ett extra val-steg (`TIAMAT_POWER_CHOICES` —
+Fire/Ice/Storm/Void/Nature), så verifieringen kör hela den riktiga
+3-stegs UI-sekvensen (klicka Tiamats ruta → klicka målrutan → klicka
+"Fire" i choice-pickern) istället för ett enda klick som systrarna.
+Bekräftade `window.Audio`-anrop med `voices/tiamat.mp3` mitt i
+väntetiden och banderoll "The Fivefold Apocalypse". Isolerade
+hjälpfunktions-testet utökat med Tiamat (bara den enkla
+mapping-kontrollen, ingen separat 3-stegs-verifiering i den
+permanenta testsviten eftersom `runSpecialResolution` redan anropas
+direkt där, samma mönster som övriga kort). Hela testsviten grön
+(91/91).
+
+**Uppdatering, samma session: röstlinje för Three Head Dragon
+(Apokalyps) — åttonde kortet.** Åttonde ElevenLabs-filen
+("APOKALYPS"). Filen kopierad in som `voices/threeheaddragon.mp3`.
+Åttonde raden i `ULTIMATE_VOICE_LINES`
+(`threeheaddragon: 'voices/threeheaddragon.mp3'`). Verifierat manuellt
+med samma enkla UI-klick-sekvens (hennes special är AOE) — bekräftade
+`window.Audio`-anrop med `voices/threeheaddragon.mp3`, banderoll
+"Apokalyps", och att fiendekortet fick -3 Power (debuff, inte
+förstörelse — matchar hennes redan existerande mekanik, till skillnad
+från systrarnas/Bahamuts destroy-all). Isolerade hjälpfunktions-testet
+utökat med Three Head Dragon. Hela testsviten grön (91/91).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
