@@ -566,6 +566,52 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   50%{ opacity:0.85; }
   100%{ transform:translate(-50%,-50%) rotate(-360deg); opacity:0.55; }
 }
+/* Same one-off-identity-VFX pattern as the others above, this time for
+   Omega Weapon's Omega Protocol (see the user's Omega Protocol VFX
+   request) — orange/white "mechanical energy" instead of the others'
+   organic/elemental themes. Unlike every other card's rings (which stay
+   fixed size or grow), these two CONTRACT inward (scale down, staggered)
+   to read as "mekaniska energiringar och partiklar dras in mot kärnan"
+   rather than an opening portal — the visual language this card's brief
+   explicitly asked for is inward collapse, not outward bloom. */
+.card.omega-protocol-casting{
+  animation: omegaProtocolCardAura 0.95s ease-in forwards;
+  z-index:6;
+}
+@keyframes omegaProtocolCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(255,140,40,0.5), 0 0 14px rgba(255,140,40,0.4), inset 0 0 10px rgba(255,255,255,0.25);
+    filter:brightness(0.98) saturate(1.05);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(255,255,255,0.95), 0 0 55px rgba(255,150,40,0.9), inset 0 0 34px rgba(255,220,180,0.7);
+    filter:brightness(1.3) saturate(1.2);
+  }
+}
+.card.omega-protocol-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:95%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(1.3); border-radius:50%;
+  border:1.5px solid rgba(255,255,255,0.6);
+  opacity:0;
+  animation: omegaProtocolRingContract 0.95s ease-in forwards;
+}
+@keyframes omegaProtocolRingContract{
+  0%{ opacity:0.7; transform:translate(-50%,-50%) scale(1.3); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(0.55); }
+}
+.card.omega-protocol-casting::after{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:70%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(1.15) rotate(0deg); border-radius:50%;
+  border:2px dashed rgba(255,180,90,0.85);
+  opacity:0;
+  animation: omegaProtocolRingContract2 0.95s ease-in 0.15s forwards;
+}
+@keyframes omegaProtocolRingContract2{
+  0%{ opacity:0.75; transform:translate(-50%,-50%) scale(1.15) rotate(0deg); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(0.4) rotate(180deg); }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -1248,6 +1294,98 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 @keyframes silverJudgmentFlash{
   0%{ opacity:0; }
   30%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
+/* Omega Weapon's Omega Protocol — a fifth one-off identity VFX (see the
+   user's Omega Protocol VFX request), orange/white. Same .board-matching
+   wrapper as the others, plus a NEW piece: a targeting reticle on every
+   enemy DURING THE CAST/WINDUP beat (before the shot even fires), since
+   the brief specifically wants a "lock-on" moment distinct from the
+   impact itself -- everything else in this file only puts markup on
+   enemies at IMPACT time. */
+.omega-protocol-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+/* Four corner brackets forming a reticle, built from one rotated square
+   with a conic-gradient mask rather than four separate elements -- cheap,
+   one DOM node per enemy. */
+.omega-protocol-target{
+  position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px;
+  border:2px solid rgba(255,90,40,0.95);
+  -webkit-mask-image: conic-gradient(from 0deg,
+    #000 0deg 20deg, transparent 20deg 70deg,
+    #000 70deg 110deg, transparent 110deg 160deg,
+    #000 160deg 200deg, transparent 200deg 250deg,
+    #000 250deg 290deg, transparent 290deg 340deg,
+    #000 340deg 360deg);
+  mask-image: conic-gradient(from 0deg,
+    #000 0deg 20deg, transparent 20deg 70deg,
+    #000 70deg 110deg, transparent 110deg 160deg,
+    #000 160deg 200deg, transparent 200deg 250deg,
+    #000 250deg 290deg, transparent 290deg 340deg,
+    #000 340deg 360deg);
+  opacity:0;
+}
+.omega-protocol-fx.phase-cast .omega-protocol-target{ animation: omegaProtocolTargetLock 0.6s ease-out both; }
+@keyframes omegaProtocolTargetLock{
+  0%{ opacity:0; transform:scale(1.8) rotate(20deg); }
+  40%{ opacity:1; transform:scale(1) rotate(0deg); }
+  75%{ opacity:1; }
+  100%{ opacity:0.6; }
+}
+/* The "massiv energistråle" -- one big blast, not per-target beams like
+   Seraphine's (the brief describes a single shot, not several), so this
+   reuses the radial expanding-ring technique but bigger/more layered for
+   "massive" -- two rings at slightly different timing/scale for depth. */
+.omega-protocol-blast{
+  position:absolute; left:var(--op-x,50%); top:var(--op-y,50%);
+  width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+  border:3px solid rgba(255,255,255,0.95);
+  box-shadow:0 0 34px 10px rgba(255,140,40,0.75), inset 0 0 20px rgba(255,220,180,0.7);
+  opacity:0;
+}
+.omega-protocol-fx.phase-impact .omega-protocol-blast{ animation: omegaProtocolBlastExpand 0.75s cubic-bezier(.1,.85,.25,1) both; }
+@keyframes omegaProtocolBlastExpand{
+  0%{ opacity:1; transform:scale(0.3); border-color:rgba(255,255,255,0.98); }
+  45%{ opacity:0.7; transform:scale(11); border-color:rgba(255,150,40,0.8); }
+  100%{ opacity:0; transform:scale(15); border-color:rgba(200,60,10,0); }
+}
+.omega-protocol-blast-inner{
+  position:absolute; left:var(--op-x,50%); top:var(--op-y,50%);
+  width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(255,180,90,0.6) 55%, transparent 78%);
+  opacity:0;
+}
+.omega-protocol-fx.phase-impact .omega-protocol-blast-inner{ animation: omegaProtocolBlastExpand 0.5s cubic-bezier(.1,.85,.25,1) 0.05s both; }
+/* Explosion on every enemy that was present at cast time, same variable-
+   count/inline-position technique as infernal-pact-hit/silver-judgment-
+   hit above. */
+.omega-protocol-hit{
+  position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,240,0.95) 0%, rgba(255,120,30,0.75) 45%, rgba(180,30,10,0.4) 70%, transparent 82%);
+  opacity:0;
+}
+.omega-protocol-fx.phase-impact .omega-protocol-hit{ animation: omegaProtocolHit 0.55s ease-out both; }
+@keyframes omegaProtocolHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  30%{ opacity:1; transform:scale(1.7); }
+  100%{ opacity:0; transform:scale(2.3); }
+}
+/* "Kort kraftig screen shake vid huvudträffen" + "kort vit/orange flash
+   avslutar attacken" -- reuses chainShake (see playUltimateSequence) for
+   the shake and this for the flash, punchier/brighter than Silver
+   Judgment's soft version to match Omega Weapon's harder tone. */
+.omega-protocol-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.75) 0%, rgba(255,160,60,0.25) 45%, rgba(255,160,60,0) 72%);
+  opacity:0;
+}
+.omega-protocol-flash.phase-impact{ animation: omegaProtocolFlash 0.4s ease-out 0.3s both; }
+@keyframes omegaProtocolFlash{
+  0%{ opacity:0; }
+  35%{ opacity:1; }
   100%{ opacity:0; }
 }
 
@@ -3240,6 +3378,9 @@ function cardFace(card, opts={}){
   // Seraphine's Silver Judgment identity VFX (see the silver-judgment-*
   // CSS block) — same additive pattern as void-dominion-casting above.
   const silverJudgmentCastingClass = (opts.ultimateCasting && card.id === 'seraphine') ? 'silver-judgment-casting' : '';
+  // Omega Weapon's Omega Protocol identity VFX (see the omega-protocol-*
+  // CSS block) — same additive pattern as void-dominion-casting above.
+  const omegaProtocolCastingClass = (opts.ultimateCasting && card.id === 'omegaweapon') ? 'omega-protocol-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -3250,7 +3391,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -3557,6 +3698,24 @@ function renderBattle(){
     });
   }
 
+  // Omega Weapon's Omega Protocol identity VFX -- same enemyIndices-based
+  // derivation as Infernal Pact/Silver Judgment above, but needs target
+  // positions for the cast-phase targeting reticles too (not just the
+  // impact-phase hits), since the brief wants a visible "lock-on" beat.
+  const omegaProtocolActive = state.ultimateBanner && state.ultimateBanner.name === 'Omega Protocol';
+  let omegaProtocolOriginX = 50, omegaProtocolOriginY = 50, omegaProtocolTargets = [];
+  if(omegaProtocolActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    omegaProtocolOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    omegaProtocolOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    omegaProtocolTargets = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      x: ((i % 3) + 0.5) / 3 * 100,
+      y: (Math.floor(i / 3) + 0.5) / 3 * 100,
+      lockDelay: n * 0.05,
+      hitDelay: 0.25 + n * 0.04,
+    }));
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -3696,6 +3855,15 @@ function renderBattle(){
           <div class="silver-judgment-wave"></div>
         </div>
         <div class="silver-judgment-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${omegaProtocolActive ? `
+        <div class="omega-protocol-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--op-x:${omegaProtocolOriginX}%; --op-y:${omegaProtocolOriginY}%;">
+          ${omegaProtocolTargets.map(t => `<div class="omega-protocol-target" style="left:${t.x}%; top:${t.y}%; animation-delay:${t.lockDelay}s;"></div>`).join('')}
+          <div class="omega-protocol-blast"></div>
+          <div class="omega-protocol-blast-inner"></div>
+          ${omegaProtocolTargets.map(t => `<div class="omega-protocol-hit" style="left:${t.x}%; top:${t.y}%; animation-delay:${t.hitDelay}s;"></div>`).join('')}
+        </div>
+        <div class="omega-protocol-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
@@ -7237,16 +7405,20 @@ function playUltimateSequence(job){
   const token = ++ultimateBannerToken;
 
   // AOE identity-VFX cards (Vaelira's Infernal Pact, Seraphine's Silver
-  // Judgment) need to know which cells were enemies AT CAST TIME: both
-  // destroy/strip via destroyCard (like Nyxara's), so by the time the
-  // impact-phase render happens those board slots are already null and
-  // can't be re-queried for "which cells to flash". Captured once here,
-  // carried through this closure into the impact-phase banner below.
-  // Presentation only, never read by gameplay logic, and only computed for
-  // these specific cards' Ultimates (not a general capability every AOE
-  // gets).
+  // Judgment, Omega Weapon's Omega Protocol) need to know which cells were
+  // enemies AT CAST TIME: Infernal Pact/Silver Judgment destroy/strip via
+  // destroyCard (like Nyxara's), so by the time the impact-phase render
+  // happens those board slots are already null and can't be re-queried;
+  // Omega Protocol only destroys SOME enemies (the weak ones) but debuffs
+  // ALL of them, and the brief wants a targeting-marker + hit effect on
+  // every enemy regardless of which ones end up destroyed, so it needs the
+  // same "who was an enemy at cast time" snapshot for the same reason.
+  // Captured once here, carried through this closure into the impact-phase
+  // banner below. Presentation only, never read by gameplay logic, and
+  // only computed for these specific cards' Ultimates (not a general
+  // capability every AOE gets).
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol'){
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
   }
 
@@ -7294,8 +7466,10 @@ function playUltimateSequence(job){
     // the same reason (her one-off VFX test's screen-shake request).
     // Vaelira's Infernal Pact and Seraphine's Silver Judgment are the same
     // destroy-based shape as Void Dominion (destroyCard, never
-    // justFlipped) — same opt-in, same reason.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment') state.chainShake = true;
+    // justFlipped) — same opt-in, same reason. Omega Weapon's Omega
+    // Protocol also destroys via destroyCard (just conditionally, only the
+    // weak enemies) — same opt-in either way.
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.

@@ -2015,6 +2015,56 @@ blev special-låst (matchar Diamond Storms redan existerande
 debuff-mekanik). Hela testsviten grön (96/96, samma antal — befintliga
 testfall utökade).
 
+**Fas 4j: Omega Weapon fick samma sorts "element-identitet"-VFX för
+Omega Protocol, femte engångstestet i raden.** Orange/vitt
+"mekanisk energi"-tema. Två nya saker jämfört med tidigare kort:
+
+- **Krympande ringar istället för växande** — `.card.omega-protocol-
+  casting::before/::after` skalar NER (från stor till liten) istället
+  för upp, för "mekaniska energiringar och partiklar dras in mot
+  kärnan" — motsatt rörelseriktning mot alla tidigare korts ringar,
+  som antingen pulserar på plats eller öppnas utåt.
+- **Targeting-markörer under CAST-fasen (helt ny mekanism)** — kravet
+  "fiendekorten får korta röda/orange targeting-markeringar" beskriver
+  ett "lock-on"-ögonblick INNAN skottet avfyras, till skillnad från
+  alla tidigare korts fiende-markup som bara existerar vid impact.
+  `.omega-protocol-target` är en fyrkantig ring maskerad med
+  `conic-gradient` till fyra hörn-brackets (en enda DOM-nod per
+  fiende, ingen fyrdelad markup), animerad under `.phase-cast`
+  specifikt. Detta krävde att `aoeEnemyIndicesAtCast`-infrastrukturen
+  (senast delad av Infernal Pact/Silver Judgment) generaliserades
+  ytterligare till att även täcka Omega Protocol — trots att hans
+  mekanik skiljer sig (destroy:ar bara SVAGA fiender, debuffar ALLA)
+  behövs samma "vilka celler var fiender vid cast"-ögonblicksbild för
+  targeting/impact-VFX oavsett vilka som faktiskt överlever.
+- **Massiv central explosion** — till skillnad från Seraphines
+  riktade strålar mot varje mål (flera separata linjer) beskriver
+  kravlistan EN stor stråle ("massiv energistråle", singular) —
+  löst med samma ring-expansions-teknik som `.void-crack`/
+  `.hellfire-blast` men två lager för extra kraft/djup
+  (`.omega-protocol-blast` + `.omega-protocol-blast-inner`).
+- **`chainShake`-villkoret utökat igen** (`special.name === 'Omega
+  Protocol'`) av samma anledning som tidigare — destroy:ade kort
+  sätter aldrig `justFlipped`.
+
+**Verifiering:** ett nytt permanent test (97 totalt) bekräftar hela
+livscykeln med två fiender: under cast-fasen finns kortets krympande
+ringar, fx-wrappern, och EN targeting-reticle PER FIENDE (2 st) —
+explosionerna finns redan i DOM:en men osynliga (`opacity:0`) tills
+impact-fasen (samma mönster som tidigare korts hit-element, fångade
+detta explicit efter att först ha skrivit ett felaktigt "elementet
+ska inte finnas alls"-test som floppade — rättat till att testa
+osynlighet istället för frånvaro, samma lärdom som Nyxara-testet
+gjorde tidigare). Vid impact: explosionsantalet matchar fiendeantalet,
+den massiva explosionen och flashen syns båda, båda svaga fiender
+förstörda, `chainShake` triggat. Ett sista kontroll bekräftar att
+Seraphines Silver Judgment (samma destroy-AOE-form) INTE får någon
+Omega-Protocol-specifik markup. Verifierat även manuellt med en riktig
+UI-klick-sekvens (två fiender) och skärmdumpar i två lägen —
+bekräftade de synliga röda targeting-markeringarna under cast och den
+kraftiga orange/vita explosionsvågen vid impact. Hela testsviten grön
+(97/97, +1 nytt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

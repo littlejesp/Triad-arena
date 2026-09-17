@@ -6160,6 +6160,105 @@ test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/spa
   await page.close();
 });
 
+test('Omega Weapon Omega Protocol identity VFX (one-off test): card aura/targeting reticles/blast/explosions/flash ride the existing cast->impact->cleanup lifecycle, reticle count matches enemy count during cast (before hits exist), chainShake fires despite conditional destroy never setting justFlipped, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the omega-protocol-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('omegaweapon'), 'blue');
+    state.board[4] = src; // center cell -> --op-x/--op-y should be ~50%/50%
+    state.board[0] = freshEntry(findCardById('ogre'), 'red');
+    state.board[7] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + fx wrapper + one targeting reticle PER ENEMY
+    // (the "lock-on" beat, unique to this card -- no other Ultimate puts
+    // markup on enemies before impact) all present, origin matches Omega
+    // Weapon's actual cell, no hit-explosions yet (those are impact-only),
+    // board untouched.
+    out.cardHasAura = document.querySelector('.card.omega-protocol-casting') !== null;
+    const fx = document.querySelector('.omega-protocol-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--op-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--op-y')) - 50) < 0.1;
+    out.targetReticleCountMatchesEnemyCount = document.querySelectorAll('.omega-protocol-target').length === 2;
+    // The hit-explosion elements exist in the DOM during cast too (same
+    // pattern as hellfire-target-hit/infernal-pact-hit) -- their own base
+    // class starts at opacity:0 and only the .phase-impact CSS selector
+    // triggers the animation that makes them visible, so "not active yet"
+    // is what's actually true here, not "not present".
+    const castHits = [...document.querySelectorAll('.omega-protocol-hit')];
+    out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: blast + explosion hits (one per enemy) + flash all
+    // appear, both weak enemies destroyed, chainShake fires despite Omega
+    // Protocol's conditional destroy never setting justFlipped.
+    const fx2 = document.querySelector('.omega-protocol-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.blastPresent = document.querySelector('.omega-protocol-blast') !== null;
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.omega-protocol-hit').length === 2;
+    out.flashPresent = document.querySelector('.omega-protocol-flash.phase-impact') !== null;
+    out.effectLanded = state.board[0] === null && state.board[7] === null;
+    out.chainShakeFiredDespiteConditionalDestroy = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.omega-protocol-fx') === null;
+    out.flashGoneAfterCleanup = document.querySelector('.omega-protocol-flash') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.omega-protocol-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different destroy-based AOE Ultimate (Seraphine) must get NONE of
+    // this -- scoped strictly to Omega Weapon's card id + its exact
+    // Ultimate name.
+    state.board = Array(9).fill(null);
+    const seraphineSrc = freshEntry(findCardById('seraphine'), 'blue');
+    state.board[4] = seraphineSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.noOmegaProtocolVfxForSeraphine = document.querySelector('.omega-protocol-fx') === null
+      && document.querySelector('.omega-protocol-flash') === null
+      && document.querySelector('.card.omega-protocol-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.cardHasAura, true, "Omega Weapon's own card should get the omega-protocol-casting class (and its contracting rings) during its windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the targeting/blast wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Omega Weapon's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.targetReticleCountMatchesEnemyCount, true, 'one targeting reticle per enemy actually present at cast time');
+  assert.equal(result.hitsInvisibleDuringCast, true, 'the per-enemy explosion elements exist (2, matching the enemy count) but stay invisible until the impact-phase CSS class triggers their animation');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.blastPresent, true, 'the massive central blast should appear at impact');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one explosion hit per enemy actually present at cast time, not a fixed count');
+  assert.equal(result.flashPresent, true, 'the punchy full-frame flash should appear at impact');
+  assert.equal(result.effectLanded, true, 'Omega Protocol destroys both weak enemy cards once the windup elapses');
+  assert.equal(result.chainShakeFiredDespiteConditionalDestroy, true, 'chainShake must fire for Omega Protocol even though its conditional destroy never sets justFlipped (capturedCount stays 0)');
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.flashGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noOmegaProtocolVfxForSeraphine, true, "this identity VFX must stay scoped to Omega Weapon's Omega Protocol specifically, not leak onto other destroy-based AOE Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
