@@ -397,6 +397,27 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   border-color:var(--arcane) !important;
   box-shadow:0 0 0 2px rgba(139,110,242,0.35), 0 0 18px rgba(139,110,242,0.55) !important;
 }
+/* Game feel phase 4: the Ultimate windup glow (see playUltimateSequence) —
+   distinct from special-active above (targeting phase only, already over
+   by the time this fires) and more dramatic since this IS the "something
+   big is happening" beat. Clipped tight to the cell edge by .cell's own
+   overflow:hidden, same as captureRingBlue/Red's expanding rings already
+   are — reads as a bright pulsing rim rather than a full outside bloom,
+   consistent with every other in-cell effect in this file. */
+.card.ultimate-casting{
+  animation: ultimateCastGlow 0.5s ease-in-out infinite;
+  z-index:6;
+}
+@keyframes ultimateCastGlow{
+  0%,100%{
+    box-shadow:0 0 0 2px rgba(139,110,242,0.6), 0 0 22px rgba(139,110,242,0.7), 0 0 40px rgba(240,216,121,0.35);
+    filter:brightness(1.1) saturate(1.15);
+  }
+  50%{
+    box-shadow:0 0 0 3px rgba(196,72,220,0.85), 0 0 34px rgba(139,110,242,0.9), 0 0 60px rgba(240,216,121,0.55);
+    filter:brightness(1.3) saturate(1.3);
+  }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -722,6 +743,54 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   24%{ transform:translate(-50%,-50%) scale(1) rotate(0deg); }
   78%{ opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
   100%{ opacity:0; transform:translate(-50%,-50%) scale(0.92) rotate(0deg); }
+}
+
+/* Game feel phase 4: Ultimate name banner (see playUltimateSequence /
+   state.ultimateBanner). Two DIFFERENT DOM elements over the sequence, not
+   one continuously-animated one — render() rebuilds #app wholesale on every
+   call (same restart-on-render fact documented for .arena-ambient etc.),
+   so the 'cast' phase's banner and the 'impact' phase's banner are each a
+   fresh element with their own animation. They're designed to LOOK
+   continuous anyway: 'cast' ends held at full visibility (animation-fill-
+   mode via `both`), and 'impact' STARTS at that exact same visible state
+   (its own 0% keyframe) before popping and fading — the handoff between
+   the two renders lands on matching frames, so the seam doesn't show. */
+.ultimate-banner{
+  position:absolute; z-index:25; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center; pointer-events:none; white-space:nowrap;
+  padding:14px 28px; border-radius:10px;
+  background:linear-gradient(180deg, rgba(10,8,18,0.92), rgba(10,8,18,0.78));
+  border:1px solid rgba(240,216,121,0.5);
+  box-shadow:0 0 30px rgba(139,110,242,0.4), 0 8px 24px rgba(0,0,0,0.6);
+}
+.ultimate-banner.owner-blue{ border-color:rgba(63,111,209,0.65); box-shadow:0 0 30px rgba(63,111,209,0.45), 0 8px 24px rgba(0,0,0,0.6); }
+.ultimate-banner.owner-red{ border-color:rgba(184,69,46,0.65); box-shadow:0 0 30px rgba(184,69,46,0.45), 0 8px 24px rgba(0,0,0,0.6); }
+.ultimate-banner-label{
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase;
+  color:var(--text-dim); margin-bottom:2px;
+}
+.ultimate-banner-name{
+  font-family:'Cinzel',serif; font-weight:900; font-size:22px;
+  color:var(--gold-bright);
+  text-shadow:0 0 16px rgba(240,216,121,0.7), 0 2px 6px rgba(0,0,0,0.8);
+}
+.ultimate-banner-cast{ animation: ultimateBannerIn 0.4s cubic-bezier(.2,.9,.25,1) both; }
+@keyframes ultimateBannerIn{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.7); }
+  60%{ opacity:1; transform:translate(-50%,-50%) scale(1.06); }
+  100%{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+}
+/* 0.5s delay holds it fully visible (matching where 'cast' left off) before
+   the impact pop-then-fade — the delay is what lets the actual effect (the
+   board's own flip/capture animations, rendered underneath at the same
+   moment this phase starts) register with the player before the banner
+   gets out of the way. */
+.ultimate-banner-impact{ animation: ultimateBannerOut 0.6s ease 0.5s both; }
+@keyframes ultimateBannerOut{
+  0%{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+  20%{ opacity:1; transform:translate(-50%,-50%) scale(1.1); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(0.9); }
 }
 
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
@@ -2462,6 +2531,7 @@ let state = {
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
+  ultimateBanner: null,   // { phase:'cast'|'impact', owner, name, sourceIndex } while an Ultimate's windup/impact sequence plays — see runSpecialResolution/playUltimateSequence
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
   rules: { same:false, plus:false, combo:false, elemental:false, graveyard:false }, // optional Triple-Triad-style rules
   graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
@@ -2672,6 +2742,11 @@ function cardFace(card, opts={}){
   const specialActiveClass = opts.specialActive ? 'special-active' : '';
   const specialReadyClass = (opts.specialInfo && opts.specialInfo.ready) ? 'special-ready' : '';
   const destroyedClass = opts.destroyed ? 'destroy-ghost' : '';
+  // Game feel phase 4: the Ultimate windup glow — distinct from
+  // special-active (which only lights up during TARGET SELECTION, before
+  // runSpecialResolution even runs) since state.specialMode is already
+  // cleared by the time this fires. See playUltimateSequence.
+  const ultimateCastingClass = opts.ultimateCasting ? 'ultimate-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -2682,7 +2757,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -2890,11 +2965,11 @@ function boardCellHtml(cell, i){
   if(cell && cell.owner === 'blue' && cell.card.special){
     const key = 'blue:' + cell.card.id;
     if(!(cell.card.special.once && state.specialUsed[key])){
-      const ready = state.turn === 'blue' && state.phase === 'battle' && specialUsable(cell.card, 'blue', cell);
+      const ready = state.turn === 'blue' && state.phase === 'battle' && !state.ultimateBanner && specialUsable(cell.card, 'blue', cell);
       specialInfo = { cellIndex:i, ready, title: `${cell.card.special.name} — costs ${cell.card.special.cost} wins` };
     }
   }
-  const placeTargetable = !cell && state.pendingCard && state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn;
+  const placeTargetable = !cell && state.pendingCard && state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn && !state.ultimateBanner;
   const specialSrcEntry = state.specialMode && state.board[state.specialMode.sourceIndex];
   const specialTargetable = state.specialMode && !state.specialMode.choices && cell && cell.owner === 'red'
     && !(specialSrcEntry && specialSrcEntry.card.id === 'deathblade' && !sharesLine(state.specialMode.sourceIndex, i));
@@ -2905,7 +2980,7 @@ function boardCellHtml(cell, i){
       ${cell ? cardFace(cell.card, {
           owner:cell.owner, flipping:cell.justFlipped, placing:cell.justPlaced,
           shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
-          attackFlash:cell.attackFlash, fxDelay:cell.fxDelay, fxStep:cell.fxStep,
+          attackFlash:cell.attackFlash, fxDelay:cell.fxDelay, fxStep:cell.fxStep, ultimateCasting:cell.ultimateCasting,
           petrified: cell.petrifiedUntilTurnCount > state.turnCount,
           captureBonus: cell.captureBonus, sideBonus: cell.sideBonus,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
@@ -3008,6 +3083,12 @@ function renderBattle(){
         ${state.board.map(boardCellHtml).join('')}
       </div>
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
+      ${state.ultimateBanner ? `
+        <div class="ultimate-banner ultimate-banner-${state.ultimateBanner.phase} owner-${state.ultimateBanner.owner}">
+          <div class="ultimate-banner-label">${state.ultimateBanner.owner === 'blue' ? 'Special Attack' : "Forest's Special Attack"}</div>
+          <div class="ultimate-banner-name">${state.ultimateBanner.name}</div>
+        </div>
+      ` : ''}
       </div>
 
       <div class="side-hand hand-row">
@@ -3015,8 +3096,8 @@ function renderBattle(){
         ${state.playerHand.map(c => cardFace(c, {
             owner:'blue',
             selected: state.pendingCard === c.id,
-            clickable: state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn,
-            disabled: state.turn!=='blue' || state.phase!=='battle' || state.placedThisTurn
+            clickable: state.turn==='blue' && state.phase==='battle' && !state.placedThisTurn && !state.ultimateBanner,
+            disabled: state.turn!=='blue' || state.phase!=='battle' || state.placedThisTurn || !!state.ultimateBanner
           })).join('')}
       </div>
     </div>
@@ -3219,7 +3300,7 @@ function attachHandlers(){
   } else {
     document.querySelectorAll('.hand-row:not(.enemy) .card').forEach(el=>{
       el.addEventListener('click', ()=>{
-        if(state.turn!=='blue' || state.phase!=='battle' || state.placedThisTurn) return;
+        if(state.turn!=='blue' || state.phase!=='battle' || state.placedThisTurn || state.ultimateBanner) return;
         const id = el.dataset.cardid;
         const opening = state.pendingCard !== id;
         state.pendingCard = opening ? id : null;
@@ -3239,10 +3320,10 @@ function attachHandlers(){
         // tap it to activate, tap it again to cancel while targeting.
         const entry = state.board[i];
         if(entry && entry.owner==='blue' && entry.card.special){
-          const ready = state.turn==='blue' && state.phase==='battle' && specialUsable(entry.card, 'blue', entry);
+          const ready = state.turn==='blue' && state.phase==='battle' && !state.ultimateBanner && specialUsable(entry.card, 'blue', entry);
           if(ready){ executeSpecial(i); return; }
         }
-        if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard || state.placedThisTurn) return;
+        if(state.turn!=='blue' || state.phase!=='battle' || !state.pendingCard || state.placedThisTurn || state.ultimateBanner) return;
         if(state.board[i]) return;
         placeCard(i, state.pendingCard, 'blue');
       });
@@ -4852,6 +4933,12 @@ function maybeEndTurn(owner){
 // is still ready (they'd rather save it) or even before placing at all.
 function endPlayerTurn(){
   if(state.turn !== 'blue' || state.phase !== 'battle') return;
+  // Blocked mid-Ultimate: playUltimateSequence's own maybeEndTurn(owner)
+  // call at the end of its sequence closes over 'blue' from when the cast
+  // started — ending the turn early here (advancing state.turn to 'red')
+  // would leave that later call racing against whatever red's turn is
+  // doing by then. Same interaction-lock as the click handlers below.
+  if(state.ultimateBanner) return;
   state.specialMode = null;
   state.pendingCard = null;
   advanceTurn('blue');
@@ -6424,6 +6511,28 @@ function cancelSpecial(){
   render();
 }
 
+// Game feel phase 4: Ultimates as "major events" — a brief windup (card
+// focus + name banner) BEFORE the effect resolves, then the effect itself,
+// then a scaled impact flash/shake, then a smooth return to normal. Built
+// once here in the single shared entry point every Ultimate already goes
+// through, so every card gets it for free with no per-card work.
+//
+// Wins deduction/specialUsed-marking/specialMode-clearing stay exactly
+// where they were (immediate, synchronous) — only the handler() call
+// itself (the actual board mutation) and everything downstream of it is
+// deferred. That matters for enemyTurn()'s `while(enemyTryUseSpecial()){}`
+// loop: it re-checks affordability/specialUsed synchronously on every
+// iteration, so keeping those immediate means the loop still terminates
+// correctly even though the VISUAL resolution of each cast is now spread
+// out over ~2.7s. If the AI (or, in principle, overlapping player actions)
+// triggers a second Ultimate while one is still mid-sequence, it's queued
+// here instead of overlapping — ultimateQueue/playUltimateSequence below.
+let ultimateBannerToken = 0;
+let ultimateQueue = [];
+const ULTIMATE_WINDUP_MS = 950;
+const ULTIMATE_SHAKE_MS = 500;
+const ULTIMATE_CLEANUP_MS = 1300;
+
 function runSpecialResolution(sourceIndex, targetIndex, extra){
   const srcEntry = state.board[sourceIndex];
   const special = srcEntry.card.special;
@@ -6436,33 +6545,76 @@ function runSpecialResolution(sourceIndex, targetIndex, extra){
   if(special.once) state.specialUsed[owner + ':' + srcEntry.card.id] = true;
   state.specialMode = null;
 
-  const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
-  if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
-  // Snapshot which cells were already flagged justFlipped (from an earlier
-  // action still mid-animation) so an AOE handler's captures — e.g. Pallis &
-  // Pell's Hunter's Wrath, which has no single targetEntry to check — are
-  // still detected below without also re-triggering the banner for a stale
-  // flip that isn't this special's doing.
-  const alreadyFlipped = new Set();
-  state.board.forEach((e, i) => { if(e && e.justFlipped) alreadyFlipped.add(i); });
-  state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
-  const captured = state.board.some((e, i) => e && e.owner === owner && e.justFlipped && !alreadyFlipped.has(i));
-  if(captured){
-    showConquestPopup(owner);
+  const job = { srcEntry, sourceIndex, targetIndex, extra, owner, special, handler };
+  if(state.ultimateBanner){
+    ultimateQueue.push(job);
+    render(); // reflect the wins deduction/specialMode clear immediately even while queued
+    return;
   }
+  playUltimateSequence(job);
+}
 
-  SFX.bonus();
+function playUltimateSequence(job){
+  const { srcEntry, sourceIndex, targetIndex, extra, owner, special, handler } = job;
+  const token = ++ultimateBannerToken;
+
+  // Phase 1: windup. Board state untouched — this is purely "something big
+  // is about to happen", the actual effect hasn't run yet.
+  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex };
+  srcEntry.ultimateCasting = true;
+  SFX.select();
   render();
 
   setTimeout(()=>{
-    state.board.forEach(entry=>{
-      if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; entry.fxStep = 0; }
-    });
-    state.destroyGhosts = [];
-    render();
-  }, 1300);
+    if(ultimateBannerToken !== token) return; // superseded — shouldn't happen given the queue above, but matches showConquestPopup's own safety pattern
+    srcEntry.ultimateCasting = false;
 
-  maybeEndTurn(owner);
+    // Phase 2: the effect actually resolves now (this is the ONLY part of
+    // the original synchronous code below this point — unchanged logic,
+    // just moved behind the windup delay).
+    const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
+    if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
+    // Snapshot which cells were already flagged justFlipped (from an earlier
+    // action still mid-animation) so an AOE handler's captures — e.g. Pallis &
+    // Pell's Hunter's Wrath, which has no single targetEntry to check — are
+    // still detected below without also re-triggering the banner for a stale
+    // flip that isn't this special's doing.
+    const alreadyFlipped = new Set();
+    state.board.forEach((e, i) => { if(e && e.justFlipped) alreadyFlipped.add(i); });
+    state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
+    const capturedCount = state.board.filter((e, i) => e && e.owner === owner && e.justFlipped && !alreadyFlipped.has(i)).length;
+    if(capturedCount > 0){
+      showConquestPopup(owner);
+    }
+    // Same magnitude-gated shake as phase 3's Same/Combo chains (see
+    // placeCard) — a big Ultimate sweep feels like a big chain, reuses the
+    // same .arena-frame.chain-shake mechanism rather than a new one.
+    if(capturedCount >= 3) state.chainShake = true;
+
+    // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
+    // starts fading; the board now shows the real result underneath it.
+    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex };
+    SFX.bonus();
+    render();
+
+    setTimeout(()=>{
+      if(ultimateBannerToken !== token) return;
+      state.chainShake = false;
+      render();
+    }, ULTIMATE_SHAKE_MS);
+
+    setTimeout(()=>{
+      if(ultimateBannerToken !== token) return;
+      state.board.forEach(entry=>{
+        if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; entry.fxStep = 0; }
+      });
+      state.destroyGhosts = [];
+      state.ultimateBanner = null;
+      render();
+      maybeEndTurn(owner);
+      if(ultimateQueue.length > 0) playUltimateSequence(ultimateQueue.shift());
+    }, ULTIMATE_CLEANUP_MS);
+  }, ULTIMATE_WINDUP_MS);
 }
 
 const NEIGHBOR_DIRS = [
@@ -7060,7 +7212,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [],
   };
