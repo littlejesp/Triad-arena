@@ -1208,6 +1208,82 @@ efteråt, alla fyra flippar fick distinkta `fxStep`-värden 0–3,
 `chainShake` rensat efter ~500ms, `fxStep` rensat efter 1300ms. Hela
 testsviten grön (89/89).
 
+**Fas 4: Ultimates som "major events".** Första fasen som INTE bara är
+CSS/DOM-tillägg — kräver en genuin JS-omstrukturering av
+`runSpecialResolution` (den enda delade funktion VARENDA Ultimate redan
+går igenom, oavsett kort — bygger man ramverket där får alla kort det
+gratis, inget per-kort-arbete). Användaren godkände explicit
+"förväntanspausen"-avvägningen jag flaggade innan jag byggde ("Kör på
+det med förväntanspausen").
+
+**Sekvens (`playUltimateSequence`, ny funktion):**
+1. **Cast** — banderoll med Ultimate-namnet glider in ("SPECIAL ATTACK
+   / <namn>"), det castande kortet får en pulserande `ultimate-casting`-
+   glöd. Brädet är HELT ORÖRT här — ingen effekt har körts än.
+2. Vänta `ULTIMATE_WINDUP_MS` (950ms) — den faktiska
+   "förväntanspausen".
+3. **Impact** — NU körs den riktiga `handler()` (exakt samma kod som
+   innan denna fas, bara flyttad bakom fördröjningen), banderollen byter
+   till impact-läge (pop + uttoning), samma `chainShake`-mekanism som
+   fas 3 återanvänds om Ultimaten fångade ≥3 kort.
+4. Efter `ULTIMATE_SHAKE_MS` (500ms): `chainShake` rensas.
+5. Efter `ULTIMATE_CLEANUP_MS` (1300ms från steg 3): all fx-state
+   rensas (samma cleanup som redan fanns), banderollen försvinner,
+   `maybeEndTurn(owner)` körs (flyttad hit från att tidigare köras
+   direkt/synkront).
+
+**Vins-avdrag och `specialUsed`-markering förblir OFÖRÄNDRADE (synkrona,
+omedelbara)** — bara `handler()`-anropet och allt nedströms det sköts
+upp. Avgörande för `enemyTurn`s `while(enemyTryUseSpecial()){}`-loop:
+den kollar kostnad/specialUsed synkront varje varv, så genom att hålla
+DE kollarna omedelbara fortsätter loopen terminera korrekt även fast
+den VISUELLA sekvensen nu tar ~2.7s per Ultimate istället för att vara
+klar direkt.
+
+**Kö-mekanism för överlappande casts** (`ultimateQueue`/
+`ultimateBannerToken`, samma tokens-mönster som redan etablerade
+`showConquestPopup`/`conquestPopupToken`) — om ett andra
+`runSpecialResolution`-anrop kommer in medan `state.ultimateBanner`
+redan är satt (t.ex. AI:ts while-loop som kan trigga flera specials i
+en enda synkron svep, eller i princip överlappande spelarhandlingar),
+köas det istället för att krocka — spelas upp sekventiellt efter att
+det första helt avslutats, inte samtidigt.
+
+**Interaktionsspärr under sekvensen** — lade till `!state.ultimateBanner`
+i alla spelar-klickhanterare (handkort-val, rutklick, `executeSpecial`s
+`ready`-koll, `endPlayerTurn`) så spelaren inte kan trigga en NY
+handling medan en Ultimate spelar upp. Medvetet INTE tillagt i
+`specialUsable()`/`executeSpecial()` själva (de anropas även av AI:t,
+och en global spärr där hade tystat AI:ts kö-läggning helt — bara
+UI-ingångspunkterna en människa faktiskt klickar på spärrades).
+
+**Ny CSS**: `.card.ultimate-casting` (pulserande lila/guld-glöd, skild
+från `.special-active` som bara gäller under målval, redan över när
+denna triggar), `.ultimate-banner` + `.ultimate-banner-cast`/
+`-impact`-faser. Banderollen är TVÅ olika DOM-element över sekvensen
+(samma restart-on-render-fakta som resten av game feel-arbetet), men
+designade att se kontinuerliga ut: cast-fasen slutar hållen vid full
+synlighet (`animation-fill-mode` via `both`), impact-fasen BÖRJAR vid
+exakt samma synliga läge innan den poppar och tonar ut — övergången
+mellan de två renderingarna landar på matchande bildrutor så skarven
+inte syns.
+
+**Testuppdatering, inte bara tillägg:** eftersom `runSpecialResolution`
+inte längre löser ut synkront var sex BEFINTLIGA tester tvungna att
+uppdateras (inte bara nya tester tillagda) — alla som anropade
+`runSpecialResolution`/`enemyTryUseSpecial` och läste resultatet direkt
+i samma synkrona block fick lägga till `await new Promise(r =>
+setTimeout(r, ULTIMATE_WINDUP_MS + 50))` innan de läser resultatet.
+Ett nytt permanent test (91 totalt) verifierar hela sekvensen end-to-end
+(cast-fas orörd bräde, vins-avdrag ändå omedelbart, impact-fas löst
+effekt, cleanup rensar banderoll) PLUS kö-beteendet (två casts back-to-
+back resulterar i sekventiell, inte överlappande, uppspelning). Hela
+testsviten grön (91/91). Verifierat även med ett fristående
+Playwright-skript som klickade igenom en RIKTIG UI-sekvens (tryck på
+ett redo special-kort, kolla banderoll mitt i väntetiden, försök klicka
+en annan ruta — spärrat — vänta ut hela sekvensen) med skärmdumpar av
+varje fas.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

@@ -147,7 +147,7 @@ test('round clock: a "this round" effect is symmetric regardless of which side c
 
 test('conquest banner: an AOE special (Pallis & Pell) triggers it on an actual capture', async () => {
   const { page, pageErrors } = await newPage();
-  const result = await page.evaluate(`(() => {
+  const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
     state.board = Array(9).fill(null);
     state.board[4] = freshEntry(findCardById('pallispell'), 'blue');
@@ -156,6 +156,10 @@ test('conquest banner: an AOE special (Pallis & Pell) triggers it on an actual c
     state.specialUsed = {};
     state.conquestPopup = false;
     runSpecialResolution(4, null, {});
+    // Game feel phase 4: the effect no longer resolves synchronously —
+    // runSpecialResolution now plays a windup beat first (see
+    // playUltimateSequence). Wait past it before reading the result.
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     return { ownerAfter: state.board[1].owner, conquestPopup: state.conquestPopup };
   })()`);
   assert.equal(result.ownerAfter, 'blue');
@@ -166,7 +170,7 @@ test('conquest banner: an AOE special (Pallis & Pell) triggers it on an actual c
 
 test('Hunter\'s Wrath: each defeated card permanently loses 2 Power on all sides, on top of the both-flipped self-buff', async () => {
   const { page, pageErrors } = await newPage();
-  const result = await page.evaluate(`(() => {
+  const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
     state.board = Array(9).fill(null);
     const src = freshEntry(findCardById('pallispell'), 'blue');
@@ -176,6 +180,7 @@ test('Hunter\'s Wrath: each defeated card permanently loses 2 Power on all sides
     state.wins = { blue: 5, red: 5 };
     state.specialUsed = {};
     runSpecialResolution(4, null, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     return {
       firstFlipped: state.board[1].owner === 'blue',
       secondFlipped: state.board[7].owner === 'blue',
@@ -195,7 +200,7 @@ test('Hunter\'s Wrath: each defeated card permanently loses 2 Power on all sides
 
 test('conquest banner: a non-capturing special (Deathblade\'s swap) does not trigger it', async () => {
   const { page, pageErrors } = await newPage();
-  const result = await page.evaluate(`(() => {
+  const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
     state.board = Array(9).fill(null);
     state.board[4] = freshEntry(findCardById('deathblade'), 'blue');
@@ -204,6 +209,7 @@ test('conquest banner: a non-capturing special (Deathblade\'s swap) does not tri
     state.specialUsed = {};
     state.conquestPopup = false;
     runSpecialResolution(4, 1, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     return { conquestPopup: state.conquestPopup };
   })()`);
   assert.equal(result.conquestPopup, false);
@@ -213,7 +219,7 @@ test('conquest banner: a non-capturing special (Deathblade\'s swap) does not tri
 
 test('conquest banner: a stale justFlipped flag elsewhere on the board is not a false positive', async () => {
   const { page, pageErrors } = await newPage();
-  const result = await page.evaluate(`(() => {
+  const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
     state.board = Array(9).fill(null);
     const stale = freshEntry(findCardById('ogre'), 'blue');
@@ -225,6 +231,7 @@ test('conquest banner: a stale justFlipped flag elsewhere on the board is not a 
     state.specialUsed = {};
     state.conquestPopup = false;
     runSpecialResolution(4, null, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     return { conquestPopup: state.conquestPopup };
   })()`);
   assert.equal(result.conquestPopup, false);
@@ -1931,7 +1938,7 @@ test('Zalazar: Ashen Resurrection reuses the shield mechanic, World In Flames re
 
 test('AI can now use direction-targeting Ultimates (Vorgrath and friends) — previously always skipped', async () => {
   const { page, pageErrors } = await newPage();
-  const result = await page.evaluate(`(() => {
+  const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
     state.board = Array(9).fill(null);
     state.wins = { blue: 0, red: 5 };
@@ -1943,6 +1950,11 @@ test('AI can now use direction-targeting Ultimates (Vorgrath and friends) — pr
     state.board[1] = freshEntry(findCardById('ogre'), 'blue');
     state.board[7] = freshEntry(findCardById('ogre'), 'blue');
     const used = enemyTryUseSpecial();
+    // Game feel phase 4: the effect itself is deferred behind a windup beat
+    // now (see playUltimateSequence) — used is still true synchronously
+    // (the AI committed to the cast), but the actual board change needs
+    // waiting for.
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     return { used, somethingDied: state.board[1] === null || state.board[7] === null };
   })()`);
   assert.equal(result.used, true, 'the AI actually fired a direction-targeting Ultimate');
@@ -2177,7 +2189,7 @@ test('Zlaizer: Light of Forgiveness (probabilistic own-side graveyard), Second D
 
 test('Visual feedback: SpecialVerbs now flash every changed card (not just single-target specials), and destroys leave a fading ghost', async () => {
   const { page, pageErrors } = await newPage();
-  const result = await page.evaluate(`(() => {
+  const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
     const out = {};
 
@@ -2213,14 +2225,19 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
     SpecialVerbs.debuff(immuneEntry, 5);
     out.blockedChangeDoesNotFlash = immuneEntry.bonusFlash !== true;
 
-    // destroyCard() leaves a fading ghost record, cleared by runSpecialResolution's own cleanup timer
+    // destroyCard() leaves a fading ghost record, cleared by runSpecialResolution's own cleanup timer.
+    // Game feel phase 4: runSpecialResolution now plays a windup beat before
+    // the handler (and so destroyCard) actually runs — see
+    // playUltimateSequence — so this waits past ULTIMATE_WINDUP_MS instead
+    // of checking immediately.
     state.board = Array(9).fill(null);
     const src = freshEntry(findCardById('vaelira'), 'blue');
     state.board[0] = src;
     state.board[1] = freshEntry(findCardById('ogre'), 'red');
     state.playerHand = []; state.enemyHand = [];
     runSpecialResolution(0, null);
-    out.ghostRecordedImmediately = state.destroyGhosts.length === 1 && state.destroyGhosts[0].index === 1;
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.ghostRecordedAfterResolve = state.destroyGhosts.length === 1 && state.destroyGhosts[0].index === 1;
 
     return out;
   })()`);
@@ -2231,13 +2248,13 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
   assert.equal(result.directionalBoostFlash, true);
   assert.equal(result.stealPowerFlashesBoth, true);
   assert.equal(result.blockedChangeDoesNotFlash, true, "a debuffImmune-blocked change doesn't show a misleading flash");
-  assert.equal(result.ghostRecordedImmediately, true, 'destroyCard() records a destroyGhosts entry for the shattered-card animation');
+  assert.equal(result.ghostRecordedAfterResolve, true, 'destroyCard() records a destroyGhosts entry for the shattered-card animation');
   assert.deepEqual(pageErrors, []);
   await page.close();
 
-  // Ghost cleanup happens on a real 1300ms timer — verified in a second,
-  // fresh page so the first page's assertions above aren't slowed down by
-  // waiting for it.
+  // Ghost cleanup happens on a real 1300ms timer AFTER the windup beat —
+  // verified in a second, fresh page so the first page's assertions above
+  // aren't slowed down by waiting for it.
   const { page: page2, pageErrors: pageErrors2 } = await newPage();
   const cleared = await page2.evaluate(async () => {
     function freshEntry(card, owner){ return { card, owner, shieldUsed:false, grantedShield:false, captureBonus:0 }; }
@@ -2247,10 +2264,10 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
     state.board[1] = freshEntry(findCardById('ogre'), 'red');
     state.playerHand = []; state.enemyHand = [];
     runSpecialResolution(0, null);
-    await new Promise(r => setTimeout(r, 1600));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 250));
     return state.destroyGhosts.length;
   });
-  assert.equal(cleared, 0, 'destroyGhosts is cleared by the existing 1300ms animation-cleanup timer');
+  assert.equal(cleared, 0, 'destroyGhosts is cleared by the existing windup+1300ms animation-cleanup timers');
   assert.deepEqual(pageErrors2, []);
   await page2.close();
 });
@@ -5316,6 +5333,97 @@ test('Game feel phase 3: chainShake triggers on a large Same/Combo chain, fxStep
   assert.equal(fxStepsClearedAfter1300, true, 'fxStep should be cleared by the existing 1300ms flag-clear cleanup');
 
   assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Game feel phase 4: Ultimates get a windup beat + name banner before resolving, then a scaled impact, then cleanup; overlapping casts queue instead of colliding', async () => {
+  const { page, pageErrors } = await newPage();
+
+  // Part A: a single cast's full lifecycle (cast -> impact -> cleanup).
+  const single = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('pallispell'), 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+
+    // Right after the call: windup phase, board NOT yet touched, wins
+    // already deducted (that part stays synchronous/immediate).
+    out.windsUpImmediately = state.ultimateBanner && state.ultimateBanner.phase === 'cast' && state.ultimateBanner.name === 'Hunter\\'s Wrath';
+    out.castingGlowOnSource = src.ultimateCasting === true;
+    out.winsDeductedImmediately = state.wins.blue === 3; // cost 2, 5-2=3
+    out.boardUntouchedDuringWindup = state.board[1].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.effectResolvedAfterWindup = state.board[1].owner === 'blue';
+    out.castingGlowClearedAfterWindup = src.ultimateCasting === false;
+    out.impactPhaseAfterWindup = state.ultimateBanner && state.ultimateBanner.phase === 'impact';
+
+    await new Promise(r => setTimeout(r, 1300 + 200));
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    return out;
+  })()`);
+  assert.equal(single.windsUpImmediately, true, 'the banner should appear in the cast phase immediately, showing the Ultimate name');
+  assert.equal(single.castingGlowOnSource, true, 'the casting card should get the ultimate-casting glow during windup');
+  assert.equal(single.winsDeductedImmediately, true, 'wins deduction stays immediate/synchronous, only the handler effect is deferred');
+  assert.equal(single.boardUntouchedDuringWindup, true, "the effect must NOT have resolved yet during the windup beat -- that's the whole point of the anticipation pause");
+  assert.equal(single.effectResolvedAfterWindup, true, 'the effect resolves once the windup beat elapses');
+  assert.equal(single.castingGlowClearedAfterWindup, true);
+  assert.equal(single.impactPhaseAfterWindup, true, 'the banner switches to its impact phase once the effect lands');
+  assert.equal(single.bannerGoneAfterCleanup, true, 'the banner is cleared by the existing windup+1300ms cleanup, same timing as fxStep/justFlipped');
+  assert.deepEqual(pageErrors, []);
+
+  // Part B: a second cast triggered WHILE the first is still mid-sequence
+  // (mirrors enemyTurn's `while(enemyTryUseSpecial()){}` loop, which can
+  // fire several casts in one synchronous burst) must queue behind the
+  // first, not overlap it -- one banner/effect at a time.
+  const queued = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.board = Array(9).fill(null);
+    const first = freshEntry(findCardById('pallispell'), 'blue');
+    state.board[0] = first;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    const second = freshEntry(findCardById('pallispell'), 'blue');
+    state.board[4] = second;
+    state.board[5] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 10, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+
+    runSpecialResolution(0, null, {}); // starts immediately
+    runSpecialResolution(4, null, {}); // called while the first is still mid-windup -- must queue
+
+    out.stillOnFirstCastRightAfter = state.ultimateBanner && state.ultimateBanner.sourceIndex === 0 && state.ultimateBanner.phase === 'cast';
+    out.secondNotResolvedYet = state.board[5].owner === 'red';
+
+    // First cast's full lifecycle: windup + impact-hold + fade + cleanup.
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 100));
+    out.firstResolved = state.board[1].owner === 'blue';
+    // The queued second cast should have started its OWN windup by now
+    // (immediately after the first's cleanup), not resolved yet.
+    out.secondNowWindingUp = state.ultimateBanner && state.ultimateBanner.sourceIndex === 4 && state.ultimateBanner.phase === 'cast';
+    out.secondStillNotResolved = state.board[5].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.secondResolvedAfterItsOwnWindup = state.board[5].owner === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(queued.stillOnFirstCastRightAfter, true, 'the banner right after both calls should still be the FIRST cast (sourceIndex 0)');
+  assert.equal(queued.secondNotResolvedYet, true, 'the second cast must not resolve while queued');
+  assert.equal(queued.firstResolved, true, 'the first cast resolves on its own normal schedule');
+  assert.equal(queued.secondNowWindingUp, true, 'the queued second cast starts its own windup right after the first fully cleans up');
+  assert.equal(queued.secondStillNotResolved, true, "the second cast's own effect hasn't run yet at that point either");
+  assert.equal(queued.secondResolvedAfterItsOwnWindup, true, 'the second cast eventually resolves too, after its own windup');
+  assert.deepEqual(pageErrors, []);
+
   await page.close();
 });
 
