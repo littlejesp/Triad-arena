@@ -2340,6 +2340,75 @@ array-av-par-mönster som `state.ultimateBanner.enemyIndices` redan
 etablerat, bara utanför banner-strukturen). Hela testsviten grön
 (100/100, +1 nytt test).
 
+**Fas 4o: desktop-layouten gjord ännu bredare/kortare (mitten-brädet
+för litet), plus en ny "Soul Stream"-ambient-lager inspirerad av Final
+Fantasy Lifestream/pyreflies-konst.** Två separata
+skärmfoto-/referensbild-drivna förfrågningar:
+
+- **"Jag vill ha mitten delen större"** (skärmfoto av en bred men inte
+  särskilt hög desktop-skärm, där brädet såg litet ut trots gott om
+  horisontellt utrymme). Roten: `.arena-frame` är HÖJD-bunden på ett
+  liggande fönster (`height:100%; width:auto`, se tidigare dokumenterad
+  upptäckt) — den växer redan till att fylla vad `.battle-row` har kvar
+  efter masthead/scoreboard/log/knappar, så fixen är inte att röra
+  `.arena-frame` alls utan att krympa DESS GRANNARS marginal/padding vid
+  `@media (min-width:900px)`-brytpunkten: `.wrap`-padding (22/30px →
+  14/16px), `.masthead`-marginal (20px → 8px), `.scoreboard`-padding/
+  marginal, `.wins-row`-marginal, `.log`-marginal, knapp-marginaler.
+  Mätt med en Playwright-`getBoundingClientRect()`-kontroll vid
+  1536×800: brädet växte från 408px till 462px höjd (+13%), utan att
+  röra någon typsnittsstorlek eller ta bort något UI-element — bara
+  åtstramad vitrymd.
+- **"Själarna ska vara mer som Final Fantasy X/VII Lifestream"** —
+  användaren skickade till slut två referensbilder (svävande
+  gröna ljuspartiklar + en virvlande/tvinnad grön ljustråds-konstverk)
+  efter att ha konstaterat att en tidigare beskrivning ("kolla hur
+  själarna rör sig") inte gick att förmedla via en obefintlig
+  YouTube-länk. Ett HELT NYTT ambient-lager, `.soul-stream`, tillagt
+  BREDVID (inte istället för) de befintliga uppåtflytande
+  `.stage-mote`/`.arena-mote`-prickarna — samma "aldrig
+  återuppfunnet, bara adderat"-mönster som varje tidigare
+  bakgrundsjustering i den här filen.
+  - **Genuint ny teknik för filen: inline SVG med `viewBox` istället
+    för CSS-keyframes på `<span>`-element.** Motiverat av att en äkta
+    böjd, tvinnad flödeslinje (till skillnad från prickar som bara rör
+    sig rakt upp) kräver en riktig kurva som skalar korrekt oavsett
+    containerns proportioner — `preserveAspectRatio="xMidYMid slice"`
+    håller kurvornas form oförvrängd (beskär istället för att sträcka)
+    oavsett om wrappern är en smal telefonskärm eller en bred desktop.
+  - **"Flödet" simuleras med en `stroke-dasharray`/`stroke-dashoffset`-
+    animation** (ett ljust segment som ändlöst vandrar längs en FAST
+    kurva) — samma knep som en klassisk laddningsspinner, ingen
+    JS-driven `d`-attribut-animation behövs. Hela rör-gruppen svajar
+    dessutom långsamt (`soulSwirl`, translate+rotate) så det läser som
+    organiskt virvlande, inte en stel tråd med ett ljus som springer
+    runt den.
+  - **ID-namnrymd per instans** (`soulGradA-stage`/`-arena` osv.) —
+    `.stage-ambient` (alltid i DOM:en, utanför `#app`) och
+    `.arena-ambient` (bara under strid, inuti `#app`) kan båda vara
+    närvarande SAMTIDIGT under en strid, och SVG-id:n måste vara unika
+    per dokument, så varje kopia av markupen suffixar sina gradient-/
+    filter-id:n för att undvika krockar.
+  - **Två iterationer på styrka**: första passet (opacitet 0.6,
+    gradient-mittstopp 0.55-0.6, blur 1) syntes knappt bredvid den
+    redan livliga arena-bakgrundsbilden. Andra passet (opacitet 0.9,
+    mittstopp 0.85-0.9, blur 0.7, tjockare `stroke-width`, en
+    `drop-shadow`-glöd på varje stjärna) gav den tydligt synliga,
+    "levande" känslan referensbilderna faktiskt visade — verifierat
+    visuellt via Playwright-skärmdumpar av både draft- och
+    strid-skärmarna före/efter justeringen.
+  - 12 tvinklande "stjärnor" (`<circle>`, varierad storlek/duration/
+    delay) plus 3 flödande ribbon-kurvor per instans (2 gröna nyanser,
+    olika hastighet/riktning) — ingen bokstavlig "hundratals
+    partiklar"-räkning, samma "modest, läsbart antal"-konvention som
+    varje tidigare "många små saker"-effekt i filen.
+
+Inget permanent automatiserat test tillagt för `.soul-stream` — samma
+konvention som `.stage-mote`/`.arena-mote` redan följer (rent kosmetiska
+ambient-lager täcks inte av testsviten, som uttryckligen bara testar
+motorlogik, inte UI-rendering). Verifierat manuellt istället. Hela
+testsviten grön (100/100, oförändrat testantal).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
