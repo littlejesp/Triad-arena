@@ -507,6 +507,57 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   50%{ opacity:0.9; }
   100%{ transform:translate(-50%,-50%) rotate(360deg); opacity:0.6; }
 }
+/* Same one-off-identity-VFX pattern as the others above, this time for
+   Seraphine's Silver Judgment (see the user's Silver Judgment VFX
+   request) — warm gold/white instead of crimson/void/lava, and a
+   ONE-SHOT smooth build (not a pulse or an escalating rumble like
+   Hellfire's) since the brief explicitly asks for "helig, vacker,
+   kraftfull och elegant, inte explosiv" — a steady reveal reads calmer
+   than an oscillating or jittery buildup. Two rings instead of one (a
+   larger outer ring fading in via opacity/scale, plus an inner rotating
+   dashed sigil) for "ett stort cirkulärt heligt ljus/sigill" — still
+   INSET within the card (.card's own overflow:hidden), same constraint
+   as every other in-card ring effect in this file. */
+.card.silver-judgment-casting{
+  animation: silverJudgmentCardAura 0.95s ease-out forwards;
+  z-index:6;
+}
+@keyframes silverJudgmentCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(224,192,96,0.5), 0 0 14px rgba(224,192,96,0.4), inset 0 0 10px rgba(255,250,230,0.3);
+    filter:brightness(1) saturate(1.05);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(255,236,170,0.95), 0 0 46px rgba(255,220,140,0.85), inset 0 0 30px rgba(255,255,240,0.6);
+    filter:brightness(1.2) saturate(1.15);
+  }
+}
+.card.silver-judgment-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:92%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(0.5); border-radius:50%;
+  border:1.5px solid rgba(255,236,170,0.55);
+  box-shadow:0 0 22px rgba(255,220,140,0.4) inset;
+  opacity:0;
+  animation: silverJudgmentOuterRing 0.95s ease-out forwards;
+}
+@keyframes silverJudgmentOuterRing{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.5); }
+  100%{ opacity:0.85; transform:translate(-50%,-50%) scale(1); }
+}
+.card.silver-judgment-casting::after{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:60%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg); border-radius:50%;
+  border:2px dashed rgba(255,246,210,0.85);
+  box-shadow:0 0 14px rgba(255,220,140,0.5) inset;
+  animation: silverJudgmentSigilSpin 4s linear infinite;
+}
+@keyframes silverJudgmentSigilSpin{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.55; }
+  50%{ opacity:0.85; }
+  100%{ transform:translate(-50%,-50%) rotate(-360deg); opacity:0.55; }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -1082,6 +1133,107 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   0%{ opacity:0; transform:scale(0.3); }
   35%{ opacity:1; transform:scale(1.6); }
   100%{ opacity:0; transform:scale(2.2); }
+}
+
+/* Seraphine's Silver Judgment — a fourth one-off identity VFX (see the
+   user's Silver Judgment VFX request), gold/white. Same .board-matching
+   wrapper as the others, but the "flera smala gyllene ljusstrålar skjuter
+   ut... mot fiendekorten" requirement needed a genuinely new technique:
+   an actual directional BEAM from her cell to each enemy cell, not a
+   radial ring/wave like Void Dominion/Infernal Pact/Hellfire's blast.
+   Each .silver-judgment-beam is positioned+rotated to point at its target
+   (angle/length computed in renderBattle() -- see angleAndLengthPercent()
+   -- since the wrapper's aspect-ratio is 5/7, not square, percentage
+   deltas have to be normalized by that ratio before atan2, or the beams
+   would visually point the wrong way). Rotation is a STATIC inline style
+   on the outer element; the inner .silver-judgment-beam-inner handles the
+   "shoot out" scaleX animation, because one element can't have both an
+   inline transform and an independently-animated transform without one
+   clobbering the other. */
+.silver-judgment-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.silver-judgment-beam{
+  position:absolute; height:0; transform-origin:0 50%; pointer-events:none;
+}
+.silver-judgment-beam-inner{
+  position:absolute; left:0; top:-1px; width:100%; height:2px;
+  background:linear-gradient(90deg, rgba(255,250,230,0.95), rgba(255,220,140,0.08));
+  box-shadow:0 0 8px 2px rgba(255,230,160,0.7);
+  transform-origin:0 50%; transform:scaleX(0); opacity:0;
+}
+.silver-judgment-fx.phase-impact .silver-judgment-beam-inner{ animation: silverJudgmentBeamShoot 0.35s ease-out both; }
+@keyframes silverJudgmentBeamShoot{
+  0%{ opacity:0; transform:scaleX(0); }
+  20%{ opacity:1; }
+  100%{ opacity:0.75; transform:scaleX(1); }
+}
+/* A small glitter riding each beam out to its target ("små glittrande
+   ljuspartiklar som följer strålarna") -- a child of the beam, so it
+   travels the exact same rotated line for free, no separate angle math. */
+.silver-judgment-sparkle{
+  position:absolute; top:-2px; left:0; width:4px; height:4px; border-radius:50%;
+  background:#fff8e0; box-shadow:0 0 7px 2px rgba(255,230,160,0.9);
+  opacity:0;
+}
+.silver-judgment-fx.phase-impact .silver-judgment-sparkle{ animation: silverJudgmentSparkleTravel 0.4s ease-out both; }
+@keyframes silverJudgmentSparkleTravel{
+  0%{ opacity:0; left:0; }
+  15%{ opacity:1; }
+  100%{ opacity:0; left:100%; }
+}
+/* Lands right as its beam arrives (~0.3s) -- "varje fiendekort träffas
+   tydligt av en kort ljus-impact, som en gudomlig attack". Positioned via
+   inline style per cell, same reasoning as infernal-pact-hit (variable
+   enemy count, not a fixed one like Hellfire's single target). */
+.silver-judgment-hit{
+  position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,250,230,0.95) 0%, rgba(255,220,140,0.6) 50%, transparent 78%);
+  opacity:0;
+}
+.silver-judgment-fx.phase-impact .silver-judgment-hit{ animation: silverJudgmentHit 0.5s ease-out both; }
+@keyframes silverJudgmentHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  35%{ opacity:1; transform:scale(1.5); }
+  100%{ opacity:0; transform:scale(2); }
+}
+/* "När alla mål träffats kommer en kort, kraftfull våg" -- delayed until
+   after the beams/hits have landed (0.55s), same expanding-ring technique
+   as void-crack/hellfire-blast/infernal-pact-wave, gold/white here. */
+.silver-judgment-wave{
+  position:absolute; left:var(--sj-x,50%); top:var(--sj-y,50%);
+  width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%;
+  border:2px solid rgba(255,246,210,0.95);
+  box-shadow:0 0 30px 10px rgba(255,225,150,0.6), inset 0 0 18px rgba(255,255,240,0.7);
+  opacity:0;
+}
+.silver-judgment-fx.phase-impact .silver-judgment-wave{ animation: silverJudgmentWaveExpand 0.6s cubic-bezier(.15,.8,.3,1) 0.55s both; }
+@keyframes silverJudgmentWaveExpand{
+  0%{ opacity:0.9; transform:scale(0.4); }
+  60%{ opacity:0.45; transform:scale(9); }
+  100%{ opacity:0; transform:scale(13); }
+}
+/* The "flash" half of "kort screen shake/flash vid den slutliga impacten,
+   men betydligt mjukare än Ifrit" -- Seraphine gets no pre-impact rumble
+   (unlike Hellfire) and this is a soft full-frame wash, not a hard pulse,
+   so the combined effect reads noticeably gentler even though it reuses
+   the exact same chain-shake amplitude/duration as every other card (see
+   the shared .arena-frame.chain-shake keyframe -- deliberately not
+   forked or softened per-card, which would mean touching a mechanism
+   every other Ultimate already relies on). A sibling of .board, not a
+   child of .silver-judgment-fx, since it needs to wash over the WHOLE
+   arena-frame rather than just the board-sized wrapper. */
+.silver-judgment-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,255,245,0.5) 0%, rgba(255,255,245,0) 68%);
+  opacity:0;
+}
+.silver-judgment-flash.phase-impact{ animation: silverJudgmentFlash 0.5s ease-out 0.5s both; }
+@keyframes silverJudgmentFlash{
+  0%{ opacity:0; }
+  30%{ opacity:1; }
+  100%{ opacity:0; }
 }
 
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
@@ -3049,6 +3201,9 @@ function cardFace(card, opts={}){
   // Vaelira's Infernal Pact identity VFX (see the infernal-pact-* CSS
   // block) — same additive pattern as void-dominion-casting above.
   const infernalPactCastingClass = (opts.ultimateCasting && card.id === 'vaelira') ? 'infernal-pact-casting' : '';
+  // Seraphine's Silver Judgment identity VFX (see the silver-judgment-*
+  // CSS block) — same additive pattern as void-dominion-casting above.
+  const silverJudgmentCastingClass = (opts.ultimateCasting && card.id === 'seraphine') ? 'silver-judgment-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -3059,7 +3214,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -3341,6 +3496,31 @@ function renderBattle(){
     }));
   }
 
+  // Seraphine's Silver Judgment identity VFX -- same enemyIndices-based
+  // derivation as Infernal Pact above, but her beams also need an ANGLE
+  // and LENGTH toward each enemy (not just a position), since a beam is a
+  // directional line rather than a radial ring/wave. --pact-x/y-style
+  // percentages can't feed atan2 directly: the wrapper's aspect-ratio is
+  // 5/7 (not square), so 1% of width and 1% of height are different
+  // numbers of real pixels -- normalize the vertical delta by that ratio
+  // first, or every beam would point at the wrong angle.
+  const silverJudgmentActive = state.ultimateBanner && state.ultimateBanner.name === 'Silver Judgment';
+  let silverJudgmentOriginX = 50, silverJudgmentOriginY = 50, silverJudgmentBeams = [];
+  if(silverJudgmentActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    silverJudgmentOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    silverJudgmentOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    silverJudgmentBeams = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
+      const targetX = ((i % 3) + 0.5) / 3 * 100;
+      const targetY = (Math.floor(i / 3) + 0.5) / 3 * 100;
+      const dxUnits = (targetX - silverJudgmentOriginX) / 100;
+      const dyUnits = (targetY - silverJudgmentOriginY) / 100 * (7/5);
+      const angleDeg = Math.atan2(dyUnits, dxUnits) * (180/Math.PI);
+      const lengthPercent = Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100;
+      return { targetX, targetY, angleDeg, lengthPercent, beamDelay: n * 0.03, hitDelay: 0.3 + n * 0.04 };
+    });
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -3463,6 +3643,19 @@ function renderBattle(){
           <div class="infernal-pact-particle infernal-pact-particle-7"></div>
           ${infernalPactHitPositions.map(p => `<div class="infernal-pact-hit" style="left:${p.x}%; top:${p.y}%; animation-delay:${p.delay}s;"></div>`).join('')}
         </div>
+      ` : ''}
+      ${silverJudgmentActive ? `
+        <div class="silver-judgment-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--sj-x:${silverJudgmentOriginX}%; --sj-y:${silverJudgmentOriginY}%;">
+          ${silverJudgmentBeams.map(b => `
+            <div class="silver-judgment-beam" style="left:${silverJudgmentOriginX}%; top:${silverJudgmentOriginY}%; width:${b.lengthPercent}%; transform:rotate(${b.angleDeg}deg);">
+              <div class="silver-judgment-beam-inner" style="animation-delay:${b.beamDelay}s;"></div>
+              <div class="silver-judgment-sparkle" style="animation-delay:${b.beamDelay}s;"></div>
+            </div>
+          `).join('')}
+          ${silverJudgmentBeams.map(b => `<div class="silver-judgment-hit" style="left:${b.targetX}%; top:${b.targetY}%; animation-delay:${b.hitDelay}s;"></div>`).join('')}
+          <div class="silver-judgment-wave"></div>
+        </div>
+        <div class="silver-judgment-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
@@ -6961,6 +7154,7 @@ const ULTIMATE_IMPACT_SFX = {
   ifrit: 'sfx/ifrit.mp3',
   nyxara: 'sfx/nyxara.mp3',
   vaelira: 'sfx/vaelira.mp3',
+  seraphine: 'sfx/seraphine.mp3',
 };
 function playUltimateImpactSfx(cardId){
   if(!soundOn) return;
@@ -6999,16 +7193,18 @@ function playUltimateSequence(job){
   const { srcEntry, sourceIndex, targetIndex, extra, owner, special, handler } = job;
   const token = ++ultimateBannerToken;
 
-  // Vaelira's Infernal Pact VFX needs to know which cells were enemies AT
-  // CAST TIME: her special (like Nyxara's) destroys via destroyCard, so by
-  // the time the impact-phase render happens those board slots are already
-  // null and can't be re-queried for "which cells to flash". Captured once
-  // here, carried through this closure into the impact-phase banner below.
+  // AOE identity-VFX cards (Vaelira's Infernal Pact, Seraphine's Silver
+  // Judgment) need to know which cells were enemies AT CAST TIME: both
+  // destroy/strip via destroyCard (like Nyxara's), so by the time the
+  // impact-phase render happens those board slots are already null and
+  // can't be re-queried for "which cells to flash". Captured once here,
+  // carried through this closure into the impact-phase banner below.
   // Presentation only, never read by gameplay logic, and only computed for
-  // this one card's Ultimate (not a general capability every AOE gets).
-  let infernalPactEnemyIndices = null;
-  if(special.name === 'Infernal Pact'){
-    infernalPactEnemyIndices = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
+  // these specific cards' Ultimates (not a general capability every AOE
+  // gets).
+  let aoeEnemyIndicesAtCast = null;
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment'){
+    aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
   }
 
   // Phase 1: windup. Board state untouched — this is purely "something big
@@ -7016,7 +7212,7 @@ function playUltimateSequence(job){
   // targetIndex is carried on the banner purely for presentation (e.g.
   // Ifrit's Hellfire VFX needs to know WHICH cell to hit, unlike Nyxara's
   // AOE Void Dominion) -- never read by any gameplay logic.
-  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: infernalPactEnemyIndices };
+  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast };
   srcEntry.ultimateCasting = true;
   SFX.select();
   playUltimateVoiceLine(srcEntry.card.id);
@@ -7053,13 +7249,14 @@ function playUltimateSequence(job){
     // Ifrit's Hellfire is single-target, so capturedCount is realistically
     // never >= 3 either — same explicit opt-in as Void Dominion above, for
     // the same reason (her one-off VFX test's screen-shake request).
-    // Vaelira's Infernal Pact is the same destroy-based shape as Void
-    // Dominion (destroyCard, never justFlipped) — same opt-in, same reason.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact') state.chainShake = true;
+    // Vaelira's Infernal Pact and Seraphine's Silver Judgment are the same
+    // destroy-based shape as Void Dominion (destroyCard, never
+    // justFlipped) — same opt-in, same reason.
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.
-    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: infernalPactEnemyIndices };
+    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast };
     SFX.bonus();
     playUltimateImpactSfx(srcEntry.card.id);
     render();

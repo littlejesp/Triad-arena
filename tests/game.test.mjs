@@ -5588,7 +5588,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   await page.close();
 });
 
-test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion and Vaelira\'s Infernal Pact also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact and Seraphine\'s Silver Judgment also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5614,7 +5614,11 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion and Vaelira
     out.vaeliraCall = playCalls.slice();
 
     playCalls.length = 0;
-    playUltimateImpactSfx('seraphine'); // no impact-SFX entry for this card
+    playUltimateImpactSfx('seraphine');
+    out.seraphineCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateImpactSfx('triunedesire'); // no impact-SFX entry for this card
     out.noEntryCall = playCalls.slice();
 
     playCalls.length = 0;
@@ -5629,6 +5633,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion and Vaelira
   assert.deepEqual(result.ifritCall, ['sfx/ifrit.mp3'], "Ifrit's Ultimate impact should play his impact SFX file");
   assert.deepEqual(result.nyxaraCall, ['sfx/nyxara.mp3'], "Nyxara's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.vaeliraCall, ['sfx/vaelira.mp3'], "Vaelira's Ultimate impact should play her impact SFX file");
+  assert.deepEqual(result.seraphineCall, ['sfx/seraphine.mp3'], "Seraphine's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -5688,6 +5693,21 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion and Vaelira
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     out.vaeliraAtImpact = playCalls.slice();
 
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('seraphine'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.seraphineDuringWindup = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.seraphineAtImpact = playCalls.slice();
+
     window.Audio = OrigAudio;
     return out;
   })()`);
@@ -5697,6 +5717,8 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion and Vaelira
   assert.deepEqual(viaCast.nyxaraAtImpact, ['voices/nyxara.mp3', 'sfx/nyxara.mp3'], 'the AOE impact SFX joins once its own windup beat elapses');
   assert.deepEqual(viaCast.vaeliraDuringWindup, ['voices/vaelira.mp3'], 'same timing split for Vaelira\'s AOE cast flow');
   assert.deepEqual(viaCast.vaeliraAtImpact, ['voices/vaelira.mp3', 'sfx/vaelira.mp3'], 'Vaelira\'s impact SFX joins once its own windup beat elapses');
+  assert.deepEqual(viaCast.seraphineDuringWindup, ['voices/seraphine.mp3'], 'same timing split for Seraphine\'s AOE cast flow');
+  assert.deepEqual(viaCast.seraphineAtImpact, ['voices/seraphine.mp3', 'sfx/seraphine.mp3'], 'Seraphine\'s impact SFX joins once its own windup beat elapses');
   assert.deepEqual(pageErrors, []);
 
   await page.close();
@@ -5978,6 +6000,112 @@ test('Vaelira Infernal Pact identity VFX (one-off test): card aura/sigil/wave/pe
   assert.equal(result.chainShakeClearedAfterCleanup, true);
   assert.equal(result.bannerGoneAfterCleanup, true);
   assert.equal(result.noPactVfxForNyxara, true, "this identity VFX must stay scoped to Vaelira's Infernal Pact specifically, not leak onto other destroy-based AOE Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
+test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/sparkles/per-enemy hits/wave/flash ride the existing cast->impact->cleanup lifecycle, beam angles point at the correct cells, chainShake fires despite destroy never setting justFlipped, synced with her impact SFX, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the silver-judgment-* markup
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('seraphine'), 'blue');
+    state.board[4] = src; // center cell -> --sj-x/--sj-y should be ~50%/50%
+    state.board[0] = freshEntry(findCardById('ogre'), 'red'); // top-left
+    state.board[7] = freshEntry(findCardById('ogre'), 'red'); // bottom-middle, straight down from center
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + fx wrapper (with one beam per enemy) all
+    // present, origin matches Seraphine's actual cell, board untouched.
+    out.cardHasAura = document.querySelector('.card.silver-judgment-casting') !== null;
+    const fx = document.querySelector('.silver-judgment-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--sj-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--sj-y')) - 50) < 0.1;
+    out.beamCount = document.querySelectorAll('.silver-judgment-beam').length;
+    // The bottom-middle enemy (cell 7) is straight down from the center
+    // (cell 4) -- same X, so its beam should point at exactly 90deg. This
+    // catches a sign/axis error in the atan2 math that a mere "does an
+    // element exist" check would miss.
+    const beams = [...document.querySelectorAll('.silver-judgment-beam')];
+    out.oneBeamPointsStraightDown = beams.some(b => b.style.transform.includes('90deg') && !b.style.transform.includes('-90deg'));
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: hit count matches the enemy count, wave and flash both
+    // appear, both enemies destroyed, chainShake fires despite a
+    // destroy-based AOE never setting justFlipped, and the impact SFX
+    // fires in the same beat -- the brief's "synka med ljudet" requirement.
+    const fx2 = document.querySelector('.silver-judgment-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.silver-judgment-hit').length === 2;
+    out.wavePresent = document.querySelector('.silver-judgment-wave') !== null;
+    out.flashPresent = document.querySelector('.silver-judgment-flash.phase-impact') !== null;
+    out.effectLanded = state.board[0] === null && state.board[7] === null;
+    out.chainShakeFiredDespiteDestroy = state.chainShake === true;
+    out.impactSfxSyncedWithVfx = playCalls.includes('sfx/seraphine.mp3');
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.silver-judgment-fx') === null;
+    out.flashGoneAfterCleanup = document.querySelector('.silver-judgment-flash') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.silver-judgment-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different destroy-based AOE Ultimate (Vaelira) must get NONE of
+    // this -- scoped strictly to Seraphine's card id + her exact Ultimate
+    // name, not "any destroy-AOE".
+    state.board = Array(9).fill(null);
+    const vaeliraSrc = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[4] = vaeliraSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.noSilverJudgmentVfxForVaelira = document.querySelector('.silver-judgment-fx') === null
+      && document.querySelector('.silver-judgment-flash') === null
+      && document.querySelector('.card.silver-judgment-casting') === null;
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.equal(result.cardHasAura, true, "Seraphine's own card should get the silver-judgment-casting class (and its rings) during her windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the beam/sparkle wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Seraphine's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.beamCount, 2, 'one beam per enemy actually present at cast time');
+  assert.equal(result.oneBeamPointsStraightDown, true, 'the beam toward the straight-down enemy (same X as Seraphine) should compute exactly 90deg -- catches an axis/sign error in the angle math');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one hit-flash per enemy actually present at cast time, not a fixed count');
+  assert.equal(result.wavePresent, true, 'the final board-wide wave should appear at impact');
+  assert.equal(result.flashPresent, true, 'the soft full-frame flash should appear at impact');
+  assert.equal(result.effectLanded, true, 'Silver Judgment destroys both enemy cards once the windup elapses');
+  assert.equal(result.chainShakeFiredDespiteDestroy, true, 'chainShake must fire for Silver Judgment even though destroy-based AOE never sets justFlipped (capturedCount stays 0)');
+  assert.equal(result.impactSfxSyncedWithVfx, true, "the impact SFX (sfx/seraphine.mp3) must fire in the SAME beat as the visual impact, per the brief's sync requirement");
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.flashGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noSilverJudgmentVfxForVaelira, true, "this identity VFX must stay scoped to Seraphine's Silver Judgment specifically, not leak onto other destroy-based AOE Ultimates");
   assert.deepEqual(pageErrors, []);
 
   await page.close();

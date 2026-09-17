@@ -1833,6 +1833,93 @@ crimson auran/sigillet under cast, och båda "Destroyed!"-overlayen
 plus den expanderande crimson-vågen vid impact. Hela testsviten grön
 (95/95, +1 nytt test).
 
+**Uppdatering, samma session: fjärde impact-SFX:et, för Seraphine
+(Silver Judgment).** Användaren laddade upp en fjärde egen ljudeffekt
+("Divine celestial magic", ~2s) med "Här kommer Seraphine ljud i
+ultimate". Filen kopierad in som `sfx/seraphine.mp3`. Fjärde raden i
+`ULTIMATE_IMPACT_SFX` (`seraphine: 'sfx/seraphine.mp3'`) — samma
+ramverk, ingen ny kod. Fas 4d-testet utökat igen: mapping-kontrollen
+fick en fjärde rad, "no entry"-kontrollen bytt från Seraphine (som nu
+har en post) till Triune Desire, och real-cast-vägs-verifieringen
+utökad med ett fjärde AOE-steg. Verifierat manuellt med samma
+UI-klick-sekvens — bekräftade `window.Audio`-anrop med
+`sfx/seraphine.mp3` exakt vid impact-fasen, och att fiendekortet
+förstördes (matchar hennes redan ombyggda destroy-all-mekanik). Hela
+testsviten grön (95/95, samma antal — befintligt testfall utökat).
+
+**Fas 4h: Seraphine fick samma sorts "element-identitet"-VFX för Silver
+Judgment, fjärde engångstestet i raden.** Gyllene/vitt "helig" tema.
+Kravlistan skilde sig från de tidigare tre på ett par viktiga sätt:
+"flera smala gyllene ljusstrålar... mot fiendekorten" krävde en
+genuint NY teknik (en riktig riktad linje/stråle mot varje fiende, inte
+en radiell ring/våg som Void Dominion/Infernal Pact/Hellfires blast),
+och kravet på "betydligt mjukare [skakning] än Ifrit" + "elegant, inte
+explosiv" formade flera designval:
+
+- **Kortets aura + dubbla ringar** — ny `.card.silver-judgment-casting`,
+  varm gyllene/vit, EN JÄMN uppbyggnad (inte Hellfires eskalerande
+  ramp eller Infernal Pacts pulsering — bara en stadig gradvis
+  ljusstyrka, matchar "elegant, inte explosiv"). Två `::before`/
+  `::after`-ringar istället för en (en större yttre ring som tonar in
+  + en mindre roterande streckad sigill-ring inuti) för "stort
+  cirkulärt heligt ljus/sigill".
+- **Riktade ljusstrålar (ny teknik)** — varje `.silver-judgment-beam`
+  är en faktisk linje från Seraphines cell till en specifik
+  fiende-cell, inte en punkt/ring. Vinkel och längd beräknas i
+  `renderBattle()` med `Math.atan2` — men eftersom `.board`s
+  proportioner är 5:7 (inte kvadratiska) normaliserades den vertikala
+  deltan med den kvoten (×7/5) INNAN atan2, annars hade strålarna
+  pekat fel håll (kvadratisk-koordinat-antagande på en icke-kvadratisk
+  yta). Rotationen sätts som en STATISK inline-`transform` på det
+  yttre elementet; ett barn-element (`.silver-judgment-beam-inner`)
+  sköter den ANIMERADE "skjut ut"-`scaleX`-övergången, eftersom ett
+  element inte kan ha både en inline-transform OCH en oberoende
+  CSS-animerad transform samtidigt utan att den ena vinner helt.
+- **Glittrande partiklar som följer strålarna** — `.silver-judgment-
+  sparkle`, ett barn av varje stråle, ärver samma rotation/längd
+  gratis och animerar bara sin egen `left`-position 0%→100% längs
+  strålens redan roterade koordinatsystem — ingen separat vinkel-
+  beräkning behövdes för partiklarna.
+- **Per-fiende ljus-impact + slutlig våg** — samma `enemyIndices`-
+  infrastruktur som Infernal Pact (utökad till att beräknas även för
+  `special.name === 'Silver Judgment'`, samma villkor, samma
+  variabelnamn bytt till det mer generella `aoeEnemyIndicesAtCast`
+  eftersom det nu delas av två kort). Träffarna timas till att landa
+  precis när strålen "anländer" (~0.3s), och EN gemensam våg
+  (`.silver-judgment-wave`) triggas EFTER alla träffar (0.55s
+  fördröjning) för "när alla mål träffats kommer en kort kraftfull
+  våg".
+- **Mjukare screen shake/flash** — återanvänder EXAKT samma delade
+  `chainShake`-mekanism/amplitud som alla andra kort (medvetet INTE
+  forkad eller mjukad per kort — det hade krävt att röra en mekanism
+  alla andra Ultimates redan litar på), men Seraphine får INGEN
+  förhands-rumble (till skillnad från Hellfire) och en ny mjuk
+  helframe-`.silver-judgment-flash` (radial vit glöd, låg opacitet,
+  kort) istället för en hård puls — kombinationen läses märkbart
+  mjukare även om själva skakningen tekniskt är identisk med de andra
+  kortens.
+- **Synk med ljudet** — samma gratis-synk som Infernal Pact:
+  `playUltimateImpactSfx()` och VFX-en körs i samma synkrona kodblock
+  i impact-fasen.
+
+**Verifiering:** ett nytt permanent test (96 totalt) bekräftar hela
+livscykeln med tre fiender i olika riktningar från Seraphine
+(topp-vänster, topp-höger, rakt nedanför) specifikt för att testa
+vinkelmatematiken — en fiende rakt nedanför (samma X-koordinat som
+Seraphine) MÅSTE ge exakt 90 grader, vilket fångar ett tecken/axel-fel
+i atan2-beräkningen som ett enkelt "finns elementet"-test hade missat.
+Bekräftar även: kortets aura+ringar under cast, stråle-antal matchar
+fiende-antal, brädet orört under väntetiden, träff-antal matchar vid
+impact, vågen och flashen båda syns, alla fiender förstörda,
+`chainShake` triggat trots destroy-baserad AOE, och `sfx/seraphine.mp3`
+bekräftat spelad i SAMMA kontroll som VFX-elementen. Ett sista kontroll
+bekräftar att Vaeliras Infernal Pact (samma destroy-AOE-form) INTE får
+någon Silver-Judgment-specifik markup. Verifierat även manuellt med en
+riktig UI-klick-sekvens (tre fiender samtidigt) och skärmdumpar i tre
+lägen — bekräftade den gyllene auran under cast, de synliga strålarna
+mitt i impact, och de mjuka gyllene träff-glödarna vid den slutliga
+vågen. Hela testsviten grön (96/96, +1 nytt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
