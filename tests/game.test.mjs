@@ -5427,7 +5427,7 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
-test('Game feel phase 4c: Ifrit and Nyxara\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c: Ifrit, Nyxara and Vaelira\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5449,6 +5449,10 @@ test('Game feel phase 4c: Ifrit and Nyxara\'s Ultimates play their real voice-li
     out.nyxaraCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateVoiceLine('vaelira');
+    out.vaeliraCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateVoiceLine('pallispell'); // no voice line entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5463,6 +5467,7 @@ test('Game feel phase 4c: Ifrit and Nyxara\'s Ultimates play their real voice-li
   })()`);
   assert.deepEqual(result.ifritCall, ['voices/ifrit.mp3'], "Ifrit's Ultimate cast should play his voice-line file");
   assert.deepEqual(result.nyxaraCall, ['voices/nyxara.mp3'], "Nyxara's Ultimate cast should play her voice-line file");
+  assert.deepEqual(result.vaeliraCall, ['voices/vaelira.mp3'], "Vaelira's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
   assert.deepEqual(pageErrors, []);

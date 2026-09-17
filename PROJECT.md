@@ -1421,6 +1421,21 @@ att fiendekortet faktiskt förstördes (Nyxaras AOE förstör, fångar
 inte). Hela testsviten grön (91/91, fortfarande samma antal — samma
 test utökat, inget nytt test tillagt).
 
+**Uppdatering, samma session: samma sak för Vaelira.** Tredje
+ElevenLabs-filen ("Lägg till Vaelira"), matchande hennes Ultimate-namn
+("Infernal Pact", också AOE precis som Nyxaras). Filen kopierad in som
+`voices/vaelira.mp3` (38799 bytes). Igen bara en ny rad i
+`ULTIMATE_VOICE_LINES` (`vaelira: 'voices/vaelira.mp3'`) — ramverket
+bär hela vikten. Isolerade hjälpfunktions-testet utökat med Vaelira
+(samma mönster som Ifrit/Nyxara); ingen separat cast-vägs-verifiering
+tillagd för henne i testsviten eftersom hennes AOE-flöde är mekaniskt
+identiskt med Nyxaras redan täckta `targets:'aoe'`-väg — hade bara
+dubblerat samma assertion. Verifierat manuellt med en riktig
+UI-klick-sekvens precis som Nyxara (enda klicket aktiverar och löser
+ut AOE:n direkt) — bekräftade `window.Audio`-anrop med
+`voices/vaelira.mp3`, banderoll "Infernal Pact", och att
+fiendekortet förstördes. Hela testsviten grön (91/91).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
