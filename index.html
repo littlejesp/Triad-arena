@@ -669,6 +669,54 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   82%{ transform:translate(-50%,-50%) rotate(-420deg); opacity:1; }
   100%{ transform:translate(-50%,-50%) rotate(-780deg); opacity:1; }
 }
+/* Same one-off-identity-VFX pattern as the others above, this time for
+   Bahamut's Megaflare (see the user's Megaflare VFX request) — blue/
+   white/gold astral light, meant to read as "gudomlig, majestätisk och
+   enorm, inte som en vanlig laser". A single steady outer ring (cosmic
+   energy gathering, constant slow spin like Infernal Pact's sigil, not
+   an accelerating storm like Diamond Storm's) plus a bright inner core
+   that swells (energy concentrating heavily in front of him before the
+   beam fires) rather than a second ring, since the brief describes
+   ENERGY BUILDING UP, not more orbiting shapes. */
+.card.megaflare-casting{
+  animation: megaflareCardAura 0.95s ease-in forwards;
+  z-index:6;
+}
+@keyframes megaflareCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(110,168,242,0.5), 0 0 14px rgba(110,168,242,0.4), inset 0 0 10px rgba(240,225,180,0.25);
+    filter:brightness(1) saturate(1.05);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(255,250,235,0.95), 0 0 55px rgba(130,180,255,0.9), inset 0 0 34px rgba(255,235,180,0.65);
+    filter:brightness(1.3) saturate(1.15);
+  }
+}
+.card.megaflare-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:90%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg); border-radius:50%;
+  border:2px dashed rgba(240,225,180,0.8);
+  box-shadow:0 0 18px rgba(110,168,242,0.5) inset;
+  animation: megaflareRingSpin 3.5s linear infinite;
+}
+@keyframes megaflareRingSpin{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.6; }
+  50%{ opacity:0.9; }
+  100%{ transform:translate(-50%,-50%) rotate(360deg); opacity:0.6; }
+}
+.card.megaflare-casting::after{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:20%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(0.6); border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(130,180,255,0.7) 55%, transparent 78%);
+  opacity:0;
+  animation: megaflareCoreSwell 0.95s ease-in forwards;
+}
+@keyframes megaflareCoreSwell{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.4); }
+  100%{ opacity:1; transform:translate(-50%,-50%) scale(1.5); }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -1584,6 +1632,134 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 @keyframes diamondStormFlash{
   0%{ opacity:0; }
   30%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
+/* Bahamut's Megaflare — a seventh one-off identity VFX (see the user's
+   Megaflare VFX request), blue/white/gold astral light. Same
+   .board-matching wrapper as the others, but the brief's "en enorm
+   energistråle som skjuts över hela brädet, strålen sveper igenom
+   fiendekorten" (a huge beam shot across the whole board, the beam
+   SWEEPING through enemy cards) describes something none of the earlier
+   directional beams do: it isn't aimed at any one target (Silver
+   Judgment/this-card-doesn't-have-one) or one fixed origin point (Omega
+   Protocol's single blast) -- it needs to visually cover the ENTIRE
+   board width regardless of how many enemies there are or where they
+   sit. Solved with a full-width bar whose `transform-origin` is pinned to
+   Bahamut's own column (`${originX}% 50%`) and which scales out from
+   scaleX(0) to scaleX(1) -- since the bar's un-scaled box already spans
+   100% of the wrapper, growing from that pinned origin point reads as
+   the sweep visibly emanating from him and washing outward in both
+   directions until it covers every column, no per-enemy angle math
+   needed for the beam itself (unlike Silver Judgment/Diamond Storm's
+   rails, which each need their own angle). */
+.megaflare-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+/* "Energi koncentreras kraftigt framför Bahamut när han laddar" -- a
+   bright core swelling at his own cell during the CAST phase, before the
+   sweep fires at impact. */
+.megaflare-charge{
+  position:absolute; left:var(--mf-x,50%); top:var(--mf-y,50%);
+  width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(130,180,255,0.75) 55%, transparent 78%);
+  opacity:0;
+}
+.megaflare-fx.phase-cast .megaflare-charge{ animation: megaflareChargeSwell 0.9s ease-in both; }
+@keyframes megaflareChargeSwell{
+  0%{ opacity:0; transform:scale(0.3); }
+  100%{ opacity:1; transform:scale(2.4); }
+}
+.megaflare-sweep{
+  position:absolute; left:0; top:6%; width:100%; height:88%;
+  background:linear-gradient(90deg,
+    transparent, rgba(255,255,255,0.85) 42%, rgba(130,180,255,0.95) 50%,
+    rgba(240,225,180,0.85) 58%, transparent);
+  box-shadow:0 0 40px 14px rgba(130,180,255,0.55);
+  transform:scaleX(0);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-sweep{ animation: megaflareSweepExpand 0.55s cubic-bezier(.1,.85,.25,1) both; }
+@keyframes megaflareSweepExpand{
+  0%{ opacity:0; transform:scaleX(0); }
+  20%{ opacity:1; }
+  65%{ opacity:0.85; transform:scaleX(1); }
+  100%{ opacity:0; transform:scaleX(1); }
+}
+/* One impact per enemy actually present at cast time, same variable-
+   count/inline-position technique as every other AOE card's *-hit
+   elements -- delayed roughly by how far each enemy sits from Bahamut's
+   column, so they read as being caught in sequence as the sweep passes
+   through them rather than all flashing at once (computed in
+   renderBattle(), see megaflareHits). */
+.megaflare-hit{
+  position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(130,180,255,0.8) 45%, rgba(240,225,180,0.5) 70%, transparent 82%);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-hit{ animation: megaflareHit 0.55s ease-out both; }
+@keyframes megaflareHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  30%{ opacity:1; transform:scale(1.7); }
+  100%{ opacity:0; transform:scale(2.3); }
+}
+/* "En stor kosmisk explosion/ljusvåg" once the sweep has passed --
+   centered on the WHOLE board (50%/50%), not Bahamut's own cell like
+   every other card's wave/blast, since this is meant to read as the
+   entire battlefield erupting rather than an effect radiating from one
+   corner of it. */
+.megaflare-wave{
+  position:absolute; left:50%; top:50%;
+  width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+  border:3px solid rgba(255,255,255,0.95);
+  box-shadow:0 0 40px 14px rgba(130,180,255,0.7), inset 0 0 24px rgba(255,240,210,0.7);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-wave{ animation: megaflareWaveExpand 0.7s cubic-bezier(.15,.8,.3,1) 0.5s both; }
+@keyframes megaflareWaveExpand{
+  0%{ opacity:1; transform:scale(0.3); border-color:rgba(255,255,255,0.98); }
+  50%{ opacity:0.6; transform:scale(12); border-color:rgba(130,180,255,0.75); }
+  100%{ opacity:0; transform:scale(16); border-color:rgba(240,225,180,0); }
+}
+/* "Subtila stjärnpartiklar och astral energi som tonar ut efteråt" --
+   same lingering-twinkle technique as Diamond Storm's glitter, gold/
+   white here, fading in late and lasting through the impact/cleanup
+   tail. */
+.megaflare-star{
+  position:absolute; left:50%; top:50%;
+  width:4px; height:4px; border-radius:50%;
+  background:#fff8e6; box-shadow:0 0 7px 2px rgba(240,225,180,0.9);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-star{ animation: megaflareStarFade 1s ease-in-out both; }
+@keyframes megaflareStarFade{
+  0%{ opacity:0; transform:translate(var(--mx),var(--my)) scale(0.4); }
+  40%{ opacity:0.85; transform:translate(var(--mx),var(--my)) scale(1.1); }
+  100%{ opacity:0; transform:translate(var(--mx),var(--my)) scale(0.5); }
+}
+.megaflare-star-0{ --mx:-90px; --my:-60px; animation-delay:.6s; }
+.megaflare-star-1{ --mx:100px; --my:-40px; animation-delay:.7s; }
+.megaflare-star-2{ --mx:70px;  --my:65px;  animation-delay:.75s; }
+.megaflare-star-3{ --mx:-70px; --my:70px;  animation-delay:.65s; }
+.megaflare-star-4{ --mx:0px;   --my:-90px; animation-delay:.8s; }
+.megaflare-star-5{ --mx:-10px; --my:90px;  animation-delay:.55s; }
+/* "Kort men KRAFTFULL screen shake vid den slutliga impacten" -- reuses
+   the exact same chain-shake amplitude as every other card (never
+   softened), paired with the brightest/punchiest full-frame flash in the
+   roster so far (higher peak opacity than Omega Protocol's), matching
+   "gudomlig, majestätisk och enorm" -- this is meant to feel like the
+   biggest Ultimate yet, not a gentle one like Silver Judgment/Diamond
+   Storm. */
+.megaflare-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.9) 0%, rgba(130,180,255,0.35) 45%, rgba(240,225,180,0) 74%);
+  opacity:0;
+}
+.megaflare-flash.phase-impact{ animation: megaflareFlash 0.45s ease-out 0.45s both; }
+@keyframes megaflareFlash{
+  0%{ opacity:0; }
+  35%{ opacity:1; }
   100%{ opacity:0; }
 }
 
@@ -3582,6 +3758,9 @@ function cardFace(card, opts={}){
   // Shiva's Diamond Storm identity VFX (see the diamond-storm-* CSS
   // block) — same additive pattern as void-dominion-casting above.
   const diamondStormCastingClass = (opts.ultimateCasting && card.id === 'shiva') ? 'diamond-storm-casting' : '';
+  // Bahamut's Megaflare identity VFX (see the megaflare-* CSS block) —
+  // same additive pattern as void-dominion-casting above.
+  const megaflareCastingClass = (opts.ultimateCasting && card.id === 'bahamut') ? 'megaflare-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -3592,7 +3771,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -3940,6 +4119,27 @@ function renderBattle(){
     });
   }
 
+  // Bahamut's Megaflare identity VFX -- same enemyIndices-based derivation
+  // as the destroy-based AOE cards above (Void Dominion/Infernal
+  // Pact/Omega Protocol), but no angle math is needed for the sweep
+  // itself (see the megaflare-sweep CSS comment) -- only each hit's
+  // DELAY is derived here, staggered by horizontal distance from
+  // Bahamut's own column so the impacts read as being caught in sequence
+  // as the sweep washes outward from him, not all at once.
+  const megaflareActive = state.ultimateBanner && state.ultimateBanner.name === 'Megaflare';
+  let megaflareOriginX = 50, megaflareOriginY = 50, megaflareHits = [];
+  if(megaflareActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    megaflareOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    megaflareOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    megaflareHits = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
+      const x = ((i % 3) + 0.5) / 3 * 100;
+      const y = (Math.floor(i / 3) + 0.5) / 3 * 100;
+      const horizFraction = Math.min(1, Math.abs(x - megaflareOriginX) / 100 * 1.5);
+      return { x, y, hitDelay: 0.15 + horizFraction * 0.3 + n * 0.02 };
+    });
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -4103,6 +4303,16 @@ function renderBattle(){
           ${[0,1,2,3,4,5].map(n => `<div class="diamond-storm-glitter diamond-storm-glitter-${n}"></div>`).join('')}
         </div>
         <div class="diamond-storm-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${megaflareActive ? `
+        <div class="megaflare-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--mf-x:${megaflareOriginX}%; --mf-y:${megaflareOriginY}%;">
+          <div class="megaflare-charge"></div>
+          <div class="megaflare-sweep" style="transform-origin:${megaflareOriginX}% 50%;"></div>
+          ${megaflareHits.map(h => `<div class="megaflare-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.hitDelay}s;"></div>`).join('')}
+          <div class="megaflare-wave"></div>
+          ${[0,1,2,3,4,5].map(n => `<div class="megaflare-star megaflare-star-${n}"></div>`).join('')}
+        </div>
+        <div class="megaflare-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
@@ -7683,7 +7893,7 @@ function playUltimateSequence(job){
   // every other AOE identity-VFX card, rather than re-deriving "who is an
   // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare'){
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
   }
 
@@ -7738,7 +7948,7 @@ function playUltimateSequence(job){
     // debuff, not a capture or a destroy) so capturedCount is always 0
     // here too -- same explicit opt-in as every other card in this list,
     // for the same "kort screen shake vid impacten" request in her brief.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm') state.chainShake = true;
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.

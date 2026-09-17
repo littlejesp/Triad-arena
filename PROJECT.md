@@ -2183,6 +2183,75 @@ element-antal (3 rälsar/träffar för 3 fiender, 6 shards, 8 fragment,
 6 glitter, våg/flash närvarande, chainShake aktivt). Hela testsviten
 grön (98/98, +1 nytt test).
 
+**Fas 4m: Bahamut fick samma sorts "element-identitet"-VFX för
+Megaflare, sjunde och sista engångstestet i den här raden.** Blått/vitt/
+guld "astralt ljus"-tema, avsett att kännas "gudomligt, majestätiskt och
+enormt, inte som en vanlig laser". Ett genuint nytt tekniskt grepp:
+
+- **Ett enda svep-ljus som täcker HELA brädets bredd, inte en riktad
+  stråle mot ett mål** — kravlistan beskriver "en enorm energistråle som
+  skjuts över hela brädet, [som] sveper igenom fiendekorten", vilket
+  skiljer sig från alla tidigare riktade strålar (Seraphines/Diamond
+  Storms räls-mot-varje-fiende-teknik) eftersom den inte siktar mot NÅGOT
+  specifikt mål, utan måste täcka brädet oavsett hur många fiender som
+  finns eller var de står. Löst utan någon vinkel-trigonometri alls:
+  `.megaflare-sweep` är en stapel som redan spänner 100% av wrapperns
+  bredd, med `transform-origin` nålad till Bahamuts EGEN kolumn
+  (`${originX}% 50%`, satt inline per cast). En `scaleX(0)` →
+  `scaleX(1)`-animation växer då symmetriskt utåt från den nålade punkten
+  tills den täcker alla kolumner — läser som ljuset visibelt strömmar ut
+  FRÅN honom och sveper över hela brädet, utan att behöva separat
+  vinkelmatematik per fiende (bara varje TRÄFFS fördröjning beräknas,
+  proportionell mot det horisontella avståndet från hans kolumn, så
+  träffarna känns sekventiella i takt med att svepet passerar dem).
+- **Vågen centreras på HELA brädet (50%/50%), inte källcellen** — till
+  skillnad från varje tidigare korts våg/blast (som alltid utgår från
+  kortets egen cell) centreras `.megaflare-wave` mitt på brädet, eftersom
+  kravlistan beskriver "en stor kosmisk explosion" som ska kännas som att
+  HELA slagfältet exploderar, inte en effekt som strålar ut från ett
+  hörn av det.
+- **Ingen ny ring-teknik för själva kort-auran** — bara en stadigt
+  roterande ring (samma konstanta hastighet som Infernal Pacts sigill,
+  INTE Diamond Storms accelererande variant) plus en svällande ljuskärna
+  (`::after`, skalar upp) som representerar "energi som koncentreras
+  kraftigt framför Bahamut" — en ny keyframe-typ (svällande kärna) men
+  återanvänder samma before/after-pseudoelement-budget som alla andra
+  kort.
+- **`aoeEnemyIndicesAtCast`/`chainShake`-villkoren utökade en sista gång**
+  (`special.name === 'Megaflare'`) — samma destroy-baserade form som Void
+  Dominion/Infernal Pact (alla fiender förstörs via `destroyCard`,
+  `noRevive:true`), samma skäl som alla tidigare kort i listorna.
+- **"Kort men KRAFTFULL screen shake"** — samma delade chain-shake-
+  amplitud som alla andra (aldrig mjukad per kort), men den ljusaste/
+  mest kontrastrika flashen i hela rostret hittills (högre toppopacitet
+  än Omega Protocols), eftersom det här ska kännas som den STÖRSTA
+  Ultimate hittills snarare än en mjuk/elegant en (Seraphine/Shiva).
+
+**Verifiering:** ett nytt permanent test (99 totalt) bekräftar hela
+livscykeln med två fiender: under cast-fasen finns kortets aura +
+svällande kärna, fx-wrappern, ursprung matchar Bahamuts faktiska cell,
+och impact-elementen finns redan i DOM:en men osynliga tills impact-fasen
+(samma "osynlig, inte frånvarande"-mönster som alla tidigare AOE-VFX-
+tester). Vid impact: svepet, träffantalet (matchar fiendeantalet), vågen,
+de 6 fasta stjärnpartiklarna och flashen syns alla, båda fiender
+förstörda, `chainShake` triggat trots att destroy aldrig sätter
+`justFlipped`. Ett sista kontroll bekräftar att Nyxaras Void Dominion
+(samma destroy-alla-fiender-form) INTE får någon Megaflare-specifik
+markup. Verifierat även manuellt med en direkt DOM-koll (cast: aura +
+fx + laddningskärna närvarande, träffar osynliga; impact: svep + 2
+träffar + våg + 6 stjärnor + flash + chainShake alla aktiva; cleanup:
+allt borta). Hela testsviten grön (99/99, +1 nytt test).
+
+**Alla sju kort från den ursprungliga "identity VFX"-begäran är nu
+klara: Nyxara (Void Dominion), Ifrit (Hellfire), Vaelira (Infernal
+Pact), Seraphine (Silver Judgment), Omega Weapon (Omega Protocol), Shiva
+(Diamond Storm), Bahamut (Megaflare).** Alla sju delar samma
+cast->impact->cleanup-livscykel, samma `chainShake`-mekanism (aldrig
+mjukad per kort, bara opt-in-listan utökad), och samma
+`aoeEnemyIndicesAtCast`-generalisering för AOE-formerna. Varje kort har
+en unik, tematiskt motiverad twist på återanvänd teknik istället för att
+uppfinna en helt ny mekanism varje gång.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

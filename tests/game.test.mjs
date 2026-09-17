@@ -6389,6 +6389,106 @@ test('Shiva Diamond Storm identity VFX (one-off test): card aura/shard rails/fra
   await page.close();
 });
 
+test('Bahamut Megaflare identity VFX (one-off test): card aura/charge/sweep/hits/wave/stars/flash ride the existing cast->impact->cleanup lifecycle, sweep origin matches his cell, hit count matches enemy count, chainShake fires despite destroy never setting justFlipped, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the megaflare-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('bahamut'), 'blue');
+    state.board[4] = src; // center cell -> --mf-x/--mf-y should be ~50%/50%
+    state.board[0] = freshEntry({ id:'e0', name:'E0', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[5] = freshEntry({ id:'e5', name:'E5', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + fx wrapper + the charging core at his own
+    // cell, origin matches Bahamut's actual cell, no sweep/hits yet
+    // (impact-only), board untouched.
+    out.cardHasAura = document.querySelector('.card.megaflare-casting') !== null;
+    const fx = document.querySelector('.megaflare-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--mf-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--mf-y')) - 50) < 0.1;
+    out.chargePresentDuringCast = document.querySelector('.megaflare-charge') !== null;
+    // Same pattern as every other AOE identity-VFX card's hit elements:
+    // they exist in the DOM during cast too, just invisible (opacity:0)
+    // until the .phase-impact CSS selector triggers their animation.
+    const castHits = [...document.querySelectorAll('.megaflare-hit')];
+    out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[5].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: the full-width sweep + hit bursts (one per enemy) +
+    // board-wide wave + lingering stars + flash all appear, both enemies
+    // destroyed, chainShake fires despite Megaflare's destroy never
+    // setting justFlipped.
+    const fx2 = document.querySelector('.megaflare-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.sweepPresent = document.querySelector('.megaflare-sweep') !== null;
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.megaflare-hit').length === 2;
+    out.wavePresent = document.querySelector('.megaflare-wave') !== null;
+    out.starCount = document.querySelectorAll('.megaflare-star').length;
+    out.flashPresent = document.querySelector('.megaflare-flash.phase-impact') !== null;
+    out.effectLanded = state.board[0] === null && state.board[5] === null;
+    out.chainShakeFiredDespiteDestroy = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.megaflare-fx') === null;
+    out.flashGoneAfterCleanup = document.querySelector('.megaflare-flash') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.megaflare-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different destroy-based AOE Ultimate (Nyxara's Void Dominion) must
+    // get NONE of this -- scoped strictly to Bahamut's card id + its
+    // exact Ultimate name.
+    state.board = Array(9).fill(null);
+    const nyxaraSrc = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[4] = nyxaraSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.noMegaflareVfxForNyxara = document.querySelector('.megaflare-fx') === null
+      && document.querySelector('.megaflare-flash') === null
+      && document.querySelector('.card.megaflare-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.cardHasAura, true, "Bahamut's own card should get the megaflare-casting class (and its ring + swelling core) during his windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the charge/sweep wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Bahamut's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.chargePresentDuringCast, true, 'the swelling energy core should be present at his own cell during cast');
+  assert.equal(result.hitsInvisibleDuringCast, true, 'the per-enemy impact elements exist (2, matching the enemy count) but stay invisible until the impact-phase CSS class triggers their animation');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.sweepPresent, true, 'the full-width sweeping beam should appear at impact');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one impact per enemy actually present at cast time, not a fixed count');
+  assert.equal(result.wavePresent, true, 'the final board-wide cosmic wave should appear at impact');
+  assert.equal(result.starCount, 6, 'the fixed set of 6 lingering star particles should always be present');
+  assert.equal(result.flashPresent, true, 'the bright full-frame flash should appear at impact');
+  assert.equal(result.effectLanded, true, 'Megaflare destroys both enemy cards once the windup elapses');
+  assert.equal(result.chainShakeFiredDespiteDestroy, true, "chainShake must fire for Megaflare even though its destroy-all-enemies effect never sets justFlipped (capturedCount stays 0)");
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.flashGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noMegaflareVfxForNyxara, true, "this identity VFX must stay scoped to Bahamut's Megaflare specifically, not leak onto other destroy-based AOE Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
