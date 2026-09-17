@@ -5880,6 +5880,109 @@ test('Ifrit Hellfire identity VFX (one-off test): card aura/rumble/blast/target-
   await page.close();
 });
 
+test('Vaelira Infernal Pact identity VFX (one-off test): card aura/sigil/wave/per-enemy hits ride the existing cast->impact->cleanup lifecycle, chainShake fires despite destroy never setting justFlipped, hit count matches the actual number of enemies present at cast time, synced with her impact SFX, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the infernal-pact-* markup
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('vaelira'), 'blue');
+    state.board[4] = src; // center cell -> --pact-x/--pact-y should be ~50%/50%
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[7] = freshEntry(findCardById('ogre'), 'red'); // two enemies, to verify hit-flash count matches
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + sigil + fx wrapper (with its 8 particles) all
+    // present, origin matches Vaelira's actual cell, board untouched.
+    out.cardHasPactAura = document.querySelector('.card.infernal-pact-casting') !== null;
+    const fx = document.querySelector('.infernal-pact-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--pact-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--pact-y')) - 50) < 0.1;
+    out.particleCount = document.querySelectorAll('.infernal-pact-particle').length;
+    // The hit-flash elements exist in the DOM during cast too (same pattern
+    // as hellfire-target-hit) -- their own base class starts at opacity:0
+    // and only the .phase-impact CSS selector triggers the animation that
+    // makes them visible, so "not active yet" is what's actually true here,
+    // not "not present".
+    const castHits = [...document.querySelectorAll('.infernal-pact-hit')];
+    out.hitFlashesInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
+    out.boardUntouchedDuringCast = state.board[1].owner === 'red' && state.board[7].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: wave present, exactly ONE hit-flash per enemy that was
+    // actually on the board at cast time (2 here), chainShake fires despite
+    // a destroy-based AOE never setting justFlipped, and the impact SFX
+    // (added earlier this session) fires in the SAME beat as this markup --
+    // the "synced with the Ultimate sound" part of the brief.
+    const fx2 = document.querySelector('.infernal-pact-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.wavePresent = document.querySelector('.infernal-pact-wave') !== null;
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.infernal-pact-hit').length === 2;
+    out.effectLanded = state.board[1] === null && state.board[7] === null;
+    out.chainShakeFiredDespiteDestroy = state.chainShake === true;
+    out.impactSfxSyncedWithVfx = playCalls.includes('sfx/vaelira.mp3');
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.infernal-pact-fx') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.infernal-pact-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different Ultimate (Nyxara, same destroy-AOE shape) must get NONE
+    // of this -- scoped strictly to Vaelira's card id + her exact Ultimate
+    // name, not "any AOE destroy".
+    state.board = Array(9).fill(null);
+    const nyxaraSrc = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[0] = nyxaraSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(0, null, {});
+    out.noPactVfxForNyxara = document.querySelector('.infernal-pact-fx') === null
+      && document.querySelector('.card.infernal-pact-casting') === null;
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.equal(result.cardHasPactAura, true, "Vaelira's own card should get the infernal-pact-casting class (and its sigil ring) during her windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the wave/particle wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Vaelira's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.particleCount, 8, 'all 8 particles should render during the cast phase');
+  assert.equal(result.hitFlashesInvisibleDuringCast, true, 'the per-enemy hit-flash elements exist (2, matching the enemy count) but stay invisible until the impact-phase CSS class triggers their animation');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.wavePresent, true, 'the board-wide crimson wave should appear at impact');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one hit-flash per enemy actually present at cast time (2 here), not a fixed count');
+  assert.equal(result.effectLanded, true, "Infernal Pact destroys both enemy cards once the windup elapses");
+  assert.equal(result.chainShakeFiredDespiteDestroy, true, 'chainShake must fire for Infernal Pact even though destroy-based AOE never sets justFlipped (capturedCount stays 0)');
+  assert.equal(result.impactSfxSyncedWithVfx, true, "the impact SFX (sfx/vaelira.mp3) must fire in the SAME beat as the visual impact, per the brief's sync requirement");
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noPactVfxForNyxara, true, "this identity VFX must stay scoped to Vaelira's Infernal Pact specifically, not leak onto other destroy-based AOE Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

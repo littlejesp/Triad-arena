@@ -1767,6 +1767,72 @@ bekräftade `window.Audio`-anrop med `sfx/vaelira.mp3` exakt vid
 impact-fasen, och att fiendekortet förstördes. Hela testsviten grön
 (94/94, samma antal — befintligt testfall utökat).
 
+**Fas 4g: Vaelira fick samma sorts "element-identitet"-VFX för Infernal
+Pact, tredje engångstestet i raden** (samma "till Claude"-format som
+Nyxara/Ifrit-begärandena). Crimson/svart tema, och till skillnad från
+Hellfire (single-target) är Vaelira AOE precis som Nyxara — men
+kravlistan bad EXPLICIT om både en spelplans-omfattande våg OCH en
+"tydlig men kort träffeffekt" på "fiendekorten" (plural), så
+implementationen behövde hantera ETT ELLER FLERA fiender, inte ett
+fast antal:
+
+- **Kortets aura + sigill** — ny `.card.infernal-pact-casting`, samma
+  "slot"/z-index som de andra kort-aurorna, crimson istället för
+  lila/lava, `infinite` jämn pulsering (inte Hellfires eskalerande
+  engångs-ramp, eftersom kravet bara bad om "pulserar" utan
+  "byggs upp"-formulering). Den "mörka magiska sigill/cirkel"-delen
+  löst med en roterande `::before`-pseudo-element (streckad cirkel,
+  `border-radius:50%`) INSETT i kortet — samma clip-begränsning
+  (`.card{overflow:hidden}`) som redan gäller alla andra in-kort-
+  effekter i filen, medvetet inte lättad bara för den här effekten.
+- **Partiklar + våg** — samma `.void-particle-pull`/`.void-crack`-
+  teknik som Nyxara, omfärgad crimson/svart, från Vaeliras faktiska
+  cell.
+- **Per-fiende träffeffekt (ny teknik)** — eftersom antalet fiender
+  varierar (0 till 8, inte ett fast antal som Hellfires enda mål),
+  krävde detta en riktig utökning: `state.ultimateBanner` fick ett
+  nytt fält `enemyIndices`, en lista över vilka celler som faktiskt
+  var fiender VID CAST-TILLFÄLLET — måste fångas INNAN `handler()` kör
+  (`destroyCard()` sätter cellerna till `null`, så de går inte att
+  fråga om igen vid impact-rendret). Beräknas en gång i
+  `playUltimateSequence` (bara när `special.name === 'Infernal Pact'`,
+  ingen generell kapabilitet för alla AOE-korts skull) och bärs vidare
+  genom closure-scopet till båda banner-tilldelningarna (cast OCH
+  impact). Varje träff-element positioneras via INLINE style (inte en
+  CSS custom property som de 8 fasta partiklarna) eftersom antalet
+  varierar, med en liten stegrande `animation-delay` per fiende så
+  vågen läses som att den sveper och träffar korten i tur och ordning.
+- **Screen shake** — samma återanvändning/utökning av `chainShake`
+  som Nyxara/Ifrit (`special.name === 'Infernal Pact'` tillagt i
+  villkoret), av samma anledning: destroy-baserad AOE sätter aldrig
+  `justFlipped`.
+- **Synk med ljudet** — `playUltimateImpactSfx()` (redan kopplad till
+  `sfx/vaelira.mp3` tidigare i sessionen) och den nya VFX-en körs i
+  EXAKT samma synkrona kodblock i impact-fasen, så de är redan
+  synkade helt gratis — inget extra jobb krävdes för det kravet.
+
+**Verifiering:** ett nytt permanent test (95 totalt) bekräftar hela
+livscykeln, med två fiender på brädet samtidigt för att specifikt testa
+att träff-antalet matchar det FAKTISKA antalet (2), inte ett hårdkodat
+antal: under cast-fasen finns kortets aura+sigill, fx-wrappern med
+`--pact-x`/`--pact-y` som matchar Vaeliras cell, alla 8 partiklar, och
+träff-elementen EXISTERAR redan i DOM:en (samma mönster som Hellfires
+target-hit) men är osynliga (`opacity:0`) tills impact-fasens CSS-
+klass triggar animationen. Efter windup: vågen syns, exakt 2
+träff-flashes (matchar de 2 fienderna), båda fiendekorten förstörda,
+`chainShake` triggat, och `sfx/vaelira.mp3` bekräftat spelad i SAMMA
+kontroll som VFX-elementen — testar synk-kravet explicit, inte bara
+att båda råkar spelas nån gång. Efter cleanup: allt borta. Ett sista
+kontroll bekräftar att Nyxaras Void Dominion (samma destroy-AOE-form)
+INTE får någon Infernal-Pact-specifik markup — scopead strikt till
+Vaeliras kort-id plus hennes exakta Ultimate-namn, inte "alla
+destroy-AOE-Ultimates". Verifierat även manuellt med en riktig
+UI-klick-sekvens (hennes special är AOE, ett enda klick, med två
+fiender på brädet) och skärmdumpar i två lägen — bekräftade den
+crimson auran/sigillet under cast, och båda "Destroyed!"-overlayen
+plus den expanderande crimson-vågen vid impact. Hela testsviten grön
+(95/95, +1 nytt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
