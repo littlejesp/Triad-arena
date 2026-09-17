@@ -441,6 +441,32 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
     filter:brightness(1.05) saturate(1.4);
   }
 }
+/* Same one-off-identity-VFX pattern as void-dominion-casting above, this
+   time for Ifrit's Hellfire (see the user's Hellfire VFX request) — lava
+   orange/red instead of void purple, and a ONE-SHOT ramp (not `infinite`)
+   since "en kort kraftig vibration/rumble byggs upp" reads as an
+   intensifying build rather than a steady pulse: it runs once across the
+   whole 0.95s windup (ULTIMATE_WINDUP_MS), climbing from a low ember glow
+   to a full blaze right as impact hits, `forwards` so it holds that peak
+   for the single frame before the impact-phase render replaces it. */
+.card.hellfire-casting{
+  animation: hellfireCardAura 0.95s ease-in forwards;
+  z-index:6;
+}
+@keyframes hellfireCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(224,80,30,0.5), 0 0 14px rgba(224,80,30,0.45), inset 0 0 12px rgba(120,20,10,0.4);
+    filter:brightness(0.98) saturate(1.1);
+  }
+  60%{
+    box-shadow:0 0 0 2px rgba(240,110,20,0.75), 0 0 30px rgba(240,110,20,0.65), inset 0 0 22px rgba(160,30,10,0.55);
+    filter:brightness(1.1) saturate(1.3);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(255,180,40,0.95), 0 0 50px rgba(255,120,20,0.85), inset 0 0 34px rgba(180,40,10,0.7);
+    filter:brightness(1.25) saturate(1.5);
+  }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -889,6 +915,69 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .void-particle-5{ --px:-80px; --py:10px;  animation-delay:.06s; }
 .void-particle-6{ --px:0px;   --py:-70px; animation-delay:.10s; }
 .void-particle-7{ --px:10px;  --py:70px;  animation-delay:.14s; }
+
+/* Ifrit's Hellfire — a second one-off identity VFX (see the user's
+   Hellfire VFX request), same architecture as Nyxara's Void Dominion
+   above: gated purely by state.ultimateBanner.name in renderBattle(),
+   rides the exact same cast/impact/cleanup lifecycle, no new timers, no
+   gameplay state. Three pieces instead of two, because Hellfire is
+   single-target (unlike Nyxara's AOE) so the brief specifically calls out
+   BOTH a board-wide sweep from Ifrit's own cell AND a distinct hit on the
+   one enemy actually targeted:
+   .hellfire-rumble: a LOW-amplitude arena shake that grows across the
+   whole cast/windup beat ("en kort kraftig vibration/rumble byggs upp") —
+   deliberately much subtler than the impact chain-shake below, so the two
+   read as build-up then payoff rather than one long shake.
+   .hellfire-fx (.hellfire-blast + .hellfire-target-hit): positioned to
+   match .board's own box exactly, same technique as void-dominion-fx —
+   --hellfire-x/--hellfire-y from Ifrit's cell (the sweep's origin),
+   --hellfire-target-x/--hellfire-target-y from the actual target cell
+   (only rendered when targetIndex != null). */
+.arena-frame.hellfire-rumble{ animation: hellfireRumble 0.95s ease-in; }
+@keyframes hellfireRumble{
+  0%,100%{ transform:translate(0,0); }
+  10%{ transform:translate(-1px,0); }
+  20%{ transform:translate(1px,0); }
+  30%{ transform:translate(-1px,1px); }
+  40%{ transform:translate(2px,-1px); }
+  50%{ transform:translate(-2px,1px); }
+  60%{ transform:translate(3px,-2px); }
+  70%{ transform:translate(-3px,2px); }
+  80%{ transform:translate(4px,-3px); }
+  90%{ transform:translate(-4px,3px); }
+}
+.hellfire-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.hellfire-blast{
+  position:absolute; left:var(--hellfire-x,50%); top:var(--hellfire-y,50%);
+  width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%;
+  border:2px solid rgba(255,150,40,0.95);
+  box-shadow:0 0 26px 8px rgba(224,80,20,0.7), inset 0 0 16px rgba(255,200,80,0.6);
+  opacity:0;
+}
+.hellfire-fx.phase-impact .hellfire-blast{ animation: hellfireBlastExpand 0.85s cubic-bezier(.15,.8,.3,1) both; }
+@keyframes hellfireBlastExpand{
+  0%{ opacity:0.95; transform:scale(0.4); border-color:rgba(255,220,120,0.95); }
+  50%{ opacity:0.6; transform:scale(9); border-color:rgba(255,120,30,0.75); }
+  100%{ opacity:0; transform:scale(13); border-color:rgba(200,40,10,0); }
+}
+/* The target-hit flash lands a beat AFTER the blast starts expanding
+   (0.12s delay) so it visually reads as "the wave reaches and hits the
+   enemy", not two simultaneous unrelated effects. */
+.hellfire-target-hit{
+  position:absolute; left:var(--hellfire-target-x,50%); top:var(--hellfire-target-y,50%);
+  width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,210,120,0.95) 0%, rgba(255,120,30,0.7) 45%, transparent 75%);
+  opacity:0;
+}
+.hellfire-fx.phase-impact .hellfire-target-hit{ animation: hellfireTargetHit 0.55s ease-out 0.12s both; }
+@keyframes hellfireTargetHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  35%{ opacity:1; transform:scale(1.6); }
+  100%{ opacity:0; transform:scale(2.2); }
+}
 
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
 .coinflip-frame{
@@ -2849,6 +2938,9 @@ function cardFace(card, opts={}){
   // together), not instead of it, so every other Ultimate keeps its
   // existing generic windup glow untouched.
   const voidDominionCastingClass = (opts.ultimateCasting && card.id === 'nyxara') ? 'void-dominion-casting' : '';
+  // Ifrit's Hellfire identity VFX (see the hellfire-* CSS block) — same
+  // additive pattern as void-dominion-casting above.
+  const hellfireCastingClass = (opts.ultimateCasting && card.id === 'ifrit') ? 'hellfire-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -2859,7 +2951,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -3108,6 +3200,22 @@ function renderBattle(){
     voidOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
   }
 
+  // Ifrit's Hellfire identity VFX -- same derivation pattern as Void
+  // Dominion above, but also needs the TARGET cell's position (Hellfire is
+  // single-target, unlike Nyxara's AOE) for the target-hit flash.
+  const hellfireActive = state.ultimateBanner && state.ultimateBanner.name === 'Hellfire';
+  let hellfireOriginX = 50, hellfireOriginY = 50, hellfireTargetX = 50, hellfireTargetY = 50;
+  if(hellfireActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    hellfireOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    hellfireOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      hellfireTargetX = ((tIdx % 3) + 0.5) / 3 * 100;
+      hellfireTargetY = (Math.floor(tIdx / 3) + 0.5) / 3 * 100;
+    }
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -3177,7 +3285,7 @@ function renderBattle(){
         ${state.enemyHand.map(() => mysteryCard()).join('')}
       </div>
 
-      <div class="arena-frame ${state.chainShake ? 'chain-shake' : ''}">
+      <div class="arena-frame ${state.chainShake ? 'chain-shake' : ''} ${hellfireActive && state.ultimateBanner.phase === 'cast' ? 'hellfire-rumble' : ''}">
       <div class="arena-rosette" aria-hidden="true">
         <svg viewBox="0 0 200 200" width="100%" height="100%">
           <polygon points="100,8 118,84 192,100 118,116 100,192 82,116 8,100 82,84" fill="none" stroke="rgba(139,110,242,0.3)" stroke-width="2"/>
@@ -3209,6 +3317,12 @@ function renderBattle(){
           <div class="void-particle void-particle-5"></div>
           <div class="void-particle void-particle-6"></div>
           <div class="void-particle void-particle-7"></div>
+        </div>
+      ` : ''}
+      ${hellfireActive ? `
+        <div class="hellfire-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--hellfire-x:${hellfireOriginX}%; --hellfire-y:${hellfireOriginY}%; --hellfire-target-x:${hellfireTargetX}%; --hellfire-target-y:${hellfireTargetY}%;">
+          <div class="hellfire-blast"></div>
+          ${state.ultimateBanner.targetIndex != null ? '<div class="hellfire-target-hit"></div>' : ''}
         </div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
@@ -6747,7 +6861,10 @@ function playUltimateSequence(job){
 
   // Phase 1: windup. Board state untouched — this is purely "something big
   // is about to happen", the actual effect hasn't run yet.
-  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex };
+  // targetIndex is carried on the banner purely for presentation (e.g.
+  // Ifrit's Hellfire VFX needs to know WHICH cell to hit, unlike Nyxara's
+  // AOE Void Dominion) -- never read by any gameplay logic.
+  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex };
   srcEntry.ultimateCasting = true;
   SFX.select();
   playUltimateVoiceLine(srcEntry.card.id);
@@ -6781,11 +6898,14 @@ function playUltimateSequence(job){
     // so it would never set justFlipped and capturedCount would always be 0
     // here — explicitly opted in as part of her one-off VFX test so the
     // "kort impact/screen shake" she asked for actually fires.
-    if(capturedCount >= 3 || special.name === 'Void Dominion') state.chainShake = true;
+    // Ifrit's Hellfire is single-target, so capturedCount is realistically
+    // never >= 3 either — same explicit opt-in as Void Dominion above, for
+    // the same reason (her one-off VFX test's screen-shake request).
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.
-    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex };
+    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex };
     SFX.bonus();
     playUltimateImpactSfx(srcEntry.card.id);
     render();
