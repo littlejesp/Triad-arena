@@ -987,6 +987,15 @@ test('Graveyard optional rule: every destroy-capable Special routes through dest
     SPECIAL_HANDLERS.nyxara({ srcEntry: nSrc, owner: 'blue' });
     const nyxara = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'ogre';
 
+    // Seraphine's Silver Judgment (aoe destroy-all, reworked from a debuff)
+    state.board = Array(9).fill(null);
+    state.graveyard = { blue: [], red: [] };
+    const sSrc = freshEntry(findCardById('seraphine'), 'blue');
+    state.board[0] = sSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    SPECIAL_HANDLERS.seraphine({ srcEntry: sSrc, owner: 'blue' });
+    const seraphine = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'ogre';
+
     // Triune Desire's Forbidden Harmony (directional adjacent destroy)
     state.board = Array(9).fill(null);
     state.graveyard = { blue: [], red: [] };
@@ -1002,10 +1011,11 @@ test('Graveyard optional rule: every destroy-capable Special routes through dest
     resetGame();
     const resetClears = state.graveyard.blue.length === 0 && state.graveyard.red.length === 0;
 
-    return { vaelira, nyxara, triunedesire, resetClears };
+    return { vaelira, nyxara, seraphine, triunedesire, resetClears };
   })()`);
   assert.equal(result.vaelira, true, "Vaelira's Infernal Pact kills land in the graveyard");
   assert.equal(result.nyxara, true, "Nyxara's Void Dominion kills land in the graveyard");
+  assert.equal(result.seraphine, true, "Seraphine's Silver Judgment kills land in the graveyard");
   assert.equal(result.triunedesire, true, "Triune Desire's Forbidden Harmony kills land in the graveyard");
   assert.equal(result.resetClears, true, 'resetGame() clears the graveyard for the next match');
   assert.deepEqual(pageErrors, []);
@@ -1521,7 +1531,7 @@ test('Vaelira: new capped Crimson Surge, all other mechanics (Undying Flame/Sist
   await page.close();
 });
 
-test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specific entry), Silver Sight replaced by vsStrongerTotalPowerBoost, rest unchanged', async () => {
+test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specific entry), Silver Sight replaced by vsStrongerTotalPowerBoost, Silver Judgment reworked from a debuff into a destroy-all (matching her sisters)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -1569,6 +1579,30 @@ test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specif
     out.noBonusVsWeaker = fullEffectiveValue(seraphine, 'top', weakerFoe, 0, 'blue', 'attack') - seraphine.top;
     out.bonusVsStronger = fullEffectiveValue(seraphine, 'top', strongerFoe, 0, 'blue', 'attack') - seraphine.top;
 
+    // Silver Judgment: previously stripped bonuses and hit every enemy for
+    // -2 Power; now destroys every enemy outright, mirroring Vaelira's
+    // Infernal Pact and Nyxara's Void Dominion (same protectedByInfiniteSeraph
+    // guard, same isDestroyImmune check, same destroyCard() routing).
+    state.board = Array(9).fill(null);
+    const judgeSrc = freshEntry(seraphine, 'blue');
+    const ally = freshEntry({ id:'sj-ally', name:'Ally', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const enemy1 = freshEntry({ id:'sj-enemy1', name:'Enemy1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = judgeSrc; state.board[0] = ally; state.board[1] = enemy1;
+    const judgmentMsg = SPECIAL_HANDLERS.seraphine({ srcEntry: judgeSrc, owner: 'blue' });
+    out.judgmentSparedAlly = state.board[0] !== null;
+    out.judgmentDestroyedEnemy = state.board[1] === null;
+    out.judgmentMsgMentionsDestruction = /burns|destroy/i.test(judgmentMsg);
+
+    // Blocked by The Infinite Seraph's Eternal Presence, same as her sisters.
+    state.board = Array(9).fill(null);
+    const guardedSrc = freshEntry(seraphine, 'blue');
+    state.board[0] = guardedSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[2] = freshEntry(findCardById('infiniteseraph'), 'red');
+    const guardedMsg = SPECIAL_HANDLERS.seraphine({ srcEntry: guardedSrc, owner: 'blue' });
+    out.blockedByInfiniteSeraph = state.board[1] !== null;
+    out.blockedMsgMentionsSeraph = guardedMsg.includes('Eternal Presence');
+
     return out;
   })()`);
   assert.equal(result.statsUnchanged, true);
@@ -1579,6 +1613,11 @@ test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specif
   assert.equal(result.markedAttackWins, true, 'the mark\'s +2 flips that same matchup into a win (10+2 > 11)');
   assert.equal(result.noBonusVsWeaker, 0);
   assert.equal(result.bonusVsStronger, 2);
+  assert.equal(result.judgmentSparedAlly, true, 'Silver Judgment only hits enemies, never the caster\'s own side');
+  assert.equal(result.judgmentDestroyedEnemy, true, 'Silver Judgment now destroys enemy cards instead of just debuffing them');
+  assert.equal(result.judgmentMsgMentionsDestruction, true);
+  assert.equal(result.blockedByInfiniteSeraph, true, "The Infinite Seraph's Eternal Presence blocks Silver Judgment the same way it blocks Vaelira/Nyxara");
+  assert.equal(result.blockedMsgMentionsSeraph, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
