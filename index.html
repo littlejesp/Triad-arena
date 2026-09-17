@@ -467,6 +467,46 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
     filter:brightness(1.25) saturate(1.5);
   }
 }
+/* Same one-off-identity-VFX pattern as void-dominion-casting/hellfire-
+   casting above, this time for Vaelira's Infernal Pact (see the user's
+   Infernal Pact VFX request) — crimson/black instead of void purple or
+   lava orange, and a steady `infinite` pulse (not a one-shot ramp like
+   Hellfire's) since the brief just asks for the card to "pulsera" evenly.
+   The rotating ::before ring is the "mörkt magiskt sigill/cirkel öppnas
+   runt hennes kort" — stays INSET within the card (same clipping .card's
+   own overflow:hidden already imposes on every other in-card effect, e.g.
+   ultimateCastGlow/captureRingBlue/Red), sized to 78% of the card so it
+   reads as a circle opening around her portrait rather than an outside
+   bloom, which this architecture doesn't support without loosening a
+   shared clip every other effect in the file relies on. */
+.card.infernal-pact-casting{
+  animation: infernalPactCardAura 0.6s ease-in-out infinite;
+  z-index:6;
+}
+@keyframes infernalPactCardAura{
+  0%,100%{
+    box-shadow:0 0 0 2px rgba(139,20,30,0.65), 0 0 20px rgba(139,20,30,0.55), inset 0 0 20px rgba(20,5,10,0.6);
+    filter:brightness(0.95) saturate(1.2);
+  }
+  50%{
+    box-shadow:0 0 0 3px rgba(224,40,50,0.9), 0 0 38px rgba(180,20,30,0.75), inset 0 0 32px rgba(10,3,6,0.8);
+    filter:brightness(1.1) saturate(1.4);
+  }
+}
+.card.infernal-pact-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:78%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg);
+  border-radius:50%;
+  border:2px dashed rgba(196,40,60,0.75);
+  box-shadow:0 0 16px rgba(139,10,25,0.5) inset;
+  animation: infernalPactSigilSpin 3s linear infinite;
+}
+@keyframes infernalPactSigilSpin{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.6; }
+  50%{ opacity:0.9; }
+  100%{ transform:translate(-50%,-50%) rotate(360deg); opacity:0.6; }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -974,6 +1014,71 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 }
 .hellfire-fx.phase-impact .hellfire-target-hit{ animation: hellfireTargetHit 0.55s ease-out 0.12s both; }
 @keyframes hellfireTargetHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  35%{ opacity:1; transform:scale(1.6); }
+  100%{ opacity:0; transform:scale(2.2); }
+}
+
+/* Vaelira's Infernal Pact — a third one-off identity VFX (see the user's
+   Infernal Pact VFX request), crimson/black. Same .board-matching wrapper
+   technique as void-dominion-fx/hellfire-fx. Unlike Hellfire's ONE fixed
+   target, her special is AOE (destroys every enemy, same shape as Nyxara's
+   Void Dominion) and the brief explicitly asks for a hit on "fiendekorten"
+   (plural) -- so .infernal-pact-hit is rendered once per enemy cell that
+   was actually present at cast time (state.ultimateBanner.enemyIndices,
+   captured in playUltimateSequence since those cells are already null by
+   the time this impact-phase markup renders), positioned via inline style
+   per cell rather than a fixed nth-child list like the 8 particles below
+   (there can be anywhere from 0 to 8 enemies). */
+.infernal-pact-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.infernal-pact-wave{
+  position:absolute; left:var(--pact-x,50%); top:var(--pact-y,50%);
+  width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%;
+  border:2px solid rgba(200,30,50,0.95);
+  box-shadow:0 0 26px 8px rgba(139,10,25,0.7), inset 0 0 16px rgba(60,5,15,0.7);
+  opacity:0;
+}
+.infernal-pact-fx.phase-impact .infernal-pact-wave{ animation: infernalPactWaveExpand 0.85s cubic-bezier(.15,.8,.3,1) both; }
+@keyframes infernalPactWaveExpand{
+  0%{ opacity:0.95; transform:scale(0.4); border-color:rgba(230,60,70,0.95); }
+  50%{ opacity:0.6; transform:scale(9); border-color:rgba(139,10,25,0.75); }
+  100%{ opacity:0; transform:scale(13); border-color:rgba(20,3,8,0); }
+}
+.infernal-pact-particle{
+  position:absolute; left:var(--pact-x,50%); top:var(--pact-y,50%);
+  width:4px; height:4px; border-radius:50%;
+  background:#c62840; box-shadow:0 0 8px 2px rgba(139,10,25,0.9);
+  opacity:0;
+}
+.infernal-pact-fx.phase-cast .infernal-pact-particle{ animation: infernalPactParticlePull 0.9s ease-in both; }
+@keyframes infernalPactParticlePull{
+  0%{ opacity:0; transform:translate(var(--px),var(--py)) scale(1); }
+  22%{ opacity:0.9; }
+  100%{ opacity:0; transform:translate(0,0) scale(0.2); }
+}
+.infernal-pact-particle-0{ --px:-70px; --py:-30px; animation-delay:0s;   }
+.infernal-pact-particle-1{ --px:60px;  --py:-45px; animation-delay:.04s; }
+.infernal-pact-particle-2{ --px:80px;  --py:20px;  animation-delay:.08s; }
+.infernal-pact-particle-3{ --px:40px;  --py:60px;  animation-delay:.12s; }
+.infernal-pact-particle-4{ --px:-50px; --py:55px;  animation-delay:.02s; }
+.infernal-pact-particle-5{ --px:-80px; --py:10px;  animation-delay:.06s; }
+.infernal-pact-particle-6{ --px:0px;   --py:-70px; animation-delay:.10s; }
+.infernal-pact-particle-7{ --px:10px;  --py:70px;  animation-delay:.14s; }
+/* Position set entirely via inline style (left/top), not a --pact-x/y
+   custom property, since there's a variable NUMBER of these (0-8) rather
+   than one fixed origin -- animation-delay is also set inline per cell
+   (staggered) so the hits read as the wave sweeping across the board and
+   landing on each enemy in turn, not all flashing simultaneously. */
+.infernal-pact-hit{
+  position:absolute; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%;
+  background:radial-gradient(circle, rgba(230,60,70,0.95) 0%, rgba(20,3,8,0.75) 55%, transparent 78%);
+  opacity:0;
+}
+.infernal-pact-fx.phase-impact .infernal-pact-hit{ animation: infernalPactHit 0.55s ease-out both; }
+@keyframes infernalPactHit{
   0%{ opacity:0; transform:scale(0.3); }
   35%{ opacity:1; transform:scale(1.6); }
   100%{ opacity:0; transform:scale(2.2); }
@@ -2941,6 +3046,9 @@ function cardFace(card, opts={}){
   // Ifrit's Hellfire identity VFX (see the hellfire-* CSS block) — same
   // additive pattern as void-dominion-casting above.
   const hellfireCastingClass = (opts.ultimateCasting && card.id === 'ifrit') ? 'hellfire-casting' : '';
+  // Vaelira's Infernal Pact identity VFX (see the infernal-pact-* CSS
+  // block) — same additive pattern as void-dominion-casting above.
+  const infernalPactCastingClass = (opts.ultimateCasting && card.id === 'vaelira') ? 'infernal-pact-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -2951,7 +3059,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -3216,6 +3324,23 @@ function renderBattle(){
     }
   }
 
+  // Vaelira's Infernal Pact identity VFX -- same derivation pattern as
+  // Void Dominion, but also needs the FULL LIST of enemy cell positions
+  // (her special, like Nyxara's, destroys every enemy) rather than one
+  // target -- see enemyIndices captured in playUltimateSequence.
+  const infernalPactActive = state.ultimateBanner && state.ultimateBanner.name === 'Infernal Pact';
+  let infernalPactOriginX = 50, infernalPactOriginY = 50, infernalPactHitPositions = [];
+  if(infernalPactActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    infernalPactOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    infernalPactOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    infernalPactHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      x: ((i % 3) + 0.5) / 3 * 100,
+      y: (Math.floor(i / 3) + 0.5) / 3 * 100,
+      delay: 0.1 + n * 0.05,
+    }));
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -3323,6 +3448,20 @@ function renderBattle(){
         <div class="hellfire-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--hellfire-x:${hellfireOriginX}%; --hellfire-y:${hellfireOriginY}%; --hellfire-target-x:${hellfireTargetX}%; --hellfire-target-y:${hellfireTargetY}%;">
           <div class="hellfire-blast"></div>
           ${state.ultimateBanner.targetIndex != null ? '<div class="hellfire-target-hit"></div>' : ''}
+        </div>
+      ` : ''}
+      ${infernalPactActive ? `
+        <div class="infernal-pact-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--pact-x:${infernalPactOriginX}%; --pact-y:${infernalPactOriginY}%;">
+          <div class="infernal-pact-wave"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-0"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-1"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-2"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-3"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-4"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-5"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-6"></div>
+          <div class="infernal-pact-particle infernal-pact-particle-7"></div>
+          ${infernalPactHitPositions.map(p => `<div class="infernal-pact-hit" style="left:${p.x}%; top:${p.y}%; animation-delay:${p.delay}s;"></div>`).join('')}
         </div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
@@ -6821,6 +6960,7 @@ function playUltimateVoiceLine(cardId){
 const ULTIMATE_IMPACT_SFX = {
   ifrit: 'sfx/ifrit.mp3',
   nyxara: 'sfx/nyxara.mp3',
+  vaelira: 'sfx/vaelira.mp3',
 };
 function playUltimateImpactSfx(cardId){
   if(!soundOn) return;
@@ -6859,12 +6999,24 @@ function playUltimateSequence(job){
   const { srcEntry, sourceIndex, targetIndex, extra, owner, special, handler } = job;
   const token = ++ultimateBannerToken;
 
+  // Vaelira's Infernal Pact VFX needs to know which cells were enemies AT
+  // CAST TIME: her special (like Nyxara's) destroys via destroyCard, so by
+  // the time the impact-phase render happens those board slots are already
+  // null and can't be re-queried for "which cells to flash". Captured once
+  // here, carried through this closure into the impact-phase banner below.
+  // Presentation only, never read by gameplay logic, and only computed for
+  // this one card's Ultimate (not a general capability every AOE gets).
+  let infernalPactEnemyIndices = null;
+  if(special.name === 'Infernal Pact'){
+    infernalPactEnemyIndices = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
+  }
+
   // Phase 1: windup. Board state untouched — this is purely "something big
   // is about to happen", the actual effect hasn't run yet.
   // targetIndex is carried on the banner purely for presentation (e.g.
   // Ifrit's Hellfire VFX needs to know WHICH cell to hit, unlike Nyxara's
   // AOE Void Dominion) -- never read by any gameplay logic.
-  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex };
+  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: infernalPactEnemyIndices };
   srcEntry.ultimateCasting = true;
   SFX.select();
   playUltimateVoiceLine(srcEntry.card.id);
@@ -6901,11 +7053,13 @@ function playUltimateSequence(job){
     // Ifrit's Hellfire is single-target, so capturedCount is realistically
     // never >= 3 either — same explicit opt-in as Void Dominion above, for
     // the same reason (her one-off VFX test's screen-shake request).
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire') state.chainShake = true;
+    // Vaelira's Infernal Pact is the same destroy-based shape as Void
+    // Dominion (destroyCard, never justFlipped) — same opt-in, same reason.
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.
-    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex };
+    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: infernalPactEnemyIndices };
     SFX.bonus();
     playUltimateImpactSfx(srcEntry.card.id);
     render();
