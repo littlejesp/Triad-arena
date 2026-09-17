@@ -5619,7 +5619,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   await page.close();
 });
 
-test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact, Seraphine\'s Silver Judgment, Omega Weapon\'s Omega Protocol, Shiva\'s Diamond Storm and Bahamut\'s Megaflare also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact, Seraphine\'s Silver Judgment, Omega Weapon\'s Omega Protocol, Shiva\'s Diamond Storm, Bahamut\'s Megaflare and Odin\'s Zantetsuken also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5661,6 +5661,10 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     out.bahamutCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateImpactSfx('odin');
+    out.odinCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateImpactSfx('triunedesire'); // no impact-SFX entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5680,6 +5684,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
   assert.deepEqual(result.omegaweaponCall, ['sfx/omegaweapon.mp3'], "Omega Weapon's Ultimate impact should play its impact SFX file");
   assert.deepEqual(result.shivaCall, ['sfx/shiva.mp3'], "Shiva's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.bahamutCall, ['sfx/bahamut.mp3'], "Bahamut's Ultimate impact should play his impact SFX file");
+  assert.deepEqual(result.odinCall, ['sfx/odin.mp3'], "Odin's Ultimate impact should play his impact SFX file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -6484,6 +6489,73 @@ test('Bahamut Megaflare identity VFX (one-off test): card aura/charge/sweep/hits
   assert.equal(result.chainShakeClearedAfterCleanup, true);
   assert.equal(result.bannerGoneAfterCleanup, true);
   assert.equal(result.noMegaflareVfxForNyxara, true, "this identity VFX must stay scoped to Bahamut's Megaflare specifically, not leak onto other destroy-based AOE Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
+test('Odin normal-attack Slash VFX (one-off test): a lightning trail/impact/sparks ride an ordinary attack (not an Ultimate -- no cast/impact banner involved), oriented from his cell to the actual target, staggered across multiple simultaneous battles, chainShake fires, cleaned up on the existing 1300ms schedule, other cards attacking normally are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the odin-slash-* markup
+    state.board = Array(9).fill(null);
+    state.playerHand = []; state.enemyHand = [];
+    state.wins = { blue: 0, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    // Odin lands at center (index 4) with a weak enemy directly above
+    // (index 1) and another to the right (index 5) -- battles both at
+    // once, same as a real multi-neighbor placement.
+    state.board[1] = { card: { id:'w1', name:'W1', top:1,right:1,bottom:1,left:1 }, owner:'red', captureBonus:0 };
+    state.board[5] = { card: { id:'w2', name:'W2', top:1,right:1,bottom:1,left:1 }, owner:'red', captureBonus:0 };
+    state.playerHand = [findCardById('odin')];
+    placeCard(4, 'odin', 'blue');
+
+    out.slashesRecorded = state.odinSlashes.length;
+    const fx = document.querySelector('.odin-slash-fx');
+    out.fxExists = fx !== null;
+    out.railCountMatchesBattleCount = document.querySelectorAll('.odin-slash-rail').length === 2;
+    out.impactCountMatchesBattleCount = document.querySelectorAll('.odin-slash-impact').length === 2;
+    out.sparkCountIsFourPerImpact = document.querySelectorAll('.odin-slash-spark').length === 8;
+    // Cell 1 sits directly ABOVE cell 4 -> the rail toward it should point
+    // straight up (-90deg), catching an axis/sign error in the angle math.
+    const rails = [...document.querySelectorAll('.odin-slash-rail')];
+    out.oneRailPointsStraightUp = rails.some(r => Math.abs(parseFloat(r.style.transform.match(/rotate\\(([-\\d.]+)deg\\)/)[1]) - (-90)) < 0.5);
+    out.bothEnemiesFlipped = state.board[1].owner === 'blue' && state.board[5].owner === 'blue';
+    out.chainShakeFired = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, 1300 + 100));
+    out.slashesClearedAfterCleanup = state.odinSlashes.length === 0;
+    out.fxGoneAfterCleanup = document.querySelector('.odin-slash-fx') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+
+    // A different card attacking normally must get NONE of this -- scoped
+    // strictly to Odin's own attacks.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.board[1] = { card: { id:'w3', name:'W3', top:1,right:1,bottom:1,left:1 }, owner:'red', captureBonus:0 };
+    state.playerHand = [findCardById('ifrit')];
+    placeCard(4, 'ifrit', 'blue');
+    out.noOdinSlashForIfrit = state.odinSlashes.length === 0 && document.querySelector('.odin-slash-fx') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.slashesRecorded, 2, 'both simultaneous battles from this one placement should be recorded');
+  assert.equal(result.fxExists, true, 'the slash VFX wrapper should appear on an ordinary Odin attack, no Ultimate involved');
+  assert.equal(result.railCountMatchesBattleCount, true, 'one lightning rail per battle actually fought this placement');
+  assert.equal(result.impactCountMatchesBattleCount, true, 'one golden impact per battle actually fought this placement');
+  assert.equal(result.sparkCountIsFourPerImpact, true, 'four scattering sparks per impact');
+  assert.equal(result.oneRailPointsStraightUp, true, 'the rail toward the cell directly above Odin should compute exactly -90deg -- catches an axis/sign error in the angle math');
+  assert.equal(result.bothEnemiesFlipped, true, "Odin's actual attack mechanic is unaffected by the VFX work");
+  assert.equal(result.chainShakeFired, true, 'a brief moderate screen shake should fire on Odin\'s normal attack, reusing the same chainShake mechanism as every other card\'s VFX');
+  assert.equal(result.slashesClearedAfterCleanup, true);
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.noOdinSlashForIfrit, true, "this VFX must stay scoped to Odin's own attacks, not fire for any other card's ordinary battles");
   assert.deepEqual(pageErrors, []);
 
   await page.close();
