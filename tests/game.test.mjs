@@ -5466,7 +5466,7 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
-test('Game feel phase 4c: Ifrit, Nyxara, Vaelira and Seraphine\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon and Omega Weapon\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5496,6 +5496,26 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira and Seraphine\'s Ultimates play
     out.seraphineCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateVoiceLine('triunedesire');
+    out.triunedesireCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('bahamut');
+    out.bahamutCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('tiamat');
+    out.tiamatCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('threeheaddragon');
+    out.threeheaddragonCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('omegaweapon');
+    out.omegaweaponCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateVoiceLine('pallispell'); // no voice line entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5512,6 +5532,11 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira and Seraphine\'s Ultimates play
   assert.deepEqual(result.nyxaraCall, ['voices/nyxara.mp3'], "Nyxara's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.vaeliraCall, ['voices/vaelira.mp3'], "Vaelira's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.seraphineCall, ['voices/seraphine.mp3'], "Seraphine's Ultimate cast should play her voice-line file");
+  assert.deepEqual(result.triunedesireCall, ['voices/triunedesire.mp3'], "Triune Desire's Ultimate cast should play its voice-line file");
+  assert.deepEqual(result.bahamutCall, ['voices/bahamut.mp3'], "Bahamut's Ultimate cast should play his voice-line file");
+  assert.deepEqual(result.tiamatCall, ['voices/tiamat.mp3'], "Tiamat's Ultimate cast should play her voice-line file");
+  assert.deepEqual(result.threeheaddragonCall, ['voices/threeheaddragon.mp3'], "Three Head Dragon's Ultimate cast should play its voice-line file");
+  assert.deepEqual(result.omegaweaponCall, ['voices/omegaweapon.mp3'], "Omega Weapon's Ultimate cast should play its voice-line file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -5558,6 +5583,98 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira and Seraphine\'s Ultimates play
   })()`);
   assert.deepEqual(viaCast.ifritPlayedDuringWindup, ['voices/ifrit.mp3'], 'the real cast flow (runSpecialResolution/playUltimateSequence) must trigger the voice line too');
   assert.deepEqual(viaCast.nyxaraPlayedDuringWindup, ['voices/nyxara.mp3'], 'the AOE cast flow must trigger the voice line the same way');
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
+test('Game feel phase 4d: Ifrit\'s Hellfire and Nyxara\'s Void Dominion also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    playUltimateImpactSfx('ifrit');
+    out.ifritCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateImpactSfx('nyxara');
+    out.nyxaraCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateImpactSfx('vaelira'); // no impact-SFX entry for this card
+    out.noEntryCall = playCalls.slice();
+
+    playCalls.length = 0;
+    soundOn = false;
+    playUltimateImpactSfx('ifrit');
+    out.silentWhenSoundOff = playCalls.slice();
+    soundOn = true;
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.deepEqual(result.ifritCall, ['sfx/ifrit.mp3'], "Ifrit's Ultimate impact should play his impact SFX file");
+  assert.deepEqual(result.nyxaraCall, ['sfx/nyxara.mp3'], "Nyxara's Ultimate impact should play her impact SFX file");
+  assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
+  assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
+  assert.deepEqual(pageErrors, []);
+
+  // Runs through the real casting flow to confirm the impact SFX fires at
+  // the IMPACT beat specifically, not alongside the cast-phase voice line --
+  // once for a single-target Ultimate (Ifrit) and once for an AOE one
+  // (Nyxara, targetIndex null), same distinction as the voice-line test.
+  const viaCast = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('ifrit'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+    out.ifritDuringWindup = playCalls.slice(); // only the cast-phase voice line so far
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 100));
+    out.ifritAtImpact = playCalls.slice(); // now the impact SFX should have joined it
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.nyxaraDuringWindup = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.nyxaraAtImpact = playCalls.slice();
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.deepEqual(viaCast.ifritDuringWindup, ['voices/ifrit.mp3'], 'only the voice line should have played during the windup, not the impact SFX yet');
+  assert.deepEqual(viaCast.ifritAtImpact, ['voices/ifrit.mp3', 'sfx/ifrit.mp3'], 'the impact SFX joins once the windup beat elapses and the effect actually lands');
+  assert.deepEqual(viaCast.nyxaraDuringWindup, ['voices/nyxara.mp3'], 'same timing split for the AOE cast flow');
+  assert.deepEqual(viaCast.nyxaraAtImpact, ['voices/nyxara.mp3', 'sfx/nyxara.mp3'], 'the AOE impact SFX joins once its own windup beat elapses');
   assert.deepEqual(pageErrors, []);
 
   await page.close();

@@ -6548,6 +6548,11 @@ const ULTIMATE_VOICE_LINES = {
   nyxara: 'voices/nyxara.mp3',
   vaelira: 'voices/vaelira.mp3',
   seraphine: 'voices/seraphine.mp3',
+  triunedesire: 'voices/triunedesire.mp3',
+  bahamut: 'voices/bahamut.mp3',
+  tiamat: 'voices/tiamat.mp3',
+  threeheaddragon: 'voices/threeheaddragon.mp3',
+  omegaweapon: 'voices/omegaweapon.mp3',
 };
 function playUltimateVoiceLine(cardId){
   if(!soundOn) return;
@@ -6560,6 +6565,28 @@ function playUltimateVoiceLine(cardId){
     // play() returns a promise that can reject on strict autoplay/gesture
     // policies — this is pure flavor layered on top of the windup beat,
     // never allowed to throw or break the actual Ultimate sequence.
+    if(p && p.catch) p.catch(()=>{});
+  }catch(e){}
+}
+
+// Same idea as ULTIMATE_VOICE_LINES above, but a short punchy sound effect
+// (fire whoosh, impact crunch, etc.) timed to the impact beat instead of a
+// spoken name at the cast beat — it plays alongside SFX.bonus() right when
+// the effect actually lands and the visual result is on screen, not during
+// the windup. Keyed by card id the same way; add an entry whenever a real
+// impact SFX exists for a card.
+const ULTIMATE_IMPACT_SFX = {
+  ifrit: 'sfx/ifrit.mp3',
+  nyxara: 'sfx/nyxara.mp3',
+};
+function playUltimateImpactSfx(cardId){
+  if(!soundOn) return;
+  const src = ULTIMATE_IMPACT_SFX[cardId];
+  if(!src) return;
+  try{
+    const audio = new Audio(src);
+    audio.volume = 0.9;
+    const p = audio.play();
     if(p && p.catch) p.catch(()=>{});
   }catch(e){}
 }
@@ -6627,6 +6654,7 @@ function playUltimateSequence(job){
     // starts fading; the board now shows the real result underneath it.
     state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex };
     SFX.bonus();
+    playUltimateImpactSfx(srcEntry.card.id);
     render();
 
     setTimeout(()=>{

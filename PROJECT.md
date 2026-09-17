@@ -1482,6 +1482,136 @@ burns 1 enemy card away with pure light!". Hela testsviten grön
 (91/91, samma antal — befintliga tester utökade, inget nytt testfall
 tillagt).
 
+**Uppdatering, samma session: röstlinje för Triune Desire (Forbidden
+Harmony) — femte kortet, alla fyra systrarnas kort (inklusive den
+fusionerade fjärde formen) har nu röstlinjer.** Femte ElevenLabs-filen
+("Forbidden harmony"), matchande hennes Ultimate-namn. Filen kopierad
+in som `voices/triunedesire.mp3`. Femte raden i
+`ULTIMATE_VOICE_LINES` (`triunedesire: 'voices/triunedesire.mp3'`) —
+samma ramverk, ingen ny kod. Isolerade hjälpfunktions-testet utökat
+med Triune Desire, samma mönster som de andra. Verifierat manuellt med
+samma UI-klick-sekvens (hennes special är också AOE) — bekräftade
+`window.Audio`-anrop med `voices/triunedesire.mp3` och banderoll
+"Forbidden Harmony". Hela testsviten grön (91/91).
+
+**Uppdatering, samma session: användaren bad om rekommendation för
+nästa omgång röstlinjer.** Föreslog de andra stora "Ultimate-momenten"
+med samma tunga banderoll-presentation (Tiamat/Three Head
+Dragon/Bahamut/Omega Weapon) istället för vanliga händelser (placering/
+fångst), eftersom vanliga ljud skulle konkurrera med de procedurella
+tonerna från fas 1–3 istället för att förstärka känslan. Gav
+Ultimate-namnen i versaler på begäran (MEGAFLARE/THE FIVEFOLD
+APOCALYPSE/APOKALYPS/OMEGA PROTOCOL) så användaren kunde generera
+filerna själv i ElevenLabs.
+
+**Uppdatering, samma session: röstlinje för Bahamut (Megaflare) —
+sjätte kortet.** Sjätte ElevenLabs-filen ("MEGAFLARE"). Filen kopierad
+in som `voices/bahamut.mp3`. Sjätte raden i `ULTIMATE_VOICE_LINES`
+(`bahamut: 'voices/bahamut.mp3'`). Isolerade hjälpfunktions-testet
+utökat med Bahamut. Verifierat manuellt med samma UI-klick-sekvens
+(hans special är också AOE) — bekräftade `window.Audio`-anrop med
+`voices/bahamut.mp3`, banderoll "Megaflare", och att fiendekortet
+förstördes. Hela testsviten grön (91/91).
+
+**Uppdatering, samma session: röstlinje för Tiamat (The Fivefold
+Apocalypse) — sjunde kortet.** Sjunde ElevenLabs-filen ("THE FIVEFOLD
+APOCALYPSE"). Filen kopierad in som `voices/tiamat.mp3`. Sjunde raden
+i `ULTIMATE_VOICE_LINES` (`tiamat: 'voices/tiamat.mp3'`). Till
+skillnad från de tidigare AOE-korten har Tiamats special
+`targets:'single'` PLUS ett extra val-steg (`TIAMAT_POWER_CHOICES` —
+Fire/Ice/Storm/Void/Nature), så verifieringen kör hela den riktiga
+3-stegs UI-sekvensen (klicka Tiamats ruta → klicka målrutan → klicka
+"Fire" i choice-pickern) istället för ett enda klick som systrarna.
+Bekräftade `window.Audio`-anrop med `voices/tiamat.mp3` mitt i
+väntetiden och banderoll "The Fivefold Apocalypse". Isolerade
+hjälpfunktions-testet utökat med Tiamat (bara den enkla
+mapping-kontrollen, ingen separat 3-stegs-verifiering i den
+permanenta testsviten eftersom `runSpecialResolution` redan anropas
+direkt där, samma mönster som övriga kort). Hela testsviten grön
+(91/91).
+
+**Uppdatering, samma session: röstlinje för Three Head Dragon
+(Apokalyps) — åttonde kortet.** Åttonde ElevenLabs-filen
+("APOKALYPS"). Filen kopierad in som `voices/threeheaddragon.mp3`.
+Åttonde raden i `ULTIMATE_VOICE_LINES`
+(`threeheaddragon: 'voices/threeheaddragon.mp3'`). Verifierat manuellt
+med samma enkla UI-klick-sekvens (hennes special är AOE) — bekräftade
+`window.Audio`-anrop med `voices/threeheaddragon.mp3`, banderoll
+"Apokalyps", och att fiendekortet fick -3 Power (debuff, inte
+förstörelse — matchar hennes redan existerande mekanik, till skillnad
+från systrarnas/Bahamuts destroy-all). Isolerade hjälpfunktions-testet
+utökat med Three Head Dragon. Hela testsviten grön (91/91).
+
+**Uppdatering, samma session: röstlinje för Omega Weapon (Omega
+Protocol) — nionde kortet, sista av de fyra rekommenderade "Ultimate-
+moment"-korten.** Nionde ElevenLabs-filen ("OMEGA PROTOCOL"). Filen
+kopierad in som `voices/omegaweapon.mp3`. Nionde raden i
+`ULTIMATE_VOICE_LINES` (`omegaweapon: 'voices/omegaweapon.mp3'`).
+Verifierat manuellt med samma enkla UI-klick-sekvens (hans special är
+AOE) — bekräftade `window.Audio`-anrop med `voices/omegaweapon.mp3`,
+banderoll "Omega Protocol", och att det svaga testkortet förstördes
+(Omega Protocol debuffar -3 och förstör sedan alla fiender vars
+svagaste sida hamnar på 5 eller lägre). Isolerade
+hjälpfunktions-testet utökat med Omega Weapon. Hela testsviten grön
+(91/91). Med detta har alla fyra föreslagna korten (Tiamat/Three Head
+Dragon/Bahamut/Omega Weapon) röstlinjer, utöver Ifrit och alla fyra
+systrar — 9 kort totalt.
+
+**Fas 4d: Ifrit fick en egen "impact"-ljudeffekt, en NY sorts asset
+utöver röstlinjerna.** Användaren gjorde själv en kort ("Powerful
+demonic fire", ~1 sekund) ljudeffekt till Hellfire och laddade upp den
+("Jag gjorde denna ljud effekt till ifrits hellfire så man hör och ska
+se effekten") — till skillnad från de tidigare filerna är det inte en
+uttalad Ultimate-namn-röst utan en kort "whoosh/eld"-effekt, tänkt att
+höras SAMTIDIGT som den visuella effekten (fångst/förstörelse) syns,
+inte under väntetiden när namnet visas. Filens korta längd (25389
+bytes @ 192kbps ≈ 1s) bekräftade den tolkningen jämfört med de
+betydligt längre röstlinjerna.
+
+Byggde ett nytt, separat, lika återanvändbart ramverk parallellt med
+`ULTIMATE_VOICE_LINES`: `ULTIMATE_IMPACT_SFX` (kort-id → ljudfilsväg,
+i en ny `sfx/`-mapp för att hålla isär från `voices/`) plus
+`playUltimateImpactSfx(cardId)`, identisk struktur (samma
+`soundOn`-koll, samma tysta `try/catch`). Skillnaden är VAR den
+anropas i `playUltimateSequence`: `playUltimateVoiceLine` körs i
+cast-fasen (fas 1, väntetiden), `playUltimateImpactSfx` körs i
+impact-fasen (fas 3, precis efter `handler()` faktiskt kört och
+banderollen bytt till "impact") — samma ställe som `SFX.bonus()`
+redan spelas, som ett extra lager ovanpå istället för en ersättning.
+Filen kopierad in som `sfx/ifrit.mp3`.
+
+**Verifiering:** ett nytt permanent test (92 totalt, första ökningen
+sedan 91 — detta är en egen mekanism, inte bara ännu ett kort i samma
+mapping, så det fick ett eget testfall istället för att pressas in i
+röstlinje-testet) bekräftar: `playUltimateImpactSfx('ifrit')` spelar
+`sfx/ifrit.mp3`; ett kort utan entry (Nyxara) är tyst; `soundOn=false`
+tystar den. Ett andra delprov kör den riktiga cast-vägen och läser av
+`window.Audio`-anropen VID TVÅ TIDPUNKTER — direkt efter anropet
+(endast röstlinjen ska synas än) och efter att windup-tiden gått ut
+(nu ska både röstlinjen OCH impact-SFX:en synas) — för att bevisa att
+tajmingen faktiskt skiljer sig åt, inte bara att båda till slut
+spelas. Verifierat även manuellt med en riktig UI-klick-sekvens: läste
+av `window.Audio`-anropen både mitt i väntetiden (bara röstlinjen) och
+efter att impact-fasen inträffat (båda ljuden), plus en riktig
+`fetch('sfx/ifrit.mp3')`-kontroll (200, audio/mpeg, exakt byte-match).
+Hela testsviten grön (92/92).
+
+**Uppdatering, samma session: samma impact-SFX för Nyxara (Void
+Dominion).** Användaren gjorde en andra egen ljudeffekt ("Massive dark
+void", ~2s) och laddade upp den ("Detta är till void dominon nyxara").
+Filen kopierad in som `sfx/nyxara.mp3`. Andra raden i
+`ULTIMATE_IMPACT_SFX` (`nyxara: 'sfx/nyxara.mp3'`) — samma ramverk
+från fas 4d, ingen ny kod. Det befintliga fas 4d-testet utökat (inte
+ett nytt testfall) med Nyxaras mapping-kontroll OCH en fullständig
+riktig cast-vägs-verifiering för hennes AOE-flöde (samma
+timing-distinktion som Ifrit: bara röstlinjen under väntetiden, båda
+ljuden efter). Verifierat manuellt med samma UI-klick-sekvens (hennes
+special är AOE, ett enda klick) — bekräftade `window.Audio`-anrop med
+`sfx/nyxara.mp3` exakt vid impact-fasen (inte under väntetiden),
+skärmdump visar "Destroyed!"-overlayen och banderollen "Void
+Dominion" samtidigt. Hela testsviten grön (92/92, samma antal —
+befintligt testfall utökat).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
