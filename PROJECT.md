@@ -1114,6 +1114,100 @@ dekorativa lager har `pointer-events:none`.
 inget ljud, ingen fortsättning till nästa fas utan att användaren
 speltestat detta steget först.
 
+**Uppdatering, samma session: fas 1 speltestad ("Kändes bra faktiskt",
+inget negativt på mobilen heller — bara sett gnistorna röra sig) — fas
+2 påbörjad direkt efter.**
+
+**Fas 2: kortrespons + placerings-/erövringsimpact.** Samma
+avgränsning som fas 1 (bara presentation, ingen spellogik), och samma
+"pure CSS, triggat av redan existerande klasser"-teknik — INGEN
+JS/markup ändrad alls den här gången, bara CSS på klasser
+(`.selected`/`.placing`/`.flipping`) som redan sätts/tas bort av
+befintlig kod. Maximalt reversibelt (en ren CSS-diff).
+
+- **`.card.selected`** (handkort/draft-val) — bytte den statiska
+  guld-kanten mot `scale(1.06)` + en pulserande `selectedGlow`-andning
+  (1.3s). Medvetet INGEN `translateY`-lyft: på mobil
+  (`@media max-width:640px`) blir handraden `.side-hand.hand-row` med
+  `overflow-x:auto`, vilket enligt CSS overflow-specen även gör
+  `overflow-y` till `auto` (bara EN axel får vara `visible`) — med bara
+  1-2px padding där hade en vertikal lyft klippts av upptill. En
+  center-ankrad `scale()` påverkar aldrig layout/overflow, bara
+  compositing, så den är riskfri på alla skärmstorlekar.
+- **`.cell .card.placing::after`** — ny `placeImpact`-blixt (radial
+  vit/guld, 0.48s) synkad mot `cardLand`s egna "landning" vid 60%.
+  Ny `::after`-pseudo-element, inget nytt DOM-element — begränsad av
+  `.cell`s redan existerande `overflow:hidden` precis som allt annat
+  inuti en ruta, så `scale(1.4)`-slutläget bara klipps naturligt vid
+  rutkanten (läses som en stjärnbrist, inte en bugg).
+- **`.cell .card.flipping::after`** — ny `flipSpark`-blixt vid flip-
+  animationens redan existerande liggande-på-kant-ögonblick (45–55%,
+  `rotateY(90deg)`), samma `--fx-delay` som `flip`/`captureRingBlue`/
+  `captureRingRed` så den håller sig synkad även i staplade Same/Plus/
+  Combo-kedjor.
+
+**Verifiering:** hela testsviten (88 tester) grön igen. Samma
+fristående Playwright-verifiering som fas 1 (riktiga DOM-klick, inte
+state-injicering) — kortval, placering och en tvingad erövring
+(anpassad state) kördes igenom utan konsolfel, existerande
+"Erövrad"-banderoll lager fint ovanpå de nya blixtarna utan krock.
+
+**Uppdatering, samma session: fas 2 speltestad direkt, gick vidare till
+fas 3 samma dag.**
+
+**Fas 3: Same/Combo-kedjekänsla.** Till skillnad från fas 1–2 (ren CSS,
+inga JS-ändringar) krävde den här fasen faktisk motorlogik — första
+riktiga JS-ändringen i hela game feel-initiativet, så den fick ett
+riktigt permanent test i `tests/game.test.mjs` (till skillnad från
+fas 1–2:s engångs-Playwright-skript som kastades efter verifiering).
+
+- **Ny `--fx-step`-CSS-variabel**, parallell med den redan existerande
+  `--fx-delay`. `fxDelay` (som redan fanns) capar vid `FX_STAGGER_CAP`
+  (5 steg × 130ms) rent för TIMING-syften — annars skulle en riktigt
+  lång kedja dra ut stagger-fördröjningen orimligt länge. `fxStep` är
+  SAMMA råa, okappade räknare (`result.flipSeq`), sparad separat för
+  INTENSITETS-skalning istället för timing. Satt på två ställen
+  (`battleNeighbors`s per-granne-loop, samt `resolveFlips`s Same/Plus-
+  loop) — båda delar samma `result.flipSeq`-räknare, så en hel
+  placerings alla flippar (Same/Plus + vanlig strid + Combo-kedjan) får
+  en kontinuerligt stigande sekvens.
+- **`flipSpark`/`captureRingBlue`/`captureRingRed`** (från fas 2)
+  skalar nu med `--fx-step` via `calc()` — opacitet/spridningsradie
+  växer per steg i kedjan. Det här ger "första flippen skapar impact,
+  efterföljande flippar eskalerar, sista flippen känns starkast" HELT
+  GRATIS, utan att behöva identifiera/tagga vilken specifik entry som
+  är "sista flippen" — det faller ut naturligt ur en kontinuerlig
+  eskalering baserad på position i sekvensen. En ensam vanlig erövring
+  (`--fx-step` ospecificerad → `var(--fx-step,0)` → 0) ser exakt ut som
+  innan den här fasen.
+- **Screen shake för stora kedjor** — ny `state.chainShake`-flagga,
+  satt i `placeCard` när `result.sameOrPlus + result.combo >= 4`
+  (medvetet INTE bara `result.flips >= 4`, så en vanlig placering som
+  råkar besegra alla 4 grannar via helt vanliga styrke-strider ALDRIG
+  skakar — bara riktiga Same/Plus/Combo-kedjor gör det, matchar
+  användarens "particularly large chain reactions"-formulering).
+  `.arena-frame.chain-shake` — ren `transform`-baserad `chainShake`-
+  keyframe (0.42s, avtagande amplitud). Rensas i den REDAN
+  EXISTERANDE 500ms `justPlaced`-timeouten (inte den senare 1300ms-
+  timeouten) — annars hade den 1300ms-timeoutens egen `render()`
+  startat om shake-animationen mitt i, eftersom hela `#app`-trädet
+  byggs om vid varje render (samma restart-on-render-princip som
+  dokumenterad i fas 1/2).
+- `state.chainShake:false` tillagt i det initiala `state`-objektet
+  samt i `resetGame()`s fältlista, för konsekvens.
+- AI:t (`enemyTurn` → `placeCard`) delar EXAKT samma kodväg som
+  spelarens placeringar — ingen separat AI-specialhantering behövdes,
+  stora kedjor känns lika impactful oavsett vem som orsakar dem.
+
+**Verifiering:** ett nytt permanent test (89 totalt nu) bygger en
+deterministisk 4-vägs Same-fångst (alla fyra grannars vända kant matchar
+det placerade kortets motsvarande sida, samtliga femmor) via den
+RIKTIGA `placeCard()`/`resolveFlips()`-koden (ingen handsimulerad
+kedjelogik) och verifierar: alla fyra fångade, `chainShake` sant direkt
+efteråt, alla fyra flippar fick distinkta `fxStep`-värden 0–3,
+`chainShake` rensat efter ~500ms, `fxStep` rensat efter 1300ms. Hela
+testsviten grön (89/89).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
