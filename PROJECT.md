@@ -2817,7 +2817,7 @@ rulebook-cover.jpg,   Regelbokens sidor (📖-knapp i mastheaden). En bild per
 rulebook-page-*.jpg  sida, listade i JS-arrayen RULEBOOK_PAGES i den ordning
                      de bläddras. Lägg till en ny sida genom att generera en
                      matchande bild och lägga till filnamnet i den arrayen.
-battle-theme.mp3     Bakgrundsmusik (loopar), spelas via <audio id="bgm">.
+ancient-mysteries.mp3 Bakgrundsmusik (loopar), spelas via <audio id="bgm">.
 README.md            Minimal, oanvänd för kontext — använd det här dokumentet.
 ```
 
@@ -5274,8 +5274,10 @@ användaren, bara idéer:
 
 - **Inga externa beroenden i produkten**: allt är vanilla JS/CSS/HTML i en
   fil. Typsnitt (Cinzel + Spectral) laddas via `@import` från Google Fonts.
-  Ljudeffekter genereras med Web Audio API (ingen extern SFX-fil);
-  bakgrundsmusik är `battle-theme.mp3`.
+  De flesta ljudeffekter genereras med Web Audio API; ett fåtal Ultimates
+  har numera riktiga inspelade filer också (`voices/*.mp3` för röstlinjer,
+  `sfx/*.mp3` för impact-effekter — se avsnittet om fas 4c/4d/4e).
+  Bakgrundsmusik är `ancient-mysteries.mp3`.
 - **Repo**: GitHub `littlejesp/Triad-arena`. Varje session får en egen,
   automatiskt tilldelad arbetsbranch (namnet skiftar per session — kolla
   `git branch --show-current`). Arbetsflöde hittills: committa på den
