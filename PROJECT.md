@@ -1612,6 +1612,83 @@ skärmdump visar "Destroyed!"-overlayen och banderollen "Void
 Dominion" samtidigt. Hela testsviten grön (92/92, samma antal —
 befintligt testfall utökat).
 
+**Fas 4e: Nyxaras Void Dominion fick en egen "element-identitet"-VFX,
+explicit märkt av användaren som ett engångstest** ("Testa Nyxara –
+Void Dominion VFX... Detta är bara ett visuellt test för Void
+Dominion. Ändra inget annat."). Detta är samma "element-specifika
+VFX-identiteter"-fas som nämndes redan i den ALLRA FÖRSTA
+visionsdokumentet i den här fasen (se punkt 55 längst upp), nu
+påbörjad som ett konkret första exempel snarare än ett generellt
+system för alla kort — medvetet scopead till bara Nyxara/Void
+Dominion, ingen ny kod för andra kort.
+
+Kravlistan (från användaren, alla uppfyllda):
+- Mörk/lila void-energi runt Nyxaras eget kort — ny `.card.void-
+  dominion-casting`-klass, samma "slot"/z-index som den redan
+  existerande generiska `.card.ultimate-casting`-glöden men en egen
+  mörkare lila `voidDominionCardAura`-keyframe. Lagd till SOM ETT
+  TILLÄGG (samma `opts.ultimateCasting`-flagga, bara en extra klass
+  när `card.id === 'nyxara'`), inte en ersättning — alla andra
+  Ultimates behåller sin generiska glöd orörd.
+- Spelplanen mörknar subtilt — ny `.void-dominion-dark`-overlay,
+  positionerad BAKOM `.board` (z-index:0, `.board` är z-index:1) så
+  den aldrig mörklägger själva korten, bara ramen runt/mellan dem.
+- Verklighetsspricka/void-våg över hela spelplanen — ny `.void-crack`,
+  en ring som exploderar utåt från Nyxaras faktiska cell-position
+  (beräknad från `state.ultimateBanner.sourceIndex`, inte hårdkodad)
+  under impact-fasen, skalar upp långt förbi brädets egna kanter.
+- Partiklar dras mot voiden — 8 st `.void-particle`-element med egna
+  `--px`/`--py`-startpositioner (samma "deterministisk per-element
+  stagger"-teknik som `.arena-mote` redan använder, fast radiellt
+  istället för vertikal drift), dras in mot Nyxaras cell under
+  cast-fasen (laddar upp, sedan spricker).
+- Kort impact/screen shake — återanvänder den BEFINTLIGA
+  `.arena-frame.chain-shake`-mekanismen från fas 3 rakt av (precis vad
+  uppgiften bad om: "Använd befintligt Ultimate-event/triggersystem om
+  det finns"). Krävde en liten men nödvändig utökning:
+  `capturedCount` räknas via `justFlipped` (en FÅNGST-flagga), men
+  Void Dominion FÖRSTÖR (via `destroyCard()`), sätter aldrig
+  `justFlipped` — utan ändringen hade `capturedCount` alltid varit 0
+  och skaket aldrig triggat. Explicit opt-in tillagd:
+  `if(capturedCount >= 3 || special.name === 'Void Dominion')`.
+- Snabb sekvens (~1-2s) som återgår till normalt — bygger HELT på den
+  redan existerande cast→impact→cleanup-livscykeln i
+  `playUltimateSequence` (windup 950ms + cleanup 1300ms = 2.25s totalt,
+  samma timing som varje annan Ultimate redan har) — inga nya timers,
+  ingen ny `state`-flagga ens: `voidDominionActive` beräknas rent
+  deriverat i `renderBattle()` från `state.ultimateBanner.name ===
+  'Void Dominion'`, försvinner automatiskt med samma befintliga
+  cleanup som redan rensar banderollen.
+- Ingen spellogik ändrad — `chainShake` är en ren CSS-klass, rör
+  varken vinster, bräde eller AI. Alla nya CSS-klasser/element är
+  `pointer-events:none` och `aria-hidden`, ren presentation.
+- Prestanda/läsbarhet — bara 8 fasta DOM-element (inga JS-
+  animationsloopar), och samma "tunn, låg opacitet, kortlivad"-princip
+  som `flipSpark`/`captureRingBlue`/`captureRingRed` redan etablerat —
+  siffror och text på korten förblir fullt läsbara genom hela
+  sekvensen (verifierat visuellt via skärmdumpar).
+
+**Verifiering:** ett nytt permanent test bekräftar hela livscykeln via
+en riktig `runSpecialResolution`-anrop (inte bara state-injicering,
+riktiga DOM-queries mot de faktiska elementen): under cast-fasen finns
+mörkläggningen, fx-wrappern (med `--void-x`/`--void-y` som matchar
+Nyxaras faktiska cell — testad mot cell 0, top-left, vilket ska ge
+~16.67%/16.67%), kortets egen lila-aura-klass, och alla 8 partiklar;
+brädet är fortfarande orört (samma anticipation-pause-garanti som
+alla andra Ultimates). Efter windup-tiden: effekten har landat
+(fiendekortet förstört), mörkläggningen och fx-wrappern har växlat
+till sina impact-klasser, och `chainShake` har triggat TROTS att
+`capturedCount` är 0 (den explicita opt-in fungerar). Efter hela
+cleanup-tiden: allt borta, `chainShake` återställd, banderollen borta
+— identiskt med varje annan Ultimates städning. Ett sista kontroll
+bekräftar att Ifrits Hellfire INTE får någon av dessa element/klasser
+— scopead strikt till Nyxaras kort-id plus hennes exakta
+Ultimate-namn. Verifierat även manuellt med riktiga UI-klick-
+sekvenser och skärmdumpar i tre lägen (mitt i cast med synliga
+partiklar, vid impact med den expanderande spricku-ringen och
+"Destroyed!"-overlayen, samt en explicit kontroll att korten förblir
+läsbara). Hela testsviten grön (93/93, +1 nytt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
@@ -2740,7 +2817,7 @@ rulebook-cover.jpg,   Regelbokens sidor (📖-knapp i mastheaden). En bild per
 rulebook-page-*.jpg  sida, listade i JS-arrayen RULEBOOK_PAGES i den ordning
                      de bläddras. Lägg till en ny sida genom att generera en
                      matchande bild och lägga till filnamnet i den arrayen.
-battle-theme.mp3     Bakgrundsmusik (loopar), spelas via <audio id="bgm">.
+ancient-mysteries.mp3 Bakgrundsmusik (loopar), spelas via <audio id="bgm">.
 README.md            Minimal, oanvänd för kontext — använd det här dokumentet.
 ```
 
@@ -5197,8 +5274,10 @@ användaren, bara idéer:
 
 - **Inga externa beroenden i produkten**: allt är vanilla JS/CSS/HTML i en
   fil. Typsnitt (Cinzel + Spectral) laddas via `@import` från Google Fonts.
-  Ljudeffekter genereras med Web Audio API (ingen extern SFX-fil);
-  bakgrundsmusik är `battle-theme.mp3`.
+  De flesta ljudeffekter genereras med Web Audio API; ett fåtal Ultimates
+  har numera riktiga inspelade filer också (`voices/*.mp3` för röstlinjer,
+  `sfx/*.mp3` för impact-effekter — se avsnittet om fas 4c/4d/4e).
+  Bakgrundsmusik är `ancient-mysteries.mp3`.
 - **Repo**: GitHub `littlejesp/Triad-arena`. Varje session får en egen,
   automatiskt tilldelad arbetsbranch (namnet skiftar per session — kolla
   `git branch --show-current`). Arbetsflöde hittills: committa på den
