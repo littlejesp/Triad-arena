@@ -70,6 +70,14 @@ body{
 .stage-mote:nth-child(2){ left:18%; color:var(--frost);  animation-duration:26s; animation-delay:7s; }
 .stage-mote:nth-child(3){ left:80%; color:var(--arcane); animation-duration:24s; animation-delay:12s; }
 .stage-mote:nth-child(4){ left:92%; color:var(--earth);  animation-duration:28s; animation-delay:4s; }
+/* Doubled from 4 to 8 (user feedback: "bakgrund mer levande... själar som
+   flyger upp") -- same drifting-ember technique, just more of them and a
+   wider spread of left% positions so the whole background reads livelier
+   rather than four isolated points. */
+.stage-mote:nth-child(5){ left:34%; color:var(--gold);       animation-duration:20s; animation-delay:9s;  }
+.stage-mote:nth-child(6){ left:50%; color:var(--gold-bright); animation-duration:30s; animation-delay:2s;  }
+.stage-mote:nth-child(7){ left:64%; color:var(--frost);       animation-duration:25s; animation-delay:15s; }
+.stage-mote:nth-child(8){ left:12%; color:var(--arcane);      animation-duration:23s; animation-delay:18s; }
 @keyframes stageMoteDrift{
   0%{ transform:translateY(0) scale(0.5); opacity:0; }
   12%{ opacity:0.4; }
@@ -853,6 +861,13 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .arena-mote:nth-child(4){ left:62%; color:var(--arcane);      animation-duration:16s; animation-delay:1.2s; }
 .arena-mote:nth-child(5){ left:80%; color:var(--earth);       animation-duration:14s; animation-delay:3.4s; }
 .arena-mote:nth-child(6){ left:92%; color:var(--gold-bright); animation-duration:17s; animation-delay:6s;   }
+/* Increased from 6 to 10 (user feedback: "bakgrund mer levande... själar
+   som flyger upp") -- same theme colors cycled again with fresh
+   position/duration/delay combinations. */
+.arena-mote:nth-child(7){ left:4%;  color:var(--gold);   animation-duration:18s; animation-delay:8s;   }
+.arena-mote:nth-child(8){ left:36%; color:var(--ember);  animation-duration:19s; animation-delay:5.6s; }
+.arena-mote:nth-child(9){ left:54%; color:var(--earth);  animation-duration:16s; animation-delay:9.8s; }
+.arena-mote:nth-child(10){ left:70%; color:var(--arcane); animation-duration:20s; animation-delay:1.8s; }
 @keyframes moteDrift{
   0%{ transform:translateY(0) scale(0.6); opacity:0; }
   15%{ opacity:0.65; }
@@ -1716,7 +1731,13 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    browser window (not just true fullscreen). Screens too short for
    everything still scroll, just inside the framed panel. ---------- */
 @media (min-width:900px){
-  .stage{ max-width:1300px; height:100dvh; overflow:hidden; }
+  /* Widened per user feedback ("ganska mycket död yta... skulle man kunna
+     göra det lite bredare") -- the panel was leaving visible margin on
+     wide monitors even outside true fullscreen. .scoreboard/.wins-row get
+     the same max-width+auto-margin treatment the fullscreen tier below
+     already uses, so the top bar's width tracks the arena instead of
+     stretching edge-to-edge of the now-wider hand-row-to-hand-row span. */
+  .stage{ max-width:1600px; height:100dvh; overflow:hidden; }
   .wrap{
     padding:22px 26px 30px;
     height:100%;
@@ -1724,36 +1745,47 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     overflow-y:auto;
   }
 
-  .battle-row{ gap:16px; flex:1 1 auto; min-height:0; }
+  .battle-row{ gap:28px; flex:1 1 auto; min-height:0; justify-content:center; }
 
-  .hand-row{ width:120px; gap:10px; height:100%; overflow-y:auto; }
-  .hand-label.side{ font-size:12px; margin-bottom:6px; }
+  /* .arena-frame's own width is derived from AVAILABLE HEIGHT (aspect-
+     ratio:1086/1448, height:100%, width:auto below), so on an ordinary
+     landscape monitor it's height-bound, not width-bound -- widening its
+     own max-width above doesn't actually make it bigger there. .hand-row
+     is the column that CAN use freed-up horizontal space (its cards are
+     purely width-driven, see .hand-row .card{width:100%}), so this is the
+     more effective lever for "för det är ganska mycket död yta" on a
+     typical 1920x1080-ish screen. */
+  .hand-row{ width:210px; gap:12px; height:100%; overflow-y:auto; }
+  .hand-label.side{ font-size:13px; margin-bottom:8px; }
 
   .board{ gap:11px; }
   .arena-frame{
-    max-width:820px;
+    max-width:960px;
     height:100%; width:auto;
     flex:0 1 auto;
   }
 
-  .scoreboard{ padding:11px 20px; margin-bottom:16px; }
+  .scoreboard{ padding:11px 20px; margin-bottom:16px; max-width:960px; margin-left:auto; margin-right:auto; }
+  .wins-row{ max-width:960px; margin-left:auto; margin-right:auto; }
   .score-num{ font-size:21px; }
   .turn-indicator{ font-size:13px; }
   .score-flame{ width:44px; height:44px; }
 }
 
 /* ---------- true browser fullscreen (the ⛶ button): the game fills the
-   whole physical screen, so stop capping it at desktop's 1000px and let it
-   use the extra width — bigger board, bigger hands, more breathing room.
-   The viewport-fit mechanics (.stage bounded to 100dvh, .wrap scrolling,
-   .battle-row/.hand-row/.arena-frame flexing to fill it) already come from
-   the plain desktop rule above; this block only widens the caps further.
-   Only kicks in alongside the desktop breakpoint so a phone in fullscreen
-   keeps its normal narrow layout. ---------- */
+   whole physical screen, so stop capping it at plain desktop's width and
+   let it use the extra room — bigger board, bigger hands, more breathing
+   room. The viewport-fit mechanics (.stage bounded to 100dvh, .wrap
+   scrolling, .battle-row/.hand-row/.arena-frame flexing to fill it)
+   already come from the plain desktop rule above; this block only widens
+   the caps further (re-widened alongside that tier's own widening -- see
+   its comment -- so fullscreen stays bigger than plain desktop, not
+   smaller). Only kicks in alongside the desktop breakpoint so a phone in
+   fullscreen keeps its normal narrow layout. ---------- */
 @media (min-width:900px){
   html:fullscreen .stage,
   html:-webkit-full-screen .stage{
-    max-width:1700px;
+    max-width:1900px;
   }
   html:fullscreen .wrap,
   html:-webkit-full-screen .wrap{
@@ -1765,7 +1797,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   }
   html:fullscreen .hand-row,
   html:-webkit-full-screen .hand-row{
-    width:140px; gap:14px;
+    width:240px; gap:14px;
   }
   html:fullscreen .hand-label.side,
   html:-webkit-full-screen .hand-label.side{
@@ -1777,15 +1809,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   }
   html:fullscreen .arena-frame,
   html:-webkit-full-screen .arena-frame{
-    max-width:860px;
+    max-width:1100px;
   }
   html:fullscreen .scoreboard,
   html:-webkit-full-screen .scoreboard{
-    max-width:860px; margin-left:auto; margin-right:auto;
+    max-width:1100px; margin-left:auto; margin-right:auto;
   }
   html:fullscreen .wins-row,
   html:-webkit-full-screen .wins-row{
-    max-width:860px; margin-left:auto; margin-right:auto;
+    max-width:1100px; margin-left:auto; margin-right:auto;
   }
   html:fullscreen .score-num,
   html:-webkit-full-screen .score-num{
@@ -1804,6 +1836,10 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 </audio>
 <div class="stage">
   <div class="stage-ambient" aria-hidden="true">
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
     <span class="stage-mote"></span>
     <span class="stage-mote"></span>
     <span class="stage-mote"></span>
@@ -3600,6 +3636,10 @@ function renderBattle(){
         </svg>
       </div>
       <div class="arena-ambient" aria-hidden="true">
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
         <span class="arena-mote"></span>
         <span class="arena-mote"></span>
         <span class="arena-mote"></span>

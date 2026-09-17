@@ -1920,6 +1920,72 @@ lägen — bekräftade den gyllene auran under cast, de synliga strålarna
 mitt i impact, och de mjuka gyllene träff-glödarna vid den slutliga
 vågen. Hela testsviten grön (96/96, +1 nytt test).
 
+**Fas 4i: skärmfoto-feedback på desktop-layouten — bredare panel +
+livligare bakgrund, ingen kod-VFX-fråga den här gången.** Användaren
+skickade ett foto av spelet på sin bärbara dator: "skulle man kunna
+göra det lite bredare för det är ganska mycket död yta... sen hade jag
+velat ha bakgrund mer levande... själar som också flyger upp som de
+små prickarna jag ser" (syftar på de redan existerande
+`.stage-mote`/`.arena-mote`-partiklarna).
+
+**Viktig upptäckt innan någon kod ändrades:** `.arena-frame` (spelbrädet)
+sätts med `height:100%; width:auto;` och en `aspect-ratio:1086/1448`
+(porträtt) — dess bredd HÄRLEDS alltså från tillgänglig HÖJD, inte
+bredd. På en vanlig liggande 1920×1080-skärm är höjden (minus
+mastheadet/scoreboard/wins-row/loggen) den begränsande faktorn, så att
+bara höja `.arena-frame`s egna `max-width` (vilket redan gjordes i
+tidigare faser) gör INGEN skillnad där — taket nås aldrig. Verifierat
+konkret med ett Playwright-skript vid 1920×1080: brädet stannade på
+~553px bredd oavsett om `max-width` sattes till 820px eller 960px.
+`.hand-row` däremot ÄR rent breddstyrt (`.hand-row .card{width:100%}`,
+korten har ingen egen höjdbegränsning från kolumnen), så det blev den
+faktiskt verksamma spaken istället för att jaga brädet.
+
+Konkreta ändringar (alla `@media (min-width:900px)`, rör INTE mobil-
+layouten som redan var godkänd):
+- `.stage` max-width: 1300px → 1600px (rent desktop) / 1700px → 1900px
+  (riktig helskärm via ⛶-knappen).
+- `.hand-row` bredd: 120px → 210px (desktop) / 140px → 240px
+  (helskärm) — den verkligt verksamma ändringen, gör handkorten
+  märkbart större och äter upp en stor del av den tomma ytan.
+- `.arena-frame` max-width: 820px → 960px (desktop) / 860px → 1100px
+  (helskärm) — behållen ändå för de fall då fönstret RÅKAR vara högt
+  nog (smalare men högre fönster, eller riktig helskärm på en skärm
+  med mindre extrem bildproportion) att brädet faktiskt är
+  breddbegränsat istället för höjdbegränsat.
+- `.scoreboard`/`.wins-row` fick samma `max-width` + `margin:auto`-
+  behandling som helskärms-läget redan hade, så mätarraden ovanför
+  följer brädets bredd istället för att sträcka sig ut till kanten av
+  den nu bredare `.hand-row`-till-`.hand-row`-sträckan.
+- `.battle-row` gap: 16px → 28px.
+
+**Livligare bakgrund:** `.stage-mote` (hela sidans bakgrundslager,
+utanför `#app`, aldrig omritad) utökad från 4 till 8 partiklar;
+`.arena-mote` (inuti spelplanens ram) utökad från 6 till 10 — samma
+redan etablerade teknik (drivande gnistor med `translateY`, exakt vad
+användaren beskrev som "prickar som flyger upp"), bara fler av dem med
+nya position/varaktighet/fördröjnings-kombinationer och en extra
+temafärg (`--gold`, redan definierad men oanvänd i dessa lager sen
+tidigare) för variation.
+
+**Ärlig gräns kommunicerad (inte bara kodad tyst):** även efter dessa
+ändringar kvarstår en del marginal på båda sidor av panelen på en
+vanlig 1920×1080-skärm, eftersom ett porträtt-orienterat 3×3-bräde
+aldrig kan fylla en liggande skärm utan antingen att förvränga
+kortproportionerna eller kraftigt krympa mastheadet/scoreboard-höjden
+(en mycket större strukturell ändring, inte vad som begärdes). Löst
+genom att göra marginalen kännas avsiktlig snarare än tom — bredare
+handkort + livligare partiklar — istället för att låtsas att den tomma
+ytan helt försvinner.
+
+**Verifiering:** inga permanenta tester berörs (ren CSS/markup, ingen
+spellogik), men hela testsviten kördes ändå för att bekräfta att inget
+annat gått sönder — grön (96/96). Verifierat manuellt med Playwright
+vid 1920×1080 (innan/efter-jämförelse av faktisk `.arena-frame`/
+`.hand-row`-bredd via `getBoundingClientRect()`, plus skärmdumpar) och
+vid 420px mobilbredd (bekräftade layouten och antalet mote-element
+oförändrat där, ingen horisontell scroll introducerad).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
