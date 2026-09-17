@@ -2065,6 +2065,65 @@ bekräftade de synliga röda targeting-markeringarna under cast och den
 kraftiga orange/vita explosionsvågen vid impact. Hela testsviten grön
 (97/97, +1 nytt test).
 
+**Fas 4k: Bahamuts impact-SFX inkopplad, Odins Zantetsuken omdesignad
+till en riskfylld "Ragnarok"-ultimate, och en desktop-only bugfix på
+kort-infomodalens bild.** Tre separata användarförfrågningar hanterade i
+samma omgång:
+
+- **Bahamut impact-SFX** — femte uppladdade ljudfilen ("Nu ljudet för
+  mega flare attacken", `sfx/bahamut.mp3`, bekräftat unik via `md5sum`)
+  inkopplad i `ULTIMATE_IMPACT_SFX` som `bahamut: 'sfx/bahamut.mp3'` —
+  samma engångsrad som alla tidigare kort i mappningen, ingen ny kod.
+  Fas 4d-testet utökat igen: en ny `bahamutCall`-kontroll bekräftar att
+  `playUltimateImpactSfx('bahamut')` spelar rätt fil.
+- **Odins Zantetsuken — 50% chans att förstöra HELA brädet** (användarens
+  egen begäran: "hans ultimate borde döda alla kort på spelplanen med
+  50% chans annars är skillen bra"). `SPECIAL_HANDLERS.odin` behåller
+  hela sin befintliga gate (kräver fortfarande att attacken vinner
+  makt-jämförelsen, respekterar sköldar) och sitt befintliga
+  fallback-beteende (permanent -3 på målet, -1 denna runda till övriga
+  fiender, +3 denna runda till Odin själv) oförändrat. NYTT: på en
+  lyckad attack, 50% `Math.random() < 0.5`-chans att i stället förstöra
+  VARJE annat kort på brädet via `destroyCard(i, {noRevive:true})` —
+  medvetet INTE fiende-only som alla andra destroy-ultimates i rostret
+  (Infernal Pact/Silver Judgment/Omega Protocol slår bara fiender), utan
+  ett äkta myntkast som kan radera Odins EGEN sida också, eftersom det
+  är hela poängen med en gamble-mekanik snarare än en garanterad
+  ensidig brädrensning. Odin själv (`sourceIndex`) och det redan
+  flippade målet är alltid fredade. Kortets skill-text uppdaterad
+  ordagrant på båda ställena (`HEROES`/`FOREST_FOES`) för att matcha.
+  Ingen ny VFX byggd för detta — användaren bad uttryckligen bara om
+  mekanikändringen ("annars är skillen bra", dvs allt annat med kortet
+  är redan bra som det är). Det befintliga testet
+  ("Odin: Allfather's Gaze... Zantetsuken ultimate") utökat med två
+  deterministiska grenar (myntkastet stubbat via en tillfällig
+  `Math.random`-override, återställd efter varje gren) som täcker BÅDA
+  utfallen: missen (identiskt med gamla beteendet) och träffen
+  (Ragnarok sparar Odin + målet, förstör en allierad OCH en annan
+  fiende på brädet).
+- **Bugfix: kort-infomodalens bild beskuren på desktop/webbversionen**
+  (skärmfoto + "Man ser inte heller hela kortet på web versionen det är
+  en liten liten del som inte synts"). Roten: den sida-vid-sida-layouten
+  som lades till för `@media (min-width:700px)` (se tidigare
+  layout-arbete i avsnitt 5b) tvingar `.poster-art-full` till en FAST
+  bredd/höjd-box (`flex:0 0 320px`, höjden sträckt till att matcha
+  skills-panelens höjd via `align-items:stretch`), och bilden inuti
+  använde `object-fit:cover` — som medvetet BESKÄR bilden för att fylla
+  en box vars proportioner inte matchar bildens egna. Den smala/staplade
+  layouten (`.poster-art-full img{width:100%}`, inget `object-fit`) hade
+  aldrig det här problemet, vilket matchar att användaren bara märkte
+  det på webben/desktop. Fix: bytte `object-fit:cover` → `object-fit:
+  contain` plus en bakgrundsfärg (`var(--void-2)`, samma som modalens
+  egen bakgrund) på `.poster-art-full` så att hela bilden alltid syns,
+  eventuellt brevlådad, utan att sticka ut som ett gap. Verifierat
+  manuellt med en Playwright-skärmdump av Odins kort-infomodal på
+  1400×900 — hela postern (inklusive toppen och botten som tidigare
+  klipptes) syns nu korrekt.
+
+Inga nya generella primitives förutom `destroyCard`-återanvändningen
+(redan befintlig funktion, bara ett nytt anropsställe). Hela testsviten
+grön (99/99, +2 nya grenar i ett befintligt test, +1 rad i ett annat).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

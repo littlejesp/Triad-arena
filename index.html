@@ -1729,8 +1729,8 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   .modal-poster > .poster-art{
     flex:0 0 320px; width:320px; aspect-ratio:auto;
   }
-  .modal-poster > .poster-art-full{ overflow:hidden; }
-  .modal-poster > .poster-art-full img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .modal-poster > .poster-art-full{ overflow:hidden; background:var(--void-2); }
+  .modal-poster > .poster-art-full img{ width:100%; height:100%; object-fit:contain; display:block; }
   .modal-poster .poster-skills{
     flex:1 1 auto; max-height:88vh; overflow-y:auto;
   }
@@ -2441,7 +2441,7 @@ const HEROES = [
       {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
       {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
-      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
+      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, Odin gets +3 Power on all sides this round, and there is a 50% chance he unleashes Ragnarok, destroying every OTHER card on the board (allies included). Otherwise, the defeated card gets -3 Power on all sides permanently and all other enemy cards get -1 Power on all sides this round. Usable once per match."},
     ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
@@ -2758,7 +2758,7 @@ const FOREST_FOES = [
       {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
       {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
-      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
+      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, Odin gets +3 Power on all sides this round, and there is a 50% chance he unleashes Ragnarok, destroying every OTHER card on the board (allies included). Otherwise, the defeated card gets -3 Power on all sides permanently and all other enemy cards get -1 Power on all sides this round. Usable once per match."},
     ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
@@ -7079,7 +7079,17 @@ const SPECIAL_HANDLERS = {
   // round to every OTHER enemy, and +3 Power this round to Odin himself.
   // "Utför sju blixtsnabba slag" ("seven lightning strikes") is pure flavor
   // for the name/flourish, not a literal seven separate hits.
-  odin({ srcEntry, targetEntry, targetIndex, owner }){
+  //
+  // Plus a 50% coin-flip Ragnarok clause (per the user's request): on a
+  // successful hit, there's a 1-in-2 chance every OTHER card on the board
+  // is destroyed via destroyCard (noRevive, same as every other outright
+  // "destroy" special) -- deliberately NOT enemy-only, unlike every other
+  // destroy-based Ultimate in the roster, since this is meant to be a real
+  // gamble (it can wipe Odin's own side too) rather than a guaranteed
+  // one-sided board wipe. Odin himself (sourceIndex) and the just-flipped
+  // target are always spared. Missing the coin flip falls back to the
+  // original single-target + AOE-debuff effect untouched.
+  odin({ srcEntry, sourceIndex, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     const enemyOwner = owner === 'blue' ? 'red' : 'blue';
     if(totalPower(srcEntry) <= totalPower(targetEntry)){
@@ -7092,6 +7102,15 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 3);
+    if(Math.random() < 0.5){
+      let destroyed = 0;
+      state.board.forEach((e, i) => {
+        if(e && i !== sourceIndex && e !== targetEntry){ destroyCard(i, { noRevive: true }); destroyed++; }
+      });
+      return destroyed > 0
+        ? `${name}'s Zantetsuken cuts down ${targetEntry.card.name} and unleashes Ragnarok, obliterating ${destroyed} more card${destroyed>1?'s':''} on the field!`
+        : `${name}'s Zantetsuken cuts down ${targetEntry.card.name}!`;
+    }
     SpecialVerbs.debuff(targetEntry, 3);
     let weakened = 0;
     state.board.forEach(e => {
@@ -7366,6 +7385,7 @@ const ULTIMATE_IMPACT_SFX = {
   seraphine: 'sfx/seraphine.mp3',
   omegaweapon: 'sfx/omegaweapon.mp3',
   shiva: 'sfx/shiva.mp3',
+  bahamut: 'sfx/bahamut.mp3',
 };
 function playUltimateImpactSfx(cardId){
   if(!soundOn) return;

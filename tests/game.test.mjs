@@ -3745,17 +3745,39 @@ test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's So
 
     // Zantetsuken: permanent -3 to the target (respects debuffImmune via
     // SpecialVerbs.debuff), -1 this round to every OTHER enemy, +3 this
-    // round to Odin himself.
+    // round to Odin himself -- this is the "coin flip missed" branch.
+    const realRandom = Math.random;
     state.board = Array(9).fill(null);
     const odinUlt = freshEntry(odin, 'blue');
     state.board[4] = odinUlt;
     const odinTarget = freshEntry({ id:'ot', name:'OT', top:1,right:1,bottom:1,left:1 }, 'red');
     const odinOther = freshEntry({ id:'oo', name:'OO', top:1,right:1,bottom:1,left:1 }, 'red');
     state.board[1] = odinTarget; state.board[8] = odinOther;
-    SPECIAL_HANDLERS.odin({ srcEntry: odinUlt, targetEntry: odinTarget, targetIndex: 1, owner: 'blue' });
+    Math.random = () => 0.9;
+    SPECIAL_HANDLERS.odin({ srcEntry: odinUlt, sourceIndex: 4, targetEntry: odinTarget, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
     out.ultCapturesAndDebuffsTarget = state.board[1].owner === 'blue' && odinTarget.captureBonus === -3;
     out.ultDebuffsOthersThisRound = odinOther.captureBonus === -1;
     out.ultSelfBuff = odinUlt.captureBonus === 3;
+
+    // Zantetsuken's Ragnarok clause: on the other half of the 50% coin
+    // flip, every OTHER card on the board is destroyed -- allies included,
+    // not just enemies -- while Odin himself and the just-flipped target
+    // are always spared.
+    state.board = Array(9).fill(null);
+    const odinUlt2 = freshEntry(odin, 'blue');
+    state.board[4] = odinUlt2;
+    const odinTarget2 = freshEntry({ id:'ot2', name:'OT2', top:1,right:1,bottom:1,left:1 }, 'red');
+    const odinAlly2 = freshEntry({ id:'oa2', name:'OA2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const odinFoe2 = freshEntry({ id:'of2', name:'OF2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = odinTarget2; state.board[2] = odinAlly2; state.board[8] = odinFoe2;
+    Math.random = () => 0.1;
+    SPECIAL_HANDLERS.odin({ srcEntry: odinUlt2, sourceIndex: 4, targetEntry: odinTarget2, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.ragnarokSparesOdin = state.board[4] === odinUlt2;
+    out.ragnarokSparesTarget = state.board[1] === odinTarget2 && odinTarget2.owner === 'blue';
+    out.ragnarokDestroysAlly = state.board[2] === null;
+    out.ragnarokDestroysOtherFoe = state.board[8] === null;
 
     return out;
   })()`);
@@ -3767,6 +3789,10 @@ test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's So
   assert.equal(result.ultCapturesAndDebuffsTarget, true);
   assert.equal(result.ultDebuffsOthersThisRound, true);
   assert.equal(result.ultSelfBuff, true);
+  assert.equal(result.ragnarokSparesOdin, true);
+  assert.equal(result.ragnarokSparesTarget, true);
+  assert.equal(result.ragnarokDestroysAlly, true);
+  assert.equal(result.ragnarokDestroysOtherFoe, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -5593,7 +5619,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   await page.close();
 });
 
-test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact, Seraphine\'s Silver Judgment, Omega Weapon\'s Omega Protocol and Shiva\'s Diamond Storm also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact, Seraphine\'s Silver Judgment, Omega Weapon\'s Omega Protocol, Shiva\'s Diamond Storm and Bahamut\'s Megaflare also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5631,6 +5657,10 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     out.shivaCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateImpactSfx('bahamut');
+    out.bahamutCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateImpactSfx('triunedesire'); // no impact-SFX entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5649,6 +5679,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
   assert.deepEqual(result.seraphineCall, ['sfx/seraphine.mp3'], "Seraphine's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.omegaweaponCall, ['sfx/omegaweapon.mp3'], "Omega Weapon's Ultimate impact should play its impact SFX file");
   assert.deepEqual(result.shivaCall, ['sfx/shiva.mp3'], "Shiva's Ultimate impact should play her impact SFX file");
+  assert.deepEqual(result.bahamutCall, ['sfx/bahamut.mp3'], "Bahamut's Ultimate impact should play his impact SFX file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
   assert.deepEqual(pageErrors, []);
