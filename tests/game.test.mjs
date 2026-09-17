@@ -6290,6 +6290,105 @@ test('Omega Weapon Omega Protocol identity VFX (one-off test): card aura/targeti
   await page.close();
 });
 
+test('Shiva Diamond Storm identity VFX (one-off test): card aura/shard rails/fragments/hits/wave/flash ride the existing cast->impact->cleanup lifecycle, rail/hit count matches enemy count, chainShake fires despite a plain AOE debuff never setting justFlipped, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the diamond-storm-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('shiva'), 'blue');
+    state.board[4] = src; // center cell -> --ds-x/--ds-y should be ~50%/50%
+    state.board[0] = freshEntry({ id:'e0', name:'E0', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[7] = freshEntry({ id:'e7', name:'E7', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + fx wrapper + one rail PER ENEMY, fixed 8
+    // fragments always present, origin matches Shiva's actual cell, no
+    // hit-bursts visible yet (impact-only), board untouched.
+    out.cardHasAura = document.querySelector('.card.diamond-storm-casting') !== null;
+    const fx = document.querySelector('.diamond-storm-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--ds-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--ds-y')) - 50) < 0.1;
+    out.railCountMatchesEnemyCount = document.querySelectorAll('.diamond-storm-rail').length === 2;
+    out.shardCountMatchesTwoPerRail = document.querySelectorAll('.diamond-storm-shard').length === 4;
+    out.fragmentCount = document.querySelectorAll('.diamond-storm-fragment').length;
+    // Same pattern as every other AOE identity-VFX card's hit elements:
+    // they exist in the DOM during cast too, just invisible (opacity:0)
+    // until the .phase-impact CSS selector triggers their animation.
+    const castHits = [...document.querySelectorAll('.diamond-storm-hit')];
+    out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: hit bursts (one per enemy) + wave + flash all appear,
+    // both enemies debuffed and Shiva buffed (a plain AOE debuff, not a
+    // destroy or a capture), chainShake fires despite that.
+    const fx2 = document.querySelector('.diamond-storm-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.diamond-storm-hit').length === 2;
+    out.wavePresent = document.querySelector('.diamond-storm-wave') !== null;
+    out.flashPresent = document.querySelector('.diamond-storm-flash.phase-impact') !== null;
+    out.effectLanded = state.board[0].captureBonus === -3 && state.board[7].captureBonus === -3 && src.captureBonus === 3;
+    out.chainShakeFiredDespitePlainDebuff = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.diamond-storm-fx') === null;
+    out.flashGoneAfterCleanup = document.querySelector('.diamond-storm-flash') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.diamond-storm-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different plain-AOE-debuff Ultimate (Ancient Wyrmking's Conquests
+    // Witnessed) must get NONE of this -- scoped strictly to Shiva's card
+    // id + its exact Ultimate name.
+    state.board = Array(9).fill(null);
+    const dragonSrc = freshEntry(findCardById('dragon'), 'blue');
+    state.board[4] = dragonSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.noDiamondStormVfxForDragon = document.querySelector('.diamond-storm-fx') === null
+      && document.querySelector('.diamond-storm-flash') === null
+      && document.querySelector('.card.diamond-storm-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.cardHasAura, true, "Shiva's own card should get the diamond-storm-casting class (and its accelerating rings) during her windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the shard/fragment wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Shiva's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.railCountMatchesEnemyCount, true, 'one shard rail per enemy actually present at cast time');
+  assert.equal(result.shardCountMatchesTwoPerRail, true, 'two shard sparkles per rail (denser crystal storm than a single sparkle)');
+  assert.equal(result.fragmentCount, 8, 'the fixed set of 8 larger crystal fragments around the cards should always be present');
+  assert.equal(result.hitsInvisibleDuringCast, true, 'the per-enemy crystal-impact elements exist (2, matching the enemy count) but stay invisible until the impact-phase CSS class triggers their animation');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one crystal-impact per enemy actually present at cast time, not a fixed count');
+  assert.equal(result.wavePresent, true, 'the final crystal wave should appear at impact');
+  assert.equal(result.flashPresent, true, 'the soft icy full-frame flash should appear at impact');
+  assert.equal(result.effectLanded, true, "Diamond Storm's actual mechanic (AOE debuff + self-buff) still applies once the windup elapses");
+  assert.equal(result.chainShakeFiredDespitePlainDebuff, true, 'chainShake must fire for Diamond Storm even though a plain AOE debuff never sets justFlipped (capturedCount stays 0)');
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.flashGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noDiamondStormVfxForDragon, true, "this identity VFX must stay scoped to Shiva's Diamond Storm specifically, not leak onto other plain-AOE-debuff Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

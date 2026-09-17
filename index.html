@@ -612,6 +612,63 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   0%{ opacity:0.75; transform:translate(-50%,-50%) scale(1.15) rotate(0deg); }
   100%{ opacity:0; transform:translate(-50%,-50%) scale(0.4) rotate(180deg); }
 }
+/* Same one-off-identity-VFX pattern as the others above, this time for
+   Shiva's Diamond Storm (see the user's Diamond Storm VFX request) —
+   icy white/blue/silver instead of any previous card's palette. The
+   brief's "kristallfragment som snurrar runt kortet, allt snabbare" (crystal
+   fragments spinning around the card, faster and faster) is a genuinely
+   new shape: every other card's rotating ring spins at a CONSTANT rate
+   (see infernalPactSigilSpin/silverJudgmentSigilSpin above, plain
+   `linear` timing) — this one's keyframe stops are deliberately spaced
+   UNEVENLY (60deg in the first 40% of the cast, then 620deg total by
+   100%) so the same 0.95s window reads as a storm visibly accelerating,
+   without needing JS-driven animation-duration changes mid-flight. Two
+   rings turning opposite directions (::before/::after) for "storm"
+   density rather than a single sigil. */
+.card.diamond-storm-casting{
+  animation: diamondStormCardAura 0.95s ease-in forwards;
+  z-index:6;
+}
+@keyframes diamondStormCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(126,200,242,0.5), 0 0 14px rgba(126,200,242,0.4), inset 0 0 10px rgba(220,245,255,0.3);
+    filter:brightness(1) saturate(1.05);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(230,250,255,0.95), 0 0 50px rgba(140,210,255,0.85), inset 0 0 32px rgba(255,255,255,0.65);
+    filter:brightness(1.25) saturate(1.1);
+  }
+}
+.card.diamond-storm-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:88%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg); border-radius:50%;
+  border:2px dashed rgba(220,245,255,0.8);
+  box-shadow:0 0 18px rgba(140,210,255,0.5) inset;
+  animation: diamondStormSpinAccelerate 0.95s ease-in forwards;
+}
+@keyframes diamondStormSpinAccelerate{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.5; }
+  40%{ transform:translate(-50%,-50%) rotate(60deg); opacity:0.75; }
+  65%{ transform:translate(-50%,-50%) rotate(160deg); opacity:0.9; }
+  82%{ transform:translate(-50%,-50%) rotate(320deg); opacity:1; }
+  100%{ transform:translate(-50%,-50%) rotate(620deg); opacity:1; }
+}
+.card.diamond-storm-casting::after{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:62%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg); border-radius:50%;
+  border:1.5px dashed rgba(126,200,242,0.85);
+  box-shadow:0 0 12px rgba(220,245,255,0.5) inset;
+  animation: diamondStormSpinAccelerateRev 0.95s ease-in forwards;
+}
+@keyframes diamondStormSpinAccelerateRev{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.5; }
+  40%{ transform:translate(-50%,-50%) rotate(-90deg); opacity:0.75; }
+  65%{ transform:translate(-50%,-50%) rotate(-220deg); opacity:0.9; }
+  82%{ transform:translate(-50%,-50%) rotate(-420deg); opacity:1; }
+  100%{ transform:translate(-50%,-50%) rotate(-780deg); opacity:1; }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -1386,6 +1443,147 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 @keyframes omegaProtocolFlash{
   0%{ opacity:0; }
   35%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
+/* Shiva's Diamond Storm — a sixth one-off identity VFX (see the user's
+   Diamond Storm VFX request), icy white/blue/silver. Same .board-matching
+   wrapper as the others. Two NEW-ish pieces reused/recombined from prior
+   cards rather than invented from scratch:
+   - "hundreds av små glödande kristaller/diamanter som skjuts över hela
+     brädet mot fiendekorten" is represented (like every other "many small
+     things" moment in this file, e.g. the 8 ambient motes/8 Infernal Pact
+     particles) as a modest, readable count rather than a literal hundreds
+     of DOM nodes -- 2 small shard sparkles per enemy, riding an invisible
+     rotated "rail" positioned+angled with the exact same trig as Seraphine's
+     Silver Judgment beams (angleAndLength via aspect-ratio-normalized
+     atan2). The rail itself stays opacity:0 (no visible beam line) so this
+     doesn't just read as a blue reskin of her Ultimate -- only the two
+     small diamond-shaped sparkles per rail are visible, deliberately
+     staggered so they don't travel in lockstep.
+   - "ett par större kristallfragment som kortvarigt slår ner i spelplanen
+     runt korten" (a few larger fragments briefly striking the board around
+     the cards) reuses Infernal Pact's fixed-nth-child pixel-offset
+     particle technique (8 static offsets from center, cast-phase only)
+     rather than the enemyIndices-positioned technique, since this beat is
+     explicitly "around the cards" in general, not aimed at any specific
+     enemy. */
+.diamond-storm-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.diamond-storm-rail{
+  position:absolute; height:0; transform-origin:0 50%; pointer-events:none;
+  opacity:0;
+}
+.diamond-storm-shard{
+  position:absolute; top:-3px; left:0%; width:6px; height:6px;
+  background:linear-gradient(135deg, #ffffff, #7ec8f2);
+  transform:rotate(45deg) scale(0.3);
+  box-shadow:0 0 8px 2px rgba(126,200,242,0.85);
+  opacity:0;
+}
+/* Travels via `left` (0% -> 100% OF THE RAIL, which has its own explicit
+   inline width in %), not a transform:translate -- a percentage transform
+   is relative to the SHARD's own tiny box, not its parent, so it couldn't
+   span an arbitrary rail length; `left` is relative to the containing
+   block (the rail) and needs no per-element custom property, same
+   technique as silver-judgment-sparkle above. */
+.diamond-storm-fx.phase-impact .diamond-storm-shard{ animation: diamondStormShardFly 0.4s ease-out both; }
+@keyframes diamondStormShardFly{
+  0%{ opacity:0; left:0%; transform:rotate(45deg) scale(0.3); }
+  15%{ opacity:1; }
+  100%{ opacity:0; left:100%; transform:rotate(45deg) scale(1); }
+}
+/* Lands right as its rail's shards arrive -- clear per-enemy crystal
+   impact, same variable-count/inline-position technique as the other
+   AOE cards' *-hit elements, icy palette here. */
+.diamond-storm-hit{
+  position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(126,200,242,0.7) 50%, transparent 78%);
+  opacity:0;
+}
+.diamond-storm-fx.phase-impact .diamond-storm-hit{ animation: diamondStormHit 0.5s ease-out both; }
+@keyframes diamondStormHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  35%{ opacity:1; transform:scale(1.5); }
+  100%{ opacity:0; transform:scale(2); }
+}
+.diamond-storm-fragment{
+  position:absolute; left:var(--ds-x,50%); top:var(--ds-y,50%);
+  width:5px; height:5px; background:#eaf6ff;
+  transform:rotate(45deg); box-shadow:0 0 8px 2px rgba(126,200,242,0.8);
+  opacity:0;
+}
+.diamond-storm-fx.phase-cast .diamond-storm-fragment{ animation: diamondStormFragmentStrike 0.8s ease-in both; }
+@keyframes diamondStormFragmentStrike{
+  0%{ opacity:0; transform:translate(var(--px),var(--py)) rotate(45deg) scale(1.6); }
+  30%{ opacity:1; }
+  100%{ opacity:0; transform:translate(0,0) rotate(45deg) scale(0.3); }
+}
+.diamond-storm-fragment-0{ --px:-75px; --py:-25px; animation-delay:0s;   }
+.diamond-storm-fragment-1{ --px:65px;  --py:-40px; animation-delay:.05s; }
+.diamond-storm-fragment-2{ --px:85px;  --py:25px;  animation-delay:.1s;  }
+.diamond-storm-fragment-3{ --px:35px;  --py:65px;  animation-delay:.15s; }
+.diamond-storm-fragment-4{ --px:-55px; --py:60px;  animation-delay:.03s; }
+.diamond-storm-fragment-5{ --px:-85px; --py:5px;   animation-delay:.08s; }
+.diamond-storm-fragment-6{ --px:5px;   --py:-75px; animation-delay:.13s; }
+.diamond-storm-fragment-7{ --px:15px;  --py:75px;  animation-delay:.18s; }
+/* "En stor, vacker kristall-flash/våg när allt slår in" -- same expanding-
+   ring technique as void-crack/hellfire-blast/silver-judgment-wave, icy
+   white/blue here, delayed until after the shards/hits have landed. */
+.diamond-storm-wave{
+  position:absolute; left:var(--ds-x,50%); top:var(--ds-y,50%);
+  width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.95);
+  box-shadow:0 0 30px 10px rgba(126,200,242,0.6), inset 0 0 18px rgba(255,255,255,0.7);
+  opacity:0;
+}
+.diamond-storm-fx.phase-impact .diamond-storm-wave{ animation: diamondStormWaveExpand 0.6s cubic-bezier(.15,.8,.3,1) 0.5s both; }
+@keyframes diamondStormWaveExpand{
+  0%{ opacity:0.9; transform:scale(0.4); }
+  60%{ opacity:0.45; transform:scale(9); }
+  100%{ opacity:0; transform:scale(13); }
+}
+/* "Kvarvarande glittrande kristallpartiklar" -- a handful of small
+   twinkling glints that fade in late and linger through the tail end of
+   the impact/cleanup window (up to ULTIMATE_CLEANUP_MS after impact
+   starts), rather than landing/traveling like the shards/fragments above
+   -- a slow simple opacity/scale twinkle, not a burst. */
+.diamond-storm-glitter{
+  position:absolute; left:var(--ds-x,50%); top:var(--ds-y,50%);
+  width:4px; height:4px; border-radius:50%;
+  background:#ffffff; box-shadow:0 0 6px 2px rgba(200,235,255,0.9);
+  opacity:0;
+}
+.diamond-storm-fx.phase-impact .diamond-storm-glitter{ animation: diamondStormGlitterTwinkle 0.9s ease-in-out both; }
+@keyframes diamondStormGlitterTwinkle{
+  0%{ opacity:0; transform:translate(var(--gx),var(--gy)) scale(0.4); }
+  40%{ opacity:0.9; transform:translate(var(--gx),var(--gy)) scale(1.1); }
+  100%{ opacity:0; transform:translate(var(--gx),var(--gy)) scale(0.6); }
+}
+.diamond-storm-glitter-0{ --gx:-60px; --gy:-50px; animation-delay:.55s; }
+.diamond-storm-glitter-1{ --gx:70px;  --gy:-30px; animation-delay:.65s; }
+.diamond-storm-glitter-2{ --gx:50px;  --gy:55px;  animation-delay:.7s;  }
+.diamond-storm-glitter-3{ --gx:-45px; --gy:60px;  animation-delay:.6s;  }
+.diamond-storm-glitter-4{ --gx:0px;   --gy:-70px; animation-delay:.75s; }
+.diamond-storm-glitter-5{ --gx:-10px; --gy:70px;  animation-delay:.5s;  }
+/* "Kort screen shake vid den stora impacten, men mindre aggressiv än
+   Omega Weapons" -- reuses the exact same chain-shake amplitude as every
+   other card (never softened, see the note on Silver Judgment's flash
+   above), so the gentler feel comes entirely from this flash being a
+   single soft icy wash (closer to Silver Judgment's soft flash than
+   Omega Protocol's punchy white/orange double-tone one) plus no
+   pre-impact rumble. */
+.diamond-storm-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.55) 0%, rgba(126,200,242,0.2) 45%, rgba(126,200,242,0) 72%);
+  opacity:0;
+}
+.diamond-storm-flash.phase-impact{ animation: diamondStormFlash 0.5s ease-out 0.45s both; }
+@keyframes diamondStormFlash{
+  0%{ opacity:0; }
+  30%{ opacity:1; }
   100%{ opacity:0; }
 }
 
@@ -3381,6 +3579,9 @@ function cardFace(card, opts={}){
   // Omega Weapon's Omega Protocol identity VFX (see the omega-protocol-*
   // CSS block) — same additive pattern as void-dominion-casting above.
   const omegaProtocolCastingClass = (opts.ultimateCasting && card.id === 'omegaweapon') ? 'omega-protocol-casting' : '';
+  // Shiva's Diamond Storm identity VFX (see the diamond-storm-* CSS
+  // block) — same additive pattern as void-dominion-casting above.
+  const diamondStormCastingClass = (opts.ultimateCasting && card.id === 'shiva') ? 'diamond-storm-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -3391,7 +3592,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -3716,6 +3917,29 @@ function renderBattle(){
     }));
   }
 
+  // Shiva's Diamond Storm identity VFX -- same enemyIndices + angle/length
+  // trig as Silver Judgment above (each enemy gets its own invisible
+  // "rail" so the shard sparkles can travel to it at the right angle),
+  // but the rail itself is never rendered visibly (opacity:0 in CSS) and
+  // two shards per rail ride it instead of one, for a denser "storm" of
+  // small crystals rather than a single beam per target.
+  const diamondStormActive = state.ultimateBanner && state.ultimateBanner.name === 'Diamond Storm';
+  let diamondStormOriginX = 50, diamondStormOriginY = 50, diamondStormRails = [];
+  if(diamondStormActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    diamondStormOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    diamondStormOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    diamondStormRails = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
+      const targetX = ((i % 3) + 0.5) / 3 * 100;
+      const targetY = (Math.floor(i / 3) + 0.5) / 3 * 100;
+      const dxUnits = (targetX - diamondStormOriginX) / 100;
+      const dyUnits = (targetY - diamondStormOriginY) / 100 * (7/5);
+      const angleDeg = Math.atan2(dyUnits, dxUnits) * (180/Math.PI);
+      const lengthPercent = Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100;
+      return { targetX, targetY, angleDeg, lengthPercent, shard1Delay: n * 0.03, shard2Delay: 0.06 + n * 0.03, hitDelay: 0.3 + n * 0.05 };
+    });
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -3864,6 +4088,21 @@ function renderBattle(){
           ${omegaProtocolTargets.map(t => `<div class="omega-protocol-hit" style="left:${t.x}%; top:${t.y}%; animation-delay:${t.hitDelay}s;"></div>`).join('')}
         </div>
         <div class="omega-protocol-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${diamondStormActive ? `
+        <div class="diamond-storm-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--ds-x:${diamondStormOriginX}%; --ds-y:${diamondStormOriginY}%;">
+          ${[0,1,2,3,4,5,6,7].map(n => `<div class="diamond-storm-fragment diamond-storm-fragment-${n}"></div>`).join('')}
+          ${diamondStormRails.map(r => `
+            <div class="diamond-storm-rail" style="left:${diamondStormOriginX}%; top:${diamondStormOriginY}%; width:${r.lengthPercent}%; transform:rotate(${r.angleDeg}deg);">
+              <div class="diamond-storm-shard" style="animation-delay:${r.shard1Delay}s;"></div>
+              <div class="diamond-storm-shard" style="animation-delay:${r.shard2Delay}s;"></div>
+            </div>
+          `).join('')}
+          ${diamondStormRails.map(r => `<div class="diamond-storm-hit" style="left:${r.targetX}%; top:${r.targetY}%; animation-delay:${r.hitDelay}s;"></div>`).join('')}
+          <div class="diamond-storm-wave"></div>
+          ${[0,1,2,3,4,5].map(n => `<div class="diamond-storm-glitter diamond-storm-glitter-${n}"></div>`).join('')}
+        </div>
+        <div class="diamond-storm-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
@@ -7437,8 +7676,14 @@ function playUltimateSequence(job){
   // banner below. Presentation only, never read by gameplay logic, and
   // only computed for these specific cards' Ultimates (not a general
   // capability every AOE gets).
+  // Shiva's Diamond Storm is added to this list too even though it never
+  // destroys/nulls any board slot (it's a plain debuffThisRound AOE,
+  // entries stay in place) -- captured here anyway so her shard-rail/hit
+  // VFX can reuse the exact same enemyIndices-on-the-banner mechanism as
+  // every other AOE identity-VFX card, rather than re-deriving "who is an
+  // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm'){
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
   }
 
@@ -7489,7 +7734,11 @@ function playUltimateSequence(job){
     // justFlipped) — same opt-in, same reason. Omega Weapon's Omega
     // Protocol also destroys via destroyCard (just conditionally, only the
     // weak enemies) — same opt-in either way.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol') state.chainShake = true;
+    // Shiva's Diamond Storm never flips anything either (a plain AOE
+    // debuff, not a capture or a destroy) so capturedCount is always 0
+    // here too -- same explicit opt-in as every other card in this list,
+    // for the same "kort screen shake vid impacten" request in her brief.
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.

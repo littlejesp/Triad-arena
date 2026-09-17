@@ -2124,6 +2124,65 @@ Inga nya generella primitives förutom `destroyCard`-återanvändningen
 (redan befintlig funktion, bara ett nytt anropsställe). Hela testsviten
 grön (99/99, +2 nya grenar i ett befintligt test, +1 rad i ett annat).
 
+**Fas 4l: Shiva fick samma sorts "element-identitet"-VFX för Diamond
+Storm, sjätte engångstestet i raden.** Isvitt/blått/silver "kristallstorm"-
+tema. Två saker värda att notera:
+
+- **Accelererande kort-aura istället för konstant rotation** — kravet
+  "kristallfragment som snurrar runt kortet, allt snabbare" är en genuint
+  ny form: alla tidigare korts roterande ring/sigill spinner i konstant
+  hastighet (`linear`-timing). `.card.diamond-storm-casting::before/
+  ::after` löser detta med OJÄMNT fördelade keyframe-stopp inom samma
+  0.95s cast-fönster (60° under de första 40% av tiden, sedan 620° totalt
+  vid 100%) — ingen JS-driven `animation-duration`-ändring mitt i
+  animationen behövs, bara ojämn keyframe-spacing. Två ringar som
+  snurrar åt motsatta håll för extra "storm"-densitet.
+- **"Hundratals" små kristaller representeras (som alla tidigare "många
+  små saker"-ögonblick i den här filen) som ett modest, läsbart antal**
+  — 2 små diamantformade "shard"-gnistor per fiende, som åker på en
+  osynlig roterad "räls" (`.diamond-storm-rail`, opacity:0) positionerad
+  med exakt samma trigonometri som Seraphines Silver Judgment-strålar
+  (vinkel/längd via aspect-ratio-normaliserad atan2) — men själva rälsen
+  syns aldrig, bara de två gnistorna på den, så det här läser INTE som en
+  blå omskinning av hennes Ultimate. Plus 8 fasta "större
+  kristallfragment" (samma pixel-offset-teknik som Infernal Pacts
+  partiklar) som slår ner runt korten under cast-fasen, och 6 kvardröjande
+  "glitter"-gnistor som tonas in sent och blinkar ut under svansen av
+  impact/cleanup-fönstret ("kvarvarande glittrande kristallpartiklar").
+- **`chainShake`- och `aoeEnemyIndicesAtCast`-villkoren utökade igen**
+  (`special.name === 'Diamond Storm'`), av en NY anledning den här gången:
+  Diamond Storm är varken en destroy-AOE (som Infernal Pact/Silver
+  Judgment) eller en villkorlig destroy (som Omega Protocol) — den är en
+  helt vanlig `debuffThisRound`-AOE som aldrig rör brädets celler alls.
+  Ändå läggs den till i båda listorna: `aoeEnemyIndicesAtCast` för att
+  återanvända exakt samma enemyIndices-mekanism som alla andra AOE-VFX-
+  kort istället för att särlösa "vilka är fiender" live i
+  `renderBattle()`, och `chainShake` av samma skäl som alla andra i
+  listan (`capturedCount` blir 0 eftersom ingen flippas).
+- **"Kort screen shake, men mindre aggressiv än Omega Weapons"** — löst
+  på exakt samma sätt som Seraphines "mjukare än Ifrit"-krav: samma
+  delade chain-shake-amplitud (aldrig mjukad per kort), känslan av
+  mildare kommer helt från en enda mjuk isblå flash (närmare Silver
+  Judgments mjuka variant än Omega Protocols hårda vit/orange) och ingen
+  rumble-effekt före impact.
+
+**Verifiering:** ett nytt permanent test (98 totalt) bekräftar hela
+livscykeln med två fiender: under cast-fasen finns kortets accelererande
+ringar, fx-wrappern, EN räls PER FIENDE (2 st, 4 shard-gnistor totalt),
+alla 8 fragment, och crystal-impact-elementen finns redan i DOM:en men
+osynliga (`opacity:0`) tills impact-fasen (samma "osynlig, inte
+frånvarande"-lärdom som Nyxara/Omega Protocol-testerna redan
+dokumenterat). Vid impact: träffantalet matchar fiendeantalet, vågen och
+flashen syns båda, båda fiender debuffade (-3) och Shiva självbuffad
+(+3) — själva spelmekaniken opåverkad av VFX-arbetet. `chainShake`
+triggat trots att ingen flippas. Ett sista kontroll bekräftar att Ancient
+Wyrmkings Conquests Witnessed (samma "vanlig AOE-debuff"-form) INTE får
+någon Diamond-Storm-specifik markup. Verifierat även manuellt med
+Playwright-skärmdumpar (cast + impact) och en direkt DOM-koll av
+element-antal (3 rälsar/träffar för 3 fiender, 6 shards, 8 fragment,
+6 glitter, våg/flash närvarande, chainShake aktivt). Hela testsviten
+grön (98/98, +1 nytt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
