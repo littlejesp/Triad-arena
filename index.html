@@ -2493,6 +2493,29 @@ function toggleSound(){
   render();
 }
 
+// Game feel phase 4b: a spoken announcement of an Ultimate's name, read via
+// the browser's built-in text-to-speech (no audio asset/pipeline needed —
+// every SFX in this file so far is procedural Web Audio, same spirit).
+// Deliberately does NOT call speechSynthesis.cancel() first: the browser's
+// own utterance queue already plays consecutive calls back to back rather
+// than overlapping, which matches playUltimateSequence's own visual
+// queueing (ultimateQueue) — a second Ultimate's windup never starts until
+// the first's full sequence has finished, so there's no real risk of two
+// announcements racing anyway. Wrapped in try/catch since speechSynthesis
+// can be missing or throw in odd embedded webview environments — this is
+// pure flavor, never allowed to break the actual game.
+function announceUltimate(name){
+  if(!soundOn) return;
+  if(!('speechSynthesis' in window)) return;
+  try{
+    const utter = new SpeechSynthesisUtterance(name);
+    utter.rate = 0.9;
+    utter.pitch = 0.8;
+    utter.volume = 0.9;
+    speechSynthesis.speak(utter);
+  }catch(e){ /* never let a TTS failure break the Ultimate sequence */ }
+}
+
 function masthead(compact){
   return `
     <div class="masthead ${compact ? 'compact' : ''}">
@@ -6563,6 +6586,7 @@ function playUltimateSequence(job){
   state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex };
   srcEntry.ultimateCasting = true;
   SFX.select();
+  announceUltimate(special.name);
   render();
 
   setTimeout(()=>{

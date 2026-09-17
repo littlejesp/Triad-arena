@@ -1274,15 +1274,47 @@ uppdateras (inte bara nya tester tillagda) — alla som anropade
 `runSpecialResolution`/`enemyTryUseSpecial` och läste resultatet direkt
 i samma synkrona block fick lägga till `await new Promise(r =>
 setTimeout(r, ULTIMATE_WINDUP_MS + 50))` innan de läser resultatet.
-Ett nytt permanent test (91 totalt) verifierar hela sekvensen end-to-end
+Ett nytt permanent test (90 totalt) verifierar hela sekvensen end-to-end
 (cast-fas orörd bräde, vins-avdrag ändå omedelbart, impact-fas löst
 effekt, cleanup rensar banderoll) PLUS kö-beteendet (två casts back-to-
 back resulterar i sekventiell, inte överlappande, uppspelning). Hela
-testsviten grön (91/91). Verifierat även med ett fristående
+testsviten grön (90/90). Verifierat även med ett fristående
 Playwright-skript som klickade igenom en RIKTIG UI-sekvens (tryck på
 ett redo special-kort, kolla banderoll mitt i väntetiden, försök klicka
 en annan ruta — spärrat — vänta ut hela sekvensen) med skärmdumpar av
 varje fas.
+
+**Fas 4b: uppläst Ultimate-namn via `speechSynthesis`** — direkt
+uppföljning samma session, på användarens idé ("hade varit coolt om
+man kunde höra en röst som säger ultimatens namn när den läggs"). Ny
+`announceUltimate(name)`-funktion, anropad i `playUltimateSequence`s
+cast-fas (samma ställe banderollen redan visas), läser `special.name`
+via webbläsarens inbyggda text-till-tal — inga nya ljudfiler/asset-
+pipeline behövs, samma anda som resten av spelets procedurella
+Web Audio-ljud (`tone()`/`SFX`). Respekterar den befintliga
+`soundOn`-flaggan (samma på/av-växel som all annan SFX) och är
+inbäddad i `try/catch` eftersom `speechSynthesis` kan saknas eller
+kasta i ovanliga webview-miljöer — ren smak, får aldrig kunna knäcka
+själva Ultimate-sekvensen. Medvetet INGET `speechSynthesis.cancel()`
+före varje anrop: webbläsarens egen uttal-kö spelar redan flera anrop
+i följd istället för att överlappa, vilket redan matchar
+`playUltimateSequence`s egen visuella kö (`ultimateQueue`) — nästa
+Ultimates windup startar aldrig förrän föregåendes hela sekvens är
+klar, så två annonseringar kan i praktiken aldrig krocka ändå.
+
+Explicit avvägning kommunicerad och godkänd innan bygget: detta är
+webbläsarens generiska systemröst (robotisk, olika låt på olika
+enheter), inte en riktig "hallåman"-röst — det hade krävt inspelade/
+genererade ljudfiler per Ultimate-namn, en helt egen asset-pipeline
+som inte finns i spelet idag. Medvetet vald som snabbt första steg
+istället.
+
+**Verifiering:** ett nytt permanent test (91 totalt) spionerar på
+`speechSynthesis.speak` och bekräftar att den anropas med exakt
+Ultimate-namnet när `soundOn` är sant, och INTE alls när `soundOn` är
+falskt. Manuellt verifierat i en riktig sida (inte bara state-
+injicering) att `runSpecialResolution` faktiskt triggar ett `speak()`-
+anrop med rätt text. Hela testsviten grön (91/91).
 
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om

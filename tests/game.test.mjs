@@ -5427,6 +5427,35 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
+test('Game feel phase 4b: announceUltimate speaks the Ultimate\'s name via speechSynthesis, and respects the sound toggle', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Spy on speechSynthesis.speak instead of letting it actually run --
+    // headless Chromium has no audio output device, but the call itself
+    // (and what it's called WITH) is what we're verifying here.
+    const calls = [];
+    window.speechSynthesis.speak = (utter) => calls.push(utter.text);
+
+    announceUltimate("Hunter's Wrath");
+    out.spokenWhenSoundOn = calls.length === 1 && calls[0] === "Hunter's Wrath";
+
+    calls.length = 0;
+    soundOn = false;
+    announceUltimate('Megaflare');
+    out.silentWhenSoundOff = calls.length === 0;
+    soundOn = true;
+
+    return out;
+  })()`);
+  assert.equal(result.spokenWhenSoundOn, true, 'announceUltimate should call speechSynthesis.speak with the exact Ultimate name');
+  assert.equal(result.silentWhenSoundOff, true, 'announceUltimate should respect the existing sound-on/off toggle, same as every other SFX');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
