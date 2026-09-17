@@ -1986,6 +1986,18 @@ vid 1920×1080 (innan/efter-jämförelse av faktisk `.arena-frame`/
 vid 420px mobilbredd (bekräftade layouten och antalet mote-element
 oförändrat där, ingen horisontell scroll introducerad).
 
+**Uppdatering, samma session: femte impact-SFX:et, för Omega Weapon
+(Omega Protocol).** Användaren laddade upp en femte egen ljudeffekt
+("Massive futuristic sound", ~2s) med "Omega weapon ultimate ljud".
+Filen kopierad in som `sfx/omegaweapon.mp3`. Femte raden i
+`ULTIMATE_IMPACT_SFX` (`omegaweapon: 'sfx/omegaweapon.mp3'`) — samma
+ramverk, ingen ny kod. Fas 4d-testet utökat igen: mapping-kontrollen
+fick en femte rad, och real-cast-vägs-verifieringen utökad med ett
+femte AOE-steg. Verifierat manuellt med samma UI-klick-sekvens —
+bekräftade `window.Audio`-anrop med `sfx/omegaweapon.mp3` exakt vid
+impact-fasen, och att det svaga testkortet förstördes. Hela
+testsviten grön (96/96, samma antal — befintligt testfall utökat).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
