@@ -418,6 +418,29 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
     filter:brightness(1.3) saturate(1.3);
   }
 }
+/* One-off test of a card/element-specific Ultimate identity (see the
+   user's Void Dominion VFX request): same z-index/slot as
+   .card.ultimate-casting above, but a darker void-purple pulse instead of
+   the generic violet one. Both classes are present together (this is added
+   alongside ultimate-casting, never instead of it — see cardFace), and
+   since they share the same `animation` shorthand property, this later
+   rule simply wins the cascade and replaces the generic glow for Nyxara's
+   card specifically while she's casting Void Dominion — no !important,
+   no JS branching beyond the class list itself. */
+.card.void-dominion-casting{
+  animation: voidDominionCardAura 0.5s ease-in-out infinite;
+  z-index:6;
+}
+@keyframes voidDominionCardAura{
+  0%,100%{
+    box-shadow:0 0 0 2px rgba(139,60,206,0.75), 0 0 24px rgba(139,60,206,0.6), inset 0 0 22px rgba(60,10,90,0.55);
+    filter:brightness(0.92) saturate(1.25);
+  }
+  50%{
+    box-shadow:0 0 0 3px rgba(196,110,240,0.95), 0 0 42px rgba(139,60,206,0.8), inset 0 0 32px rgba(60,10,90,0.75);
+    filter:brightness(1.05) saturate(1.4);
+  }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -792,6 +815,80 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   20%{ opacity:1; transform:translate(-50%,-50%) scale(1.1); }
   100%{ opacity:0; transform:translate(-50%,-50%) scale(0.9); }
 }
+
+/* Nyxara's Void Dominion — a one-off test of a card/element-specific
+   Ultimate VFX identity (on top of the generic banner/casting-glow every
+   Ultimate already gets), gated purely by state.ultimateBanner.name in
+   renderBattle() so it rides the EXACT SAME cast/impact/cleanup timing as
+   every other Ultimate (see playUltimateSequence) -- no new timers, no
+   gameplay state, purely presentational. Two pieces:
+   .void-dominion-dark: a subtle whole-frame darken, positioned BEHIND
+   .board (z-index:0, board itself is z-index:1) so it never dims the
+   cards' own art/text -- only the frame around/between them.
+   .void-dominion-fx: positioned to match .board's own box exactly (same
+   top/left/right/aspect-ratio) so its --void-x/--void-y percentages (set
+   inline from Nyxara's cell index) land precisely on her cell; sits ABOVE
+   the board (z-index:8) since the crack/particles are meant to visibly
+   sweep across the cards, same "thin, low-opacity, short-lived" approach
+   already established by flipSpark/captureRingBlue/Red rather than any
+   full occlusion. */
+.void-dominion-dark{
+  position:absolute; inset:0; z-index:0; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 40%, rgba(40,10,60,0.04) 0%, rgba(12,4,20,0.55) 78%);
+  opacity:0;
+}
+.void-dominion-dark.phase-cast{ animation: voidDarkIn 0.95s ease forwards; }
+.void-dominion-dark.phase-impact{ animation: voidDarkOut 1.1s ease forwards; }
+@keyframes voidDarkIn{ 0%{ opacity:0; } 100%{ opacity:1; } }
+@keyframes voidDarkOut{ 0%{ opacity:1; } 55%{ opacity:0.88; } 100%{ opacity:0; } }
+
+.void-dominion-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+/* The "reality crack" -- a ring that bursts outward from Nyxara's cell
+   right as the effect lands (impact phase only), reaching well past the
+   board's own edges so it genuinely reads as "spreads over the whole
+   board" rather than staying pinned to one cell. */
+.void-crack{
+  position:absolute; left:var(--void-x,50%); top:var(--void-y,50%);
+  width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%;
+  border:2px solid rgba(196,110,240,0.95);
+  box-shadow:0 0 24px 6px rgba(139,60,206,0.65), inset 0 0 14px rgba(196,110,240,0.5);
+  opacity:0;
+}
+.void-dominion-fx.phase-impact .void-crack{ animation: voidCrackExpand 0.85s cubic-bezier(.15,.8,.3,1) both; }
+@keyframes voidCrackExpand{
+  0%{ opacity:0.9; transform:scale(0.4); }
+  55%{ opacity:0.55; transform:scale(9); }
+  100%{ opacity:0; transform:scale(13); }
+}
+/* 8 particles pulled inward toward Nyxara's cell during the cast/windup
+   beat (charging up), each with its own fixed start offset via --px/--py
+   -- same "deterministic per-element stagger" technique .arena-mote
+   already uses (there via nth-child left%/duration/delay, here via
+   custom properties since the motion is radial rather than a vertical
+   drift). One shared keyframe, eight starting points. */
+.void-particle{
+  position:absolute; left:var(--void-x,50%); top:var(--void-y,50%);
+  width:4px; height:4px; border-radius:50%;
+  background:#c68ef0; box-shadow:0 0 8px 2px rgba(139,60,206,0.9);
+  opacity:0;
+}
+.void-dominion-fx.phase-cast .void-particle{ animation: voidParticlePull 0.9s ease-in both; }
+@keyframes voidParticlePull{
+  0%{ opacity:0; transform:translate(var(--px),var(--py)) scale(1); }
+  22%{ opacity:0.9; }
+  100%{ opacity:0; transform:translate(0,0) scale(0.2); }
+}
+.void-particle-0{ --px:-70px; --py:-30px; animation-delay:0s;   }
+.void-particle-1{ --px:60px;  --py:-45px; animation-delay:.04s; }
+.void-particle-2{ --px:80px;  --py:20px;  animation-delay:.08s; }
+.void-particle-3{ --px:40px;  --py:60px;  animation-delay:.12s; }
+.void-particle-4{ --px:-50px; --py:55px;  animation-delay:.02s; }
+.void-particle-5{ --px:-80px; --py:10px;  animation-delay:.06s; }
+.void-particle-6{ --px:0px;   --py:-70px; animation-delay:.10s; }
+.void-particle-7{ --px:10px;  --py:70px;  animation-delay:.14s; }
 
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
 .coinflip-frame{
@@ -2747,6 +2844,11 @@ function cardFace(card, opts={}){
   // runSpecialResolution even runs) since state.specialMode is already
   // cleared by the time this fires. See playUltimateSequence.
   const ultimateCastingClass = opts.ultimateCasting ? 'ultimate-casting' : '';
+  // Nyxara's Void Dominion identity VFX (see the void-dominion-* CSS
+  // block) — added ALONGSIDE ultimate-casting above (both classes present
+  // together), not instead of it, so every other Ultimate keeps its
+  // existing generic windup glow untouched.
+  const voidDominionCastingClass = (opts.ultimateCasting && card.id === 'nyxara') ? 'void-dominion-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -2757,7 +2859,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -2993,6 +3095,19 @@ function renderBattle(){
   const blueCount = state.board.filter(c => c && c.owner === 'blue').length;
   const redCount = state.board.filter(c => c && c.owner === 'red').length;
 
+  // Nyxara's Void Dominion identity VFX -- gated purely by the Ultimate's
+  // NAME (not a new state field) so it rides state.ultimateBanner's
+  // existing cast/impact lifecycle exactly like the banner itself does.
+  // --void-x/--void-y are computed from her cell index so the crack/
+  // particles originate from her actual board position, not a fixed spot.
+  const voidDominionActive = state.ultimateBanner && state.ultimateBanner.name === 'Void Dominion';
+  let voidOriginX = 50, voidOriginY = 50;
+  if(voidDominionActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    voidOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    voidOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -3079,9 +3194,23 @@ function renderBattle(){
         <span class="arena-mote"></span>
         <span class="arena-mote"></span>
       </div>
+      ${voidDominionActive ? `<div class="void-dominion-dark phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>` : ''}
       <div class="board">
         ${state.board.map(boardCellHtml).join('')}
       </div>
+      ${voidDominionActive ? `
+        <div class="void-dominion-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--void-x:${voidOriginX}%; --void-y:${voidOriginY}%;">
+          <div class="void-crack"></div>
+          <div class="void-particle void-particle-0"></div>
+          <div class="void-particle void-particle-1"></div>
+          <div class="void-particle void-particle-2"></div>
+          <div class="void-particle void-particle-3"></div>
+          <div class="void-particle void-particle-4"></div>
+          <div class="void-particle void-particle-5"></div>
+          <div class="void-particle void-particle-6"></div>
+          <div class="void-particle void-particle-7"></div>
+        </div>
+      ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
         <div class="ultimate-banner ultimate-banner-${state.ultimateBanner.phase} owner-${state.ultimateBanner.owner}">
@@ -6648,7 +6777,11 @@ function playUltimateSequence(job){
     // Same magnitude-gated shake as phase 3's Same/Combo chains (see
     // placeCard) — a big Ultimate sweep feels like a big chain, reuses the
     // same .arena-frame.chain-shake mechanism rather than a new one.
-    if(capturedCount >= 3) state.chainShake = true;
+    // Void Dominion is always a DESTROY (destroyCard), never a flip/capture,
+    // so it would never set justFlipped and capturedCount would always be 0
+    // here — explicitly opted in as part of her one-off VFX test so the
+    // "kort impact/screen shake" she asked for actually fires.
+    if(capturedCount >= 3 || special.name === 'Void Dominion') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.

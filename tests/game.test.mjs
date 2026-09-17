@@ -5680,6 +5680,95 @@ test('Game feel phase 4d: Ifrit\'s Hellfire and Nyxara\'s Void Dominion also pla
   await page.close();
 });
 
+test('Nyxara Void Dominion identity VFX (one-off test): void aura/darkening/crack/particles ride the existing cast->impact->cleanup lifecycle, chainShake fires despite Void Dominion never setting justFlipped, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the void-dominion-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[0] = src; // top-left cell -> --void-x/--void-y should be ~16.67%
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(0, null, {});
+
+    // Cast phase: darkening + fx wrapper + card aura should all be present,
+    // correctly positioned over Nyxara's actual cell (index 0), and the
+    // board must NOT be touched yet (matches the existing anticipation-pause
+    // guarantee every Ultimate already has).
+    const dark = document.querySelector('.void-dominion-dark');
+    const fx = document.querySelector('.void-dominion-fx');
+    out.darkPresentDuringCast = dark && dark.classList.contains('phase-cast');
+    out.fxPresentDuringCast = fx && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell0 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--void-x')) - 16.667) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--void-y')) - 16.667) < 0.1;
+    out.cardHasVoidAura = document.querySelector('.card.void-dominion-casting') !== null;
+    out.particleCount = document.querySelectorAll('.void-particle').length;
+    out.boardUntouchedDuringCast = state.board[1].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: effect has landed (destroy, not a capture -- so
+    // justFlipped is never set), the crack/darkening switch to their
+    // impact-phase classes, and chainShake fires anyway via the explicit
+    // Void Dominion opt-in (not the capturedCount>=3 threshold, which would
+    // stay 0 here).
+    const dark2 = document.querySelector('.void-dominion-dark');
+    const fx2 = document.querySelector('.void-dominion-fx');
+    out.effectLanded = state.board[1] === null;
+    out.darkPresentDuringImpact = dark2 && dark2.classList.contains('phase-impact');
+    out.fxPresentDuringImpact = fx2 && fx2.classList.contains('phase-impact');
+    out.chainShakeFiredDespiteNoCaptures = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    // Cleanup: everything gone, same as any other Ultimate.
+    out.darkGoneAfterCleanup = document.querySelector('.void-dominion-dark') === null;
+    out.fxGoneAfterCleanup = document.querySelector('.void-dominion-fx') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different Ultimate (Ifrit) must get NONE of this -- it's scoped
+    // strictly to Nyxara's card id + her Ultimate's exact name.
+    state.board = Array(9).fill(null);
+    const ifritSrc = freshEntry(findCardById('ifrit'), 'blue');
+    state.board[4] = ifritSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+    out.noVoidVfxForIfrit = document.querySelector('.void-dominion-dark') === null
+      && document.querySelector('.void-dominion-fx') === null
+      && document.querySelector('.card.void-dominion-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.darkPresentDuringCast, true, 'the darkening overlay should appear during the cast/windup phase');
+  assert.equal(result.fxPresentDuringCast, true, 'the crack/particle wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell0, true, "the effect's origin should match Nyxara's actual board cell (index 0 -> ~16.67%/16.67%)");
+  assert.equal(result.cardHasVoidAura, true, "Nyxara's own card should get the void-dominion-casting class during her windup");
+  assert.equal(result.particleCount, 8, 'all 8 particles should render during the cast phase');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.effectLanded, true, "Void Dominion destroys the enemy card once the windup elapses");
+  assert.equal(result.darkPresentDuringImpact, true, 'the darkening switches to its impact-phase fade-out');
+  assert.equal(result.fxPresentDuringImpact, true, 'the crack/particle wrapper switches to its impact-phase burst');
+  assert.equal(result.chainShakeFiredDespiteNoCaptures, true, 'chainShake must fire for Void Dominion even though destroys never set justFlipped (capturedCount stays 0)');
+  assert.equal(result.darkGoneAfterCleanup, true);
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noVoidVfxForIfrit, true, "this identity VFX must stay scoped to Nyxara's Void Dominion specifically, not leak onto other Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
