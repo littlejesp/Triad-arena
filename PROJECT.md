@@ -1596,6 +1596,22 @@ efter att impact-fasen inträffat (båda ljuden), plus en riktig
 `fetch('sfx/ifrit.mp3')`-kontroll (200, audio/mpeg, exakt byte-match).
 Hela testsviten grön (92/92).
 
+**Uppdatering, samma session: samma impact-SFX för Nyxara (Void
+Dominion).** Användaren gjorde en andra egen ljudeffekt ("Massive dark
+void", ~2s) och laddade upp den ("Detta är till void dominon nyxara").
+Filen kopierad in som `sfx/nyxara.mp3`. Andra raden i
+`ULTIMATE_IMPACT_SFX` (`nyxara: 'sfx/nyxara.mp3'`) — samma ramverk
+från fas 4d, ingen ny kod. Det befintliga fas 4d-testet utökat (inte
+ett nytt testfall) med Nyxaras mapping-kontroll OCH en fullständig
+riktig cast-vägs-verifiering för hennes AOE-flöde (samma
+timing-distinktion som Ifrit: bara röstlinjen under väntetiden, båda
+ljuden efter). Verifierat manuellt med samma UI-klick-sekvens (hennes
+special är AOE, ett enda klick) — bekräftade `window.Audio`-anrop med
+`sfx/nyxara.mp3` exakt vid impact-fasen (inte under väntetiden),
+skärmdump visar "Destroyed!"-overlayen och banderollen "Void
+Dominion" samtidigt. Hela testsviten grön (92/92, samma antal —
+befintligt testfall utökat).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
