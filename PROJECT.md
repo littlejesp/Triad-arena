@@ -1436,6 +1436,22 @@ ut AOE:n direkt) — bekräftade `window.Audio`-anrop med
 `voices/vaelira.mp3`, banderoll "Infernal Pact", och att
 fiendekortet förstördes. Hela testsviten grön (91/91).
 
+**Uppdatering, samma session: samma sak för Seraphine — alla tre
+systrarna (Vaelira/Nyxara/Seraphine) har nu röstlinjer.** Fjärde
+ElevenLabs-filen ("Seraphine"), matchande hennes Ultimate-namn ("Silver
+Judgment", också AOE). Filen kopierad in som `voices/seraphine.mp3`
+(samma format/storleksordning som de andra). Fjärde raden i
+`ULTIMATE_VOICE_LINES` (`seraphine: 'voices/seraphine.mp3'`) — inget
+annat i koden ändrat. Isolerade hjälpfunktions-testet utökat med
+Seraphine, samma mönster som Vaelira (ingen separat cast-vägs-
+verifiering, hennes AOE-flöde är mekaniskt samma väg som redan
+täckt). Verifierat manuellt med samma UI-klick-sekvens — bekräftade
+`window.Audio`-anrop med `voices/seraphine.mp3`, banderoll "Silver
+Judgment". (Till skillnad från Nyxara/Vaelira förstör inte Silver
+Judgment fiendekorten — den stryper bonusar och ger -2 Power, så
+motståndarkortet stannar kvar på brädet efteråt, vilket stämmer med
+hennes redan existerande mekanik.) Hela testsviten grön (91/91).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
