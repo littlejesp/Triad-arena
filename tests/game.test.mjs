@@ -5427,7 +5427,7 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
-test('Game feel phase 4c: Ifrit\'s Hellfire Ultimate plays its real voice-line audio file on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c: Ifrit and Nyxara\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5445,6 +5445,10 @@ test('Game feel phase 4c: Ifrit\'s Hellfire Ultimate plays its real voice-line a
     out.ifritCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateVoiceLine('nyxara');
+    out.nyxaraCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateVoiceLine('pallispell'); // no voice line entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5458,12 +5462,16 @@ test('Game feel phase 4c: Ifrit\'s Hellfire Ultimate plays its real voice-line a
     return out;
   })()`);
   assert.deepEqual(result.ifritCall, ['voices/ifrit.mp3'], "Ifrit's Ultimate cast should play his voice-line file");
+  assert.deepEqual(result.nyxaraCall, ['voices/nyxara.mp3'], "Nyxara's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
   assert.deepEqual(pageErrors, []);
 
   // Also runs through the real casting flow (playUltimateSequence), not just
-  // the helper in isolation, to confirm the wiring itself is correct.
+  // the helper in isolation, to confirm the wiring itself is correct -- once
+  // for a single-target Ultimate (Ifrit) and once for an AOE one (Nyxara,
+  // targetIndex null) since executeSpecial calls runSpecialResolution
+  // differently for each targeting mode.
   const viaCast = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
     const out = {};
@@ -5482,12 +5490,25 @@ test('Game feel phase 4c: Ifrit\'s Hellfire Ultimate plays its real voice-line a
     state.specialUsed = {};
     state.turn = 'blue';
     runSpecialResolution(4, 1, {});
+    out.ifritPlayedDuringWindup = playCalls.slice();
 
-    out.playedDuringWindup = playCalls.slice();
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 100));
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.nyxaraPlayedDuringWindup = playCalls.slice();
+
     window.Audio = OrigAudio;
     return out;
   })()`);
-  assert.deepEqual(viaCast.playedDuringWindup, ['voices/ifrit.mp3'], 'the real cast flow (runSpecialResolution/playUltimateSequence) must trigger the voice line too');
+  assert.deepEqual(viaCast.ifritPlayedDuringWindup, ['voices/ifrit.mp3'], 'the real cast flow (runSpecialResolution/playUltimateSequence) must trigger the voice line too');
+  assert.deepEqual(viaCast.nyxaraPlayedDuringWindup, ['voices/nyxara.mp3'], 'the AOE cast flow must trigger the voice line the same way');
   assert.deepEqual(pageErrors, []);
 
   await page.close();

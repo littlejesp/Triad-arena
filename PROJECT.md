@@ -1402,6 +1402,25 @@ väntetiden med rätt filväg, skärmdump av banderollen "Special Attack
 att filen faktiskt går att hämta från servern (200, audio/mpeg, exakt
 byte-match). Hela testsviten grön (91/91).
 
+**Uppdatering, samma session: samma sak för Nyxara.** Användaren
+laddade upp en andra ElevenLabs-fil ("Till nyxara"), matchande hennes
+Ultimate-namn ("Void Dominion"). Filen kopierad in som
+`voices/nyxara.mp3` (38799 bytes, samma format som Ifrits fil).
+Eftersom ramverket redan byggdes återanvändbart i fas 4c behövdes bara
+en ny rad i `ULTIMATE_VOICE_LINES` (`nyxara: 'voices/nyxara.mp3'`) —
+ingen ny kod. Testet utökat till att täcka båda korten, inklusive att
+verifiera den riktiga cast-vägen för BÅDA targeting-lägena (Ifrits
+`targets:'single'` med explicit targetIndex, och Nyxaras
+`targets:'aoe'` med `targetIndex: null`, precis som `executeSpecial`
+faktiskt anropar den). Verifierat även manuellt med en riktig
+UI-klick-sekvens (Nyxaras special är AOE så ett enda klick på hennes
+egen ruta aktiverar OCH löser ut den direkt, ingen separat mål-klick
+behövs) — bekräftade att `window.Audio` triggades med
+`voices/nyxara.mp3` och att banderollen visade "Void Dominion", samt
+att fiendekortet faktiskt förstördes (Nyxaras AOE förstör, fångar
+inte). Hela testsviten grön (91/91, fortfarande samma antal — samma
+test utökat, inget nytt test tillagt).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
