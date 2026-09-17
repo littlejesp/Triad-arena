@@ -3745,17 +3745,39 @@ test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's So
 
     // Zantetsuken: permanent -3 to the target (respects debuffImmune via
     // SpecialVerbs.debuff), -1 this round to every OTHER enemy, +3 this
-    // round to Odin himself.
+    // round to Odin himself -- this is the "coin flip missed" branch.
+    const realRandom = Math.random;
     state.board = Array(9).fill(null);
     const odinUlt = freshEntry(odin, 'blue');
     state.board[4] = odinUlt;
     const odinTarget = freshEntry({ id:'ot', name:'OT', top:1,right:1,bottom:1,left:1 }, 'red');
     const odinOther = freshEntry({ id:'oo', name:'OO', top:1,right:1,bottom:1,left:1 }, 'red');
     state.board[1] = odinTarget; state.board[8] = odinOther;
-    SPECIAL_HANDLERS.odin({ srcEntry: odinUlt, targetEntry: odinTarget, targetIndex: 1, owner: 'blue' });
+    Math.random = () => 0.9;
+    SPECIAL_HANDLERS.odin({ srcEntry: odinUlt, sourceIndex: 4, targetEntry: odinTarget, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
     out.ultCapturesAndDebuffsTarget = state.board[1].owner === 'blue' && odinTarget.captureBonus === -3;
     out.ultDebuffsOthersThisRound = odinOther.captureBonus === -1;
     out.ultSelfBuff = odinUlt.captureBonus === 3;
+
+    // Zantetsuken's Ragnarok clause: on the other half of the 50% coin
+    // flip, every OTHER card on the board is destroyed -- allies included,
+    // not just enemies -- while Odin himself and the just-flipped target
+    // are always spared.
+    state.board = Array(9).fill(null);
+    const odinUlt2 = freshEntry(odin, 'blue');
+    state.board[4] = odinUlt2;
+    const odinTarget2 = freshEntry({ id:'ot2', name:'OT2', top:1,right:1,bottom:1,left:1 }, 'red');
+    const odinAlly2 = freshEntry({ id:'oa2', name:'OA2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    const odinFoe2 = freshEntry({ id:'of2', name:'OF2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = odinTarget2; state.board[2] = odinAlly2; state.board[8] = odinFoe2;
+    Math.random = () => 0.1;
+    SPECIAL_HANDLERS.odin({ srcEntry: odinUlt2, sourceIndex: 4, targetEntry: odinTarget2, targetIndex: 1, owner: 'blue' });
+    Math.random = realRandom;
+    out.ragnarokSparesOdin = state.board[4] === odinUlt2;
+    out.ragnarokSparesTarget = state.board[1] === odinTarget2 && odinTarget2.owner === 'blue';
+    out.ragnarokDestroysAlly = state.board[2] === null;
+    out.ragnarokDestroysOtherFoe = state.board[8] === null;
 
     return out;
   })()`);
@@ -3767,6 +3789,10 @@ test("Odin: Allfather's Gaze (board-wide on-place), Gungnir Strike, Warrior's So
   assert.equal(result.ultCapturesAndDebuffsTarget, true);
   assert.equal(result.ultDebuffsOthersThisRound, true);
   assert.equal(result.ultSelfBuff, true);
+  assert.equal(result.ragnarokSparesOdin, true);
+  assert.equal(result.ragnarokSparesTarget, true);
+  assert.equal(result.ragnarokDestroysAlly, true);
+  assert.equal(result.ragnarokDestroysOtherFoe, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -5466,7 +5492,7 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
-test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon and Omega Weapon\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon, Omega Weapon and Shiva\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5516,6 +5542,10 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
     out.omegaweaponCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateVoiceLine('shiva');
+    out.shivaCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateVoiceLine('pallispell'); // no voice line entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5537,6 +5567,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   assert.deepEqual(result.tiamatCall, ['voices/tiamat.mp3'], "Tiamat's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.threeheaddragonCall, ['voices/threeheaddragon.mp3'], "Three Head Dragon's Ultimate cast should play its voice-line file");
   assert.deepEqual(result.omegaweaponCall, ['voices/omegaweapon.mp3'], "Omega Weapon's Ultimate cast should play its voice-line file");
+  assert.deepEqual(result.shivaCall, ['voices/shiva.mp3'], "Shiva's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -5588,7 +5619,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   await page.close();
 });
 
-test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact and Seraphine\'s Silver Judgment also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact, Seraphine\'s Silver Judgment, Omega Weapon\'s Omega Protocol, Shiva\'s Diamond Storm and Bahamut\'s Megaflare also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5618,6 +5649,18 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     out.seraphineCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateImpactSfx('omegaweapon');
+    out.omegaweaponCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateImpactSfx('shiva');
+    out.shivaCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateImpactSfx('bahamut');
+    out.bahamutCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateImpactSfx('triunedesire'); // no impact-SFX entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5634,6 +5677,9 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
   assert.deepEqual(result.nyxaraCall, ['sfx/nyxara.mp3'], "Nyxara's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.vaeliraCall, ['sfx/vaelira.mp3'], "Vaelira's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.seraphineCall, ['sfx/seraphine.mp3'], "Seraphine's Ultimate impact should play her impact SFX file");
+  assert.deepEqual(result.omegaweaponCall, ['sfx/omegaweapon.mp3'], "Omega Weapon's Ultimate impact should play its impact SFX file");
+  assert.deepEqual(result.shivaCall, ['sfx/shiva.mp3'], "Shiva's Ultimate impact should play her impact SFX file");
+  assert.deepEqual(result.bahamutCall, ['sfx/bahamut.mp3'], "Bahamut's Ultimate impact should play his impact SFX file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -5708,6 +5754,36 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     out.seraphineAtImpact = playCalls.slice();
 
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('omegaweapon'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.omegaweaponDuringWindup = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.omegaweaponAtImpact = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('shiva'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.shivaDuringWindup = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.shivaAtImpact = playCalls.slice();
+
     window.Audio = OrigAudio;
     return out;
   })()`);
@@ -5719,6 +5795,10 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
   assert.deepEqual(viaCast.vaeliraAtImpact, ['voices/vaelira.mp3', 'sfx/vaelira.mp3'], 'Vaelira\'s impact SFX joins once its own windup beat elapses');
   assert.deepEqual(viaCast.seraphineDuringWindup, ['voices/seraphine.mp3'], 'same timing split for Seraphine\'s AOE cast flow');
   assert.deepEqual(viaCast.seraphineAtImpact, ['voices/seraphine.mp3', 'sfx/seraphine.mp3'], 'Seraphine\'s impact SFX joins once its own windup beat elapses');
+  assert.deepEqual(viaCast.omegaweaponDuringWindup, ['voices/omegaweapon.mp3'], 'same timing split for Omega Weapon\'s AOE cast flow');
+  assert.deepEqual(viaCast.omegaweaponAtImpact, ['voices/omegaweapon.mp3', 'sfx/omegaweapon.mp3'], 'Omega Weapon\'s impact SFX joins once its own windup beat elapses');
+  assert.deepEqual(viaCast.shivaDuringWindup, ['voices/shiva.mp3'], 'same timing split for Shiva\'s AOE cast flow');
+  assert.deepEqual(viaCast.shivaAtImpact, ['voices/shiva.mp3', 'sfx/shiva.mp3'], 'Shiva\'s impact SFX joins once its own windup beat elapses');
   assert.deepEqual(pageErrors, []);
 
   await page.close();
@@ -6106,6 +6186,304 @@ test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/spa
   assert.equal(result.chainShakeClearedAfterCleanup, true);
   assert.equal(result.bannerGoneAfterCleanup, true);
   assert.equal(result.noSilverJudgmentVfxForVaelira, true, "this identity VFX must stay scoped to Seraphine's Silver Judgment specifically, not leak onto other destroy-based AOE Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
+test('Omega Weapon Omega Protocol identity VFX (one-off test): card aura/targeting reticles/blast/explosions/flash ride the existing cast->impact->cleanup lifecycle, reticle count matches enemy count during cast (before hits exist), chainShake fires despite conditional destroy never setting justFlipped, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the omega-protocol-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('omegaweapon'), 'blue');
+    state.board[4] = src; // center cell -> --op-x/--op-y should be ~50%/50%
+    state.board[0] = freshEntry(findCardById('ogre'), 'red');
+    state.board[7] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + fx wrapper + one targeting reticle PER ENEMY
+    // (the "lock-on" beat, unique to this card -- no other Ultimate puts
+    // markup on enemies before impact) all present, origin matches Omega
+    // Weapon's actual cell, no hit-explosions yet (those are impact-only),
+    // board untouched.
+    out.cardHasAura = document.querySelector('.card.omega-protocol-casting') !== null;
+    const fx = document.querySelector('.omega-protocol-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--op-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--op-y')) - 50) < 0.1;
+    out.targetReticleCountMatchesEnemyCount = document.querySelectorAll('.omega-protocol-target').length === 2;
+    // The hit-explosion elements exist in the DOM during cast too (same
+    // pattern as hellfire-target-hit/infernal-pact-hit) -- their own base
+    // class starts at opacity:0 and only the .phase-impact CSS selector
+    // triggers the animation that makes them visible, so "not active yet"
+    // is what's actually true here, not "not present".
+    const castHits = [...document.querySelectorAll('.omega-protocol-hit')];
+    out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: blast + explosion hits (one per enemy) + flash all
+    // appear, both weak enemies destroyed, chainShake fires despite Omega
+    // Protocol's conditional destroy never setting justFlipped.
+    const fx2 = document.querySelector('.omega-protocol-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.blastPresent = document.querySelector('.omega-protocol-blast') !== null;
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.omega-protocol-hit').length === 2;
+    out.flashPresent = document.querySelector('.omega-protocol-flash.phase-impact') !== null;
+    out.effectLanded = state.board[0] === null && state.board[7] === null;
+    out.chainShakeFiredDespiteConditionalDestroy = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.omega-protocol-fx') === null;
+    out.flashGoneAfterCleanup = document.querySelector('.omega-protocol-flash') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.omega-protocol-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different destroy-based AOE Ultimate (Seraphine) must get NONE of
+    // this -- scoped strictly to Omega Weapon's card id + its exact
+    // Ultimate name.
+    state.board = Array(9).fill(null);
+    const seraphineSrc = freshEntry(findCardById('seraphine'), 'blue');
+    state.board[4] = seraphineSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.noOmegaProtocolVfxForSeraphine = document.querySelector('.omega-protocol-fx') === null
+      && document.querySelector('.omega-protocol-flash') === null
+      && document.querySelector('.card.omega-protocol-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.cardHasAura, true, "Omega Weapon's own card should get the omega-protocol-casting class (and its contracting rings) during its windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the targeting/blast wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Omega Weapon's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.targetReticleCountMatchesEnemyCount, true, 'one targeting reticle per enemy actually present at cast time');
+  assert.equal(result.hitsInvisibleDuringCast, true, 'the per-enemy explosion elements exist (2, matching the enemy count) but stay invisible until the impact-phase CSS class triggers their animation');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.blastPresent, true, 'the massive central blast should appear at impact');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one explosion hit per enemy actually present at cast time, not a fixed count');
+  assert.equal(result.flashPresent, true, 'the punchy full-frame flash should appear at impact');
+  assert.equal(result.effectLanded, true, 'Omega Protocol destroys both weak enemy cards once the windup elapses');
+  assert.equal(result.chainShakeFiredDespiteConditionalDestroy, true, 'chainShake must fire for Omega Protocol even though its conditional destroy never sets justFlipped (capturedCount stays 0)');
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.flashGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noOmegaProtocolVfxForSeraphine, true, "this identity VFX must stay scoped to Omega Weapon's Omega Protocol specifically, not leak onto other destroy-based AOE Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
+test('Shiva Diamond Storm identity VFX (one-off test): card aura/shard rails/fragments/hits/wave/flash ride the existing cast->impact->cleanup lifecycle, rail/hit count matches enemy count, chainShake fires despite a plain AOE debuff never setting justFlipped, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the diamond-storm-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('shiva'), 'blue');
+    state.board[4] = src; // center cell -> --ds-x/--ds-y should be ~50%/50%
+    state.board[0] = freshEntry({ id:'e0', name:'E0', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[7] = freshEntry({ id:'e7', name:'E7', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + fx wrapper + one rail PER ENEMY, fixed 8
+    // fragments always present, origin matches Shiva's actual cell, no
+    // hit-bursts visible yet (impact-only), board untouched.
+    out.cardHasAura = document.querySelector('.card.diamond-storm-casting') !== null;
+    const fx = document.querySelector('.diamond-storm-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--ds-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--ds-y')) - 50) < 0.1;
+    out.railCountMatchesEnemyCount = document.querySelectorAll('.diamond-storm-rail').length === 2;
+    out.shardCountMatchesTwoPerRail = document.querySelectorAll('.diamond-storm-shard').length === 4;
+    out.fragmentCount = document.querySelectorAll('.diamond-storm-fragment').length;
+    // Same pattern as every other AOE identity-VFX card's hit elements:
+    // they exist in the DOM during cast too, just invisible (opacity:0)
+    // until the .phase-impact CSS selector triggers their animation.
+    const castHits = [...document.querySelectorAll('.diamond-storm-hit')];
+    out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: hit bursts (one per enemy) + wave + flash all appear,
+    // both enemies debuffed and Shiva buffed (a plain AOE debuff, not a
+    // destroy or a capture), chainShake fires despite that.
+    const fx2 = document.querySelector('.diamond-storm-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.diamond-storm-hit').length === 2;
+    out.wavePresent = document.querySelector('.diamond-storm-wave') !== null;
+    out.flashPresent = document.querySelector('.diamond-storm-flash.phase-impact') !== null;
+    out.effectLanded = state.board[0].captureBonus === -3 && state.board[7].captureBonus === -3 && src.captureBonus === 3;
+    out.chainShakeFiredDespitePlainDebuff = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.diamond-storm-fx') === null;
+    out.flashGoneAfterCleanup = document.querySelector('.diamond-storm-flash') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.diamond-storm-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different plain-AOE-debuff Ultimate (Ancient Wyrmking's Conquests
+    // Witnessed) must get NONE of this -- scoped strictly to Shiva's card
+    // id + its exact Ultimate name.
+    state.board = Array(9).fill(null);
+    const dragonSrc = freshEntry(findCardById('dragon'), 'blue');
+    state.board[4] = dragonSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.noDiamondStormVfxForDragon = document.querySelector('.diamond-storm-fx') === null
+      && document.querySelector('.diamond-storm-flash') === null
+      && document.querySelector('.card.diamond-storm-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.cardHasAura, true, "Shiva's own card should get the diamond-storm-casting class (and its accelerating rings) during her windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the shard/fragment wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Shiva's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.railCountMatchesEnemyCount, true, 'one shard rail per enemy actually present at cast time');
+  assert.equal(result.shardCountMatchesTwoPerRail, true, 'two shard sparkles per rail (denser crystal storm than a single sparkle)');
+  assert.equal(result.fragmentCount, 8, 'the fixed set of 8 larger crystal fragments around the cards should always be present');
+  assert.equal(result.hitsInvisibleDuringCast, true, 'the per-enemy crystal-impact elements exist (2, matching the enemy count) but stay invisible until the impact-phase CSS class triggers their animation');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one crystal-impact per enemy actually present at cast time, not a fixed count');
+  assert.equal(result.wavePresent, true, 'the final crystal wave should appear at impact');
+  assert.equal(result.flashPresent, true, 'the soft icy full-frame flash should appear at impact');
+  assert.equal(result.effectLanded, true, "Diamond Storm's actual mechanic (AOE debuff + self-buff) still applies once the windup elapses");
+  assert.equal(result.chainShakeFiredDespitePlainDebuff, true, 'chainShake must fire for Diamond Storm even though a plain AOE debuff never sets justFlipped (capturedCount stays 0)');
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.flashGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noDiamondStormVfxForDragon, true, "this identity VFX must stay scoped to Shiva's Diamond Storm specifically, not leak onto other plain-AOE-debuff Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
+test('Bahamut Megaflare identity VFX (one-off test): card aura/charge/sweep/hits/wave/stars/flash ride the existing cast->impact->cleanup lifecycle, sweep origin matches his cell, hit count matches enemy count, chainShake fires despite destroy never setting justFlipped, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the megaflare-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('bahamut'), 'blue');
+    state.board[4] = src; // center cell -> --mf-x/--mf-y should be ~50%/50%
+    state.board[0] = freshEntry({ id:'e0', name:'E0', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[5] = freshEntry({ id:'e5', name:'E5', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE, mirrors executeSpecial
+
+    // Cast phase: card aura + fx wrapper + the charging core at his own
+    // cell, origin matches Bahamut's actual cell, no sweep/hits yet
+    // (impact-only), board untouched.
+    out.cardHasAura = document.querySelector('.card.megaflare-casting') !== null;
+    const fx = document.querySelector('.megaflare-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--mf-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--mf-y')) - 50) < 0.1;
+    out.chargePresentDuringCast = document.querySelector('.megaflare-charge') !== null;
+    // Same pattern as every other AOE identity-VFX card's hit elements:
+    // they exist in the DOM during cast too, just invisible (opacity:0)
+    // until the .phase-impact CSS selector triggers their animation.
+    const castHits = [...document.querySelectorAll('.megaflare-hit')];
+    out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[5].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: the full-width sweep + hit bursts (one per enemy) +
+    // board-wide wave + lingering stars + flash all appear, both enemies
+    // destroyed, chainShake fires despite Megaflare's destroy never
+    // setting justFlipped.
+    const fx2 = document.querySelector('.megaflare-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.sweepPresent = document.querySelector('.megaflare-sweep') !== null;
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.megaflare-hit').length === 2;
+    out.wavePresent = document.querySelector('.megaflare-wave') !== null;
+    out.starCount = document.querySelectorAll('.megaflare-star').length;
+    out.flashPresent = document.querySelector('.megaflare-flash.phase-impact') !== null;
+    out.effectLanded = state.board[0] === null && state.board[5] === null;
+    out.chainShakeFiredDespiteDestroy = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.megaflare-fx') === null;
+    out.flashGoneAfterCleanup = document.querySelector('.megaflare-flash') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.megaflare-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different destroy-based AOE Ultimate (Nyxara's Void Dominion) must
+    // get NONE of this -- scoped strictly to Bahamut's card id + its
+    // exact Ultimate name.
+    state.board = Array(9).fill(null);
+    const nyxaraSrc = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[4] = nyxaraSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.noMegaflareVfxForNyxara = document.querySelector('.megaflare-fx') === null
+      && document.querySelector('.megaflare-flash') === null
+      && document.querySelector('.card.megaflare-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.cardHasAura, true, "Bahamut's own card should get the megaflare-casting class (and its ring + swelling core) during his windup");
+  assert.equal(result.fxPresentDuringCast, true, 'the charge/sweep wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Bahamut's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.chargePresentDuringCast, true, 'the swelling energy core should be present at his own cell during cast');
+  assert.equal(result.hitsInvisibleDuringCast, true, 'the per-enemy impact elements exist (2, matching the enemy count) but stay invisible until the impact-phase CSS class triggers their animation');
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.sweepPresent, true, 'the full-width sweeping beam should appear at impact');
+  assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one impact per enemy actually present at cast time, not a fixed count');
+  assert.equal(result.wavePresent, true, 'the final board-wide cosmic wave should appear at impact');
+  assert.equal(result.starCount, 6, 'the fixed set of 6 lingering star particles should always be present');
+  assert.equal(result.flashPresent, true, 'the bright full-frame flash should appear at impact');
+  assert.equal(result.effectLanded, true, 'Megaflare destroys both enemy cards once the windup elapses');
+  assert.equal(result.chainShakeFiredDespiteDestroy, true, "chainShake must fire for Megaflare even though its destroy-all-enemies effect never sets justFlipped (capturedCount stays 0)");
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.flashGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noMegaflareVfxForNyxara, true, "this identity VFX must stay scoped to Bahamut's Megaflare specifically, not leak onto other destroy-based AOE Ultimates");
   assert.deepEqual(pageErrors, []);
 
   await page.close();

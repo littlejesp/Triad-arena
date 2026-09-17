@@ -70,6 +70,14 @@ body{
 .stage-mote:nth-child(2){ left:18%; color:var(--frost);  animation-duration:26s; animation-delay:7s; }
 .stage-mote:nth-child(3){ left:80%; color:var(--arcane); animation-duration:24s; animation-delay:12s; }
 .stage-mote:nth-child(4){ left:92%; color:var(--earth);  animation-duration:28s; animation-delay:4s; }
+/* Doubled from 4 to 8 (user feedback: "bakgrund mer levande... själar som
+   flyger upp") -- same drifting-ember technique, just more of them and a
+   wider spread of left% positions so the whole background reads livelier
+   rather than four isolated points. */
+.stage-mote:nth-child(5){ left:34%; color:var(--gold);       animation-duration:20s; animation-delay:9s;  }
+.stage-mote:nth-child(6){ left:50%; color:var(--gold-bright); animation-duration:30s; animation-delay:2s;  }
+.stage-mote:nth-child(7){ left:64%; color:var(--frost);       animation-duration:25s; animation-delay:15s; }
+.stage-mote:nth-child(8){ left:12%; color:var(--arcane);      animation-duration:23s; animation-delay:18s; }
 @keyframes stageMoteDrift{
   0%{ transform:translateY(0) scale(0.5); opacity:0; }
   12%{ opacity:0.4; }
@@ -558,6 +566,157 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   50%{ opacity:0.85; }
   100%{ transform:translate(-50%,-50%) rotate(-360deg); opacity:0.55; }
 }
+/* Same one-off-identity-VFX pattern as the others above, this time for
+   Omega Weapon's Omega Protocol (see the user's Omega Protocol VFX
+   request) — orange/white "mechanical energy" instead of the others'
+   organic/elemental themes. Unlike every other card's rings (which stay
+   fixed size or grow), these two CONTRACT inward (scale down, staggered)
+   to read as "mekaniska energiringar och partiklar dras in mot kärnan"
+   rather than an opening portal — the visual language this card's brief
+   explicitly asked for is inward collapse, not outward bloom. */
+.card.omega-protocol-casting{
+  animation: omegaProtocolCardAura 0.95s ease-in forwards;
+  z-index:6;
+}
+@keyframes omegaProtocolCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(255,140,40,0.5), 0 0 14px rgba(255,140,40,0.4), inset 0 0 10px rgba(255,255,255,0.25);
+    filter:brightness(0.98) saturate(1.05);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(255,255,255,0.95), 0 0 55px rgba(255,150,40,0.9), inset 0 0 34px rgba(255,220,180,0.7);
+    filter:brightness(1.3) saturate(1.2);
+  }
+}
+.card.omega-protocol-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:95%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(1.3); border-radius:50%;
+  border:1.5px solid rgba(255,255,255,0.6);
+  opacity:0;
+  animation: omegaProtocolRingContract 0.95s ease-in forwards;
+}
+@keyframes omegaProtocolRingContract{
+  0%{ opacity:0.7; transform:translate(-50%,-50%) scale(1.3); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(0.55); }
+}
+.card.omega-protocol-casting::after{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:70%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(1.15) rotate(0deg); border-radius:50%;
+  border:2px dashed rgba(255,180,90,0.85);
+  opacity:0;
+  animation: omegaProtocolRingContract2 0.95s ease-in 0.15s forwards;
+}
+@keyframes omegaProtocolRingContract2{
+  0%{ opacity:0.75; transform:translate(-50%,-50%) scale(1.15) rotate(0deg); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(0.4) rotate(180deg); }
+}
+/* Same one-off-identity-VFX pattern as the others above, this time for
+   Shiva's Diamond Storm (see the user's Diamond Storm VFX request) —
+   icy white/blue/silver instead of any previous card's palette. The
+   brief's "kristallfragment som snurrar runt kortet, allt snabbare" (crystal
+   fragments spinning around the card, faster and faster) is a genuinely
+   new shape: every other card's rotating ring spins at a CONSTANT rate
+   (see infernalPactSigilSpin/silverJudgmentSigilSpin above, plain
+   `linear` timing) — this one's keyframe stops are deliberately spaced
+   UNEVENLY (60deg in the first 40% of the cast, then 620deg total by
+   100%) so the same 0.95s window reads as a storm visibly accelerating,
+   without needing JS-driven animation-duration changes mid-flight. Two
+   rings turning opposite directions (::before/::after) for "storm"
+   density rather than a single sigil. */
+.card.diamond-storm-casting{
+  animation: diamondStormCardAura 0.95s ease-in forwards;
+  z-index:6;
+}
+@keyframes diamondStormCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(126,200,242,0.5), 0 0 14px rgba(126,200,242,0.4), inset 0 0 10px rgba(220,245,255,0.3);
+    filter:brightness(1) saturate(1.05);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(230,250,255,0.95), 0 0 50px rgba(140,210,255,0.85), inset 0 0 32px rgba(255,255,255,0.65);
+    filter:brightness(1.25) saturate(1.1);
+  }
+}
+.card.diamond-storm-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:88%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg); border-radius:50%;
+  border:2px dashed rgba(220,245,255,0.8);
+  box-shadow:0 0 18px rgba(140,210,255,0.5) inset;
+  animation: diamondStormSpinAccelerate 0.95s ease-in forwards;
+}
+@keyframes diamondStormSpinAccelerate{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.5; }
+  40%{ transform:translate(-50%,-50%) rotate(60deg); opacity:0.75; }
+  65%{ transform:translate(-50%,-50%) rotate(160deg); opacity:0.9; }
+  82%{ transform:translate(-50%,-50%) rotate(320deg); opacity:1; }
+  100%{ transform:translate(-50%,-50%) rotate(620deg); opacity:1; }
+}
+.card.diamond-storm-casting::after{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:62%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg); border-radius:50%;
+  border:1.5px dashed rgba(126,200,242,0.85);
+  box-shadow:0 0 12px rgba(220,245,255,0.5) inset;
+  animation: diamondStormSpinAccelerateRev 0.95s ease-in forwards;
+}
+@keyframes diamondStormSpinAccelerateRev{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.5; }
+  40%{ transform:translate(-50%,-50%) rotate(-90deg); opacity:0.75; }
+  65%{ transform:translate(-50%,-50%) rotate(-220deg); opacity:0.9; }
+  82%{ transform:translate(-50%,-50%) rotate(-420deg); opacity:1; }
+  100%{ transform:translate(-50%,-50%) rotate(-780deg); opacity:1; }
+}
+/* Same one-off-identity-VFX pattern as the others above, this time for
+   Bahamut's Megaflare (see the user's Megaflare VFX request) — blue/
+   white/gold astral light, meant to read as "gudomlig, majestätisk och
+   enorm, inte som en vanlig laser". A single steady outer ring (cosmic
+   energy gathering, constant slow spin like Infernal Pact's sigil, not
+   an accelerating storm like Diamond Storm's) plus a bright inner core
+   that swells (energy concentrating heavily in front of him before the
+   beam fires) rather than a second ring, since the brief describes
+   ENERGY BUILDING UP, not more orbiting shapes. */
+.card.megaflare-casting{
+  animation: megaflareCardAura 0.95s ease-in forwards;
+  z-index:6;
+}
+@keyframes megaflareCardAura{
+  0%{
+    box-shadow:0 0 0 2px rgba(110,168,242,0.5), 0 0 14px rgba(110,168,242,0.4), inset 0 0 10px rgba(240,225,180,0.25);
+    filter:brightness(1) saturate(1.05);
+  }
+  100%{
+    box-shadow:0 0 0 3px rgba(255,250,235,0.95), 0 0 55px rgba(130,180,255,0.9), inset 0 0 34px rgba(255,235,180,0.65);
+    filter:brightness(1.3) saturate(1.15);
+  }
+}
+.card.megaflare-casting::before{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:90%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) rotate(0deg); border-radius:50%;
+  border:2px dashed rgba(240,225,180,0.8);
+  box-shadow:0 0 18px rgba(110,168,242,0.5) inset;
+  animation: megaflareRingSpin 3.5s linear infinite;
+}
+@keyframes megaflareRingSpin{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); opacity:0.6; }
+  50%{ opacity:0.9; }
+  100%{ transform:translate(-50%,-50%) rotate(360deg); opacity:0.6; }
+}
+.card.megaflare-casting::after{
+  content:''; position:absolute; z-index:1; pointer-events:none;
+  left:50%; top:50%; width:20%; aspect-ratio:1/1;
+  transform:translate(-50%,-50%) scale(0.6); border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(130,180,255,0.7) 55%, transparent 78%);
+  opacity:0;
+  animation: megaflareCoreSwell 0.95s ease-in forwards;
+}
+@keyframes megaflareCoreSwell{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.4); }
+  100%{ opacity:1; transform:translate(-50%,-50%) scale(1.5); }
+}
 .card.special-ready{
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
@@ -853,6 +1012,13 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .arena-mote:nth-child(4){ left:62%; color:var(--arcane);      animation-duration:16s; animation-delay:1.2s; }
 .arena-mote:nth-child(5){ left:80%; color:var(--earth);       animation-duration:14s; animation-delay:3.4s; }
 .arena-mote:nth-child(6){ left:92%; color:var(--gold-bright); animation-duration:17s; animation-delay:6s;   }
+/* Increased from 6 to 10 (user feedback: "bakgrund mer levande... själar
+   som flyger upp") -- same theme colors cycled again with fresh
+   position/duration/delay combinations. */
+.arena-mote:nth-child(7){ left:4%;  color:var(--gold);   animation-duration:18s; animation-delay:8s;   }
+.arena-mote:nth-child(8){ left:36%; color:var(--ember);  animation-duration:19s; animation-delay:5.6s; }
+.arena-mote:nth-child(9){ left:54%; color:var(--earth);  animation-duration:16s; animation-delay:9.8s; }
+.arena-mote:nth-child(10){ left:70%; color:var(--arcane); animation-duration:20s; animation-delay:1.8s; }
 @keyframes moteDrift{
   0%{ transform:translateY(0) scale(0.6); opacity:0; }
   15%{ opacity:0.65; }
@@ -1236,6 +1402,367 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   100%{ opacity:0; }
 }
 
+/* Omega Weapon's Omega Protocol — a fifth one-off identity VFX (see the
+   user's Omega Protocol VFX request), orange/white. Same .board-matching
+   wrapper as the others, plus a NEW piece: a targeting reticle on every
+   enemy DURING THE CAST/WINDUP beat (before the shot even fires), since
+   the brief specifically wants a "lock-on" moment distinct from the
+   impact itself -- everything else in this file only puts markup on
+   enemies at IMPACT time. */
+.omega-protocol-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+/* Four corner brackets forming a reticle, built from one rotated square
+   with a conic-gradient mask rather than four separate elements -- cheap,
+   one DOM node per enemy. */
+.omega-protocol-target{
+  position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px;
+  border:2px solid rgba(255,90,40,0.95);
+  -webkit-mask-image: conic-gradient(from 0deg,
+    #000 0deg 20deg, transparent 20deg 70deg,
+    #000 70deg 110deg, transparent 110deg 160deg,
+    #000 160deg 200deg, transparent 200deg 250deg,
+    #000 250deg 290deg, transparent 290deg 340deg,
+    #000 340deg 360deg);
+  mask-image: conic-gradient(from 0deg,
+    #000 0deg 20deg, transparent 20deg 70deg,
+    #000 70deg 110deg, transparent 110deg 160deg,
+    #000 160deg 200deg, transparent 200deg 250deg,
+    #000 250deg 290deg, transparent 290deg 340deg,
+    #000 340deg 360deg);
+  opacity:0;
+}
+.omega-protocol-fx.phase-cast .omega-protocol-target{ animation: omegaProtocolTargetLock 0.6s ease-out both; }
+@keyframes omegaProtocolTargetLock{
+  0%{ opacity:0; transform:scale(1.8) rotate(20deg); }
+  40%{ opacity:1; transform:scale(1) rotate(0deg); }
+  75%{ opacity:1; }
+  100%{ opacity:0.6; }
+}
+/* The "massiv energistråle" -- one big blast, not per-target beams like
+   Seraphine's (the brief describes a single shot, not several), so this
+   reuses the radial expanding-ring technique but bigger/more layered for
+   "massive" -- two rings at slightly different timing/scale for depth. */
+.omega-protocol-blast{
+  position:absolute; left:var(--op-x,50%); top:var(--op-y,50%);
+  width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+  border:3px solid rgba(255,255,255,0.95);
+  box-shadow:0 0 34px 10px rgba(255,140,40,0.75), inset 0 0 20px rgba(255,220,180,0.7);
+  opacity:0;
+}
+.omega-protocol-fx.phase-impact .omega-protocol-blast{ animation: omegaProtocolBlastExpand 0.75s cubic-bezier(.1,.85,.25,1) both; }
+@keyframes omegaProtocolBlastExpand{
+  0%{ opacity:1; transform:scale(0.3); border-color:rgba(255,255,255,0.98); }
+  45%{ opacity:0.7; transform:scale(11); border-color:rgba(255,150,40,0.8); }
+  100%{ opacity:0; transform:scale(15); border-color:rgba(200,60,10,0); }
+}
+.omega-protocol-blast-inner{
+  position:absolute; left:var(--op-x,50%); top:var(--op-y,50%);
+  width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(255,180,90,0.6) 55%, transparent 78%);
+  opacity:0;
+}
+.omega-protocol-fx.phase-impact .omega-protocol-blast-inner{ animation: omegaProtocolBlastExpand 0.5s cubic-bezier(.1,.85,.25,1) 0.05s both; }
+/* Explosion on every enemy that was present at cast time, same variable-
+   count/inline-position technique as infernal-pact-hit/silver-judgment-
+   hit above. */
+.omega-protocol-hit{
+  position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,240,0.95) 0%, rgba(255,120,30,0.75) 45%, rgba(180,30,10,0.4) 70%, transparent 82%);
+  opacity:0;
+}
+.omega-protocol-fx.phase-impact .omega-protocol-hit{ animation: omegaProtocolHit 0.55s ease-out both; }
+@keyframes omegaProtocolHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  30%{ opacity:1; transform:scale(1.7); }
+  100%{ opacity:0; transform:scale(2.3); }
+}
+/* "Kort kraftig screen shake vid huvudträffen" + "kort vit/orange flash
+   avslutar attacken" -- reuses chainShake (see playUltimateSequence) for
+   the shake and this for the flash, punchier/brighter than Silver
+   Judgment's soft version to match Omega Weapon's harder tone. */
+.omega-protocol-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.75) 0%, rgba(255,160,60,0.25) 45%, rgba(255,160,60,0) 72%);
+  opacity:0;
+}
+.omega-protocol-flash.phase-impact{ animation: omegaProtocolFlash 0.4s ease-out 0.3s both; }
+@keyframes omegaProtocolFlash{
+  0%{ opacity:0; }
+  35%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
+/* Shiva's Diamond Storm — a sixth one-off identity VFX (see the user's
+   Diamond Storm VFX request), icy white/blue/silver. Same .board-matching
+   wrapper as the others. Two NEW-ish pieces reused/recombined from prior
+   cards rather than invented from scratch:
+   - "hundreds av små glödande kristaller/diamanter som skjuts över hela
+     brädet mot fiendekorten" is represented (like every other "many small
+     things" moment in this file, e.g. the 8 ambient motes/8 Infernal Pact
+     particles) as a modest, readable count rather than a literal hundreds
+     of DOM nodes -- 2 small shard sparkles per enemy, riding an invisible
+     rotated "rail" positioned+angled with the exact same trig as Seraphine's
+     Silver Judgment beams (angleAndLength via aspect-ratio-normalized
+     atan2). The rail itself stays opacity:0 (no visible beam line) so this
+     doesn't just read as a blue reskin of her Ultimate -- only the two
+     small diamond-shaped sparkles per rail are visible, deliberately
+     staggered so they don't travel in lockstep.
+   - "ett par större kristallfragment som kortvarigt slår ner i spelplanen
+     runt korten" (a few larger fragments briefly striking the board around
+     the cards) reuses Infernal Pact's fixed-nth-child pixel-offset
+     particle technique (8 static offsets from center, cast-phase only)
+     rather than the enemyIndices-positioned technique, since this beat is
+     explicitly "around the cards" in general, not aimed at any specific
+     enemy. */
+.diamond-storm-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.diamond-storm-rail{
+  position:absolute; height:0; transform-origin:0 50%; pointer-events:none;
+  opacity:0;
+}
+.diamond-storm-shard{
+  position:absolute; top:-3px; left:0%; width:6px; height:6px;
+  background:linear-gradient(135deg, #ffffff, #7ec8f2);
+  transform:rotate(45deg) scale(0.3);
+  box-shadow:0 0 8px 2px rgba(126,200,242,0.85);
+  opacity:0;
+}
+/* Travels via `left` (0% -> 100% OF THE RAIL, which has its own explicit
+   inline width in %), not a transform:translate -- a percentage transform
+   is relative to the SHARD's own tiny box, not its parent, so it couldn't
+   span an arbitrary rail length; `left` is relative to the containing
+   block (the rail) and needs no per-element custom property, same
+   technique as silver-judgment-sparkle above. */
+.diamond-storm-fx.phase-impact .diamond-storm-shard{ animation: diamondStormShardFly 0.4s ease-out both; }
+@keyframes diamondStormShardFly{
+  0%{ opacity:0; left:0%; transform:rotate(45deg) scale(0.3); }
+  15%{ opacity:1; }
+  100%{ opacity:0; left:100%; transform:rotate(45deg) scale(1); }
+}
+/* Lands right as its rail's shards arrive -- clear per-enemy crystal
+   impact, same variable-count/inline-position technique as the other
+   AOE cards' *-hit elements, icy palette here. */
+.diamond-storm-hit{
+  position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(126,200,242,0.7) 50%, transparent 78%);
+  opacity:0;
+}
+.diamond-storm-fx.phase-impact .diamond-storm-hit{ animation: diamondStormHit 0.5s ease-out both; }
+@keyframes diamondStormHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  35%{ opacity:1; transform:scale(1.5); }
+  100%{ opacity:0; transform:scale(2); }
+}
+.diamond-storm-fragment{
+  position:absolute; left:var(--ds-x,50%); top:var(--ds-y,50%);
+  width:5px; height:5px; background:#eaf6ff;
+  transform:rotate(45deg); box-shadow:0 0 8px 2px rgba(126,200,242,0.8);
+  opacity:0;
+}
+.diamond-storm-fx.phase-cast .diamond-storm-fragment{ animation: diamondStormFragmentStrike 0.8s ease-in both; }
+@keyframes diamondStormFragmentStrike{
+  0%{ opacity:0; transform:translate(var(--px),var(--py)) rotate(45deg) scale(1.6); }
+  30%{ opacity:1; }
+  100%{ opacity:0; transform:translate(0,0) rotate(45deg) scale(0.3); }
+}
+.diamond-storm-fragment-0{ --px:-75px; --py:-25px; animation-delay:0s;   }
+.diamond-storm-fragment-1{ --px:65px;  --py:-40px; animation-delay:.05s; }
+.diamond-storm-fragment-2{ --px:85px;  --py:25px;  animation-delay:.1s;  }
+.diamond-storm-fragment-3{ --px:35px;  --py:65px;  animation-delay:.15s; }
+.diamond-storm-fragment-4{ --px:-55px; --py:60px;  animation-delay:.03s; }
+.diamond-storm-fragment-5{ --px:-85px; --py:5px;   animation-delay:.08s; }
+.diamond-storm-fragment-6{ --px:5px;   --py:-75px; animation-delay:.13s; }
+.diamond-storm-fragment-7{ --px:15px;  --py:75px;  animation-delay:.18s; }
+/* "En stor, vacker kristall-flash/våg när allt slår in" -- same expanding-
+   ring technique as void-crack/hellfire-blast/silver-judgment-wave, icy
+   white/blue here, delayed until after the shards/hits have landed. */
+.diamond-storm-wave{
+  position:absolute; left:var(--ds-x,50%); top:var(--ds-y,50%);
+  width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.95);
+  box-shadow:0 0 30px 10px rgba(126,200,242,0.6), inset 0 0 18px rgba(255,255,255,0.7);
+  opacity:0;
+}
+.diamond-storm-fx.phase-impact .diamond-storm-wave{ animation: diamondStormWaveExpand 0.6s cubic-bezier(.15,.8,.3,1) 0.5s both; }
+@keyframes diamondStormWaveExpand{
+  0%{ opacity:0.9; transform:scale(0.4); }
+  60%{ opacity:0.45; transform:scale(9); }
+  100%{ opacity:0; transform:scale(13); }
+}
+/* "Kvarvarande glittrande kristallpartiklar" -- a handful of small
+   twinkling glints that fade in late and linger through the tail end of
+   the impact/cleanup window (up to ULTIMATE_CLEANUP_MS after impact
+   starts), rather than landing/traveling like the shards/fragments above
+   -- a slow simple opacity/scale twinkle, not a burst. */
+.diamond-storm-glitter{
+  position:absolute; left:var(--ds-x,50%); top:var(--ds-y,50%);
+  width:4px; height:4px; border-radius:50%;
+  background:#ffffff; box-shadow:0 0 6px 2px rgba(200,235,255,0.9);
+  opacity:0;
+}
+.diamond-storm-fx.phase-impact .diamond-storm-glitter{ animation: diamondStormGlitterTwinkle 0.9s ease-in-out both; }
+@keyframes diamondStormGlitterTwinkle{
+  0%{ opacity:0; transform:translate(var(--gx),var(--gy)) scale(0.4); }
+  40%{ opacity:0.9; transform:translate(var(--gx),var(--gy)) scale(1.1); }
+  100%{ opacity:0; transform:translate(var(--gx),var(--gy)) scale(0.6); }
+}
+.diamond-storm-glitter-0{ --gx:-60px; --gy:-50px; animation-delay:.55s; }
+.diamond-storm-glitter-1{ --gx:70px;  --gy:-30px; animation-delay:.65s; }
+.diamond-storm-glitter-2{ --gx:50px;  --gy:55px;  animation-delay:.7s;  }
+.diamond-storm-glitter-3{ --gx:-45px; --gy:60px;  animation-delay:.6s;  }
+.diamond-storm-glitter-4{ --gx:0px;   --gy:-70px; animation-delay:.75s; }
+.diamond-storm-glitter-5{ --gx:-10px; --gy:70px;  animation-delay:.5s;  }
+/* "Kort screen shake vid den stora impacten, men mindre aggressiv än
+   Omega Weapons" -- reuses the exact same chain-shake amplitude as every
+   other card (never softened, see the note on Silver Judgment's flash
+   above), so the gentler feel comes entirely from this flash being a
+   single soft icy wash (closer to Silver Judgment's soft flash than
+   Omega Protocol's punchy white/orange double-tone one) plus no
+   pre-impact rumble. */
+.diamond-storm-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.55) 0%, rgba(126,200,242,0.2) 45%, rgba(126,200,242,0) 72%);
+  opacity:0;
+}
+.diamond-storm-flash.phase-impact{ animation: diamondStormFlash 0.5s ease-out 0.45s both; }
+@keyframes diamondStormFlash{
+  0%{ opacity:0; }
+  30%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
+/* Bahamut's Megaflare — a seventh one-off identity VFX (see the user's
+   Megaflare VFX request), blue/white/gold astral light. Same
+   .board-matching wrapper as the others, but the brief's "en enorm
+   energistråle som skjuts över hela brädet, strålen sveper igenom
+   fiendekorten" (a huge beam shot across the whole board, the beam
+   SWEEPING through enemy cards) describes something none of the earlier
+   directional beams do: it isn't aimed at any one target (Silver
+   Judgment/this-card-doesn't-have-one) or one fixed origin point (Omega
+   Protocol's single blast) -- it needs to visually cover the ENTIRE
+   board width regardless of how many enemies there are or where they
+   sit. Solved with a full-width bar whose `transform-origin` is pinned to
+   Bahamut's own column (`${originX}% 50%`) and which scales out from
+   scaleX(0) to scaleX(1) -- since the bar's un-scaled box already spans
+   100% of the wrapper, growing from that pinned origin point reads as
+   the sweep visibly emanating from him and washing outward in both
+   directions until it covers every column, no per-enemy angle math
+   needed for the beam itself (unlike Silver Judgment/Diamond Storm's
+   rails, which each need their own angle). */
+.megaflare-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+/* "Energi koncentreras kraftigt framför Bahamut när han laddar" -- a
+   bright core swelling at his own cell during the CAST phase, before the
+   sweep fires at impact. */
+.megaflare-charge{
+  position:absolute; left:var(--mf-x,50%); top:var(--mf-y,50%);
+  width:16px; height:16px; margin:-8px 0 0 -8px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(130,180,255,0.75) 55%, transparent 78%);
+  opacity:0;
+}
+.megaflare-fx.phase-cast .megaflare-charge{ animation: megaflareChargeSwell 0.9s ease-in both; }
+@keyframes megaflareChargeSwell{
+  0%{ opacity:0; transform:scale(0.3); }
+  100%{ opacity:1; transform:scale(2.4); }
+}
+.megaflare-sweep{
+  position:absolute; left:0; top:6%; width:100%; height:88%;
+  background:linear-gradient(90deg,
+    transparent, rgba(255,255,255,0.85) 42%, rgba(130,180,255,0.95) 50%,
+    rgba(240,225,180,0.85) 58%, transparent);
+  box-shadow:0 0 40px 14px rgba(130,180,255,0.55);
+  transform:scaleX(0);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-sweep{ animation: megaflareSweepExpand 0.55s cubic-bezier(.1,.85,.25,1) both; }
+@keyframes megaflareSweepExpand{
+  0%{ opacity:0; transform:scaleX(0); }
+  20%{ opacity:1; }
+  65%{ opacity:0.85; transform:scaleX(1); }
+  100%{ opacity:0; transform:scaleX(1); }
+}
+/* One impact per enemy actually present at cast time, same variable-
+   count/inline-position technique as every other AOE card's *-hit
+   elements -- delayed roughly by how far each enemy sits from Bahamut's
+   column, so they read as being caught in sequence as the sweep passes
+   through them rather than all flashing at once (computed in
+   renderBattle(), see megaflareHits). */
+.megaflare-hit{
+  position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,0.98) 0%, rgba(130,180,255,0.8) 45%, rgba(240,225,180,0.5) 70%, transparent 82%);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-hit{ animation: megaflareHit 0.55s ease-out both; }
+@keyframes megaflareHit{
+  0%{ opacity:0; transform:scale(0.3); }
+  30%{ opacity:1; transform:scale(1.7); }
+  100%{ opacity:0; transform:scale(2.3); }
+}
+/* "En stor kosmisk explosion/ljusvåg" once the sweep has passed --
+   centered on the WHOLE board (50%/50%), not Bahamut's own cell like
+   every other card's wave/blast, since this is meant to read as the
+   entire battlefield erupting rather than an effect radiating from one
+   corner of it. */
+.megaflare-wave{
+  position:absolute; left:50%; top:50%;
+  width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+  border:3px solid rgba(255,255,255,0.95);
+  box-shadow:0 0 40px 14px rgba(130,180,255,0.7), inset 0 0 24px rgba(255,240,210,0.7);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-wave{ animation: megaflareWaveExpand 0.7s cubic-bezier(.15,.8,.3,1) 0.5s both; }
+@keyframes megaflareWaveExpand{
+  0%{ opacity:1; transform:scale(0.3); border-color:rgba(255,255,255,0.98); }
+  50%{ opacity:0.6; transform:scale(12); border-color:rgba(130,180,255,0.75); }
+  100%{ opacity:0; transform:scale(16); border-color:rgba(240,225,180,0); }
+}
+/* "Subtila stjärnpartiklar och astral energi som tonar ut efteråt" --
+   same lingering-twinkle technique as Diamond Storm's glitter, gold/
+   white here, fading in late and lasting through the impact/cleanup
+   tail. */
+.megaflare-star{
+  position:absolute; left:50%; top:50%;
+  width:4px; height:4px; border-radius:50%;
+  background:#fff8e6; box-shadow:0 0 7px 2px rgba(240,225,180,0.9);
+  opacity:0;
+}
+.megaflare-fx.phase-impact .megaflare-star{ animation: megaflareStarFade 1s ease-in-out both; }
+@keyframes megaflareStarFade{
+  0%{ opacity:0; transform:translate(var(--mx),var(--my)) scale(0.4); }
+  40%{ opacity:0.85; transform:translate(var(--mx),var(--my)) scale(1.1); }
+  100%{ opacity:0; transform:translate(var(--mx),var(--my)) scale(0.5); }
+}
+.megaflare-star-0{ --mx:-90px; --my:-60px; animation-delay:.6s; }
+.megaflare-star-1{ --mx:100px; --my:-40px; animation-delay:.7s; }
+.megaflare-star-2{ --mx:70px;  --my:65px;  animation-delay:.75s; }
+.megaflare-star-3{ --mx:-70px; --my:70px;  animation-delay:.65s; }
+.megaflare-star-4{ --mx:0px;   --my:-90px; animation-delay:.8s; }
+.megaflare-star-5{ --mx:-10px; --my:90px;  animation-delay:.55s; }
+/* "Kort men KRAFTFULL screen shake vid den slutliga impacten" -- reuses
+   the exact same chain-shake amplitude as every other card (never
+   softened), paired with the brightest/punchiest full-frame flash in the
+   roster so far (higher peak opacity than Omega Protocol's), matching
+   "gudomlig, majestätisk och enorm" -- this is meant to feel like the
+   biggest Ultimate yet, not a gentle one like Silver Judgment/Diamond
+   Storm. */
+.megaflare-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.9) 0%, rgba(130,180,255,0.35) 45%, rgba(240,225,180,0) 74%);
+  opacity:0;
+}
+.megaflare-flash.phase-impact{ animation: megaflareFlash 0.45s ease-out 0.45s both; }
+@keyframes megaflareFlash{
+  0%{ opacity:0; }
+  35%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
 .coinflip-frame{
   position:relative; width:180px; height:180px; border-radius:50%;
@@ -1576,8 +2103,8 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   .modal-poster > .poster-art{
     flex:0 0 320px; width:320px; aspect-ratio:auto;
   }
-  .modal-poster > .poster-art-full{ overflow:hidden; }
-  .modal-poster > .poster-art-full img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .modal-poster > .poster-art-full{ overflow:hidden; background:var(--void-2); }
+  .modal-poster > .poster-art-full img{ width:100%; height:100%; object-fit:contain; display:block; }
   .modal-poster .poster-skills{
     flex:1 1 auto; max-height:88vh; overflow-y:auto;
   }
@@ -1716,7 +2243,13 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    browser window (not just true fullscreen). Screens too short for
    everything still scroll, just inside the framed panel. ---------- */
 @media (min-width:900px){
-  .stage{ max-width:1300px; height:100dvh; overflow:hidden; }
+  /* Widened per user feedback ("ganska mycket död yta... skulle man kunna
+     göra det lite bredare") -- the panel was leaving visible margin on
+     wide monitors even outside true fullscreen. .scoreboard/.wins-row get
+     the same max-width+auto-margin treatment the fullscreen tier below
+     already uses, so the top bar's width tracks the arena instead of
+     stretching edge-to-edge of the now-wider hand-row-to-hand-row span. */
+  .stage{ max-width:1600px; height:100dvh; overflow:hidden; }
   .wrap{
     padding:22px 26px 30px;
     height:100%;
@@ -1724,36 +2257,47 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     overflow-y:auto;
   }
 
-  .battle-row{ gap:16px; flex:1 1 auto; min-height:0; }
+  .battle-row{ gap:28px; flex:1 1 auto; min-height:0; justify-content:center; }
 
-  .hand-row{ width:120px; gap:10px; height:100%; overflow-y:auto; }
-  .hand-label.side{ font-size:12px; margin-bottom:6px; }
+  /* .arena-frame's own width is derived from AVAILABLE HEIGHT (aspect-
+     ratio:1086/1448, height:100%, width:auto below), so on an ordinary
+     landscape monitor it's height-bound, not width-bound -- widening its
+     own max-width above doesn't actually make it bigger there. .hand-row
+     is the column that CAN use freed-up horizontal space (its cards are
+     purely width-driven, see .hand-row .card{width:100%}), so this is the
+     more effective lever for "för det är ganska mycket död yta" on a
+     typical 1920x1080-ish screen. */
+  .hand-row{ width:210px; gap:12px; height:100%; overflow-y:auto; }
+  .hand-label.side{ font-size:13px; margin-bottom:8px; }
 
   .board{ gap:11px; }
   .arena-frame{
-    max-width:820px;
+    max-width:960px;
     height:100%; width:auto;
     flex:0 1 auto;
   }
 
-  .scoreboard{ padding:11px 20px; margin-bottom:16px; }
+  .scoreboard{ padding:11px 20px; margin-bottom:16px; max-width:960px; margin-left:auto; margin-right:auto; }
+  .wins-row{ max-width:960px; margin-left:auto; margin-right:auto; }
   .score-num{ font-size:21px; }
   .turn-indicator{ font-size:13px; }
   .score-flame{ width:44px; height:44px; }
 }
 
 /* ---------- true browser fullscreen (the ⛶ button): the game fills the
-   whole physical screen, so stop capping it at desktop's 1000px and let it
-   use the extra width — bigger board, bigger hands, more breathing room.
-   The viewport-fit mechanics (.stage bounded to 100dvh, .wrap scrolling,
-   .battle-row/.hand-row/.arena-frame flexing to fill it) already come from
-   the plain desktop rule above; this block only widens the caps further.
-   Only kicks in alongside the desktop breakpoint so a phone in fullscreen
-   keeps its normal narrow layout. ---------- */
+   whole physical screen, so stop capping it at plain desktop's width and
+   let it use the extra room — bigger board, bigger hands, more breathing
+   room. The viewport-fit mechanics (.stage bounded to 100dvh, .wrap
+   scrolling, .battle-row/.hand-row/.arena-frame flexing to fill it)
+   already come from the plain desktop rule above; this block only widens
+   the caps further (re-widened alongside that tier's own widening -- see
+   its comment -- so fullscreen stays bigger than plain desktop, not
+   smaller). Only kicks in alongside the desktop breakpoint so a phone in
+   fullscreen keeps its normal narrow layout. ---------- */
 @media (min-width:900px){
   html:fullscreen .stage,
   html:-webkit-full-screen .stage{
-    max-width:1700px;
+    max-width:1900px;
   }
   html:fullscreen .wrap,
   html:-webkit-full-screen .wrap{
@@ -1765,7 +2309,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   }
   html:fullscreen .hand-row,
   html:-webkit-full-screen .hand-row{
-    width:140px; gap:14px;
+    width:240px; gap:14px;
   }
   html:fullscreen .hand-label.side,
   html:-webkit-full-screen .hand-label.side{
@@ -1777,15 +2321,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   }
   html:fullscreen .arena-frame,
   html:-webkit-full-screen .arena-frame{
-    max-width:860px;
+    max-width:1100px;
   }
   html:fullscreen .scoreboard,
   html:-webkit-full-screen .scoreboard{
-    max-width:860px; margin-left:auto; margin-right:auto;
+    max-width:1100px; margin-left:auto; margin-right:auto;
   }
   html:fullscreen .wins-row,
   html:-webkit-full-screen .wins-row{
-    max-width:860px; margin-left:auto; margin-right:auto;
+    max-width:1100px; margin-left:auto; margin-right:auto;
   }
   html:fullscreen .score-num,
   html:-webkit-full-screen .score-num{
@@ -1804,6 +2348,10 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 </audio>
 <div class="stage">
   <div class="stage-ambient" aria-hidden="true">
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
+    <span class="stage-mote"></span>
     <span class="stage-mote"></span>
     <span class="stage-mote"></span>
     <span class="stage-mote"></span>
@@ -2267,7 +2815,7 @@ const HEROES = [
       {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
       {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
-      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
+      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, Odin gets +3 Power on all sides this round, and there is a 50% chance he unleashes Ragnarok, destroying every OTHER card on the board (allies included). Otherwise, the defeated card gets -3 Power on all sides permanently and all other enemy cards get -1 Power on all sides this round. Usable once per match."},
     ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
@@ -2584,7 +3132,7 @@ const FOREST_FOES = [
       {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
       {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
-      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, the defeated card gets -3 Power on all sides permanently, all other enemy cards get -1 Power on all sides this round, and Odin gets +3 Power on all sides this round. Usable once per match."},
+      {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, Odin gets +3 Power on all sides this round, and there is a 50% chance he unleashes Ragnarok, destroying every OTHER card on the board (allies included). Otherwise, the defeated card gets -3 Power on all sides permanently and all other enemy cards get -1 Power on all sides this round. Usable once per match."},
     ] },
   { id:'lyrith', name:'Lyrith', role:'The Silent Venom — Legendary Card', element:'water', top:9, right:9, bottom:6, left:8, hue:'linear-gradient(160deg,#240a1c,#0d0b18 60%)', accent:'#c23bce', icon:'🐍', active:{onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:2}}, special:{ name:"Serpent's Wrath", cost:3, once:true, targets:'single' }, skills: [
     {name:'Venomous Fangs (Passive)', desc:'When Lyrith wins a battle, the defeated card permanently loses 1 Power on all sides.'},
@@ -3204,6 +3752,15 @@ function cardFace(card, opts={}){
   // Seraphine's Silver Judgment identity VFX (see the silver-judgment-*
   // CSS block) — same additive pattern as void-dominion-casting above.
   const silverJudgmentCastingClass = (opts.ultimateCasting && card.id === 'seraphine') ? 'silver-judgment-casting' : '';
+  // Omega Weapon's Omega Protocol identity VFX (see the omega-protocol-*
+  // CSS block) — same additive pattern as void-dominion-casting above.
+  const omegaProtocolCastingClass = (opts.ultimateCasting && card.id === 'omegaweapon') ? 'omega-protocol-casting' : '';
+  // Shiva's Diamond Storm identity VFX (see the diamond-storm-* CSS
+  // block) — same additive pattern as void-dominion-casting above.
+  const diamondStormCastingClass = (opts.ultimateCasting && card.id === 'shiva') ? 'diamond-storm-casting' : '';
+  // Bahamut's Megaflare identity VFX (see the megaflare-* CSS block) —
+  // same additive pattern as void-dominion-casting above.
+  const megaflareCastingClass = (opts.ultimateCasting && card.id === 'bahamut') ? 'megaflare-casting' : '';
   const cardTitle = (opts.specialInfo && opts.specialInfo.ready) ? ` title="${opts.specialInfo.title} — tap to unleash"` : '';
   // Game-feel phase 3: --fx-step (capped to a sane max so a very long chain
   // doesn't produce an absurdly huge flash) drives per-flip escalating
@@ -3214,7 +3771,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -3521,6 +4078,68 @@ function renderBattle(){
     });
   }
 
+  // Omega Weapon's Omega Protocol identity VFX -- same enemyIndices-based
+  // derivation as Infernal Pact/Silver Judgment above, but needs target
+  // positions for the cast-phase targeting reticles too (not just the
+  // impact-phase hits), since the brief wants a visible "lock-on" beat.
+  const omegaProtocolActive = state.ultimateBanner && state.ultimateBanner.name === 'Omega Protocol';
+  let omegaProtocolOriginX = 50, omegaProtocolOriginY = 50, omegaProtocolTargets = [];
+  if(omegaProtocolActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    omegaProtocolOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    omegaProtocolOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    omegaProtocolTargets = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      x: ((i % 3) + 0.5) / 3 * 100,
+      y: (Math.floor(i / 3) + 0.5) / 3 * 100,
+      lockDelay: n * 0.05,
+      hitDelay: 0.25 + n * 0.04,
+    }));
+  }
+
+  // Shiva's Diamond Storm identity VFX -- same enemyIndices + angle/length
+  // trig as Silver Judgment above (each enemy gets its own invisible
+  // "rail" so the shard sparkles can travel to it at the right angle),
+  // but the rail itself is never rendered visibly (opacity:0 in CSS) and
+  // two shards per rail ride it instead of one, for a denser "storm" of
+  // small crystals rather than a single beam per target.
+  const diamondStormActive = state.ultimateBanner && state.ultimateBanner.name === 'Diamond Storm';
+  let diamondStormOriginX = 50, diamondStormOriginY = 50, diamondStormRails = [];
+  if(diamondStormActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    diamondStormOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    diamondStormOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    diamondStormRails = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
+      const targetX = ((i % 3) + 0.5) / 3 * 100;
+      const targetY = (Math.floor(i / 3) + 0.5) / 3 * 100;
+      const dxUnits = (targetX - diamondStormOriginX) / 100;
+      const dyUnits = (targetY - diamondStormOriginY) / 100 * (7/5);
+      const angleDeg = Math.atan2(dyUnits, dxUnits) * (180/Math.PI);
+      const lengthPercent = Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100;
+      return { targetX, targetY, angleDeg, lengthPercent, shard1Delay: n * 0.03, shard2Delay: 0.06 + n * 0.03, hitDelay: 0.3 + n * 0.05 };
+    });
+  }
+
+  // Bahamut's Megaflare identity VFX -- same enemyIndices-based derivation
+  // as the destroy-based AOE cards above (Void Dominion/Infernal
+  // Pact/Omega Protocol), but no angle math is needed for the sweep
+  // itself (see the megaflare-sweep CSS comment) -- only each hit's
+  // DELAY is derived here, staggered by horizontal distance from
+  // Bahamut's own column so the impacts read as being caught in sequence
+  // as the sweep washes outward from him, not all at once.
+  const megaflareActive = state.ultimateBanner && state.ultimateBanner.name === 'Megaflare';
+  let megaflareOriginX = 50, megaflareOriginY = 50, megaflareHits = [];
+  if(megaflareActive){
+    const idx = state.ultimateBanner.sourceIndex;
+    megaflareOriginX = ((idx % 3) + 0.5) / 3 * 100;
+    megaflareOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    megaflareHits = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
+      const x = ((i % 3) + 0.5) / 3 * 100;
+      const y = (Math.floor(i / 3) + 0.5) / 3 * 100;
+      const horizFraction = Math.min(1, Math.abs(x - megaflareOriginX) / 100 * 1.5);
+      return { x, y, hitDelay: 0.15 + horizFraction * 0.3 + n * 0.02 };
+    });
+  }
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -3606,6 +4225,10 @@ function renderBattle(){
         <span class="arena-mote"></span>
         <span class="arena-mote"></span>
         <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
+        <span class="arena-mote"></span>
       </div>
       ${voidDominionActive ? `<div class="void-dominion-dark phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>` : ''}
       <div class="board">
@@ -3656,6 +4279,40 @@ function renderBattle(){
           <div class="silver-judgment-wave"></div>
         </div>
         <div class="silver-judgment-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${omegaProtocolActive ? `
+        <div class="omega-protocol-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--op-x:${omegaProtocolOriginX}%; --op-y:${omegaProtocolOriginY}%;">
+          ${omegaProtocolTargets.map(t => `<div class="omega-protocol-target" style="left:${t.x}%; top:${t.y}%; animation-delay:${t.lockDelay}s;"></div>`).join('')}
+          <div class="omega-protocol-blast"></div>
+          <div class="omega-protocol-blast-inner"></div>
+          ${omegaProtocolTargets.map(t => `<div class="omega-protocol-hit" style="left:${t.x}%; top:${t.y}%; animation-delay:${t.hitDelay}s;"></div>`).join('')}
+        </div>
+        <div class="omega-protocol-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${diamondStormActive ? `
+        <div class="diamond-storm-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--ds-x:${diamondStormOriginX}%; --ds-y:${diamondStormOriginY}%;">
+          ${[0,1,2,3,4,5,6,7].map(n => `<div class="diamond-storm-fragment diamond-storm-fragment-${n}"></div>`).join('')}
+          ${diamondStormRails.map(r => `
+            <div class="diamond-storm-rail" style="left:${diamondStormOriginX}%; top:${diamondStormOriginY}%; width:${r.lengthPercent}%; transform:rotate(${r.angleDeg}deg);">
+              <div class="diamond-storm-shard" style="animation-delay:${r.shard1Delay}s;"></div>
+              <div class="diamond-storm-shard" style="animation-delay:${r.shard2Delay}s;"></div>
+            </div>
+          `).join('')}
+          ${diamondStormRails.map(r => `<div class="diamond-storm-hit" style="left:${r.targetX}%; top:${r.targetY}%; animation-delay:${r.hitDelay}s;"></div>`).join('')}
+          <div class="diamond-storm-wave"></div>
+          ${[0,1,2,3,4,5].map(n => `<div class="diamond-storm-glitter diamond-storm-glitter-${n}"></div>`).join('')}
+        </div>
+        <div class="diamond-storm-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${megaflareActive ? `
+        <div class="megaflare-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--mf-x:${megaflareOriginX}%; --mf-y:${megaflareOriginY}%;">
+          <div class="megaflare-charge"></div>
+          <div class="megaflare-sweep" style="transform-origin:${megaflareOriginX}% 50%;"></div>
+          ${megaflareHits.map(h => `<div class="megaflare-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.hitDelay}s;"></div>`).join('')}
+          <div class="megaflare-wave"></div>
+          ${[0,1,2,3,4,5].map(n => `<div class="megaflare-star megaflare-star-${n}"></div>`).join('')}
+        </div>
+        <div class="megaflare-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
@@ -6871,7 +7528,17 @@ const SPECIAL_HANDLERS = {
   // round to every OTHER enemy, and +3 Power this round to Odin himself.
   // "Utför sju blixtsnabba slag" ("seven lightning strikes") is pure flavor
   // for the name/flourish, not a literal seven separate hits.
-  odin({ srcEntry, targetEntry, targetIndex, owner }){
+  //
+  // Plus a 50% coin-flip Ragnarok clause (per the user's request): on a
+  // successful hit, there's a 1-in-2 chance every OTHER card on the board
+  // is destroyed via destroyCard (noRevive, same as every other outright
+  // "destroy" special) -- deliberately NOT enemy-only, unlike every other
+  // destroy-based Ultimate in the roster, since this is meant to be a real
+  // gamble (it can wipe Odin's own side too) rather than a guaranteed
+  // one-sided board wipe. Odin himself (sourceIndex) and the just-flipped
+  // target are always spared. Missing the coin flip falls back to the
+  // original single-target + AOE-debuff effect untouched.
+  odin({ srcEntry, sourceIndex, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     const enemyOwner = owner === 'blue' ? 'red' : 'blue';
     if(totalPower(srcEntry) <= totalPower(targetEntry)){
@@ -6884,6 +7551,15 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 3);
+    if(Math.random() < 0.5){
+      let destroyed = 0;
+      state.board.forEach((e, i) => {
+        if(e && i !== sourceIndex && e !== targetEntry){ destroyCard(i, { noRevive: true }); destroyed++; }
+      });
+      return destroyed > 0
+        ? `${name}'s Zantetsuken cuts down ${targetEntry.card.name} and unleashes Ragnarok, obliterating ${destroyed} more card${destroyed>1?'s':''} on the field!`
+        : `${name}'s Zantetsuken cuts down ${targetEntry.card.name}!`;
+    }
     SpecialVerbs.debuff(targetEntry, 3);
     let weakened = 0;
     state.board.forEach(e => {
@@ -7128,6 +7804,7 @@ const ULTIMATE_VOICE_LINES = {
   tiamat: 'voices/tiamat.mp3',
   threeheaddragon: 'voices/threeheaddragon.mp3',
   omegaweapon: 'voices/omegaweapon.mp3',
+  shiva: 'voices/shiva.mp3',
 };
 function playUltimateVoiceLine(cardId){
   if(!soundOn) return;
@@ -7155,6 +7832,9 @@ const ULTIMATE_IMPACT_SFX = {
   nyxara: 'sfx/nyxara.mp3',
   vaelira: 'sfx/vaelira.mp3',
   seraphine: 'sfx/seraphine.mp3',
+  omegaweapon: 'sfx/omegaweapon.mp3',
+  shiva: 'sfx/shiva.mp3',
+  bahamut: 'sfx/bahamut.mp3',
 };
 function playUltimateImpactSfx(cardId){
   if(!soundOn) return;
@@ -7194,16 +7874,26 @@ function playUltimateSequence(job){
   const token = ++ultimateBannerToken;
 
   // AOE identity-VFX cards (Vaelira's Infernal Pact, Seraphine's Silver
-  // Judgment) need to know which cells were enemies AT CAST TIME: both
-  // destroy/strip via destroyCard (like Nyxara's), so by the time the
-  // impact-phase render happens those board slots are already null and
-  // can't be re-queried for "which cells to flash". Captured once here,
-  // carried through this closure into the impact-phase banner below.
-  // Presentation only, never read by gameplay logic, and only computed for
-  // these specific cards' Ultimates (not a general capability every AOE
-  // gets).
+  // Judgment, Omega Weapon's Omega Protocol) need to know which cells were
+  // enemies AT CAST TIME: Infernal Pact/Silver Judgment destroy/strip via
+  // destroyCard (like Nyxara's), so by the time the impact-phase render
+  // happens those board slots are already null and can't be re-queried;
+  // Omega Protocol only destroys SOME enemies (the weak ones) but debuffs
+  // ALL of them, and the brief wants a targeting-marker + hit effect on
+  // every enemy regardless of which ones end up destroyed, so it needs the
+  // same "who was an enemy at cast time" snapshot for the same reason.
+  // Captured once here, carried through this closure into the impact-phase
+  // banner below. Presentation only, never read by gameplay logic, and
+  // only computed for these specific cards' Ultimates (not a general
+  // capability every AOE gets).
+  // Shiva's Diamond Storm is added to this list too even though it never
+  // destroys/nulls any board slot (it's a plain debuffThisRound AOE,
+  // entries stay in place) -- captured here anyway so her shard-rail/hit
+  // VFX can reuse the exact same enemyIndices-on-the-banner mechanism as
+  // every other AOE identity-VFX card, rather than re-deriving "who is an
+  // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare'){
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
   }
 
@@ -7251,8 +7941,14 @@ function playUltimateSequence(job){
     // the same reason (her one-off VFX test's screen-shake request).
     // Vaelira's Infernal Pact and Seraphine's Silver Judgment are the same
     // destroy-based shape as Void Dominion (destroyCard, never
-    // justFlipped) — same opt-in, same reason.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment') state.chainShake = true;
+    // justFlipped) — same opt-in, same reason. Omega Weapon's Omega
+    // Protocol also destroys via destroyCard (just conditionally, only the
+    // weak enemies) — same opt-in either way.
+    // Shiva's Diamond Storm never flips anything either (a plain AOE
+    // debuff, not a capture or a destroy) so capturedCount is always 0
+    // here too -- same explicit opt-in as every other card in this list,
+    // for the same "kort screen shake vid impacten" request in her brief.
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.

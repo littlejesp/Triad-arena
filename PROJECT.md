@@ -1920,6 +1920,338 @@ lägen — bekräftade den gyllene auran under cast, de synliga strålarna
 mitt i impact, och de mjuka gyllene träff-glödarna vid den slutliga
 vågen. Hela testsviten grön (96/96, +1 nytt test).
 
+**Fas 4i: skärmfoto-feedback på desktop-layouten — bredare panel +
+livligare bakgrund, ingen kod-VFX-fråga den här gången.** Användaren
+skickade ett foto av spelet på sin bärbara dator: "skulle man kunna
+göra det lite bredare för det är ganska mycket död yta... sen hade jag
+velat ha bakgrund mer levande... själar som också flyger upp som de
+små prickarna jag ser" (syftar på de redan existerande
+`.stage-mote`/`.arena-mote`-partiklarna).
+
+**Viktig upptäckt innan någon kod ändrades:** `.arena-frame` (spelbrädet)
+sätts med `height:100%; width:auto;` och en `aspect-ratio:1086/1448`
+(porträtt) — dess bredd HÄRLEDS alltså från tillgänglig HÖJD, inte
+bredd. På en vanlig liggande 1920×1080-skärm är höjden (minus
+mastheadet/scoreboard/wins-row/loggen) den begränsande faktorn, så att
+bara höja `.arena-frame`s egna `max-width` (vilket redan gjordes i
+tidigare faser) gör INGEN skillnad där — taket nås aldrig. Verifierat
+konkret med ett Playwright-skript vid 1920×1080: brädet stannade på
+~553px bredd oavsett om `max-width` sattes till 820px eller 960px.
+`.hand-row` däremot ÄR rent breddstyrt (`.hand-row .card{width:100%}`,
+korten har ingen egen höjdbegränsning från kolumnen), så det blev den
+faktiskt verksamma spaken istället för att jaga brädet.
+
+Konkreta ändringar (alla `@media (min-width:900px)`, rör INTE mobil-
+layouten som redan var godkänd):
+- `.stage` max-width: 1300px → 1600px (rent desktop) / 1700px → 1900px
+  (riktig helskärm via ⛶-knappen).
+- `.hand-row` bredd: 120px → 210px (desktop) / 140px → 240px
+  (helskärm) — den verkligt verksamma ändringen, gör handkorten
+  märkbart större och äter upp en stor del av den tomma ytan.
+- `.arena-frame` max-width: 820px → 960px (desktop) / 860px → 1100px
+  (helskärm) — behållen ändå för de fall då fönstret RÅKAR vara högt
+  nog (smalare men högre fönster, eller riktig helskärm på en skärm
+  med mindre extrem bildproportion) att brädet faktiskt är
+  breddbegränsat istället för höjdbegränsat.
+- `.scoreboard`/`.wins-row` fick samma `max-width` + `margin:auto`-
+  behandling som helskärms-läget redan hade, så mätarraden ovanför
+  följer brädets bredd istället för att sträcka sig ut till kanten av
+  den nu bredare `.hand-row`-till-`.hand-row`-sträckan.
+- `.battle-row` gap: 16px → 28px.
+
+**Livligare bakgrund:** `.stage-mote` (hela sidans bakgrundslager,
+utanför `#app`, aldrig omritad) utökad från 4 till 8 partiklar;
+`.arena-mote` (inuti spelplanens ram) utökad från 6 till 10 — samma
+redan etablerade teknik (drivande gnistor med `translateY`, exakt vad
+användaren beskrev som "prickar som flyger upp"), bara fler av dem med
+nya position/varaktighet/fördröjnings-kombinationer och en extra
+temafärg (`--gold`, redan definierad men oanvänd i dessa lager sen
+tidigare) för variation.
+
+**Ärlig gräns kommunicerad (inte bara kodad tyst):** även efter dessa
+ändringar kvarstår en del marginal på båda sidor av panelen på en
+vanlig 1920×1080-skärm, eftersom ett porträtt-orienterat 3×3-bräde
+aldrig kan fylla en liggande skärm utan antingen att förvränga
+kortproportionerna eller kraftigt krympa mastheadet/scoreboard-höjden
+(en mycket större strukturell ändring, inte vad som begärdes). Löst
+genom att göra marginalen kännas avsiktlig snarare än tom — bredare
+handkort + livligare partiklar — istället för att låtsas att den tomma
+ytan helt försvinner.
+
+**Verifiering:** inga permanenta tester berörs (ren CSS/markup, ingen
+spellogik), men hela testsviten kördes ändå för att bekräfta att inget
+annat gått sönder — grön (96/96). Verifierat manuellt med Playwright
+vid 1920×1080 (innan/efter-jämförelse av faktisk `.arena-frame`/
+`.hand-row`-bredd via `getBoundingClientRect()`, plus skärmdumpar) och
+vid 420px mobilbredd (bekräftade layouten och antalet mote-element
+oförändrat där, ingen horisontell scroll introducerad).
+
+**Uppdatering, samma session: femte impact-SFX:et, för Omega Weapon
+(Omega Protocol).** Användaren laddade upp en femte egen ljudeffekt
+("Massive futuristic sound", ~2s) med "Omega weapon ultimate ljud".
+Filen kopierad in som `sfx/omegaweapon.mp3`. Femte raden i
+`ULTIMATE_IMPACT_SFX` (`omegaweapon: 'sfx/omegaweapon.mp3'`) — samma
+ramverk, ingen ny kod. Fas 4d-testet utökat igen: mapping-kontrollen
+fick en femte rad, och real-cast-vägs-verifieringen utökad med ett
+femte AOE-steg. Verifierat manuellt med samma UI-klick-sekvens —
+bekräftade `window.Audio`-anrop med `sfx/omegaweapon.mp3` exakt vid
+impact-fasen, och att det svaga testkortet förstördes. Hela
+testsviten grön (96/96, samma antal — befintligt testfall utökat).
+
+**Uppdatering, samma session: Shiva fick både röstlinje OCH
+impact-SFX i samma omgång — tionde röstlinjen, sjätte impact-SFX:et.**
+Användaren laddade upp en ElevenLabs-röstfil ("Shivas ljud för
+ultimate") följt strax efter av en separat ljudeffekt ("Majestic
+crystalline", ~2s, "Ultimate ljud" utan kortnamn — tolkad som Shiva
+eftersom temat matchar och hon var det senast diskuterade kortet).
+Filerna kopierade in som `voices/shiva.mp3` respektive `sfx/shiva.mp3`.
+Nionde raden i `ULTIMATE_VOICE_LINES` och sjätte raden i
+`ULTIMATE_IMPACT_SFX` — samma två ramverk, ingen ny kod. Både fas
+4c- och fas 4d-testerna utökade med Shiva (mapping-kontroll +
+real-cast-vägs-AOE-steg i båda). Verifierat manuellt med samma
+UI-klick-sekvens — bekräftade `voices/shiva.mp3` under cast-fasen,
+`sfx/shiva.mp3` vid impact, och att fiendekortet fick -3 Power samt
+blev special-låst (matchar Diamond Storms redan existerande
+debuff-mekanik). Hela testsviten grön (96/96, samma antal — befintliga
+testfall utökade).
+
+**Fas 4j: Omega Weapon fick samma sorts "element-identitet"-VFX för
+Omega Protocol, femte engångstestet i raden.** Orange/vitt
+"mekanisk energi"-tema. Två nya saker jämfört med tidigare kort:
+
+- **Krympande ringar istället för växande** — `.card.omega-protocol-
+  casting::before/::after` skalar NER (från stor till liten) istället
+  för upp, för "mekaniska energiringar och partiklar dras in mot
+  kärnan" — motsatt rörelseriktning mot alla tidigare korts ringar,
+  som antingen pulserar på plats eller öppnas utåt.
+- **Targeting-markörer under CAST-fasen (helt ny mekanism)** — kravet
+  "fiendekorten får korta röda/orange targeting-markeringar" beskriver
+  ett "lock-on"-ögonblick INNAN skottet avfyras, till skillnad från
+  alla tidigare korts fiende-markup som bara existerar vid impact.
+  `.omega-protocol-target` är en fyrkantig ring maskerad med
+  `conic-gradient` till fyra hörn-brackets (en enda DOM-nod per
+  fiende, ingen fyrdelad markup), animerad under `.phase-cast`
+  specifikt. Detta krävde att `aoeEnemyIndicesAtCast`-infrastrukturen
+  (senast delad av Infernal Pact/Silver Judgment) generaliserades
+  ytterligare till att även täcka Omega Protocol — trots att hans
+  mekanik skiljer sig (destroy:ar bara SVAGA fiender, debuffar ALLA)
+  behövs samma "vilka celler var fiender vid cast"-ögonblicksbild för
+  targeting/impact-VFX oavsett vilka som faktiskt överlever.
+- **Massiv central explosion** — till skillnad från Seraphines
+  riktade strålar mot varje mål (flera separata linjer) beskriver
+  kravlistan EN stor stråle ("massiv energistråle", singular) —
+  löst med samma ring-expansions-teknik som `.void-crack`/
+  `.hellfire-blast` men två lager för extra kraft/djup
+  (`.omega-protocol-blast` + `.omega-protocol-blast-inner`).
+- **`chainShake`-villkoret utökat igen** (`special.name === 'Omega
+  Protocol'`) av samma anledning som tidigare — destroy:ade kort
+  sätter aldrig `justFlipped`.
+
+**Verifiering:** ett nytt permanent test (97 totalt) bekräftar hela
+livscykeln med två fiender: under cast-fasen finns kortets krympande
+ringar, fx-wrappern, och EN targeting-reticle PER FIENDE (2 st) —
+explosionerna finns redan i DOM:en men osynliga (`opacity:0`) tills
+impact-fasen (samma mönster som tidigare korts hit-element, fångade
+detta explicit efter att först ha skrivit ett felaktigt "elementet
+ska inte finnas alls"-test som floppade — rättat till att testa
+osynlighet istället för frånvaro, samma lärdom som Nyxara-testet
+gjorde tidigare). Vid impact: explosionsantalet matchar fiendeantalet,
+den massiva explosionen och flashen syns båda, båda svaga fiender
+förstörda, `chainShake` triggat. Ett sista kontroll bekräftar att
+Seraphines Silver Judgment (samma destroy-AOE-form) INTE får någon
+Omega-Protocol-specifik markup. Verifierat även manuellt med en riktig
+UI-klick-sekvens (två fiender) och skärmdumpar i två lägen —
+bekräftade de synliga röda targeting-markeringarna under cast och den
+kraftiga orange/vita explosionsvågen vid impact. Hela testsviten grön
+(97/97, +1 nytt test).
+
+**Fas 4k: Bahamuts impact-SFX inkopplad, Odins Zantetsuken omdesignad
+till en riskfylld "Ragnarok"-ultimate, och en desktop-only bugfix på
+kort-infomodalens bild.** Tre separata användarförfrågningar hanterade i
+samma omgång:
+
+- **Bahamut impact-SFX** — femte uppladdade ljudfilen ("Nu ljudet för
+  mega flare attacken", `sfx/bahamut.mp3`, bekräftat unik via `md5sum`)
+  inkopplad i `ULTIMATE_IMPACT_SFX` som `bahamut: 'sfx/bahamut.mp3'` —
+  samma engångsrad som alla tidigare kort i mappningen, ingen ny kod.
+  Fas 4d-testet utökat igen: en ny `bahamutCall`-kontroll bekräftar att
+  `playUltimateImpactSfx('bahamut')` spelar rätt fil.
+- **Odins Zantetsuken — 50% chans att förstöra HELA brädet** (användarens
+  egen begäran: "hans ultimate borde döda alla kort på spelplanen med
+  50% chans annars är skillen bra"). `SPECIAL_HANDLERS.odin` behåller
+  hela sin befintliga gate (kräver fortfarande att attacken vinner
+  makt-jämförelsen, respekterar sköldar) och sitt befintliga
+  fallback-beteende (permanent -3 på målet, -1 denna runda till övriga
+  fiender, +3 denna runda till Odin själv) oförändrat. NYTT: på en
+  lyckad attack, 50% `Math.random() < 0.5`-chans att i stället förstöra
+  VARJE annat kort på brädet via `destroyCard(i, {noRevive:true})` —
+  medvetet INTE fiende-only som alla andra destroy-ultimates i rostret
+  (Infernal Pact/Silver Judgment/Omega Protocol slår bara fiender), utan
+  ett äkta myntkast som kan radera Odins EGEN sida också, eftersom det
+  är hela poängen med en gamble-mekanik snarare än en garanterad
+  ensidig brädrensning. Odin själv (`sourceIndex`) och det redan
+  flippade målet är alltid fredade. Kortets skill-text uppdaterad
+  ordagrant på båda ställena (`HEROES`/`FOREST_FOES`) för att matcha.
+  Ingen ny VFX byggd för detta — användaren bad uttryckligen bara om
+  mekanikändringen ("annars är skillen bra", dvs allt annat med kortet
+  är redan bra som det är). Det befintliga testet
+  ("Odin: Allfather's Gaze... Zantetsuken ultimate") utökat med två
+  deterministiska grenar (myntkastet stubbat via en tillfällig
+  `Math.random`-override, återställd efter varje gren) som täcker BÅDA
+  utfallen: missen (identiskt med gamla beteendet) och träffen
+  (Ragnarok sparar Odin + målet, förstör en allierad OCH en annan
+  fiende på brädet).
+- **Bugfix: kort-infomodalens bild beskuren på desktop/webbversionen**
+  (skärmfoto + "Man ser inte heller hela kortet på web versionen det är
+  en liten liten del som inte synts"). Roten: den sida-vid-sida-layouten
+  som lades till för `@media (min-width:700px)` (se tidigare
+  layout-arbete i avsnitt 5b) tvingar `.poster-art-full` till en FAST
+  bredd/höjd-box (`flex:0 0 320px`, höjden sträckt till att matcha
+  skills-panelens höjd via `align-items:stretch`), och bilden inuti
+  använde `object-fit:cover` — som medvetet BESKÄR bilden för att fylla
+  en box vars proportioner inte matchar bildens egna. Den smala/staplade
+  layouten (`.poster-art-full img{width:100%}`, inget `object-fit`) hade
+  aldrig det här problemet, vilket matchar att användaren bara märkte
+  det på webben/desktop. Fix: bytte `object-fit:cover` → `object-fit:
+  contain` plus en bakgrundsfärg (`var(--void-2)`, samma som modalens
+  egen bakgrund) på `.poster-art-full` så att hela bilden alltid syns,
+  eventuellt brevlådad, utan att sticka ut som ett gap. Verifierat
+  manuellt med en Playwright-skärmdump av Odins kort-infomodal på
+  1400×900 — hela postern (inklusive toppen och botten som tidigare
+  klipptes) syns nu korrekt.
+
+Inga nya generella primitives förutom `destroyCard`-återanvändningen
+(redan befintlig funktion, bara ett nytt anropsställe). Hela testsviten
+grön (99/99, +2 nya grenar i ett befintligt test, +1 rad i ett annat).
+
+**Fas 4l: Shiva fick samma sorts "element-identitet"-VFX för Diamond
+Storm, sjätte engångstestet i raden.** Isvitt/blått/silver "kristallstorm"-
+tema. Två saker värda att notera:
+
+- **Accelererande kort-aura istället för konstant rotation** — kravet
+  "kristallfragment som snurrar runt kortet, allt snabbare" är en genuint
+  ny form: alla tidigare korts roterande ring/sigill spinner i konstant
+  hastighet (`linear`-timing). `.card.diamond-storm-casting::before/
+  ::after` löser detta med OJÄMNT fördelade keyframe-stopp inom samma
+  0.95s cast-fönster (60° under de första 40% av tiden, sedan 620° totalt
+  vid 100%) — ingen JS-driven `animation-duration`-ändring mitt i
+  animationen behövs, bara ojämn keyframe-spacing. Två ringar som
+  snurrar åt motsatta håll för extra "storm"-densitet.
+- **"Hundratals" små kristaller representeras (som alla tidigare "många
+  små saker"-ögonblick i den här filen) som ett modest, läsbart antal**
+  — 2 små diamantformade "shard"-gnistor per fiende, som åker på en
+  osynlig roterad "räls" (`.diamond-storm-rail`, opacity:0) positionerad
+  med exakt samma trigonometri som Seraphines Silver Judgment-strålar
+  (vinkel/längd via aspect-ratio-normaliserad atan2) — men själva rälsen
+  syns aldrig, bara de två gnistorna på den, så det här läser INTE som en
+  blå omskinning av hennes Ultimate. Plus 8 fasta "större
+  kristallfragment" (samma pixel-offset-teknik som Infernal Pacts
+  partiklar) som slår ner runt korten under cast-fasen, och 6 kvardröjande
+  "glitter"-gnistor som tonas in sent och blinkar ut under svansen av
+  impact/cleanup-fönstret ("kvarvarande glittrande kristallpartiklar").
+- **`chainShake`- och `aoeEnemyIndicesAtCast`-villkoren utökade igen**
+  (`special.name === 'Diamond Storm'`), av en NY anledning den här gången:
+  Diamond Storm är varken en destroy-AOE (som Infernal Pact/Silver
+  Judgment) eller en villkorlig destroy (som Omega Protocol) — den är en
+  helt vanlig `debuffThisRound`-AOE som aldrig rör brädets celler alls.
+  Ändå läggs den till i båda listorna: `aoeEnemyIndicesAtCast` för att
+  återanvända exakt samma enemyIndices-mekanism som alla andra AOE-VFX-
+  kort istället för att särlösa "vilka är fiender" live i
+  `renderBattle()`, och `chainShake` av samma skäl som alla andra i
+  listan (`capturedCount` blir 0 eftersom ingen flippas).
+- **"Kort screen shake, men mindre aggressiv än Omega Weapons"** — löst
+  på exakt samma sätt som Seraphines "mjukare än Ifrit"-krav: samma
+  delade chain-shake-amplitud (aldrig mjukad per kort), känslan av
+  mildare kommer helt från en enda mjuk isblå flash (närmare Silver
+  Judgments mjuka variant än Omega Protocols hårda vit/orange) och ingen
+  rumble-effekt före impact.
+
+**Verifiering:** ett nytt permanent test (98 totalt) bekräftar hela
+livscykeln med två fiender: under cast-fasen finns kortets accelererande
+ringar, fx-wrappern, EN räls PER FIENDE (2 st, 4 shard-gnistor totalt),
+alla 8 fragment, och crystal-impact-elementen finns redan i DOM:en men
+osynliga (`opacity:0`) tills impact-fasen (samma "osynlig, inte
+frånvarande"-lärdom som Nyxara/Omega Protocol-testerna redan
+dokumenterat). Vid impact: träffantalet matchar fiendeantalet, vågen och
+flashen syns båda, båda fiender debuffade (-3) och Shiva självbuffad
+(+3) — själva spelmekaniken opåverkad av VFX-arbetet. `chainShake`
+triggat trots att ingen flippas. Ett sista kontroll bekräftar att Ancient
+Wyrmkings Conquests Witnessed (samma "vanlig AOE-debuff"-form) INTE får
+någon Diamond-Storm-specifik markup. Verifierat även manuellt med
+Playwright-skärmdumpar (cast + impact) och en direkt DOM-koll av
+element-antal (3 rälsar/träffar för 3 fiender, 6 shards, 8 fragment,
+6 glitter, våg/flash närvarande, chainShake aktivt). Hela testsviten
+grön (98/98, +1 nytt test).
+
+**Fas 4m: Bahamut fick samma sorts "element-identitet"-VFX för
+Megaflare, sjunde och sista engångstestet i den här raden.** Blått/vitt/
+guld "astralt ljus"-tema, avsett att kännas "gudomligt, majestätiskt och
+enormt, inte som en vanlig laser". Ett genuint nytt tekniskt grepp:
+
+- **Ett enda svep-ljus som täcker HELA brädets bredd, inte en riktad
+  stråle mot ett mål** — kravlistan beskriver "en enorm energistråle som
+  skjuts över hela brädet, [som] sveper igenom fiendekorten", vilket
+  skiljer sig från alla tidigare riktade strålar (Seraphines/Diamond
+  Storms räls-mot-varje-fiende-teknik) eftersom den inte siktar mot NÅGOT
+  specifikt mål, utan måste täcka brädet oavsett hur många fiender som
+  finns eller var de står. Löst utan någon vinkel-trigonometri alls:
+  `.megaflare-sweep` är en stapel som redan spänner 100% av wrapperns
+  bredd, med `transform-origin` nålad till Bahamuts EGEN kolumn
+  (`${originX}% 50%`, satt inline per cast). En `scaleX(0)` →
+  `scaleX(1)`-animation växer då symmetriskt utåt från den nålade punkten
+  tills den täcker alla kolumner — läser som ljuset visibelt strömmar ut
+  FRÅN honom och sveper över hela brädet, utan att behöva separat
+  vinkelmatematik per fiende (bara varje TRÄFFS fördröjning beräknas,
+  proportionell mot det horisontella avståndet från hans kolumn, så
+  träffarna känns sekventiella i takt med att svepet passerar dem).
+- **Vågen centreras på HELA brädet (50%/50%), inte källcellen** — till
+  skillnad från varje tidigare korts våg/blast (som alltid utgår från
+  kortets egen cell) centreras `.megaflare-wave` mitt på brädet, eftersom
+  kravlistan beskriver "en stor kosmisk explosion" som ska kännas som att
+  HELA slagfältet exploderar, inte en effekt som strålar ut från ett
+  hörn av det.
+- **Ingen ny ring-teknik för själva kort-auran** — bara en stadigt
+  roterande ring (samma konstanta hastighet som Infernal Pacts sigill,
+  INTE Diamond Storms accelererande variant) plus en svällande ljuskärna
+  (`::after`, skalar upp) som representerar "energi som koncentreras
+  kraftigt framför Bahamut" — en ny keyframe-typ (svällande kärna) men
+  återanvänder samma before/after-pseudoelement-budget som alla andra
+  kort.
+- **`aoeEnemyIndicesAtCast`/`chainShake`-villkoren utökade en sista gång**
+  (`special.name === 'Megaflare'`) — samma destroy-baserade form som Void
+  Dominion/Infernal Pact (alla fiender förstörs via `destroyCard`,
+  `noRevive:true`), samma skäl som alla tidigare kort i listorna.
+- **"Kort men KRAFTFULL screen shake"** — samma delade chain-shake-
+  amplitud som alla andra (aldrig mjukad per kort), men den ljusaste/
+  mest kontrastrika flashen i hela rostret hittills (högre toppopacitet
+  än Omega Protocols), eftersom det här ska kännas som den STÖRSTA
+  Ultimate hittills snarare än en mjuk/elegant en (Seraphine/Shiva).
+
+**Verifiering:** ett nytt permanent test (99 totalt) bekräftar hela
+livscykeln med två fiender: under cast-fasen finns kortets aura +
+svällande kärna, fx-wrappern, ursprung matchar Bahamuts faktiska cell,
+och impact-elementen finns redan i DOM:en men osynliga tills impact-fasen
+(samma "osynlig, inte frånvarande"-mönster som alla tidigare AOE-VFX-
+tester). Vid impact: svepet, träffantalet (matchar fiendeantalet), vågen,
+de 6 fasta stjärnpartiklarna och flashen syns alla, båda fiender
+förstörda, `chainShake` triggat trots att destroy aldrig sätter
+`justFlipped`. Ett sista kontroll bekräftar att Nyxaras Void Dominion
+(samma destroy-alla-fiender-form) INTE får någon Megaflare-specifik
+markup. Verifierat även manuellt med en direkt DOM-koll (cast: aura +
+fx + laddningskärna närvarande, träffar osynliga; impact: svep + 2
+träffar + våg + 6 stjärnor + flash + chainShake alla aktiva; cleanup:
+allt borta). Hela testsviten grön (99/99, +1 nytt test).
+
+**Alla sju kort från den ursprungliga "identity VFX"-begäran är nu
+klara: Nyxara (Void Dominion), Ifrit (Hellfire), Vaelira (Infernal
+Pact), Seraphine (Silver Judgment), Omega Weapon (Omega Protocol), Shiva
+(Diamond Storm), Bahamut (Megaflare).** Alla sju delar samma
+cast->impact->cleanup-livscykel, samma `chainShake`-mekanism (aldrig
+mjukad per kort, bara opt-in-listan utökad), och samma
+`aoeEnemyIndicesAtCast`-generalisering för AOE-formerna. Varje kort har
+en unik, tematiskt motiverad twist på återanvänd teknik istället för att
+uppfinna en helt ny mekanism varje gång.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
