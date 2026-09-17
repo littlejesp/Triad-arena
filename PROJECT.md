@@ -1689,6 +1689,67 @@ partiklar, vid impact med den expanderande spricku-ringen och
 "Destroyed!"-overlayen, samt en explicit kontroll att korten förblir
 läsbara). Hela testsviten grön (93/93, +1 nytt test).
 
+**Fas 4f: Ifrit fick samma sorts "element-identitet"-VFX för Hellfire,
+igen explicit märkt som ett engångstest** (samma format som Nyxara-
+begäran, skickat "till Claude" i tredje person men riktat till samma
+session/repo). Samma mönster som fas 4e, denna gång eld/lava-tema och
+med en viktig skillnad: Hellfire är `targets:'single'` (väljer ett
+angränsande fiendekort), inte AOE som Void Dominion — kravlistan
+efterfrågade explicit BÅDE en spelplans-omfattande våg OCH en distinkt
+träff på just det valda fiendekortet, så byggd med tre delar istället
+för två:
+
+- **Kortets aura** — ny `.card.hellfire-casting`, samma "slot"/z-index
+  som `.card.ultimate-casting`/`.card.void-dominion-casting`, orange/
+  röd lava istället för lila. Till skillnad från Nyxaras `infinite`-
+  pulsande aura är den här ETT ENDA VARV (`forwards`, inte `infinite`)
+  som eskalerar från svag glöd till full låga över exakt 0.95s
+  (samma som `ULTIMATE_WINDUP_MS`) — matchar kravet "en kort kraftig
+  vibration/rumble byggs upp" bättre som en byggande intensitet än en
+  jämn pulsering.
+- **Arena-rumble under cast** — ny `.arena-frame.hellfire-rumble`,
+  en LÅG-amplitud skakning som växer under hela väntetiden (från ~1px
+  till ~4px offset), medvetet mycket subtilare än den skarpa
+  impact-skakningen nedan, så de två läses som upptrappning+utlösning
+  istället för en enda lång skakning. Rensas automatiskt (klassen
+  läggs bara på under cast-fasen, samma full-DOM-rebuild-princip som
+  allt annat i den här filen).
+- **Eldvåg + specifik träff** — `.hellfire-fx`-wrappern (samma
+  positionering som `.void-dominion-fx`, matchar `.board`s egen box)
+  innehåller nu TVÅ element: `.hellfire-blast` (samma ring-expansion-
+  teknik som `.void-crack`, eld-färgad, sveper över hela brädet från
+  Ifrits cell) OCH `.hellfire-target-hit` (en mindre, snabbare
+  eld-blossning positionerad på det FAKTISKA målets cell, med 0.12s
+  fördröjning så den läses som "vågen når och träffar fienden"). Detta
+  krävde att `state.ultimateBanner` fick ett nytt fält, `targetIndex`
+  (satt i BÅDA tilldelningarna i `playUltimateSequence`, cast OCH
+  impact) — rent presentations-syfte, ingen spellogik läser det, exakt
+  samma motivering som `sourceIndex` redan hade.
+- **Screen shake vid impact** — samma återanvändning av `chainShake`
+  som Nyxara, med samma nödvändiga utökning: Hellfire fångar EN fiende
+  (vanlig `justFlipped`-fångst, inte destroy som Nyxara), men
+  `capturedCount` för en enda fångst är alltid 1, aldrig >= 3-
+  tröskeln, så villkoret utökades igen:
+  `capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire'`.
+
+**Verifiering:** ett nytt permanent test (94 totalt) bekräftar hela
+livscykeln via en riktig `runSpecialResolution`-anrop: under cast-fasen
+finns kortets aura, arena-rumblet, och fx-wrappern med `--hellfire-x`/
+`--hellfire-y` som matchar Ifrits faktiska cell (testad mot cell 4,
+centrum, ska ge ~50%/50%); brädet är orört. Efter windup-tiden: rumblet
+är borta (cast-only), blast OCH target-hit finns båda, target-hit-
+positionen matchar det FAKTISKA målets cell (cell 1, inte Ifrits egen
+cell 4) — testar specifikt att `targetIndex`-routingen är korrekt, inte
+bara att elementet finns. `chainShake` har triggat trots att en enda
+fångst aldrig når tröskeln på egen hand. Efter cleanup: allt borta. Ett
+sista kontroll bekräftar att Nyxaras Void Dominion INTE får någon
+Hellfire-specifik markup — scopead strikt till Ifrits kort-id plus hans
+exakta Ultimate-namn. Verifierat även manuellt med riktiga UI-klick-
+sekvenser (aktivera Ifrit, välj mål, båda klicken eftersom hans special
+är single-target till skillnad från Nyxaras) och skärmdumpar i två
+lägen (cast med synlig lava-aura, impact med den expanderande
+eld-ringen). Hela testsviten grön (94/94, +1 nytt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

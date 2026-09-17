@@ -5769,6 +5769,95 @@ test('Nyxara Void Dominion identity VFX (one-off test): void aura/darkening/crac
   await page.close();
 });
 
+test('Ifrit Hellfire identity VFX (one-off test): card aura/rumble/blast/target-hit ride the existing cast->impact->cleanup lifecycle, chainShake fires despite a single-target capture never reaching the >=3 threshold, other cards are unaffected', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    state.phase = 'battle'; // needed so render() takes the renderBattle() branch and actually builds the hellfire-* markup
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('ifrit'), 'blue');
+    state.board[4] = src; // center cell -> --hellfire-x/--hellfire-y should be ~50%/50%
+    state.board[1] = freshEntry(findCardById('ogre'), 'red'); // top-middle -> --hellfire-target-x/--hellfire-target-y should be ~50%/16.67%
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+
+    // Cast phase: card aura + arena rumble + fx wrapper all present, origin
+    // matches Ifrit's actual cell, board untouched (same anticipation-pause
+    // guarantee every Ultimate already has).
+    out.cardHasHellfireAura = document.querySelector('.card.hellfire-casting') !== null;
+    out.arenaHasRumbleDuringCast = document.querySelector('.arena-frame.hellfire-rumble') !== null;
+    const fx = document.querySelector('.hellfire-fx');
+    out.fxPresentDuringCast = fx !== null && fx.classList.contains('phase-cast');
+    out.fxOriginMatchesCell4 = fx && Math.abs(parseFloat(fx.style.getPropertyValue('--hellfire-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx.style.getPropertyValue('--hellfire-y')) - 50) < 0.1;
+    out.boardUntouchedDuringCast = state.board[1].owner === 'red';
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+
+    // Impact phase: the rumble is gone (it was cast-phase only), the blast
+    // and target-hit both appear, the target position matches the ACTUAL
+    // target cell (not Ifrit's own cell), and chainShake fires despite a
+    // single-target capture (capturedCount stays at 1, never >= 3).
+    out.rumbleGoneAtImpact = document.querySelector('.arena-frame.hellfire-rumble') === null;
+    const fx2 = document.querySelector('.hellfire-fx');
+    out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
+    out.blastPresent = document.querySelector('.hellfire-blast') !== null;
+    out.targetHitPresent = document.querySelector('.hellfire-target-hit') !== null;
+    out.targetPositionMatchesCell1 = fx2 && Math.abs(parseFloat(fx2.style.getPropertyValue('--hellfire-target-x')) - 50) < 0.1
+      && Math.abs(parseFloat(fx2.style.getPropertyValue('--hellfire-target-y')) - 16.667) < 0.1;
+    out.effectLanded = state.board[1].owner === 'blue';
+    out.chainShakeFiredForSingleTargetCapture = state.chainShake === true;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    out.fxGoneAfterCleanup = document.querySelector('.hellfire-fx') === null;
+    out.cardAuraGoneAfterCleanup = document.querySelector('.card.hellfire-casting') === null;
+    out.chainShakeClearedAfterCleanup = state.chainShake === false;
+    out.bannerGoneAfterCleanup = state.ultimateBanner === null;
+
+    // A different Ultimate (Nyxara) must get NONE of this -- scoped
+    // strictly to Ifrit's card id + his Ultimate's exact name.
+    state.board = Array(9).fill(null);
+    const nyxaraSrc = freshEntry(findCardById('nyxara'), 'blue');
+    state.board[0] = nyxaraSrc;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(0, null, {});
+    out.noHellfireVfxForNyxara = document.querySelector('.hellfire-fx') === null
+      && document.querySelector('.arena-frame.hellfire-rumble') === null
+      && document.querySelector('.card.hellfire-casting') === null;
+
+    return out;
+  })()`);
+  assert.equal(result.cardHasHellfireAura, true, "Ifrit's own card should get the hellfire-casting class during his windup");
+  assert.equal(result.arenaHasRumbleDuringCast, true, 'the arena should get a subtle building rumble during the cast/windup phase');
+  assert.equal(result.fxPresentDuringCast, true, 'the blast/target-hit wrapper should appear during the cast/windup phase');
+  assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Ifrit's actual board cell (index 4, center -> ~50%/50%)");
+  assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
+  assert.equal(result.rumbleGoneAtImpact, true, 'the rumble is cast-phase only -- the impact beat gets the sharper chain-shake instead, not a continuing rumble');
+  assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
+  assert.equal(result.blastPresent, true, 'the board-wide fire blast should appear at impact');
+  assert.equal(result.targetHitPresent, true, 'the target-specific fire hit should appear at impact (Hellfire is single-target, unlike Void Dominion)');
+  assert.equal(result.targetPositionMatchesCell1, true, "the target-hit flash's position should match the ACTUAL targeted cell (index 1), not Ifrit's own cell");
+  assert.equal(result.effectLanded, true, 'Hellfire captures the targeted enemy card once the windup elapses');
+  assert.equal(result.chainShakeFiredForSingleTargetCapture, true, 'chainShake must fire for Hellfire even though a single-target capture never reaches the capturedCount >= 3 threshold');
+  assert.equal(result.fxGoneAfterCleanup, true);
+  assert.equal(result.cardAuraGoneAfterCleanup, true);
+  assert.equal(result.chainShakeClearedAfterCleanup, true);
+  assert.equal(result.bannerGoneAfterCleanup, true);
+  assert.equal(result.noHellfireVfxForNyxara, true, "this identity VFX must stay scoped to Ifrit's Hellfire specifically, not leak onto other Ultimates");
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
