@@ -1998,6 +1998,23 @@ bekräftade `window.Audio`-anrop med `sfx/omegaweapon.mp3` exakt vid
 impact-fasen, och att det svaga testkortet förstördes. Hela
 testsviten grön (96/96, samma antal — befintligt testfall utökat).
 
+**Uppdatering, samma session: Shiva fick både röstlinje OCH
+impact-SFX i samma omgång — tionde röstlinjen, sjätte impact-SFX:et.**
+Användaren laddade upp en ElevenLabs-röstfil ("Shivas ljud för
+ultimate") följt strax efter av en separat ljudeffekt ("Majestic
+crystalline", ~2s, "Ultimate ljud" utan kortnamn — tolkad som Shiva
+eftersom temat matchar och hon var det senast diskuterade kortet).
+Filerna kopierade in som `voices/shiva.mp3` respektive `sfx/shiva.mp3`.
+Nionde raden i `ULTIMATE_VOICE_LINES` och sjätte raden i
+`ULTIMATE_IMPACT_SFX` — samma två ramverk, ingen ny kod. Både fas
+4c- och fas 4d-testerna utökade med Shiva (mapping-kontroll +
+real-cast-vägs-AOE-steg i båda). Verifierat manuellt med samma
+UI-klick-sekvens — bekräftade `voices/shiva.mp3` under cast-fasen,
+`sfx/shiva.mp3` vid impact, och att fiendekortet fick -3 Power samt
+blev special-låst (matchar Diamond Storms redan existerande
+debuff-mekanik). Hela testsviten grön (96/96, samma antal — befintliga
+testfall utökade).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

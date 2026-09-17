@@ -5466,7 +5466,7 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
-test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon and Omega Weapon\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon, Omega Weapon and Shiva\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5516,6 +5516,10 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
     out.omegaweaponCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateVoiceLine('shiva');
+    out.shivaCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateVoiceLine('pallispell'); // no voice line entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5537,6 +5541,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   assert.deepEqual(result.tiamatCall, ['voices/tiamat.mp3'], "Tiamat's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.threeheaddragonCall, ['voices/threeheaddragon.mp3'], "Three Head Dragon's Ultimate cast should play its voice-line file");
   assert.deepEqual(result.omegaweaponCall, ['voices/omegaweapon.mp3'], "Omega Weapon's Ultimate cast should play its voice-line file");
+  assert.deepEqual(result.shivaCall, ['voices/shiva.mp3'], "Shiva's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -5588,7 +5593,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   await page.close();
 });
 
-test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact, Seraphine\'s Silver Judgment and Omega Weapon\'s Omega Protocol also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s Infernal Pact, Seraphine\'s Silver Judgment, Omega Weapon\'s Omega Protocol and Shiva\'s Diamond Storm also play a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5622,6 +5627,10 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     out.omegaweaponCall = playCalls.slice();
 
     playCalls.length = 0;
+    playUltimateImpactSfx('shiva');
+    out.shivaCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateImpactSfx('triunedesire'); // no impact-SFX entry for this card
     out.noEntryCall = playCalls.slice();
 
@@ -5639,6 +5648,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
   assert.deepEqual(result.vaeliraCall, ['sfx/vaelira.mp3'], "Vaelira's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.seraphineCall, ['sfx/seraphine.mp3'], "Seraphine's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.omegaweaponCall, ['sfx/omegaweapon.mp3'], "Omega Weapon's Ultimate impact should play its impact SFX file");
+  assert.deepEqual(result.shivaCall, ['sfx/shiva.mp3'], "Shiva's Ultimate impact should play her impact SFX file");
   assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
   assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
   assert.deepEqual(pageErrors, []);
@@ -5728,6 +5738,21 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
     out.omegaweaponAtImpact = playCalls.slice();
 
+    await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
+
+    playCalls.length = 0;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('shiva'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
+    out.shivaDuringWindup = playCalls.slice();
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.shivaAtImpact = playCalls.slice();
+
     window.Audio = OrigAudio;
     return out;
   })()`);
@@ -5741,6 +5766,8 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
   assert.deepEqual(viaCast.seraphineAtImpact, ['voices/seraphine.mp3', 'sfx/seraphine.mp3'], 'Seraphine\'s impact SFX joins once its own windup beat elapses');
   assert.deepEqual(viaCast.omegaweaponDuringWindup, ['voices/omegaweapon.mp3'], 'same timing split for Omega Weapon\'s AOE cast flow');
   assert.deepEqual(viaCast.omegaweaponAtImpact, ['voices/omegaweapon.mp3', 'sfx/omegaweapon.mp3'], 'Omega Weapon\'s impact SFX joins once its own windup beat elapses');
+  assert.deepEqual(viaCast.shivaDuringWindup, ['voices/shiva.mp3'], 'same timing split for Shiva\'s AOE cast flow');
+  assert.deepEqual(viaCast.shivaAtImpact, ['voices/shiva.mp3', 'sfx/shiva.mp3'], 'Shiva\'s impact SFX joins once its own windup beat elapses');
   assert.deepEqual(pageErrors, []);
 
   await page.close();
