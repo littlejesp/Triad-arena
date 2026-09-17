@@ -5440,7 +5440,9 @@ test('Game feel phase 4b: announceUltimate speaks the Ultimate\'s name via speec
     window.speechSynthesis.speak = (utter) => calls.push(utter.text);
 
     announceUltimate("Hunter's Wrath");
-    out.spokenWhenSoundOn = calls.length === 1 && calls[0] === "Hunter's Wrath";
+    // Text now carries a leading pause hint ("… name.") for the dramatic
+    // delivery — check the name is IN there rather than an exact match.
+    out.spokenWhenSoundOn = calls.length === 1 && calls[0].includes("Hunter's Wrath");
 
     calls.length = 0;
     soundOn = false;

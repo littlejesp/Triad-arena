@@ -1316,6 +1316,43 @@ falskt. Manuellt verifierat i en riktig sida (inte bara state-
 injicering) att `runSpecialResolution` faktiskt triggar ett `speak()`-
 anrop med rätt text. Hela testsviten grön (91/91).
 
+**Uppdatering, samma session: användaren hörde inget alls vid riktig
+speltestning, plus en specifik leverans-riktning.** Två separata
+saker att lösa:
+
+1. **Buggfix — troligen Chrome's kända "tyst GC"-fel.** Den ursprungliga
+   koden skapade `SpeechSynthesisUtterance`-objektet som en ren lokal
+   variabel utan någon extern referens — ett väldokumenterat Chrome-fel
+   gör att ett sådant objekt kan garbage-collectas tyst INNAN
+   `speak()` hinner faktiskt läsa upp det (anropet lyckas, inget
+   kastar fel, men inget hörs). Löst genom en modul-nivå
+   `lastAnnounceUtterance`-variabel som håller en levande referens —
+   standardlösningen för det här specifika felet.
+2. **Leverans-riktning** (inte röstkaraktär — se distinktionen nedan):
+   "deep fantasy, gender-neutral, slightly synthetic, ancient and
+   powerful, calm but threatening... slow, heavy, controlled. Short
+   dramatic pause before the word." Justerat vad som GÅR att justera
+   via `speechSynthesis`: `rate` sänkt till 0.72 (från 0.9), `pitch`
+   sänkt till 0.55 (från 0.8, betydligt djupare men fortfarande
+   begripligt — mycket lägre och vissa röster börjar låta trasiga
+   istället för bara djupare), och en inledande "…" i texten som de
+   flesta TTS-motorer tolkar som en kort dramatisk paus innan ordet.
+
+   **Viktig gräns kommunicerad till användaren:** detta justerar
+   LEVERANS (tempo/tonhöjd/paus), INTE röstKARAKTÄR (vilken specifik
+   röst som talar — "ancient and powerful", "slightly synthetic" som
+   en distinkt klangfärg). Den faktiska rösten är vad som råkar finnas
+   installerat på användarens enhet, helt utanför den här kodens
+   kontroll. En riktig matchning av den beskrivna känslan hade krävt
+   inspelade/genererade ljudlinjer per Ultimate-namn (se den redan
+   dokumenterade avvägningen i fas 4b:s första sektion ovan) — inte
+   ändrat i det här passet, bara flaggat igen som gränsen för vad
+   `speechSynthesis`-vägen kan leverera.
+
+Testet uppdaterat för den nya "… namn."-textformen (kollar att namnet
+finns MED i den upplästa texten, inte exakt match). Hela testsviten
+grön (91/91).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
