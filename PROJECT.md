@@ -1542,6 +1542,21 @@ förstörelse — matchar hennes redan existerande mekanik, till skillnad
 från systrarnas/Bahamuts destroy-all). Isolerade hjälpfunktions-testet
 utökat med Three Head Dragon. Hela testsviten grön (91/91).
 
+**Uppdatering, samma session: röstlinje för Omega Weapon (Omega
+Protocol) — nionde kortet, sista av de fyra rekommenderade "Ultimate-
+moment"-korten.** Nionde ElevenLabs-filen ("OMEGA PROTOCOL"). Filen
+kopierad in som `voices/omegaweapon.mp3`. Nionde raden i
+`ULTIMATE_VOICE_LINES` (`omegaweapon: 'voices/omegaweapon.mp3'`).
+Verifierat manuellt med samma enkla UI-klick-sekvens (hans special är
+AOE) — bekräftade `window.Audio`-anrop med `voices/omegaweapon.mp3`,
+banderoll "Omega Protocol", och att det svaga testkortet förstördes
+(Omega Protocol debuffar -3 och förstör sedan alla fiender vars
+svagaste sida hamnar på 5 eller lägre). Isolerade
+hjälpfunktions-testet utökat med Omega Weapon. Hela testsviten grön
+(91/91). Med detta har alla fyra föreslagna korten (Tiamat/Three Head
+Dragon/Bahamut/Omega Weapon) röstlinjer, utöver Ifrit och alla fyra
+systrar — 9 kort totalt.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
