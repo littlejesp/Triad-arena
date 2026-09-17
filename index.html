@@ -6533,6 +6533,31 @@ const ULTIMATE_WINDUP_MS = 950;
 const ULTIMATE_SHAKE_MS = 500;
 const ULTIMATE_CLEANUP_MS = 1300;
 
+// Game feel phase 4c: real generated/recorded voice lines per Ultimate —
+// the "actually sounds good" alternative to phase 4b's speechSynthesis
+// attempt (tried, sounded broken rather than epic even after tuning, torn
+// out — see PROJECT.md). Keyed by card id, the same unique key already
+// used everywhere else (CARD_IMAGES, FULL_CARD_IMAGES, etc.): add an entry
+// here whenever a real voice line exists for a card; every other card just
+// keeps the silent windup it already had, no per-card code needed.
+const ULTIMATE_VOICE_LINES = {
+  ifrit: 'voices/ifrit.mp3',
+};
+function playUltimateVoiceLine(cardId){
+  if(!soundOn) return;
+  const src = ULTIMATE_VOICE_LINES[cardId];
+  if(!src) return;
+  try{
+    const audio = new Audio(src);
+    audio.volume = 0.9;
+    const p = audio.play();
+    // play() returns a promise that can reject on strict autoplay/gesture
+    // policies — this is pure flavor layered on top of the windup beat,
+    // never allowed to throw or break the actual Ultimate sequence.
+    if(p && p.catch) p.catch(()=>{});
+  }catch(e){}
+}
+
 function runSpecialResolution(sourceIndex, targetIndex, extra){
   const srcEntry = state.board[sourceIndex];
   const special = srcEntry.card.special;
@@ -6563,6 +6588,7 @@ function playUltimateSequence(job){
   state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex };
   srcEntry.ultimateCasting = true;
   SFX.select();
+  playUltimateVoiceLine(srcEntry.card.id);
   render();
 
   setTimeout(()=>{

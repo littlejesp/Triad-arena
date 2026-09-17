@@ -5427,6 +5427,72 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
+test('Game feel phase 4c: Ifrit\'s Hellfire Ultimate plays its real voice-line audio file on cast, other cards stay silent, and sound-off suppresses it', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    playUltimateVoiceLine('ifrit');
+    out.ifritCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('pallispell'); // no voice line entry for this card
+    out.noEntryCall = playCalls.slice();
+
+    playCalls.length = 0;
+    soundOn = false;
+    playUltimateVoiceLine('ifrit');
+    out.silentWhenSoundOff = playCalls.slice();
+    soundOn = true;
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.deepEqual(result.ifritCall, ['voices/ifrit.mp3'], "Ifrit's Ultimate cast should play his voice-line file");
+  assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_VOICE_LINES entry stay silent');
+  assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the voice line like every other SFX');
+  assert.deepEqual(pageErrors, []);
+
+  // Also runs through the real casting flow (playUltimateSequence), not just
+  // the helper in isolation, to confirm the wiring itself is correct.
+  const viaCast = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('ifrit'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+
+    out.playedDuringWindup = playCalls.slice();
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.deepEqual(viaCast.playedDuringWindup, ['voices/ifrit.mp3'], 'the real cast flow (runSpecialResolution/playUltimateSequence) must trigger the voice line too');
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 
