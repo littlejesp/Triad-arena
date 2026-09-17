@@ -1482,6 +1482,18 @@ burns 1 enemy card away with pure light!". Hela testsviten grön
 (91/91, samma antal — befintliga tester utökade, inget nytt testfall
 tillagt).
 
+**Uppdatering, samma session: röstlinje för Triune Desire (Forbidden
+Harmony) — femte kortet, alla fyra systrarnas kort (inklusive den
+fusionerade fjärde formen) har nu röstlinjer.** Femte ElevenLabs-filen
+("Forbidden harmony"), matchande hennes Ultimate-namn. Filen kopierad
+in som `voices/triunedesire.mp3`. Femte raden i
+`ULTIMATE_VOICE_LINES` (`triunedesire: 'voices/triunedesire.mp3'`) —
+samma ramverk, ingen ny kod. Isolerade hjälpfunktions-testet utökat
+med Triune Desire, samma mönster som de andra. Verifierat manuellt med
+samma UI-klick-sekvens (hennes special är också AOE) — bekräftade
+`window.Audio`-anrop med `voices/triunedesire.mp3` och banderoll
+"Forbidden Harmony". Hela testsviten grön (91/91).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
