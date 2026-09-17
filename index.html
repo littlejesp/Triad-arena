@@ -1037,7 +1037,9 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    card-anchored popup wouldn't have one obvious home anyway. */
 .conquest-banner{
   position:absolute; z-index:20; top:50%; left:50%;
-  width:62%; max-width:340px;
+  /* Shrunk from 62%/340px (user feedback: "syns för mkt och förstör" --
+     it covered too much of the board and obscured the actual result). */
+  width:40%; max-width:210px;
   transform:translate(-50%,-50%) scale(0.55);
   opacity:0; pointer-events:none;
   filter:drop-shadow(0 6px 22px rgba(0,0,0,0.65));
@@ -1762,6 +1764,70 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   35%{ opacity:1; }
   100%{ opacity:0; }
 }
+
+/* Odin's normal-attack Slash VFX (see the user's brief) — NOT an Ultimate
+   effect like every *-fx block above (no state.ultimateBanner, no cast/
+   impact phase split): it rides state.odinSlashes instead, a plain array
+   of { sourceIndex, targetIndex, delay } pairs populated in
+   battleNeighbors/placeCard for every ordinary attack Odin makes, win or
+   lose, same scope as the generic .slash-fx every card already gets.
+   White-blue lightning trail (reusing Silver Judgment's angle/length
+   rail technique) + a brief golden impact + a few scattering sparks.
+   Deliberately timed to finish within ~0.48s, not the requested "0.6-1
+   second" -- placeCard's own 500ms justPlaced re-render would otherwise
+   restart this mid-flight (every *-fx element restarts on re-render, see
+   the .stage-ambient/.arena-ambient notes elsewhere in this file), which
+   would look like the slash visibly replaying/stuttering instead of
+   playing once. Compressing it to land safely under that render keeps
+   the "extremely fast, brief" feel the brief actually asked for; see
+   PROJECT.md for the tradeoff written out in full. Reuses the shared
+   chainShake mechanism for "brief moderate screen shake" (see placeCard),
+   same never-forked amplitude as every other card's shake. */
+.odin-slash-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.odin-slash-rail{
+  position:absolute; height:0; transform-origin:0 50%; pointer-events:none;
+}
+.odin-slash-trail{
+  position:absolute; left:0; top:-1px; width:100%; height:2px;
+  background:linear-gradient(90deg, rgba(191,230,255,0.1), rgba(191,230,255,0.98) 55%, rgba(255,255,255,1));
+  box-shadow:0 0 10px 3px rgba(80,170,255,0.85);
+  transform-origin:0 50%; transform:scaleX(0); opacity:0;
+}
+.odin-slash-rail .odin-slash-trail{ animation: odinSlashSweep 0.16s cubic-bezier(.2,.85,.3,1) both; }
+@keyframes odinSlashSweep{
+  0%{ opacity:0; transform:scaleX(0); }
+  25%{ opacity:1; }
+  100%{ opacity:0.85; transform:scaleX(1); }
+}
+.odin-slash-impact{
+  position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,245,210,0.98) 0%, rgba(255,205,90,0.85) 45%, rgba(120,180,255,0.4) 70%, transparent 82%);
+  opacity:0;
+  animation: odinSlashImpact 0.32s ease-out both;
+}
+@keyframes odinSlashImpact{
+  0%{ opacity:0; transform:scale(0.3); }
+  35%{ opacity:1; transform:scale(1.5); }
+  100%{ opacity:0; transform:scale(2); }
+}
+.odin-slash-spark{
+  position:absolute; width:3px; height:3px; border-radius:50%;
+  background:#bfe6ff; box-shadow:0 0 6px 2px rgba(120,190,255,0.9);
+  opacity:0;
+  animation: odinSlashSparkScatter 0.3s ease-out both;
+}
+@keyframes odinSlashSparkScatter{
+  0%{ opacity:0; transform:translate(0,0) scale(1); }
+  20%{ opacity:1; }
+  100%{ opacity:0; transform:translate(var(--sx),var(--sy)) scale(0.4); }
+}
+.odin-slash-spark-0{ --sx:-16px; --sy:-10px; }
+.odin-slash-spark-1{ --sx:14px;  --sy:-13px; }
+.odin-slash-spark-2{ --sx:12px;  --sy:12px;  }
+.odin-slash-spark-3{ --sx:-14px; --sy:11px;  }
 
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
 .coinflip-frame{
@@ -3527,6 +3593,7 @@ let state = {
   rules: { same:false, plus:false, combo:false, elemental:false, graveyard:false }, // optional Triple-Triad-style rules
   graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
   destroyGhosts: [],      // { index, card, owner } — brief fade-out visual for a just-destroyed cell, see destroyCard()
+  odinSlashes: [],        // { sourceIndex, targetIndex, delay } per pair — Odin's normal-attack Slash VFX, see battleNeighbors/placeCard/renderBattle
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
   wins: { blue: 0, red: 0 },   // accumulated captures — spent to activate special attacks
@@ -4140,6 +4207,25 @@ function renderBattle(){
     });
   }
 
+  // Odin's normal-attack Slash VFX -- unlike every derivation above, this
+  // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
+  // it's a plain one-shot triggered by an ordinary attack). Reads
+  // state.odinSlashes directly (see battleNeighbors/placeCard) and reuses
+  // Silver Judgment's aspect-ratio-normalized angle/length trig so the
+  // trail correctly points from his cell at whichever cell he actually
+  // attacked, however many pairs fired this placement.
+  const odinSlashPairs = (state.odinSlashes || []).map(s => {
+    const sx = ((s.sourceIndex % 3) + 0.5) / 3 * 100;
+    const sy = (Math.floor(s.sourceIndex / 3) + 0.5) / 3 * 100;
+    const tx = ((s.targetIndex % 3) + 0.5) / 3 * 100;
+    const ty = (Math.floor(s.targetIndex / 3) + 0.5) / 3 * 100;
+    const dxUnits = (tx - sx) / 100;
+    const dyUnits = (ty - sy) / 100 * (7/5);
+    const angleDeg = Math.atan2(dyUnits, dxUnits) * (180/Math.PI);
+    const lengthPercent = Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100;
+    return { sx, sy, tx, ty, angleDeg, lengthPercent, delay: (s.delay || 0) / 1000 };
+  });
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -4313,6 +4399,17 @@ function renderBattle(){
           ${[0,1,2,3,4,5].map(n => `<div class="megaflare-star megaflare-star-${n}"></div>`).join('')}
         </div>
         <div class="megaflare-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${odinSlashPairs.length ? `
+        <div class="odin-slash-fx" aria-hidden="true">
+          ${odinSlashPairs.map(p => `
+            <div class="odin-slash-rail" style="left:${p.sx}%; top:${p.sy}%; width:${p.lengthPercent}%; transform:rotate(${p.angleDeg}deg);">
+              <div class="odin-slash-trail" style="animation-delay:${p.delay}s;"></div>
+            </div>
+            <div class="odin-slash-impact" style="left:${p.tx}%; top:${p.ty}%; animation-delay:${p.delay + 0.15}s;"></div>
+            ${[0,1,2,3].map(n => `<div class="odin-slash-spark odin-slash-spark-${n}" style="left:${p.tx}%; top:${p.ty}%; animation-delay:${p.delay + 0.16}s;"></div>`).join('')}
+          `).join('')}
+        </div>
       ` : ''}
       ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
@@ -6057,6 +6154,17 @@ function placeCard(cellIndex, cardId, owner){
   // one) so the ~420ms shake animation finishes on its own before that
   // render() would otherwise restart it from frame 0.
   if(sameOrPlus + combo >= 4) state.chainShake = true;
+  // Odin's normal-attack Slash VFX: a brief moderate shake on every one of
+  // his ordinary attacks (win or lose, same "every real battle" scope as
+  // the underlying slash), reusing this exact same chainShake mechanism
+  // rather than a new one -- its ~420ms keyframe already finishes safely
+  // before the 500ms justPlaced timeout below re-renders, same reasoning
+  // as the Same/Plus/Combo case above. See battleNeighbors for where
+  // result.odinSlashes is populated and renderBattle() for the VFX itself.
+  if(result.odinSlashes && result.odinSlashes.length){
+    state.chainShake = true;
+    state.odinSlashes = result.odinSlashes;
+  }
   if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) state.winsPopup = { owner, amount: flips };
   if(flips > 0) showConquestPopup(owner);
@@ -6092,6 +6200,7 @@ function placeCard(cellIndex, cardId, owner){
       if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; entry.fxStep = 0; }
     });
     state.destroyGhosts = [];
+    state.odinSlashes = [];
     render();
   }, 1300);
 
@@ -7835,6 +7944,7 @@ const ULTIMATE_IMPACT_SFX = {
   omegaweapon: 'sfx/omegaweapon.mp3',
   shiva: 'sfx/shiva.mp3',
   bahamut: 'sfx/bahamut.mp3',
+  odin: 'sfx/odin.mp3',
 };
 function playUltimateImpactSfx(cardId){
   if(!soundOn) return;
@@ -8060,6 +8170,23 @@ function battleNeighbors(index, owner, result){
     const fxStep = result.flipSeq++;
     target.fxDelay = Math.min(fxStep, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
     target.fxStep = fxStep;
+    // Odin's normal-attack Slash VFX (see the user's brief): every OTHER
+    // card just gets the generic slash-fx above, but Odin's own attacks
+    // get an additional signature effect layered on top -- a lightning
+    // trail traveling from his cell to the target's, a golden impact, and
+    // scattering sparks (see .odin-slash-* CSS and renderBattle()).
+    // Recorded here (both cell indices + the same fxDelay stagger just
+    // computed above) rather than as a boolean flag, since the VFX needs
+    // to know WHERE Odin is relative to the target to orient the travel
+    // direction -- attackFlash alone only marks the defender. Works
+    // identically whether this battle came from Odin's own placement or
+    // from a later Combo-chain hop that happens to route back through
+    // him, since both paths call this same function with `index` pointing
+    // at whichever cell is currently attacking.
+    if(placed.id === 'odin'){
+      if(!result.odinSlashes) result.odinSlashes = [];
+      result.odinSlashes.push({ sourceIndex: index, targetIndex: p.ni, delay: target.fxDelay });
+    }
 
     let placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     let targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
@@ -8574,7 +8701,7 @@ function resetGame(){
     log:'Choose the five champions who will carry your banner.', winner:null,
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
-    turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [],
+    turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
   };
   render();
 }

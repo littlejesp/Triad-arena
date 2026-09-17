@@ -2252,6 +2252,94 @@ mjukad per kort, bara opt-in-listan utökad), och samma
 en unik, tematiskt motiverad twist på återanvänd teknik istället för att
 uppfinna en helt ny mekanism varje gång.
 
+**Fas 4n: Odins ultimate-ljud, ny kortkonst, en helt ny VFX-kategori
+(normal-attack Slash) för hans vanliga attacker, och en storleksfix på
+"Erövrad"-bannern.** Fyra separata användarförfrågningar i samma
+omgång:
+
+- **Odin ultimate impact-SFX** — sjätte uppladdade ljudfilen ("Ultimate
+  på Odin", `sfx/odin.mp3`, samma 49581-byte impact-SFX-storleksklass
+  som Bahamut/Omega Weapon, bekräftat unik via `md5sum`) inkopplad i
+  `ULTIMATE_IMPACT_SFX` som `odin: 'sfx/odin.mp3'` — engångsrad, ingen ny
+  kod. Fas 4d-testet utökat igen med en `odinCall`-kontroll.
+- **Ny kortkonst för Odin** — helt ny fullbild mottagen (matchar den
+  redan uppdaterade Zantetsuken-texten ordagrant, inklusive
+  Ragnarok-myntkastet). `card-odin-full.jpg` ersatt rakt av (bara
+  omkodad PNG->JPEG). Ny `cards/card-odin.jpg`-thumbnail beskuren från
+  SAMMA källbild — viktigt: cardFace() renderar ALLTID sina egna
+  namn-/stat-diamant-element ovanpå `CARD_IMAGES[card.id]` oavsett om en
+  bild finns (till skillnad från modalens `FULL_CARD_IMAGES`-kortslutning,
+  som visar hela postern som den är) — så en naiv beskärning som råkade
+  fånga med de nya bildens egna inbakade diamant-siffror (som dessutom
+  visade sig vara på svenska: "Monster/Höger/Vänster/Ner", ett
+  bildgenerator-fel för "Upp") hade dubblerat/krockat med spelets egna
+  UI-element. Löst genom att beskära en helt textfri närbild av
+  karaktären (ansikte/rustning/spjut/häst), samma konvention som Odins
+  gamla thumbnail och alla andra korts.
+- **Odins normal-attack "Slash VFX" — en helt ny VFX-KATEGORI, skild
+  från alla sju identity-VFX-korten ovan.** Alla tidigare VFX-kort red på
+  `state.ultimateBanner`s cast->impact->cleanup-livscykel (bara
+  Ultimates). Den här begäran gäller Odins VANLIGA attacker (varje gång
+  han slåss mot en granne via en normal kort-placering), som inte har
+  någon banner/fas-koncept alls — bara en enda synkron
+  `battleNeighbors()`-loop per attack. Ny mekanism byggd från grunden:
+  - `battleNeighbors(index, owner, result)` fångar nu
+    `result.odinSlashes.push({ sourceIndex: index, targetIndex: p.ni,
+    delay: target.fxDelay })` när `placed.id === 'odin'`, direkt bredvid
+    den befintliga `target.attackFlash = true`-raden (samma "varje strid,
+    vinst eller förlust"-räckvidd som den generiska slash-fx:en alla kort
+    redan får). Fungerar identiskt oavsett om striden kommer från Odins
+    egen placering eller en senare Combo-kedjas hopp som råkar gå via
+    honom, eftersom båda vägarna anropar samma funktion.
+  - `placeCard()` kopierar `result.odinSlashes` till `state.odinSlashes`
+    (ny state-nyckel, tom array som standard) och sätter `chainShake =
+    true` om listan är icke-tom — återanvänder exakt samma delade
+    shake-mekanism som alla sju Ultimate-VFX-korten, för "kort måttlig
+    screen shake" som begäran bad om.
+  - `renderBattle()` härleder `odinSlashPairs` från `state.odinSlashes`
+    med EXAKT samma aspect-ratio-normaliserade atan2-vinkel/längd-
+    trigonometri som Seraphines Silver Judgment-strålar, men UTAN
+    `state.ultimateBanner`-koppling alls — det här är den första
+    board-wide-fx:en i hela filen som inte är fas-gated.
+  - **Medveten avvikelse från exakt "0.6-1 sekund" i kravlistan,
+    dokumenterad transparent:** `placeCard()`s befintliga 500ms
+    "justPlaced"-timeout gör en full `render()` som (per arkitekturens
+    redan dokumenterade "allt inuti #app startar om vid varje render"-
+    regel) skulle starta om VFX:en från frame 0 mitt i om den varade
+    längre än 500ms — det hade sett ut som att hugget upprepade sig/
+    hackade till. Löst genom att hålla hela sekvensen (svep 0-0.16s,
+    guldig impact till 0.47s, gnistor till 0.46s) tydligt under 500ms
+    istället för att träffa 0.6-1s exakt — känslan av "extremt snabbt,
+    kort" som begäran faktiskt bad om bevaras, bara det exakta
+    sekundtalet böjs något för att inte krocka med en redan existerande,
+    kritisk timeout som inte kan ändras utan att påverka andra kort.
+  - Ljudsynk: inget nytt ljud behövdes — det finns ännu inget
+    per-kort-ljudsystem för VANLIGA attacker (bara Ultimates har riktiga
+    `voices/`/`sfx/`-filer), så "synka med Odins attackljud" tolkades som
+    att VFX:en ska trigga i exakt samma ögonblick som spelets befintliga
+    generiska attack-SFX redan spelar (`SFX.place`/`SFX.flip`, som körs i
+    samma `render()`-anrop) — redan naturligt synkat utan extra kod.
+  - Ett nytt permanent test (100 totalt) bekräftar: två samtidiga strider
+    från EN placering ger två rälsar/impacts/gnistgrupper, en räls mot
+    cellen rakt ovanför Odin beräknas till exakt -90°, båda fienderna
+    flippas korrekt (mekaniken opåverkad), `chainShake` triggat, allt
+    städat efter 1300ms, och ett annat kort (Ifrit) som attackerar
+    normalt får INGEN Odin-specifik markup.
+- **Bugfix/finjustering: "Erövrad"-bannern (`.conquest-banner`) för stor**
+  (användarfeedback: "syns för mkt och förstör"). `width:62% max-
+  width:340px` → `width:40% max-width:210px`. Ren CSS-storleksändring,
+  ingen kodlogik rörd. Bildfilerna `conquered-badge.png`/`-red.png`
+  innehåller dock inbakad SVENSK text ("ERÖVRAD" / "FIENDEKORTET HAR
+  ERÖVRATS") som INTE kan textredigeras i den här sessionen (ingen
+  bildgenereringsverktyg) — en engelsk bildbrief för båda varianterna
+  (blå/röd) skickades till användaren istället, samma mönster som Odins
+  bildbrief tidigare, i väntan på ny konst.
+
+Ingen ny generell primitive förutom `state.odinSlashes` (samma
+array-av-par-mönster som `state.ultimateBanner.enemyIndices` redan
+etablerat, bara utanför banner-strukturen). Hela testsviten grön
+(100/100, +1 nytt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
