@@ -5588,6 +5588,76 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
   await page.close();
 });
 
+test('Game feel phase 4d: Ifrit\'s Hellfire also plays a short impact sound effect timed to the impact beat (not the cast windup), via a reusable ULTIMATE_IMPACT_SFX mapping', async () => {
+  const { page, pageErrors } = await newPage();
+
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    playUltimateImpactSfx('ifrit');
+    out.ifritCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateImpactSfx('nyxara'); // no impact-SFX entry for this card
+    out.noEntryCall = playCalls.slice();
+
+    playCalls.length = 0;
+    soundOn = false;
+    playUltimateImpactSfx('ifrit');
+    out.silentWhenSoundOff = playCalls.slice();
+    soundOn = true;
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.deepEqual(result.ifritCall, ['sfx/ifrit.mp3'], "Ifrit's Ultimate impact should play his impact SFX file");
+  assert.deepEqual(result.noEntryCall, [], 'cards with no ULTIMATE_IMPACT_SFX entry stay silent at impact');
+  assert.deepEqual(result.silentWhenSoundOff, [], 'sound-off must suppress the impact SFX like every other SFX');
+  assert.deepEqual(pageErrors, []);
+
+  // Runs through the real casting flow to confirm the impact SFX fires at
+  // the IMPACT beat specifically, not alongside the cast-phase voice line.
+  const viaCast = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    const playCalls = [];
+    const OrigAudio = window.Audio;
+    window.Audio = function(src){
+      playCalls.push(src);
+      return { volume: 1, play: () => Promise.resolve() };
+    };
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('ifrit'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+    out.duringWindup = playCalls.slice(); // only the cast-phase voice line so far
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.atImpact = playCalls.slice(); // now the impact SFX should have joined it
+
+    window.Audio = OrigAudio;
+    return out;
+  })()`);
+  assert.deepEqual(viaCast.duringWindup, ['voices/ifrit.mp3'], 'only the voice line should have played during the windup, not the impact SFX yet');
+  assert.deepEqual(viaCast.atImpact, ['voices/ifrit.mp3', 'sfx/ifrit.mp3'], 'the impact SFX joins once the windup beat elapses and the effect actually lands');
+  assert.deepEqual(pageErrors, []);
+
+  await page.close();
+});
+
 test('a full Random Draft game runs from draft to a result with no errors', async () => {
   const { page, pageErrors } = await newPage();
 

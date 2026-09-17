@@ -1557,6 +1557,45 @@ hjälpfunktions-testet utökat med Omega Weapon. Hela testsviten grön
 Dragon/Bahamut/Omega Weapon) röstlinjer, utöver Ifrit och alla fyra
 systrar — 9 kort totalt.
 
+**Fas 4d: Ifrit fick en egen "impact"-ljudeffekt, en NY sorts asset
+utöver röstlinjerna.** Användaren gjorde själv en kort ("Powerful
+demonic fire", ~1 sekund) ljudeffekt till Hellfire och laddade upp den
+("Jag gjorde denna ljud effekt till ifrits hellfire så man hör och ska
+se effekten") — till skillnad från de tidigare filerna är det inte en
+uttalad Ultimate-namn-röst utan en kort "whoosh/eld"-effekt, tänkt att
+höras SAMTIDIGT som den visuella effekten (fångst/förstörelse) syns,
+inte under väntetiden när namnet visas. Filens korta längd (25389
+bytes @ 192kbps ≈ 1s) bekräftade den tolkningen jämfört med de
+betydligt längre röstlinjerna.
+
+Byggde ett nytt, separat, lika återanvändbart ramverk parallellt med
+`ULTIMATE_VOICE_LINES`: `ULTIMATE_IMPACT_SFX` (kort-id → ljudfilsväg,
+i en ny `sfx/`-mapp för att hålla isär från `voices/`) plus
+`playUltimateImpactSfx(cardId)`, identisk struktur (samma
+`soundOn`-koll, samma tysta `try/catch`). Skillnaden är VAR den
+anropas i `playUltimateSequence`: `playUltimateVoiceLine` körs i
+cast-fasen (fas 1, väntetiden), `playUltimateImpactSfx` körs i
+impact-fasen (fas 3, precis efter `handler()` faktiskt kört och
+banderollen bytt till "impact") — samma ställe som `SFX.bonus()`
+redan spelas, som ett extra lager ovanpå istället för en ersättning.
+Filen kopierad in som `sfx/ifrit.mp3`.
+
+**Verifiering:** ett nytt permanent test (92 totalt, första ökningen
+sedan 91 — detta är en egen mekanism, inte bara ännu ett kort i samma
+mapping, så det fick ett eget testfall istället för att pressas in i
+röstlinje-testet) bekräftar: `playUltimateImpactSfx('ifrit')` spelar
+`sfx/ifrit.mp3`; ett kort utan entry (Nyxara) är tyst; `soundOn=false`
+tystar den. Ett andra delprov kör den riktiga cast-vägen och läser av
+`window.Audio`-anropen VID TVÅ TIDPUNKTER — direkt efter anropet
+(endast röstlinjen ska synas än) och efter att windup-tiden gått ut
+(nu ska både röstlinjen OCH impact-SFX:en synas) — för att bevisa att
+tajmingen faktiskt skiljer sig åt, inte bara att båda till slut
+spelas. Verifierat även manuellt med en riktig UI-klick-sekvens: läste
+av `window.Audio`-anropen både mitt i väntetiden (bara röstlinjen) och
+efter att impact-fasen inträffat (båda ljuden), plus en riktig
+`fetch('sfx/ifrit.mp3')`-kontroll (200, audio/mpeg, exakt byte-match).
+Hela testsviten grön (92/92).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
