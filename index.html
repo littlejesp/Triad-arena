@@ -1112,6 +1112,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    copy of this markup suffixes its gradient/filter ids (-stage/-arena),
    so the shared class below only owns the parts that don't need an id. */
 .soul-ribbon{ fill:none; stroke-linecap:round; }
+/* Soft glowing edge (user feedback: "softer, slightly transparent
+   glowing edges") -- a second, static-width, low-opacity stroke of the
+   SAME `d` sitting behind the bright dashed one (see the markup's
+   duplicated <animate attributeName="d"> pair), not a blur filter
+   (still off-limits per the mobile lag fix -- see .soul-stream's own
+   comment). No dasharray/dash-flow animation of its own: a continuous
+   soft line reads as an aura around the flowing dashes on top of it,
+   rather than a second set of moving segments. */
+.soul-ribbon-glow{ fill:none; stroke-linecap:round; }
 /* Thinned way down + reoriented per user feedback ("smalare mycket
    smalare... elegantare och att dom flyger uppåt inte snett") -- the
    first version's thick diagonal corner-to-corner sweeps (stroke-width
@@ -2573,12 +2582,59 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
           <stop offset="100%" stop-color="#7ef2b8" stop-opacity="0"/>
         </radialGradient>
       </defs>
+      <!-- Soft glowing edge for each ribbon: a second, wider, low-opacity
+           COPY of the same stroke behind the bright thin one, not a blur
+           filter (still off-limits per the lag fix -- a filter recompute
+           on a continuously-animating element is expensive; a second
+           static-width stroke costs almost nothing extra). Both this
+           halo and the bright stroke on top share an identical `d`
+           morph animation (see the duplicated <animate> children below)
+           so the glow always sits exactly on the line, even while it's
+           bending. Movement speed/placement of the dash-flow itself is
+           untouched (soulRibbonFlow/soulSwirl in the CSS keep their
+           existing durations) -- only the underlying curve now breathes
+           gently between two nearby shapes ("orig"/"flex" below), a
+           small perturbation of the SAME control points, same anchor
+           start/end, so the ribbon stays in roughly the same place. */ -->
       <g class="soul-ribbon-group">
-        <path id="soulPathA-stage" class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-stage);" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
-        <path id="soulPathC-stage" class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-stage);" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
+        <path id="soulPathA-stage" class="soul-ribbon-glow" style="stroke:url(#soulGradA-stage);" stroke-width="2.4" stroke-opacity="0.16" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10">
+          <animate attributeName="d" dur="10s" repeatCount="indefinite"
+            values="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10;
+                    M20,110 C13,83 27,68 18,45 C11,26 25,12 15,-10;
+                    M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
+        </path>
+        <path class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-stage);" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10">
+          <animate attributeName="d" dur="10s" repeatCount="indefinite"
+            values="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10;
+                    M20,110 C13,83 27,68 18,45 C11,26 25,12 15,-10;
+                    M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
+        </path>
+        <path id="soulPathC-stage" class="soul-ribbon-glow" style="stroke:url(#soulGradA-stage);" stroke-width="2" stroke-opacity="0.14" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15">
+          <animate attributeName="d" dur="13s" repeatCount="indefinite"
+            values="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15;
+                    M80,105 C85,73 75,57 85,35 C92,13 81,2 88,-15;
+                    M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
+        </path>
+        <path class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-stage);" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15">
+          <animate attributeName="d" dur="13s" repeatCount="indefinite"
+            values="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15;
+                    M80,105 C85,73 75,57 85,35 C92,13 81,2 88,-15;
+                    M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
+        </path>
       </g>
       <g class="soul-ribbon-group soul-ribbon-group-2">
-        <path id="soulPathB-stage" class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-stage);" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
+        <path id="soulPathB-stage" class="soul-ribbon-glow" style="stroke:url(#soulGradB-stage);" stroke-width="2.1" stroke-opacity="0.15" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12">
+          <animate attributeName="d" dur="8.5s" repeatCount="indefinite"
+            values="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12;
+                    M50,108 C58,78 44,62 55,40 C64,20 50,7 58,-12;
+                    M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
+        </path>
+        <path class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-stage);" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12">
+          <animate attributeName="d" dur="8.5s" repeatCount="indefinite"
+            values="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12;
+                    M50,108 C58,78 44,62 55,40 C64,20 50,7 58,-12;
+                    M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
+        </path>
       </g>
       <!-- "Some particles should follow the flowing energy wisps" -- tiny
            glowing dots riding the exact same curves as the ribbons above
@@ -2586,11 +2642,35 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
            id rather than duplicating its `d` string, and animates in the
            SVG's own user-unit space (unlike a CSS transform on an SVG
            element, which would need extra care to stay in sync with the
-           viewBox's scaling). Kept to one per major ribbon, small and
-           soft, per "keep the effect small, delicate and subtle". -->
+           viewBox's scaling). Note: mpath follows the PATH ELEMENT'S
+           `d`, so as soulPathA/B/C-stage above gently bend, the riding
+           particles bend with them for free. Kept to one per major
+           ribbon, small and soft, per "keep the effect small, delicate
+           and subtle".
+           The first particle also gets a small ADDITIVE wobble on top of
+           its path motion ("occasional particles drifting slightly away
+           and returning to the flow") -- additive="sum" combines with
+           animateMotion's own translation rather than replacing it. Only
+           applied to one of the two, since the brief asks for this on
+           some particles, not all. -->
       <circle class="soul-wisp-particle" r="0.7" fill="url(#soulParticleGrad-stage)">
         <animateMotion dur="7s" repeatCount="indefinite">
           <mpath href="#soulPathA-stage"/>
+        </animateMotion>
+        <animateTransform attributeName="transform" type="translate" additive="sum" values="0,0; 1.1,0.7; -0.8,1; 0,0" dur="3.2s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Short soft luminous trail: two smaller, fainter echoes of the
+           same particle riding the same path, started slightly earlier
+           (negative begin) so they trail just behind it like a comet's
+           tail -- cheap (two extra small circles), no filter/blur. -->
+      <circle class="soul-wisp-particle soul-wisp-trail" r="0.45" fill="url(#soulParticleGrad-stage)" opacity="0.45">
+        <animateMotion dur="9s" repeatCount="indefinite" begin="-2.82s">
+          <mpath href="#soulPathB-stage"/>
+        </animateMotion>
+      </circle>
+      <circle class="soul-wisp-particle soul-wisp-trail" r="0.3" fill="url(#soulParticleGrad-stage)" opacity="0.25">
+        <animateMotion dur="9s" repeatCount="indefinite" begin="-2.64s">
+          <mpath href="#soulPathB-stage"/>
         </animateMotion>
       </circle>
       <circle class="soul-wisp-particle" r="0.6" fill="url(#soulParticleGrad-stage)">
