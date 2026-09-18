@@ -257,23 +257,27 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
   padding:14px;
 }
-/* Breathing gold glow -- same "pulsing border+box-shadow" language as
-   .card.special-ready's specialReadyPulse, just in gold to match this
-   card's own border color instead of arcane purple. */
-.card-back:not(.disabled):not(.drawing) .card-back-face{
+/* Breathing gold glow -- same visual language as .card.special-ready's
+   specialReadyPulse, just in gold. Rewritten after a mobile lag report:
+   the original version directly animated box-shadow's blur/spread
+   values (a hefty repaint every frame, on top of drop-shadow filters
+   elsewhere on the same screen) plus a filter:brightness on the whole
+   face. This version keeps the box-shadow VALUE completely static on a
+   ::after layer and only animates its opacity -- opacity is compositor-
+   only, so the browser blends an already-painted layer instead of
+   recomputing the shadow's blur each frame. Same breathing look, far
+   cheaper to run. */
+.card-back-face::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 2px rgba(240,216,121,0.6), 0 0 30px rgba(240,216,121,0.55), 0 0 50px rgba(201,162,39,0.25);
+  opacity:0;
+}
+.card-back:not(.disabled):not(.drawing) .card-back-face::after{
   animation: cardBackGlow 2.8s ease-in-out infinite;
 }
 @keyframes cardBackGlow{
-  0%,100%{
-    border-color:var(--gold);
-    box-shadow:0 0 0 1px rgba(201,162,39,0.25), 0 0 12px rgba(201,162,39,0.3);
-    filter:brightness(1);
-  }
-  50%{
-    border-color:var(--gold-bright);
-    box-shadow:0 0 0 2px rgba(240,216,121,0.6), 0 0 30px rgba(240,216,121,0.55), 0 0 50px rgba(201,162,39,0.25);
-    filter:brightness(1.12);
-  }
+  0%,100%{ opacity:0; }
+  50%{ opacity:1; }
 }
 /* Diagonal shimmer sweep across the artwork -- a classic "magic card
    glint", reads as light catching the card's own gilding rather than a
@@ -1074,27 +1078,33 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   100%{ transform:translateY(-280px) scale(0.4); opacity:0; }
 }
 
-/* "Soul stream" — a second, denser ambient layer added ALONGSIDE the
-   rising motes above (never replacing them), per the user's own
-   reference images (Final Fantasy Lifestream/pyreflies art: swirling,
-   twisting ribbons of green light plus a starfield of small glowing
-   points, not just a few isolated dots drifting straight up). Lives in
-   the same .stage-ambient/.arena-ambient wrappers as the motes (see
-   markup below), so it inherits their "outside #app, never restarted by
-   render()" property for .stage-ambient and their "restarts every
-   render() inside battle" property for .arena-ambient -- same tradeoff
-   already documented for the motes, not a new one.
+/* "Soul stream" — a second ambient layer added ALONGSIDE the rising
+   motes above (never replacing them), per the user's own reference
+   images (Final Fantasy Lifestream/pyreflies art). Lives ONLY in
+   .stage-ambient now, NOT .arena-ambient (see the markup near
+   renderBattle() -- there is no .soul-stream there any more): a mobile
+   lag report traced back to .arena-ambient being rebuilt on every single
+   render() call during battle (which fires very often -- every flip,
+   Ultimate phase change, cleanup timeout), so re-parsing a dozen SVG
+   nodes on every one of those was real, avoidable cost during exactly
+   the moments the game is already busiest. .stage-ambient sits outside
+   #app and is written once into the static page shell, so it pays that
+   cost exactly once regardless of how much the battle re-renders.
    Genuinely new technique for this file: inline SVG with a `viewBox`
    (not raw CSS keyframes on plain <span> dots) is the only practical way
-   to get an actual curved, twisting flow line that scales cleanly with
-   its container regardless of aspect ratio -- `preserveAspectRatio:
+   to get an actual curved flow line that scales cleanly with its
+   container regardless of aspect ratio -- `preserveAspectRatio:
    xMidYMid slice` keeps the ribbons' proportions undistorted (crops
    rather than stretches/warps them) whether the wrapper is a tall phone
    screen or a wide desktop one. Ribbons "flow" via a stroke-dasharray/
    dashoffset animation (a bright dash segment endlessly traveling along
    a static curve) rather than actually animating the path's `d`
    attribute, which would need per-frame JS -- this is the same "faked
-   motion along a fixed shape" trick as a classic loading-spinner. */
+   motion along a fixed shape" trick as a classic loading-spinner.
+   No SVG blur filter (a second mobile-lag fix, alongside dropping the
+   arena copy above) -- feGaussianBlur/drop-shadow on a continuously
+   animating element forces a per-frame filter recompute, so softness
+   here comes from thin strokes + a fading gradient instead of blur. */
 .soul-stream{ position:absolute; inset:0; width:100%; height:100%; z-index:0; opacity:0.9; }
 /* stroke/filter are set inline per <path> instead of here, since the two
    ambient wrappers (.stage-ambient/.arena-ambient) can both be in the DOM
@@ -1102,23 +1112,35 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    copy of this markup suffixes its gradient/filter ids (-stage/-arena),
    so the shared class below only owns the parts that don't need an id. */
 .soul-ribbon{ fill:none; stroke-linecap:round; }
-.soul-ribbon-a{ stroke-width:1.6; stroke-dasharray:6 8; animation:soulRibbonFlow 4s linear infinite; }
-.soul-ribbon-b{ stroke-width:1.3; stroke-dasharray:5 9; animation:soulRibbonFlow 5.5s linear infinite reverse; }
-.soul-ribbon-c{ stroke-width:1; stroke-dasharray:4 7; animation:soulRibbonFlow 3.4s linear infinite; }
-@keyframes soulRibbonFlow{ to{ stroke-dashoffset:-28; } }
-/* The whole ribbon GROUP also drifts/sways slowly (unlike a classic
-   loading-spinner's fixed track) so the "swirling" reads as organic
-   rather than a light running around a rigid, static wire. */
-.soul-ribbon-group{ transform-origin:50% 50%; animation:soulSwirl 18s ease-in-out infinite; }
-.soul-ribbon-group-2{ animation-duration:23s; animation-delay:-7s; animation-direction:alternate-reverse; }
+/* Thinned way down + reoriented per user feedback ("smalare mycket
+   smalare... elegantare och att dom flyger uppåt inte snett") -- the
+   first version's thick diagonal corner-to-corner sweeps (stroke-width
+   1-1.6, paths crossing the whole box on the diagonal) matched the
+   FF7/FFX reference art's chaotic swirl, but read as bulky/messy rather
+   than elegant once actually seen in the running game. Widths cut to a
+   thin thread, and the underlying <path> `d` data (see the markup) was
+   redrawn to travel mostly BOTTOM-TO-TOP with just a gentle side-to-side
+   wave, not a diagonal sweep -- same stroke-dasharray/dashoffset "flow"
+   technique as before, just a different-shaped track. */
+.soul-ribbon-a{ stroke-width:0.45; stroke-dasharray:6 9; animation:soulRibbonFlow 4.5s linear infinite; }
+.soul-ribbon-b{ stroke-width:0.35; stroke-dasharray:5 10; animation:soulRibbonFlow 6s linear infinite; }
+.soul-ribbon-c{ stroke-width:0.3; stroke-dasharray:4 8; animation:soulRibbonFlow 3.8s linear infinite; }
+@keyframes soulRibbonFlow{ to{ stroke-dashoffset:-30; } }
+/* Sway toned down from the first version (was rotate(1deg), visible
+   enough to read as "diagonal drifting") to a much smaller wobble --
+   enough to keep the "elegant" organic life, not enough to fight the
+   now-primarily-vertical path shapes below. */
+.soul-ribbon-group{ transform-origin:50% 50%; animation:soulSwirl 20s ease-in-out infinite; }
+.soul-ribbon-group-2{ animation-duration:25s; animation-delay:-7s; animation-direction:alternate-reverse; }
 @keyframes soulSwirl{
   0%,100%{ transform:translate(0,0) rotate(0deg); }
-  50%{ transform:translate(-1.5%,1%) rotate(1deg); }
+  50%{ transform:translate(-0.4%,0.3%) rotate(0.3deg); }
 }
-.soul-star{
-  fill:#f2fff8; animation:soulStarTwinkle ease-in-out infinite;
-  filter:drop-shadow(0 0 1.5px rgba(140,255,190,0.9));
-}
+/* No drop-shadow filter (mobile lag report -- a per-frame filter
+   recompute on a continuously-animating element adds up even for a
+   handful of stars); plain fill + opacity twinkle is nearly free to
+   run since opacity is compositor-only. */
+.soul-star{ fill:#f2fff8; animation:soulStarTwinkle ease-in-out infinite; }
 @keyframes soulStarTwinkle{ 0%,100%{ opacity:0.25; } 50%{ opacity:1; } }
 
 /* "Conquered!" banner — a bigger, one-off flourish on top of the routine
@@ -2532,26 +2554,23 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     <span class="stage-mote"></span>
     <svg class="soul-stream" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
-        <linearGradient id="soulGradA-stage" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="soulGradA-stage" x1="0%" y1="100%" x2="0%" y2="0%">
           <stop offset="0%" stop-color="#eafff0" stop-opacity="0"/>
           <stop offset="50%" stop-color="#8bffb0" stop-opacity="0.9"/>
           <stop offset="100%" stop-color="#eafff0" stop-opacity="0"/>
         </linearGradient>
-        <linearGradient id="soulGradB-stage" x1="100%" y1="0%" x2="0%" y2="100%">
+        <linearGradient id="soulGradB-stage" x1="0%" y1="100%" x2="0%" y2="0%">
           <stop offset="0%" stop-color="#d8fff0" stop-opacity="0"/>
           <stop offset="50%" stop-color="#5fe6a8" stop-opacity="0.85"/>
           <stop offset="100%" stop-color="#d8fff0" stop-opacity="0"/>
         </linearGradient>
-        <filter id="soulBlur-stage" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="0.7"/>
-        </filter>
       </defs>
       <g class="soul-ribbon-group">
-        <path class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-stage); filter:url(#soulBlur-stage);" d="M-10,105 C15,80 5,55 30,58 C55,61 40,30 65,22 C82,16 90,4 108,-8"/>
-        <path class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-stage); filter:url(#soulBlur-stage);" d="M-8,60 C18,48 12,68 40,56 C64,46 58,64 90,52"/>
+        <path class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-stage);" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
+        <path class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-stage);" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
       </g>
       <g class="soul-ribbon-group soul-ribbon-group-2">
-        <path class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-stage); filter:url(#soulBlur-stage);" d="M105,95 C80,72 90,50 65,53 C42,56 52,28 28,18 C12,11 4,0 -10,-8"/>
+        <path class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-stage);" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
       </g>
       <circle class="soul-star" cx="8" cy="15" r="0.5" style="animation-duration:3.2s; animation-delay:0s;"/>
       <circle class="soul-star" cx="22" cy="68" r="0.4" style="animation-duration:2.8s; animation-delay:.6s;"/>
@@ -4459,42 +4478,6 @@ function renderBattle(){
         <span class="arena-mote"></span>
         <span class="arena-mote"></span>
         <span class="arena-mote"></span>
-        <svg class="soul-stream" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-          <defs>
-            <linearGradient id="soulGradA-arena" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#eafff0" stop-opacity="0"/>
-              <stop offset="50%" stop-color="#8bffb0" stop-opacity="0.9"/>
-              <stop offset="100%" stop-color="#eafff0" stop-opacity="0"/>
-            </linearGradient>
-            <linearGradient id="soulGradB-arena" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#d8fff0" stop-opacity="0"/>
-              <stop offset="50%" stop-color="#5fe6a8" stop-opacity="0.85"/>
-              <stop offset="100%" stop-color="#d8fff0" stop-opacity="0"/>
-            </linearGradient>
-            <filter id="soulBlur-arena" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="0.7"/>
-            </filter>
-          </defs>
-          <g class="soul-ribbon-group">
-            <path class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-arena); filter:url(#soulBlur-arena);" d="M-10,105 C15,80 5,55 30,58 C55,61 40,30 65,22 C82,16 90,4 108,-8"/>
-            <path class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-arena); filter:url(#soulBlur-arena);" d="M-8,60 C18,48 12,68 40,56 C64,46 58,64 90,52"/>
-          </g>
-          <g class="soul-ribbon-group soul-ribbon-group-2">
-            <path class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-arena); filter:url(#soulBlur-arena);" d="M105,95 C80,72 90,50 65,53 C42,56 52,28 28,18 C12,11 4,0 -10,-8"/>
-          </g>
-          <circle class="soul-star" cx="8" cy="15" r="0.5" style="animation-duration:3.2s; animation-delay:0s;"/>
-          <circle class="soul-star" cx="22" cy="68" r="0.4" style="animation-duration:2.8s; animation-delay:.6s;"/>
-          <circle class="soul-star" cx="35" cy="25" r="0.6" style="animation-duration:3.6s; animation-delay:1.2s;"/>
-          <circle class="soul-star" cx="48" cy="80" r="0.35" style="animation-duration:2.5s; animation-delay:1.8s;"/>
-          <circle class="soul-star" cx="58" cy="12" r="0.5" style="animation-duration:4s; animation-delay:.3s;"/>
-          <circle class="soul-star" cx="68" cy="55" r="0.45" style="animation-duration:3s; animation-delay:2.1s;"/>
-          <circle class="soul-star" cx="78" cy="30" r="0.55" style="animation-duration:3.4s; animation-delay:.9s;"/>
-          <circle class="soul-star" cx="88" cy="70" r="0.4" style="animation-duration:2.7s; animation-delay:1.5s;"/>
-          <circle class="soul-star" cx="15" cy="45" r="0.35" style="animation-duration:3.8s; animation-delay:2.4s;"/>
-          <circle class="soul-star" cx="92" cy="15" r="0.5" style="animation-duration:2.9s; animation-delay:.2s;"/>
-          <circle class="soul-star" cx="42" cy="92" r="0.4" style="animation-duration:3.3s; animation-delay:1.7s;"/>
-          <circle class="soul-star" cx="62" cy="88" r="0.45" style="animation-duration:2.6s; animation-delay:2.8s;"/>
-        </svg>
       </div>
       ${voidDominionActive ? `<div class="void-dominion-dark phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>` : ''}
       <div class="board">
