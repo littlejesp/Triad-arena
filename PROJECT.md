@@ -2442,6 +2442,58 @@ ingen JS-logik rörd, inget permanent test (samma "kosmetiskt ambient-
 lager"-konvention som `.soul-stream` ovan). Hela testsviten grön
 (100/100, oförändrat testantal).
 
+**Fas 4q: Soul Stream — smalare/elegantare + rakt upp (inte snett), och
+en mobil-lagg-fix.** Två uppföljningsförfrågningar på samma effekt:
+
+- **"Smalare mycket smalare... elegantare och att dom flyger uppåt inte
+  snett"** — de ursprungliga banden (stroke-width 1-1.6, diagonala
+  hörn-till-hörn-kurvor) lästes som klumpiga/röriga snarare än eleganta
+  när de väl syntes i det riktiga spelet, trots att de matchade
+  referensbildernas kaotiska virvel. Löst med två ändringar: (1)
+  `stroke-width` skuren till 0.3-0.45 (tunn tråd istället för band), (2)
+  de underliggande `<path>`-kurvorna omritade för att röra sig
+  NEDIFRÅN-UPP med bara en mjuk sidled-våg istället för en diagonal
+  svep över hela rutan — samma stroke-dasharray/
+  dashoffset-"flödes"-teknik som förut, bara en annan kurvform. Sväng-
+  amplituden på hela rör-gruppen (`soulSwirl`) tonades också ner
+  (rotate 1deg → 0.3deg) så den inte motverkar den nu huvudsakligen
+  vertikala rörelsen.
+- **"Det laggar nu"** (bekräftat: hela spelet/överallt) — tre separata
+  prestandafixar samtidigt, alla med samma rotorsak (kontinuerligt
+  animerade CSS-egenskaper som tvingar omritning/filter-omberäkning
+  varje bildruta, istället för `transform`/`opacity` som GPU:n kan
+  kompositera):
+  1. **`.soul-stream` borttagen helt från `.arena-ambient`** (finns nu
+     BARA i `.stage-ambient`). Roten: `.arena-ambient` byggs om vid
+     VARJE `render()`-anrop under strid (flip, Ultimate-fas-byte,
+     cleanup-timeouts — alltså precis när spelet redan har som mest att
+     göra), så att parsa om ett dussin SVG-noder med gradienter varje
+     gång var en verklig, undvikbar kostnad. `.stage-ambient` sitter
+     utanför `#app` och skrivs bara en gång, så den betalar den
+     kostnaden exakt en gång oavsett hur mycket striden ritas om.
+  2. **SVG-blur-filtret (`feGaussianBlur`) borttaget helt** från
+     ramarna — mjukheten kommer nu bara från tunna streck + en
+     nedtonande gradient istället för ett blur-filter, som tvingar
+     webbläsaren att räkna om filtret varje bildruta så länge
+     `stroke-dashoffset`-animationen kör (oändligt).
+  3. **Dragkortets `cardBackGlow` (Fas 4p ovan) skriven om** — animerade
+     tidigare `box-shadow`s faktiska blur/spread-värden direkt (tungt
+     att rita om) plus ett `filter:brightness`. Nu ligger ett FAST
+     box-shadow-värde på ett eget `::after`-lager, och bara dess
+     `opacity` animeras (ren GPU-komposition, webbläsaren blandar bara
+     ett redan uppritat lager). Samma andnings-effekt visuellt, mycket
+     billigare att köra.
+  4. **`.soul-star`s `drop-shadow`-filter borttaget** av samma skäl som
+     punkt 2 — bara `fill` + `opacity`-tvinkel kvar.
+
+Verifierat: `.soul-stream`/`.soul-ribbon`/`.soul-star`-antal kontrollerat
+via Playwright på både draft- och stridsskärmen (bekräftat 0 instanser i
+`.arena-ambient` under strid, 1 kvar i `.stage-ambient`), plus
+skärmdumpar av båda skärmarna och dragkortet som bekräftar de smalare,
+vertikala banden och den fortfarande fungerande gulglöden. Ren CSS/
+markup, ingen spellogik rörd, inget permanent test. Hela testsviten
+grön (100/100, oförändrat testantal).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
