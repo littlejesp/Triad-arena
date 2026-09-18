@@ -2589,6 +2589,62 @@ som `odin: 'voices/odin.mp3'`, engångsrad, ingen ny kod. Fas 4c-testet
 utökat igen med en `odinCall`-kontroll. Hela testsviten grön (100/100,
 oförändrad teststruktur, bara en ny assertion i ett befintligt test).
 
+**Fas 4u: Soul Stream — helt omdesignad efter "ser ut som maskar"-
+feedback.** Ett skärmfoto av den bredbildslayouten (samma som fas 4o/4q
+skapade) visade tydligt problemet: de vindlande S-kurvorna kombinerat
+med jämnt streckade segment (`stroke-dasharray`) längs dem lästes som
+två krälande, ledade kroppar snarare än energi. En uppföljande fråga
+till användaren gav en fullständig omdesign-brief: behåll rörelse/
+hastighet, men gör själva formen mycket tunnare/mjukare/etherisk, bryt
+upp varje strimma i flera separata, avsmalnande fragment med mjukt
+tonande ändar, variera längd/ljusstyrka/opacitet (några ska nästan
+försvinna), låt PARTIKLARNA vara det tydligaste elementet medan
+strimmorna förblir subtil bakgrundstextur, och undvik orm-lika kurvor,
+tjocka linjer, hårda kanter och enhetliga former helt.
+
+- **soulPathA/B/C-stage rakades ut** (från multi-böj S-kurvor till en
+  enda mild `Q`-kurva, nästan lodrät) OCH gjordes helt osynliga
+  (`stroke="none"`) — de finns nu ENDAST kvar som rörelseguider för de
+  räls-ridande partiklarnas `animateMotion`/`mpath`, aldrig som synlig
+  linje. Detta är exakt hur "keep their existing movement and speed"
+  uppfylldes för partiklarna: samma id:n, samma `mpath`-referenser,
+  bara den tidigare SYNLIGA streckade linjen längs samma bana togs bort.
+- **9 nya `.soul-wisp-fragment`-element** (3 per "körfält", korta raka
+  `<line>`, inga kurvor alls) ersätter den gamla enda streckade linjen
+  per körfält. Varje fragment avsmalnar mjukt i båda ändar via EN delad
+  `linearGradient` (`soulFragGrad-stage`) som använder standard
+  `gradientUnits="objectBoundingBox"` — det betyder att SAMMA
+  gradient-definition automatiskt tonar ut vid vardera fragmentets EGNA
+  början/slut, oavsett dess egen längd/position/vinkel, utan att behöva
+  en unik gradient per fragment. Ingen `stroke-dasharray` någonstans —
+  det var just de jämnstora, tätt packade streck-segmenten som läste
+  som maskled. Varje fragment har sin egen bredd (0.12-0.25),
+  bas-opacitet (0.13-0.45, flera medvetet mycket svaga) och
+  drift-varaktighet (13-21s), animerat med samma beprövade
+  `animateTransform`(translate)+`animate`(opacity fade-in/ut vid
+  loopens ändar)-teknik som de självständigt vandrande partiklarna
+  redan använde — ingen ny mekanism, bara samma mönster applicerat på
+  linjer istället för cirklar.
+- **Partiklarna gjorda mer framträdande** ("particles should be the
+  most recognizable element") — radien höjd på alla räls-ridande och
+  vandrande partiklar (0.5-0.7 → 0.65-0.85) och kärnans opacitet i
+  `soulParticleGrad-stage` höjd något (0.65 → 0.7), utan att röra deras
+  rörelsemönster.
+- All död CSS från den gamla tekniken (`.soul-ribbon`, `.soul-ribbon-a/
+  b/c`, `.soul-ribbon-glow`, `soulRibbonFlow`-keyframen,
+  `.soul-ribbon-group-2`) borttagen istället för att lämnas kvar
+  oanvänd. `soulSwirl`-svajet återanvänt rakt av, nu på
+  `.soul-wisp-fragment-group` istället för `.soul-ribbon-group`.
+
+Verifierat via Playwright: element-antal kontrollerat (`.soul-wisp-
+fragment`: 9, `.soul-wisp-particle`: 4, `.soul-wander-particle`: 3,
+guide-paths: 3), inga sidfel, plus skärmdumpar i både en smal
+mobil-liknande vy och EXAKT samma breda desktop-upplösning som
+användarens ursprungliga skärmfoto — bekräftar att inga synliga
+"mask"-linjer finns kvar, bara mjuka gröna partikelglöd. Ren markup/
+CSS, ingen spellogik eller hastighet rörd, inget permanent test. Hela
+testsviten grön (100/100, oförändrat testantal).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

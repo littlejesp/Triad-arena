@@ -1092,55 +1092,37 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    cost exactly once regardless of how much the battle re-renders.
    Genuinely new technique for this file: inline SVG with a `viewBox`
    (not raw CSS keyframes on plain <span> dots) is the only practical way
-   to get an actual curved flow line that scales cleanly with its
-   container regardless of aspect ratio -- `preserveAspectRatio:
-   xMidYMid slice` keeps the ribbons' proportions undistorted (crops
-   rather than stretches/warps them) whether the wrapper is a tall phone
-   screen or a wide desktop one. Ribbons "flow" via a stroke-dasharray/
-   dashoffset animation (a bright dash segment endlessly traveling along
-   a static curve) rather than actually animating the path's `d`
-   attribute, which would need per-frame JS -- this is the same "faked
-   motion along a fixed shape" trick as a classic loading-spinner.
-   No SVG blur filter (a second mobile-lag fix, alongside dropping the
-   arena copy above) -- feGaussianBlur/drop-shadow on a continuously
-   animating element forces a per-frame filter recompute, so softness
-   here comes from thin strokes + a fading gradient instead of blur. */
-.soul-stream{ position:absolute; inset:0; width:100%; height:100%; z-index:0; opacity:0.9; }
-/* stroke/filter are set inline per <path> instead of here, since the two
-   ambient wrappers (.stage-ambient/.arena-ambient) can both be in the DOM
-   at once during battle and SVG ids must stay document-unique -- each
-   copy of this markup suffixes its gradient/filter ids (-stage/-arena),
-   so the shared class below only owns the parts that don't need an id. */
-.soul-ribbon{ fill:none; stroke-linecap:round; }
-/* Soft glowing edge (user feedback: "softer, slightly transparent
-   glowing edges") -- a second, static-width, low-opacity stroke of the
-   SAME `d` sitting behind the bright dashed one (see the markup's
-   duplicated <animate attributeName="d"> pair), not a blur filter
-   (still off-limits per the mobile lag fix -- see .soul-stream's own
-   comment). No dasharray/dash-flow animation of its own: a continuous
-   soft line reads as an aura around the flowing dashes on top of it,
-   rather than a second set of moving segments. */
-.soul-ribbon-glow{ fill:none; stroke-linecap:round; }
-/* Thinned way down + reoriented per user feedback ("smalare mycket
-   smalare... elegantare och att dom flyger uppåt inte snett") -- the
-   first version's thick diagonal corner-to-corner sweeps (stroke-width
-   1-1.6, paths crossing the whole box on the diagonal) matched the
-   FF7/FFX reference art's chaotic swirl, but read as bulky/messy rather
-   than elegant once actually seen in the running game. Widths cut to a
-   thin thread, and the underlying <path> `d` data (see the markup) was
-   redrawn to travel mostly BOTTOM-TO-TOP with just a gentle side-to-side
-   wave, not a diagonal sweep -- same stroke-dasharray/dashoffset "flow"
-   technique as before, just a different-shaped track. */
-.soul-ribbon-a{ stroke-width:0.45; stroke-dasharray:6 9; animation:soulRibbonFlow 4.5s linear infinite; }
-.soul-ribbon-b{ stroke-width:0.35; stroke-dasharray:5 10; animation:soulRibbonFlow 6s linear infinite; }
-.soul-ribbon-c{ stroke-width:0.3; stroke-dasharray:4 8; animation:soulRibbonFlow 3.8s linear infinite; }
-@keyframes soulRibbonFlow{ to{ stroke-dashoffset:-30; } }
-/* Sway toned down from the first version (was rotate(1deg), visible
-   enough to read as "diagonal drifting") to a much smaller wobble --
-   enough to keep the "elegant" organic life, not enough to fight the
-   now-primarily-vertical path shapes below. */
-.soul-ribbon-group{ transform-origin:50% 50%; animation:soulSwirl 20s ease-in-out infinite; }
-.soul-ribbon-group-2{ animation-duration:25s; animation-delay:-7s; animation-direction:alternate-reverse; }
+   to get particles that travel along an actual curved guide path and
+   scale cleanly with the container regardless of aspect ratio --
+   `preserveAspectRatio: xMidYMid slice` keeps everything undistorted
+   (crops rather than stretches/warps it) whether the wrapper is a tall
+   phone screen or a wide desktop one.
+   No SVG blur filter (a mobile-lag fix, alongside dropping the arena
+   copy of this whole layer -- see below) -- feGaussianBlur/drop-shadow
+   on a continuously animating element forces a per-frame filter
+   recompute, so softness comes from thin strokes + fading gradients
+   instead of blur, both here and on the wisp fragments further down. */
+.soul-stream{ position:absolute; inset:0; width:100%; height:100%; z-index:0; opacity:0.85; }
+/* REDESIGNED (user feedback: the earlier dashed-line-on-an-S-curve
+   version "ser ut som maskar" / "looks like small worms" -- a uniform
+   segmented dash following a sinuous snake-like curve). Replaced with a
+   handful of short, individually tapered .soul-wisp-fragment lines (see
+   the markup) drifting slowly upward, each fading to transparent at
+   both ends via the shared soulFragGrad-stage gradient rather than a
+   hard-edged dasharray. No two fragments share the same length/width/
+   opacity/duration, so nothing reads as a uniform repeating body
+   segment, and several are faint enough to "almost disappear into the
+   background" per the brief. Kept in .stage-ambient only, no SVG blur
+   filter -- both still off-limits per the mobile lag fix (see the
+   comment above). The particles (below) are meant to be the most
+   recognizable element now, with these fragments as quiet texture
+   behind them. */
+.soul-wisp-fragment{ stroke:url(#soulFragGrad-stage); stroke-linecap:round; }
+/* A very gentle shared sway across all fragments, on top of each one's
+   own independent upward drift -- enough for "gentle organic movement"
+   without adding any curve/shape to the fragments themselves (which
+   stay plain short straight lines). */
+.soul-wisp-fragment-group{ transform-origin:50% 50%; animation:soulSwirl 22s ease-in-out infinite; }
 @keyframes soulSwirl{
   0%,100%{ transform:translate(0,0) rotate(0deg); }
   50%{ transform:translate(-0.4%,0.3%) rotate(0.3deg); }
@@ -2578,63 +2560,82 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
              continuously-animating element, a gradient fill is not). -->
         <radialGradient id="soulParticleGrad-stage">
           <stop offset="0%" stop-color="#f2fff8" stop-opacity="1"/>
-          <stop offset="55%" stop-color="#7ef2b8" stop-opacity="0.65"/>
+          <stop offset="55%" stop-color="#7ef2b8" stop-opacity="0.7"/>
           <stop offset="100%" stop-color="#7ef2b8" stop-opacity="0"/>
         </radialGradient>
+        <!-- Tapered-fragment gradient (user feedback: "looked too much
+             like small worms" -- see the redesign note below). Default
+             gradientUnits (objectBoundingBox) means this ONE definition
+             auto-tapers to transparent at both ends of ANY fragment's own
+             bounding box, whatever its length/position/angle, so every
+             wisp fragment below can share it instead of needing its own
+             gradient. */ -->
+        <linearGradient id="soulFragGrad-stage" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#8bffb0" stop-opacity="0"/>
+          <stop offset="50%" stop-color="#8bffb0" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#8bffb0" stop-opacity="0"/>
+        </linearGradient>
       </defs>
-      <!-- Soft glowing edge for each ribbon: a second, wider, low-opacity
-           COPY of the same stroke behind the bright thin one, not a blur
-           filter (still off-limits per the lag fix -- a filter recompute
-           on a continuously-animating element is expensive; a second
-           static-width stroke costs almost nothing extra). Both this
-           halo and the bright stroke on top share an identical `d`
-           morph animation (see the duplicated <animate> children below)
-           so the glow always sits exactly on the line, even while it's
-           bending. Movement speed/placement of the dash-flow itself is
-           untouched (soulRibbonFlow/soulSwirl in the CSS keep their
-           existing durations) -- only the underlying curve now breathes
-           gently between two nearby shapes ("orig"/"flex" below), a
-           small perturbation of the SAME control points, same anchor
-           start/end, so the ribbon stays in roughly the same place. */ -->
-      <g class="soul-ribbon-group">
-        <path id="soulPathA-stage" class="soul-ribbon-glow" style="stroke:url(#soulGradA-stage);" stroke-width="2.4" stroke-opacity="0.16" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10">
-          <animate attributeName="d" dur="10s" repeatCount="indefinite"
-            values="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10;
-                    M20,110 C13,83 27,68 18,45 C11,26 25,12 15,-10;
-                    M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
-        </path>
-        <path class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-stage);" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10">
-          <animate attributeName="d" dur="10s" repeatCount="indefinite"
-            values="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10;
-                    M20,110 C13,83 27,68 18,45 C11,26 25,12 15,-10;
-                    M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
-        </path>
-        <path id="soulPathC-stage" class="soul-ribbon-glow" style="stroke:url(#soulGradA-stage);" stroke-width="2" stroke-opacity="0.14" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15">
-          <animate attributeName="d" dur="13s" repeatCount="indefinite"
-            values="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15;
-                    M80,105 C85,73 75,57 85,35 C92,13 81,2 88,-15;
-                    M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
-        </path>
-        <path class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-stage);" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15">
-          <animate attributeName="d" dur="13s" repeatCount="indefinite"
-            values="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15;
-                    M80,105 C85,73 75,57 85,35 C92,13 81,2 88,-15;
-                    M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
-        </path>
-      </g>
-      <g class="soul-ribbon-group soul-ribbon-group-2">
-        <path id="soulPathB-stage" class="soul-ribbon-glow" style="stroke:url(#soulGradB-stage);" stroke-width="2.1" stroke-opacity="0.15" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12">
-          <animate attributeName="d" dur="8.5s" repeatCount="indefinite"
-            values="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12;
-                    M50,108 C58,78 44,62 55,40 C64,20 50,7 58,-12;
-                    M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
-        </path>
-        <path class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-stage);" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12">
-          <animate attributeName="d" dur="8.5s" repeatCount="indefinite"
-            values="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12;
-                    M50,108 C58,78 44,62 55,40 C64,20 50,7 58,-12;
-                    M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
-        </path>
+      <!-- REDESIGNED per user feedback: the previous single dashed line
+           per lane, flowing along an S-curved path, read as "small
+           worms" (uniform segmented dashes + a sinuous snake-like curve).
+           Two things changed:
+           1. soulPathA/B/C-stage below are now nearly straight (a single
+              gentle bow, not a multi-bend S) AND fully invisible (no
+              class, no visible stroke) -- they exist ONLY as motion
+              guides for the wisp-riding particles' animateMotion/mpath
+              further down, so "keep their existing movement and speed"
+              holds exactly for those particles.
+           2. The VISIBLE energy is now a handful of short, individually
+              tapered .soul-wisp-fragment lines (not one continuous
+              stroke) drifting slowly upward near each lane, each fading
+              to transparent at both ends via soulFragGrad-stage above,
+              with deliberately varied length/width/opacity so some
+              "almost disappear into the background" -- no dasharray, no
+              uniform segments, no S-curve, per the brief. Particles (see
+              further down) get a small brightness boost so they read as
+              the most recognizable element, with these fragments staying
+              subtle background texture behind them. */ -->
+      <path id="soulPathA-stage" d="M20,110 Q18,50 20,-10" fill="none" stroke="none"/>
+      <path id="soulPathC-stage" d="M80,105 Q82,45 80,-15" fill="none" stroke="none"/>
+      <path id="soulPathB-stage" d="M50,108 Q52,48 50,-12" fill="none" stroke="none"/>
+      <g class="soul-wisp-fragment-group">
+        <line class="soul-wisp-fragment" x1="19" y1="98" x2="21" y2="82" stroke-width="0.22" opacity="0.4">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-55; 0,-115" keyTimes="0;0.5;1" dur="14s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0;0.4;0.4;0" keyTimes="0;0.1;0.85;1" dur="14s" repeatCount="indefinite"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="20" y1="63" x2="19" y2="49" stroke-width="0.16" opacity="0.22">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-55; 0,-115" keyTimes="0;0.5;1" dur="17s" repeatCount="indefinite" begin="-5s"/>
+          <animate attributeName="opacity" values="0;0.22;0.22;0" keyTimes="0;0.1;0.85;1" dur="17s" repeatCount="indefinite" begin="-5s"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="21" y1="32" x2="20" y2="19" stroke-width="0.14" opacity="0.14">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-55; 0,-115" keyTimes="0;0.5;1" dur="20s" repeatCount="indefinite" begin="-11s"/>
+          <animate attributeName="opacity" values="0;0.14;0.14;0" keyTimes="0;0.1;0.85;1" dur="20s" repeatCount="indefinite" begin="-11s"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="49" y1="101" x2="51" y2="84" stroke-width="0.25" opacity="0.45">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-58; 0,-118" keyTimes="0;0.5;1" dur="13s" repeatCount="indefinite" begin="-3s"/>
+          <animate attributeName="opacity" values="0;0.45;0.45;0" keyTimes="0;0.1;0.85;1" dur="13s" repeatCount="indefinite" begin="-3s"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="50" y1="66" x2="49" y2="53" stroke-width="0.17" opacity="0.24">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-58; 0,-118" keyTimes="0;0.5;1" dur="16s" repeatCount="indefinite" begin="-8s"/>
+          <animate attributeName="opacity" values="0;0.24;0.24;0" keyTimes="0;0.1;0.85;1" dur="16s" repeatCount="indefinite" begin="-8s"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="51" y1="34" x2="50" y2="21" stroke-width="0.13" opacity="0.15">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-58; 0,-118" keyTimes="0;0.5;1" dur="19s" repeatCount="indefinite" begin="-14s"/>
+          <animate attributeName="opacity" values="0;0.15;0.15;0" keyTimes="0;0.1;0.85;1" dur="19s" repeatCount="indefinite" begin="-14s"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="79" y1="96" x2="81" y2="81" stroke-width="0.2" opacity="0.35">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-52; 0,-112" keyTimes="0;0.5;1" dur="15s" repeatCount="indefinite" begin="-7s"/>
+          <animate attributeName="opacity" values="0;0.35;0.35;0" keyTimes="0;0.1;0.85;1" dur="15s" repeatCount="indefinite" begin="-7s"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="80" y1="58" x2="79" y2="45" stroke-width="0.15" opacity="0.2">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-52; 0,-112" keyTimes="0;0.5;1" dur="18s" repeatCount="indefinite" begin="-2s"/>
+          <animate attributeName="opacity" values="0;0.2;0.2;0" keyTimes="0;0.1;0.85;1" dur="18s" repeatCount="indefinite" begin="-2s"/>
+        </line>
+        <line class="soul-wisp-fragment" x1="81" y1="27" x2="80" y2="13" stroke-width="0.12" opacity="0.13">
+          <animateTransform attributeName="transform" type="translate" values="0,0; 0,-52; 0,-112" keyTimes="0;0.5;1" dur="21s" repeatCount="indefinite" begin="-16s"/>
+          <animate attributeName="opacity" values="0;0.13;0.13;0" keyTimes="0;0.1;0.85;1" dur="21s" repeatCount="indefinite" begin="-16s"/>
+        </line>
       </g>
       <!-- "Some particles should follow the flowing energy wisps" -- tiny
            glowing dots riding the exact same curves as the ribbons above
@@ -2653,7 +2654,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
            animateMotion's own translation rather than replacing it. Only
            applied to one of the two, since the brief asks for this on
            some particles, not all. -->
-      <circle class="soul-wisp-particle" r="0.7" fill="url(#soulParticleGrad-stage)">
+      <circle class="soul-wisp-particle" r="0.85" fill="url(#soulParticleGrad-stage)">
         <animateMotion dur="7s" repeatCount="indefinite">
           <mpath href="#soulPathA-stage"/>
         </animateMotion>
@@ -2673,7 +2674,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
           <mpath href="#soulPathB-stage"/>
         </animateMotion>
       </circle>
-      <circle class="soul-wisp-particle" r="0.6" fill="url(#soulParticleGrad-stage)">
+      <circle class="soul-wisp-particle" r="0.75" fill="url(#soulParticleGrad-stage)">
         <animateMotion dur="9s" repeatCount="indefinite" begin="-3s">
           <mpath href="#soulPathB-stage"/>
         </animateMotion>
@@ -2683,15 +2684,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
            not tied to any ribbon. animateTransform (translate, additive)
            + a fading animate on opacity so each loop starts/ends
            invisible instead of popping. -->
-      <circle class="soul-wander-particle" cx="28" cy="88" r="0.6" fill="url(#soulParticleGrad-stage)">
+      <circle class="soul-wander-particle" cx="28" cy="88" r="0.75" fill="url(#soulParticleGrad-stage)">
         <animateTransform attributeName="transform" type="translate" values="0,0; 3,-28; -2,-58; 1,-88; 0,-100" dur="15s" repeatCount="indefinite"/>
         <animate attributeName="opacity" values="0;0.85;0.85;0.85;0" keyTimes="0;0.12;0.5;0.85;1" dur="15s" repeatCount="indefinite"/>
       </circle>
-      <circle class="soul-wander-particle" cx="66" cy="92" r="0.5" fill="url(#soulParticleGrad-stage)">
+      <circle class="soul-wander-particle" cx="66" cy="92" r="0.65" fill="url(#soulParticleGrad-stage)">
         <animateTransform attributeName="transform" type="translate" values="0,0; -3,-30; 2,-60; -1,-90; 0,-102" dur="18s" repeatCount="indefinite" begin="-6s"/>
         <animate attributeName="opacity" values="0;0.8;0.8;0.8;0" keyTimes="0;0.12;0.5;0.85;1" dur="18s" repeatCount="indefinite" begin="-6s"/>
       </circle>
-      <circle class="soul-wander-particle" cx="42" cy="95" r="0.55" fill="url(#soulParticleGrad-stage)">
+      <circle class="soul-wander-particle" cx="42" cy="95" r="0.7" fill="url(#soulParticleGrad-stage)">
         <animateTransform attributeName="transform" type="translate" values="0,0; 2,-32; -3,-64; 1,-92; 0,-105" dur="16s" repeatCount="indefinite" begin="-10s"/>
         <animate attributeName="opacity" values="0;0.8;0.8;0.8;0" keyTimes="0;0.12;0.5;0.85;1" dur="16s" repeatCount="indefinite" begin="-10s"/>
       </circle>
