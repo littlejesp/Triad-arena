@@ -2494,6 +2494,46 @@ vertikala banden och den fortfarande fungerande gulglöden. Ren CSS/
 markup, ingen spellogik rörd, inget permanent test. Hela testsviten
 grön (100/100, oförändrat testantal).
 
+**Fas 4r: Soul Stream fick riktiga "andar"-partiklar** — engelsk brief
+den här gången: små gröna/teal-glödande partiklar som antingen rider
+med de befintliga ljus-ramarna eller vandrar självständigt uppåt,
+"small, delicate and subtle... no large effects, no bright green fog,
+no beams and no clutter". Två nya partikeltyper, båda BARA i
+`.stage-ambient` (samma lagg-fix-gräns som fas 4q ovan — aldrig i
+`.arena-ambient`):
+
+- **Ramridande partiklar** — `<circle>` med SMIL `animateMotion`/
+  `<mpath href="#soulPathX-stage">`, som refererar till samma
+  `<path>`-element ramarna redan ritas med (varje ram fick nu ett eget
+  `id`) istället för att duplicera `d`-strängen. Rör sig i SVG:ns egna
+  user units, till skillnad från en CSS `transform` på ett SVG-element
+  (som skulle behöva extra hänsyn för att hålla sig synkad med
+  `viewBox`-skalningen på olika skärmstorlekar) — samma
+  motivering som varför `animateMotion` valdes för korts-VFX:ens
+  räls-tekniker tidigare i sessionen.
+- **Självständigt vandrande partiklar** — SMIL `animateTransform`
+  (translate, flera waypoints för en mjuk sidled-vandring medan de
+  stiger) + en `animate` på opacity som tonar in/ut vid loopens
+  start/slut (så de inte "poppar" synligt). Samma SMIL-familj som
+  ramridarna, av samma skäl.
+- **Mjuk glöd via en `radialGradient`-fyllning, INTE ett blur-/
+  drop-shadow-filter** — direkt tillämpning av fas 4q:s lagg-lärdom:
+  ett filter på ett kontinuerligt animerat element tvingar
+  webbläsaren att räkna om det varje bildruta, en gradient-fyllning
+  gör inte det.
+
+2 ramridande + 3 vandrande partiklar tillagda, alla små (r 0.5-0.7 i
+100-enhets-viewBox:en) och dämpade i opacitet, per "keep the effect
+small, delicate and subtle". Verifierat via Playwright: element-antal
+kontrollerat (`.soul-wisp-particle`: 2, `.soul-wander-particle`: 3),
+plus tre skärmdumpar med paus emellan som visar en vandrande partikel
+faktiskt stiga från nära "YOUR FATE AWAITS" hela vägen upp till bredvid
+"TRIAD ARENA"-titeln över ett par sekunder — bekräftar att
+animationscykeln (15-18s) faktiskt kör och rör sig uppåt som begärt.
+Ingen JS-logik rörd, inget permanent test (samma konvention som all
+tidigare ambient-kosmetik). Hela testsviten grön (100/100, oförändrat
+testantal).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

@@ -2564,14 +2564,57 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
           <stop offset="50%" stop-color="#5fe6a8" stop-opacity="0.85"/>
           <stop offset="100%" stop-color="#d8fff0" stop-opacity="0"/>
         </linearGradient>
+        <!-- Soft glow via a radial fill, not a blur filter (see the note
+             on this file's lag fix above -- filters are expensive on a
+             continuously-animating element, a gradient fill is not). -->
+        <radialGradient id="soulParticleGrad-stage">
+          <stop offset="0%" stop-color="#f2fff8" stop-opacity="1"/>
+          <stop offset="55%" stop-color="#7ef2b8" stop-opacity="0.65"/>
+          <stop offset="100%" stop-color="#7ef2b8" stop-opacity="0"/>
+        </radialGradient>
       </defs>
       <g class="soul-ribbon-group">
-        <path class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-stage);" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
-        <path class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-stage);" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
+        <path id="soulPathA-stage" class="soul-ribbon soul-ribbon-a" style="stroke:url(#soulGradA-stage);" d="M20,110 C10,85 30,65 18,45 C8,28 28,10 15,-10"/>
+        <path id="soulPathC-stage" class="soul-ribbon soul-ribbon-c" style="stroke:url(#soulGradA-stage);" d="M80,105 C88,75 72,55 85,35 C95,15 78,0 88,-15"/>
       </g>
       <g class="soul-ribbon-group soul-ribbon-group-2">
-        <path class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-stage);" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
+        <path id="soulPathB-stage" class="soul-ribbon soul-ribbon-b" style="stroke:url(#soulGradB-stage);" d="M50,108 C62,80 40,60 55,40 C68,22 46,5 58,-12"/>
       </g>
+      <!-- "Some particles should follow the flowing energy wisps" -- tiny
+           glowing dots riding the exact same curves as the ribbons above
+           via SMIL's animateMotion+mpath, which references the path by
+           id rather than duplicating its `d` string, and animates in the
+           SVG's own user-unit space (unlike a CSS transform on an SVG
+           element, which would need extra care to stay in sync with the
+           viewBox's scaling). Kept to one per major ribbon, small and
+           soft, per "keep the effect small, delicate and subtle". -->
+      <circle class="soul-wisp-particle" r="0.7" fill="url(#soulParticleGrad-stage)">
+        <animateMotion dur="7s" repeatCount="indefinite">
+          <mpath href="#soulPathA-stage"/>
+        </animateMotion>
+      </circle>
+      <circle class="soul-wisp-particle" r="0.6" fill="url(#soulParticleGrad-stage)">
+        <animateMotion dur="9s" repeatCount="indefinite" begin="-3s">
+          <mpath href="#soulPathB-stage"/>
+        </animateMotion>
+      </circle>
+      <!-- "Others gently move independently" -- small particles that
+           wander upward with a soft side-to-side drift of their own,
+           not tied to any ribbon. animateTransform (translate, additive)
+           + a fading animate on opacity so each loop starts/ends
+           invisible instead of popping. -->
+      <circle class="soul-wander-particle" cx="28" cy="88" r="0.6" fill="url(#soulParticleGrad-stage)">
+        <animateTransform attributeName="transform" type="translate" values="0,0; 3,-28; -2,-58; 1,-88; 0,-100" dur="15s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0;0.85;0.85;0.85;0" keyTimes="0;0.12;0.5;0.85;1" dur="15s" repeatCount="indefinite"/>
+      </circle>
+      <circle class="soul-wander-particle" cx="66" cy="92" r="0.5" fill="url(#soulParticleGrad-stage)">
+        <animateTransform attributeName="transform" type="translate" values="0,0; -3,-30; 2,-60; -1,-90; 0,-102" dur="18s" repeatCount="indefinite" begin="-6s"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0.8;0" keyTimes="0;0.12;0.5;0.85;1" dur="18s" repeatCount="indefinite" begin="-6s"/>
+      </circle>
+      <circle class="soul-wander-particle" cx="42" cy="95" r="0.55" fill="url(#soulParticleGrad-stage)">
+        <animateTransform attributeName="transform" type="translate" values="0,0; 2,-32; -3,-64; 1,-92; 0,-105" dur="16s" repeatCount="indefinite" begin="-10s"/>
+        <animate attributeName="opacity" values="0;0.8;0.8;0.8;0" keyTimes="0;0.12;0.5;0.85;1" dur="16s" repeatCount="indefinite" begin="-10s"/>
+      </circle>
       <circle class="soul-star" cx="8" cy="15" r="0.5" style="animation-duration:3.2s; animation-delay:0s;"/>
       <circle class="soul-star" cx="22" cy="68" r="0.4" style="animation-duration:2.8s; animation-delay:.6s;"/>
       <circle class="soul-star" cx="35" cy="25" r="0.6" style="animation-duration:3.6s; animation-delay:1.2s;"/>
