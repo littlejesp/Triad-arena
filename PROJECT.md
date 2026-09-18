@@ -2576,6 +2576,19 @@ visar både en synlig mjuk glöd runt linjen och fortsatt partikelrörelse
 uppåt. Ren markup/CSS, ingen spellogik eller hastighet rörd, inget
 permanent test. Hela testsviten grön (100/100, oförändrat testantal).
 
+**Fas 4t: Odins ultimate-röstlinje inkopplad** — sjunde ElevenLabs-
+uppladdningen ("ZANTETSUKEN Odins ultimate ljud", `voices/odin.mp3`,
+33784 bytes, bekräftat unik via `md5sum` mot befintliga röstfiler).
+Filnamnet råkade fortfarande säga "Ifrit" (troligen en kvarglömd
+ElevenLabs-preset-etikett från verktyget, inte en felmärkning av
+användaren — meddelandet var uttryckligt: "Odins ultimate ljud") men
+användarens egen instruktion vägde tyngre än filnamnet. Odin hade sedan
+tidigare bara sin impact-SFX (`sfx/odin.mp3`, fas 4n) inkopplad, ingen
+röstlinje — det här är den delen. Inkopplad i `ULTIMATE_VOICE_LINES`
+som `odin: 'voices/odin.mp3'`, engångsrad, ingen ny kod. Fas 4c-testet
+utökat igen med en `odinCall`-kontroll. Hela testsviten grön (100/100,
+oförändrad teststruktur, bara en ny assertion i ett befintligt test).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
