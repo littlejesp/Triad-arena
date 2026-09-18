@@ -2534,6 +2534,48 @@ Ingen JS-logik rörd, inget permanent test (samma konvention som all
 tidigare ambient-kosmetik). Hela testsviten grön (100/100, oförändrat
 testantal).
 
+**Fas 4s: Soul Stream — mjuka glödande kanter, organisk böjning, och
+partiklar som avviker/återvänder + korta ljusspår.** Ny engelsk brief,
+uttryckligen "keep their existing motion and speed... make them feel
+more alive rather than replacing them". Fyra separata tillägg, alla
+respekterar den regeln:
+
+- **Mjuk glödande kant** — varje ram fick en andra, bredare (stroke-
+  width ~2-2.4 mot huvudlinjens 0.3-0.45), lågopacitets (~0.14-0.16)
+  kopia av samma linje BAKOM den befintliga ljusa streckade — INTE ett
+  blur-filter (fortfarande förbjudet sedan lagg-fixen), bara en andra
+  helt vanlig `stroke` utan dasharray. Nästan gratis extra kostnad
+  (en till statisk stroke, inget filter att räkna om).
+- **Organisk böjning** — `<animate attributeName="d">` på varje ram
+  (både glöd-kopian och den ljusa linjen delar EXAKT samma
+  d-värden/varaktighet så de alltid ligger exakt på varandra även
+  medan de böjer sig), som mjukt interpolerar mellan kurvans
+  ursprungliga kontrollpunkter och en lätt förskjuten variant och
+  tillbaka — samma start-/slutpunkter (ankarna orörda) så "overall
+  placement" inte ändras, bara en långsam (8.5-13s), oberoende
+  andnings-cykel per ram. `soulRibbonFlow`/`soulSwirl`s befintliga
+  hastigheter/varaktigheter rörda inte alls, per "keep the current
+  movement speed".
+- **Partiklar som avviker och återvänder** — en av de befintliga
+  räls-ridande partiklarna fick en andra, ADDITIV
+  `animateTransform`(`additive="sum"`) ovanpå sin `animateMotion`, en
+  liten oberoende vinglingsrörelse som kombineras med bankurvan istället
+  för att ersätta den — bara på EN av partiklarna ("occasional
+  particles", inte alla).
+- **Korta ljusspår** — två extra, mindre/svagare (opacitet 0.45/0.25,
+  radie 0.45/0.3 mot huvudpartikelns 0.6) "eko"-cirklar som rider samma
+  bana med en lätt negativ `begin`-offset (så de ligger en bråkdels
+  cykel BAKOM huvudpartikeln i tid) — ett klassiskt "kometsvans"-knep,
+  ingen motion-blur-filter behövs.
+
+Verifierat via Playwright: element-antal kontrollerat
+(`.soul-ribbon-glow`: 3, `.soul-ribbon`: 3 oförändrat, `.soul-wisp-
+particle`: 4, `.soul-wisp-trail`: 2, `.soul-wander-particle`: 3
+oförändrat), inga sidfel, plus tre skärmdumpar med paus emellan som
+visar både en synlig mjuk glöd runt linjen och fortsatt partikelrörelse
+uppåt. Ren markup/CSS, ingen spellogik eller hastighet rörd, inget
+permanent test. Hela testsviten grön (100/100, oförändrat testantal).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
