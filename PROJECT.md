@@ -2645,6 +2645,85 @@ användarens ursprungliga skärmfoto — bekräftar att inga synliga
 CSS, ingen spellogik eller hastighet rörd, inget permanent test. Hela
 testsviten grön (100/100, oförändrat testantal).
 
+**Fas 4v: Interaktiv "How to Play"-tutorial + färdiga nybörjar-
+uppställningar** ("man måste göra en bra tutorial så nya spelare
+förstår spelets mening... dom gissar sig fram... man fattar inte hur
+spelet fungerar eller ens gå ut på"). Två separata, av användaren
+uttryckligen prioriterade funktioner (bekräftade via AskUserQuestion:
+"Interaktiv guidad genomgång" respektive "Färdiga nybörjar-
+uppställningar"):
+
+- **`BEGINNER_DECKS`** — två färdiga 5-korts-uppställningar, en-
+  klicks-genväg högst upp i "Choose Your Five"-panelen (bara i manual-
+  läget, syns inte i Random Draft/Campaign). Varje deck bygger på EN
+  enda lättförklarad idé istället för att stapla flera på en gång:
+  - **Bonded Guardians** (Darien/Elara/Sarah/Zaevir/Vayra) — lutar sig
+    mot Dariens/Elaras REDAN BEFINTLIGA `pairPresence`-bonus (+2 Power
+    på alla sidor så länge båda är på brädet) som det tydligaste
+    "de här två kort samverkar"-exemplet som redan finns i spelet,
+    istället för att uppfinna en ny mekanik att förklara.
+  - **Windswept Vanguard** (Zaevir/Sylvarion/Aurelian/Sarah/
+    Shadowking) — tre Wind-kort för att visa upp den valfria Elemental
+    Clash-regelns "gynnsam matchning"-idé om spelaren slår på den.
+  - Att klicka en deck-knapp sätter `state.selected = deck.cardIds.
+    slice()` rakt av (samma fält som manuell klick-val redan skriver
+    till) och renderar om — `Begin the Duel` blir direkt klickbar.
+- **`TUTORIAL_STEPS` + `startTutorial()`/`endTutorial()`/
+  `checkTutorialAutoAdvance()`** — en riktig, spelbar 7-stegs
+  genomgång istället för ett bildspel. `startTutorial()` sätter upp
+  ett DETERMINISTISKT scenario: spelarens hand är fast satt till
+  Bonded Guardians-decket, `state.enemyHand = []` (Forest har inga
+  kort alls den här omgången), och EXAKT ETT medvetet svagt
+  dummy-fiendekort ("Weakling", 1/1/1/1 på alla sidor) förplacerat på
+  rutan i mitten (index 4). Eftersom alla riktiga kort i spelarens
+  hand har betydligt högre siffror garanterar det att den ALLRA
+  FÖRSTA placeringen spelaren gör — oavsett vilket av de fem korten
+  eller vilken angränsande ruta de väljer — faktiskt erövrar dummyn
+  och visar upp en riktig flip, istället för att riskera en förklaring
+  som inte matchar vad som faktiskt hände på skärmen.
+  - Varje steg har en `text`-sträng som visas i en fast overlay-panel
+    (`renderTutorialOverlay()`, `.tutorial-overlay`/`.tutorial-panel`)
+    ovanpå den riktiga stridsskärmen — INTE en separat modal-vy, brädet
+    och handen är fullt klickbara bakom panelen hela tiden.
+  - Vissa steg har en `autoAdvanceIf()`-closure (t.ex. steg 2 kollar
+    `!!state.pendingCard`, steg 3 kollar att brädet har fler än 1
+    fylld ruta) som låter steget hoppa fram automatiskt i samma
+    ögonblick spelaren faktiskt utför den riktiga handlingen —
+    `checkTutorialAutoAdvance()` körs sist i `render()`, gated på
+    `state.tutorialActive`, utan att något klick-handler-kodställe
+    någonsin behöver veta att en tutorial pågår.
+  - **"Next" är ALLTID klickbar oavsett auto-advance-status** (samma
+    knapp-rad har också en permanent synlig "Skip Tutorial"-knapp och,
+    på sista steget, en "Finish"-knapp istället för "Next") — medvetet
+    designval så att ingen kan fastna på en detektionsedge-case.
+    Skip/Finish går båda via `endTutorial()` → `resetGame()`, som
+    redan (sedan en tidigare rad i samma reset-literal) nollställer
+    `tutorialActive`/`tutorialStep`, så draft-skärmen alltid nås rent.
+  - Efter att spelaren placerat alla fem kort avslutas matchen av
+    motorns EGEN befintliga "inga fler drag möjliga"-logik i
+    `advanceTurn` (båda händer tomma) — tutorialen kräver ingen egen
+    specialkod för att märka att spelaren är klar, bara `finishGame()`
+    som redan finns.
+  - **`🎓 How to Play`-knapp** tillagd direkt under regel-texten på
+    draft-skärmen (synlig oavsett vilket läge-flik som är aktivt),
+    startar tutorialen.
+
+Verifierat via ett engångs-Playwright-skript (inte tillagt i den
+permanenta sviten — ren UI/state-verifiering av klick-flödet, samma
+gräns som testfilens egen "täcker inte UI-klick"-kommentar drar):
+How to Play-knappen syns och startar tutorialen; dummy-kortet ligger
+på rätt ruta; att klicka ett handkort auto-avancerar till steg 2;
+`placeCard(1, ...)` mot en ruta bredvid dummyn flippar den till blue
+och auto-avancerar till steg 3; Finish-knappen finns på sista steget
+och återställer till `phase:'draft'`/`tutorialActive:false`; Skip
+Tutorial mitt i gör detsamma; de två beginner-deck-knapparna syns i
+Choose Your Five och fyller `state.selected` korrekt. Bekräftat med
+skärmdumpar i både smal mobilvy och bred desktopvy. `node --check` på
+extraherat script-innehåll grönt. Hela den permanenta testsviten körd
+om efteråt: 100/100 grönt, oförändrat testantal (ingen ny permanent
+regressionstest skriven för den här funktionen — rent tillägg av
+UI/state, inga ändringar i den befintliga strids-motorn).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
