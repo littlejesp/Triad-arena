@@ -2334,6 +2334,43 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 }
 .choice-picker-cancel{ width:100%; }
 
+/* ---------- "How to Play" entry point + guided tutorial overlay ---------- */
+.how-to-play-btn{ display:block; margin:0 auto 10px; }
+
+.tutorial-overlay{
+  position:fixed; left:0; right:0; bottom:0; z-index:60;
+  display:flex; justify-content:center; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  pointer-events:none;
+}
+.tutorial-panel{
+  pointer-events:auto;
+  width:100%; max-width:460px; background:var(--void-2); border:1px solid var(--gold);
+  border-radius:16px; box-shadow:0 20px 70px rgba(0,0,0,0.85); padding:16px 18px;
+  text-align:center;
+}
+.tutorial-step-label{
+  font-family:'Cinzel',serif; font-size:10px; letter-spacing:0.12em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:6px;
+}
+.tutorial-text{ font-family:'Spectral',serif; font-size:13px; color:var(--text); margin:0 0 12px; line-height:1.4; }
+.tutorial-dots{ display:flex; justify-content:center; gap:6px; margin-bottom:12px; }
+.tutorial-actions{ display:flex; gap:10px; justify-content:center; }
+.tutorial-actions button{ flex:1 1 auto; max-width:180px; }
+
+/* ---------- curated beginner 5-card presets in "Choose Your Five" ---------- */
+.beginner-deck-row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+.beginner-deck-btn{
+  flex:1 1 220px; text-align:left; padding:10px 14px; border-radius:10px;
+  border:1px solid var(--line); background:var(--panel); color:var(--text); cursor:pointer;
+  transition:all .15s ease;
+}
+.beginner-deck-btn:hover{
+  border-color:var(--gold); background:linear-gradient(180deg, rgba(201,162,39,0.16), rgba(201,162,39,0.04));
+  box-shadow:0 0 14px rgba(201,162,39,0.25);
+}
+.beginner-deck-name{ font-family:'Cinzel',serif; font-size:12px; letter-spacing:0.05em; color:var(--gold-bright); margin-bottom:4px; }
+.beginner-deck-desc{ font-family:'Spectral',serif; font-size:11px; color:var(--text-dim); line-height:1.35; }
+
 /* ---------- mobile battle layout: board becomes the hero, hands become
    horizontal strips above/below it instead of squeezed side columns ---------- */
 @media (max-width:640px){
@@ -3710,6 +3747,92 @@ function drawEnemyHand(){
   return shuffle(FOREST_FOES.slice()).slice(0, 5);
 }
 
+// Curated 5-card presets for new players (user feedback: "man fattar inte
+// hur spelet fungerar... 5 kort i en bra combo version") — a one-tap
+// shortcut in "Choose Your Five" that fills state.selected with a
+// deliberately synergistic, beginner-legible hand, rather than the player
+// having to already understand the whole roster to pick well. Each deck
+// leans on ONE clear, explainable idea rather than stacking several at
+// once:
+// - Bonded Guardians: Darien/Elara's own built-in `pairPresence` bonus
+//   (each gets +2 Power on all sides while the other is anywhere on the
+//   board) is the single most legible "these two cards work together"
+//   mechanic already in the game -- pointing straight at it teaches the
+//   concept without inventing a new one. Rounded out with three other
+//   simple, cheap (cost:2 or no-special-at-all) cards with strong flat
+//   stats, so nothing else in the deck needs its own explanation.
+// - Windswept Vanguard: three WIND cards (Zaevir/Sylvarion/Aurelian) to
+//   demonstrate the optional Elemental Clash rule's "same-side favorable
+//   matchups" idea if the player turns it on, plus two simple flat-stat
+//   fillers (Sarah's even 10/10/10/10 line, The Hollow Crown's single
+//   passive and total lack of a Special Attack) to keep the rest of the
+//   hand easy to reason about.
+const BEGINNER_DECKS = [
+  { id:'bonded', name:'Bonded Guardians', desc:"Darien and Elara boost each other just by both being on your board — a simple taste of card synergy.", cardIds:['darien','elara','sarah','zaevir','vayra'] },
+  { id:'windswept', name:'Windswept Vanguard', desc:'Three Wind champions team up — turn on Elemental Clash to see them fight with an edge.', cardIds:['zaevir','sylvarion','aurelian','sarah','shadowking'] },
+];
+
+// Guided "How to Play" walkthrough (user feedback: "man måste göra en bra
+// tutorial så nya spelare förstår spelets mening... dom gissar sig fram").
+// A real, playable board rather than a slideshow: startTutorial() below
+// sets up a fixed player hand and ONE deliberately weak dummy enemy card
+// already on the board (1 Power every side, so literally any of the
+// player's real champions is guaranteed to beat it), so the very first
+// placement the player makes is guaranteed to demonstrate a capture no
+// matter which card/adjacent cell they choose. Each step's `text` is
+// shown in a banner over the real battle screen (see renderBattle()); a
+// step can optionally auto-advance early when the player actually performs
+// the real action it describes (see checkTutorialAutoAdvance()), but
+// "Next" is ALWAYS clickable too so nobody can get stuck waiting on a
+// detection edge case.
+const TUTORIAL_STEPS = [
+  { text: "Welcome to Triad Arena! You'll place five champions on this 3×3 board. When every square is full, whoever holds the most squares wins the duel. Let's learn how a single move works." },
+  { text: 'Tap one of your champions in your hand below to select it.', autoAdvanceIf: () => !!state.pendingCard },
+  { text: 'Now tap the square right next to the enemy card to place your champion there.', autoAdvanceIf: () => state.board.filter(Boolean).length > 1 },
+  { text: "Look at that — your champion's edge number beat the enemy's facing edge, so it flipped to your side! That's the whole core of the game: win the number comparison on a touching side, capture the square." },
+  { text: 'Once you\'ve won enough squares, a card with a Special Attack ready shows a glowing diamond — tap it to unleash a powerful one-time ability.' },
+  { text: 'Back on the setup screen you\'ll find optional rules like Same, Plus, and Elemental Clash — turn them on later for extra strategic depth once you\'re comfortable.' },
+  { text: "That's everything you need to start! Head back and try Random Draft, Choose Your Five, or the Campaign. Good luck out there!", isLast: true },
+];
+
+function startTutorial(){
+  const deck = BEGINNER_DECKS[0];
+  state.selected = deck.cardIds.slice();
+  state.playerHand = deck.cardIds.map(id => HEROES.find(h => h.id === id)).filter(Boolean);
+  state.enemyHand = [];
+  state.board = Array(9).fill(null);
+  state.board[4] = { card: { id:'tutorialfoe', name:'Weakling', top:1, right:1, bottom:1, left:1, hue:'linear-gradient(160deg,#3a1414,#1a0d0d 60%)', accent:'#c04b4b', icon:'👺' }, owner:'red', shieldUsed:false, grantedShield:false, captureBonus:0, justPlaced:false, turnsStanding:0, turnsStandingOwner:'red', turnsStandingCell:4 };
+  state.pendingCard = null;
+  state.turn = 'blue';
+  state.placedThisTurn = false;
+  state.wins = { blue:0, red:0 };
+  state.specialUsed = {};
+  state.specialMode = null;
+  state.log = 'Place a champion to claim the first square.';
+  state.phase = 'battle';
+  state.tutorialActive = true;
+  state.tutorialStep = 0;
+  render();
+}
+
+function endTutorial(){
+  state.tutorialActive = false;
+  state.tutorialStep = 0;
+  resetGame();
+}
+
+// Called after every render() while the tutorial is active -- lets a step
+// move itself forward the instant its real in-game action happens,
+// without any click-handler ever needing to know about the tutorial.
+function checkTutorialAutoAdvance(){
+  if(!state.tutorialActive) return;
+  const step = TUTORIAL_STEPS[state.tutorialStep];
+  if(step && step.autoAdvanceIf && step.autoAdvanceIf()){
+    state.tutorialStep++;
+    render();
+  }
+}
+
 /* ---------------- sound engine ---------------- */
 let soundOn = true;
 let musicOn = true;
@@ -3881,6 +4004,8 @@ let state = {
   graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
   destroyGhosts: [],      // { index, card, owner } — brief fade-out visual for a just-destroyed cell, see destroyCard()
   odinSlashes: [],        // { sourceIndex, targetIndex, delay } per pair — Odin's normal-attack Slash VFX, see battleNeighbors/placeCard/renderBattle
+  tutorialActive: false,  // true while the guided "How to Play" walkthrough is running — see startTutorial()/TUTORIAL_STEPS
+  tutorialStep: 0,        // index into TUTORIAL_STEPS while tutorialActive
   draftMode: 'random',    // 'random' | 'manual'
   revealing: false,       // true while the drawn-card reveal animation is playing
   wins: { blue: 0, red: 0 },   // accumulated captures — spent to activate special attacks
@@ -3934,8 +4059,35 @@ function render(){
   html += renderRulebookModal();
   html += renderGraveyardModal();
   html += renderChoicePicker();
+  html += renderTutorialOverlay();
   app.innerHTML = html;
   attachHandlers();
+  checkTutorialAutoAdvance();
+}
+
+// Tutorial banner overlaid on the real battle screen (see startTutorial()) --
+// a fixed step-by-step panel with the step's text, a progress dot row, and
+// Next/Skip always available so the player is never blocked on auto-advance
+// detection. Rendered on top of everything else via render()'s html string,
+// same pattern as renderChoicePicker/renderRulebookModal above.
+function renderTutorialOverlay(){
+  if(!state.tutorialActive) return '';
+  const step = TUTORIAL_STEPS[state.tutorialStep];
+  if(!step) return '';
+  const total = TUTORIAL_STEPS.length;
+  const dots = TUTORIAL_STEPS.map((_, idx) => `<span class="rulebook-dot ${idx===state.tutorialStep ? 'active':''}"></span>`).join('');
+  return `
+    <div class="tutorial-overlay" id="tutorial-overlay">
+      <div class="tutorial-panel">
+        <div class="tutorial-step-label">Step ${state.tutorialStep+1} of ${total}</div>
+        <p class="tutorial-text">${step.text}</p>
+        <div class="tutorial-dots">${dots}</div>
+        <div class="tutorial-actions">
+          <button class="ghost" id="tutorial-skip">Skip Tutorial</button>
+          <button class="cta" id="${step.isLast ? 'tutorial-finish' : 'tutorial-next'}">${step.isLast ? 'Finish' : 'Next'}</button>
+        </div>
+      </div>
+    </div>`;
 }
 
 function renderChoicePicker(){
@@ -4175,6 +4327,7 @@ function renderDraft(){
       card flips to your banner. When the board of nine is full, <b>whoever holds the
       most squares wins the duel.</b>
     </div>
+    <button class="ghost how-to-play-btn" id="how-to-play-btn" ${HEROES.length===0 ? 'disabled' : ''}>🎓 How to Play</button>
     ${state.draftMode !== 'campaign' ? `
     <div class="rules-toggle-panel">
       <div class="section-label">Optional rules</div>
@@ -4224,6 +4377,14 @@ function renderDraft(){
       </div>
       <div class="footer-note">The Sigil chooses for you. The forest sends five foes to test your banner — some far more dangerous than others.</div>
     ` : state.draftMode === 'manual' ? `
+      <div class="section-label">New here? Try a ready-made hand</div>
+      <div class="beginner-deck-row">
+        ${BEGINNER_DECKS.map(d => `
+          <button class="beginner-deck-btn" data-deck="${d.id}">
+            <div class="beginner-deck-name">${d.name}</div>
+            <div class="beginner-deck-desc">${d.desc}</div>
+          </button>`).join('')}
+      </div>
       <div class="section-label">Choose exactly five champions</div>
       <div class="draft-grid">
         ${HEROES.map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true })).join('')}
@@ -4737,6 +4898,26 @@ function attachHandlers(){
   if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
   const bookBtn = document.getElementById('book-toggle');
   if(bookBtn) bookBtn.addEventListener('click', openRulebook);
+
+  const howToPlayBtn = document.getElementById('how-to-play-btn');
+  if(howToPlayBtn) howToPlayBtn.addEventListener('click', startTutorial);
+  const tutorialNext = document.getElementById('tutorial-next');
+  if(tutorialNext) tutorialNext.addEventListener('click', ()=>{
+    state.tutorialStep++;
+    render();
+  });
+  const tutorialSkip = document.getElementById('tutorial-skip');
+  if(tutorialSkip) tutorialSkip.addEventListener('click', endTutorial);
+  const tutorialFinish = document.getElementById('tutorial-finish');
+  if(tutorialFinish) tutorialFinish.addEventListener('click', endTutorial);
+  document.querySelectorAll('.beginner-deck-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const deck = BEGINNER_DECKS.find(d => d.id === btn.dataset.deck);
+      if(!deck) return;
+      state.selected = deck.cardIds.slice();
+      render();
+    });
+  });
 
   document.querySelectorAll('.info-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
@@ -8990,6 +9171,7 @@ function resetGame(){
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
+    tutorialActive: false, tutorialStep: 0,
   };
   render();
 }
