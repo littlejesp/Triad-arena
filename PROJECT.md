@@ -2720,9 +2720,127 @@ Tutorial mitt i gör detsamma; de två beginner-deck-knapparna syns i
 Choose Your Five och fyller `state.selected` korrekt. Bekräftat med
 skärmdumpar i både smal mobilvy och bred desktopvy. `node --check` på
 extraherat script-innehåll grönt. Hela den permanenta testsviten körd
-om efteråt: 100/100 grönt, oförändrat testantal (ingen ny permanent
-regressionstest skriven för den här funktionen — rent tillägg av
+om efteråt: 100/100 grönt, oförändrat testantal (rent tillägg av
 UI/state, inga ändringar i den befintliga strids-motorn).
+
+## Triad Arena 2.0 — designöversyn och Fas 1
+
+Efter en längre serie VFX/audio/bugfix-punkter bad användaren om en
+helt annan sorts arbete: en djup, kritisk analys av HELA spelet
+("Jag vill göra Triad Arena mycket roligare, mer strategiskt och mer
+engagerande att spela... Var kritisk. Om något är dåligt eller
+tråkigt, säg det.") innan någon kod ändrades. Fem parallella
+research-agenter läste igenom motorn, hela kortrostret, AI:n,
+UI/UX+prestanda respektive campaign-systemet var för sig (varje agent
+fick exakta radintervall att verifiera, inga gissningar), och
+resultatet syntetiserades till en fullständig rapport (avsnitt 1-7 +
+A-E, se sessionens konversationshistorik för hela texten — för lång
+för att upprepa här i sin helhet, men de viktigaste verifierade
+fynden var):
+
+- **Ingen förhandsvisning existerade alls** — koden hade en egen
+  kommentar (`battleNeighbors`) som bekräftade "this is a real attack
+  resolution (not a hover preview)". Spelaren kunde aldrig se vad en
+  placering skulle göra innan den utfördes.
+- **Kortens tryckta siffror stämde inte** — `effectiveStatFor` räknade
+  bara in `captureBonus`/`sideBonus`, medan `fullEffectiveValue`
+  faktiskt stapinar över 30 andra modifierare (pairPresence,
+  sisterAura, board-lead, rivalitet, olika auror, m.m.) som aldrig
+  syntes i den visade siffran.
+- **AI:t är en ren giriga 1-drags-simulator** (`simulateFlips`) utan
+  lookahead, utan Same/Plus/Combo-förståelse, utan försvarslogik,
+  utan svårighetsgrader — men bekräftat att den INTE fuskar (läser
+  aldrig spelarens hand).
+- **Bara ~22% av kortrostret (15/68 kort) har någon multi-kort-synergi
+  alls**; 34 av 66 ability-nycklar används av exakt ETT kort vardera.
+- **Tre kvarvarande animationer** (`.card.selected`/`selectedGlow`,
+  `.special-diamond.locked/.ready`, `.card.special-ready`/
+  `specialReadyPulse`) animerade fortfarande `box-shadow`/`filter`
+  direkt varje bildruta under helt vanligt, frekvent spelande (inte
+  bara sällsynta Ultimate-cast som redan var åtgärdade).
+- Fullständig kortroster-, campaign- och AI-statistik finns i
+  konversationshistoriken (bl.a. 17 campaign-etapper med verklig
+  svårighetskurva, men numera helt kosmetiska "unlocks"; endast EN
+  localStorage-nyckel i hela spelet).
+
+Användaren godkände en prioriterad 5-fas-roadmap och bad mig börja
+med **Fas 1: "spelet slutar ljuga"** — grunden allt annat i roadmapen
+bygger på.
+
+**Fas 1a: Live capture-preview.** Löser huvudproblemet direkt: när
+spelaren valt ett handkort märks nu (a) varje tom, laglig ruta som
+FAKTISKT skulle erövra minst en fiende med en grön glöd +
+en `⚔ N`-badge som visar exakt hur många, och (b) varje fiendekort som
+kan erövras från MINST EN tom ruta just nu med en orange
+"vulnerable"-ring runt hela rutan. Ingen hover behövs (fungerar
+identiskt på mobil och desktop) — hela poängen var att lösa problemet
+utan att ändra den beprövade "tryck kort, tryck ruta"-interaktionen.
+
+- **`computeCapturePreview(cardId, cellIndex, owner)`** (efter
+  `computeSamePlusCaptures`) — återanvänder de redan rena/read-only
+  bitarna av motorn (`computeSamePlusCaptures`, `fullEffectiveValue`,
+  `isShielded`, marginShieldThreshold/weightOfAges-tröskeln) istället
+  för att skriva om jämförelselogiken en andra gång, så förhandsvisningen
+  ALDRIG kan glida isär från hur en riktig placering faktiskt löser sig.
+  En tillfällig "stub"-post skrivs till `state.board[cellIndex]` och tas
+  bort igen SYNKRONT (inget annat kod kör emellan) så att dessa rena
+  funktioner ser en "precis nyplacerad" post, utan att någonsin anropa
+  den MUTERANDE `battleNeighbors`/`resolveFlips`-vägen (som annars kan
+  kaskadera in i `destroyCard`/graveyard-bieffekter som aldrig får
+  trigga av en ren förhandsvisning). Medvetet begränsning: simulerar
+  INTE en Combo-kedja (BFS-vidarebattlen som bara finns när Same/Plus
+  OCH Combo är på samtidigt) — den kedjan förblir en välkommen
+  överraskning istället för att spoilas helt.
+- **`getPreviewCaptureTargets()`** aggregerar `computeCapturePreview`
+  över alla tomma lagliga rutor en gång per rendering, så
+  `boardCellHtml` kan märka en fiende som "sårbar just nu" oavsett
+  vilken specifik tom ruta den skulle erövras från.
+- Ny CSS: `.cell.would-capture` (grön variant av `.targetable`),
+  `.capture-badge` (siffer-badge), `.cell.preview-vulnerable` (statisk
+  orange ring, ingen animation alls — billigast möjliga val).
+
+**Fas 1b: Korrekt siffervisning.** `effectiveStatFor` utökad med
+`staticLiveBonusFor(card, cellIndex, owner)` — men bara för de
+modifierare som är BÅDE (a) inte beroende av vilken specifik
+motståndare/sida som anfaller (så en enda platt siffra ärligt kan
+representera dem) OCH (b) inte roll-låsta till bara anfall eller bara
+försvar (så de är sanna i vila, inte bara mitt i strid):
+`rivalryBonusAt`, `lastStandBonus`, `pairPresence` (bara `amount`-
+varianten, inte den attack/defense-uppdelade), `sisterAura`,
+`boardLeadBonus`, `adjacentAlliesBoost`, `adjacentEnemyAuraThisRound`,
+`auraPerPetrifiedEnemy`, `auraPerFrostmarkedEnemy`. Medvetet
+EXKLUDERADE: `flatAttackBonus`, `axisBonus`, Elemental Clash,
+`weakVsElement`, `vsStrongerTotalPowerBoost` m.fl. — dessa betyder
+bara något mot en specifik motståndare/roll, och är exakt vad den nya
+live-förhandsvisningen redan visar korrekt, per matchup, istället för
+att låtsas att de kan pressas in i en enda vilo-siffra.
+`boardCellHtml` skickar nu `cellIndex:i` vidare till `cardFace`/
+`effectiveStatFor` (tidigare bara `owner`/`captureBonus`/`sideBonus`).
+
+**Fas 1c: Tre prestanda-fixar**, samma redan etablerade mönster som
+`.card-back-face::after`/`cardBackGlow` (statiskt `box-shadow`-VÄRDE på
+ett `::after`-lager, bara `opacity` animerad — aldrig blur/spread-
+värdena själva):
+- `.card.selected` — `selectedGlow` flyttad till `::after`.
+- `.special-diamond.locked/.ready` — `filter` är nu ETT statiskt värde
+  per state (ingen interpolation), pulsen kommer helt från
+  `transform:scale`+`opacity`.
+- `.card.special-ready` — `border-color`/`filter` statiska, glöden
+  flyttad till `::after`, bara `opacity` animerad.
+
+Verifierat: `node --check` grönt, ny permanent regressionstest
+tillagd (`computeCapturePreview`/`getPreviewCaptureTargets`: rapporterar
+rätt utfall i båda riktningarna, rör aldrig det riktiga brädet, ignorerar
+redan ockuperade rutor, aggregerar rätt över flera tomma rutor) samt en
+befintlig test uppdaterad (siffervisnings-testet döptes om och utökat
+med två nya assertions: en `pairPresence`-bonus SKA nu synas på en
+brädplacerad Darien, en `flatAttackBonus` ska FORTFARANDE inte synas).
+Hela testsviten grön: 101/101 (100 befintliga + 1 ny). Playwright-
+skärmdumpar bekräftar både förhandsvisningen (grön ⚔-badge på rätt
+rutor, orange ring på rätt fiendekort, diagonaler korrekt oberörda) och
+att alla tre omskrivna glow-effekterna fortfarande syns visuellt
+identiskt efter prestanda-fixen. Fas 2-5 väntar på användarens
+godkännande innan de påbörjas.
 
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om

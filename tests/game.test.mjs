@@ -3276,14 +3276,18 @@ test('Tahabata: reworked per audit — Dragonfire\'s Fury (oncePerMatchAttackBoo
   await page.close();
 });
 
-test('Board display: stored captureBonus/sideBonus modifiers show as a live-updated number with a buffed/debuffed color, live matchup-dependent bonuses excluded', async () => {
+test('Board display: stored captureBonus/sideBonus show as a live-updated number with a buffed/debuffed color; static board-position bonuses (pairPresence etc.) now also fold in, but attack/defense-role-gated and matchup-dependent bonuses stay excluded', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     const out = {};
     const ogre = findCardById('ogre'); // top:8, right:5, bottom:8, left:4
 
-    // effectiveStatFor: pure math, no rendering.
+    // effectiveStatFor: pure math, no rendering. No cellIndex/owner in opts
+    // (a bare hand/draft card, or a unit-test call with no board context)
+    // means none of the new static-bonus lookups can apply either --
+    // confirms the Fas 1 fix is additive, not a behavior change for the
+    // cases that already worked.
     out.baseUnaffected = effectiveStatFor(ogre, 'top', {}).value === 8 && effectiveStatFor(ogre, 'top', {}).bonus === 0;
     out.captureBonusApplies = effectiveStatFor(ogre, 'top', { captureBonus: 2 }).value === 10;
     out.sideBonusAppliesOnlyToThatSide = effectiveStatFor(ogre, 'right', { sideBonus: { right: -1 } }).value === 4
@@ -3297,13 +3301,40 @@ test('Board display: stored captureBonus/sideBonus modifiers show as a live-upda
     out.neutralHasNoColorClass = !statNumHtml(ogre, 'top', {}).includes('buffed') && !statNumHtml(ogre, 'top', {}).includes('debuffed');
 
     // End-to-end via a real board cell: boardCellHtml must actually pass
-    // the live entry's captureBonus/sideBonus through to cardFace/statNumHtml.
+    // the live entry's captureBonus/sideBonus/cellIndex through to
+    // cardFace/statNumHtml. Hands set to a non-trivial length so
+    // lastStandBonus (0 or 1 cards left -> +1/+2) can't spuriously fire in
+    // this otherwise hand-less unit-test harness.
     state.board = Array(9).fill(null);
+    state.playerHand = [1,2,3]; state.enemyHand = [1,2,3];
     const entry = freshEntry(ogre, 'blue');
     entry.captureBonus = 3;
     state.board[4] = entry;
     const html = boardCellHtml(entry, 4);
     out.boardCellReflectsLiveBonus = html.includes('buffed') && html.includes('>11<');
+
+    // Fas 1 fix: a STATIC, always-on-right-now board bonus (Darien/Elara's
+    // mutual pairPresence, +2 all sides while the partner is anywhere on
+    // the board) now actually shows up in the printed number once the card
+    // is placed -- this used to be entirely invisible (the exact "the card
+    // lies about its own numbers" gap the design review flagged).
+    const darien = findCardById('darien'); // top:10, active.pairPresence partner 'elara' amount 2
+    const elara = findCardById('elara');
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2,3]; state.enemyHand = [1,2,3];
+    state.board[0] = freshEntry(darien, 'blue');
+    state.board[8] = freshEntry(elara, 'blue'); // far corner, not adjacent -- isolates pairPresence from the separate adjacency-only rivalry bonus
+    out.pairPresenceShowsOnBoard = statNumHtml(darien, 'top', { owner:'blue', cellIndex:0 }).includes('buffed') && statNumHtml(darien, 'top', { owner:'blue', cellIndex:0 }).includes('>12<');
+
+    // But a role-gated (attack-only) bonus must still NOT appear on the
+    // resting display -- it only ever applies mid-battle while actually
+    // attacking, so a single flat "resting" number can't honestly show it;
+    // that stays the live capture preview's job instead (computeCapturePreview).
+    const odin = findCardById('odin'); // top:10, active.flatAttackBonus:2 (attack-role only)
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2,3]; state.enemyHand = [1,2,3];
+    state.board[4] = freshEntry(odin, 'blue');
+    out.attackOnlyBonusStaysExcluded = effectiveStatFor(odin, 'top', { owner:'blue', cellIndex:4 }).value === 10;
 
     return out;
   })()`);
@@ -3315,6 +3346,65 @@ test('Board display: stored captureBonus/sideBonus modifiers show as a live-upda
   assert.equal(result.debuffedClassAndValue, true);
   assert.equal(result.neutralHasNoColorClass, true);
   assert.equal(result.boardCellReflectsLiveBonus, true, 'the board cell render must show the live modified number, not just the base stat');
+  assert.equal(result.pairPresenceShowsOnBoard, true, 'a static board-position bonus like pairPresence must now show in the printed number');
+  assert.equal(result.attackOnlyBonusStaysExcluded, true, 'an attack-only bonus must stay off the resting display -- it is only ever true mid-attack');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 1 live capture preview: computeCapturePreview/getPreviewCaptureTargets report the real outcome without mutating board state', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const bahamut = findCardById('bahamut'); // 10/10/10/10-tier, wins against almost anything
+    const ogre = findCardById('ogre'); // top:8, right:5, bottom:8, left:4
+
+    // A strong card previewed into a cell next to a weak enemy: reports a
+    // capture, names the right cell, and leaves the real board untouched
+    // (still empty at the candidate cell, enemy still owned by red).
+    state.board = Array(9).fill(null);
+    state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+    state.board[1] = freshEntry(ogre, 'red');
+    const strongPreview = computeCapturePreview('bahamut', 4, 'blue');
+    out.strongPreviewCaptures = strongPreview.captures === 1 && strongPreview.indices.includes(1);
+    out.noMutationAfterPreview = state.board[4] === null && state.board[1].owner === 'red' && state.board[1].card.id === 'ogre';
+
+    // The reverse matchup (weak card previewed against a strong defender)
+    // correctly reports zero captures.
+    state.board = Array(9).fill(null);
+    state.board[1] = freshEntry(bahamut, 'red');
+    const weakPreview = computeCapturePreview('ogre', 4, 'blue');
+    out.weakPreviewNoCaptures = weakPreview.captures === 0 && weakPreview.indices.length === 0;
+
+    // An already-occupied cell can never be previewed into.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(ogre, 'blue');
+    out.occupiedCellPreviewIsEmpty = computeCapturePreview('bahamut', 4, 'blue').captures === 0;
+
+    // getPreviewCaptureTargets aggregates across every empty legal cell so
+    // the UI can mark a vulnerable enemy card regardless of which specific
+    // empty cell it would be captured from.
+    state.board = Array(9).fill(null);
+    state.board[1] = freshEntry(ogre, 'red');
+    state.playerHand = [1,2,3]; state.enemyHand = [1,2,3];
+    state.pendingCard = 'bahamut';
+    state.turn = 'blue'; state.phase = 'battle'; state.placedThisTurn = false; state.ultimateBanner = null;
+    const vulnerable = getPreviewCaptureTargets();
+    out.vulnerableSetFindsTarget = vulnerable.has(1) && vulnerable.size === 1;
+
+    // No pending card (nothing selected yet) means nothing is flagged.
+    state.pendingCard = null;
+    out.noPendingCardMeansNoVulnerable = getPreviewCaptureTargets().size === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.strongPreviewCaptures, true);
+  assert.equal(result.noMutationAfterPreview, true, 'computeCapturePreview must never leave a stub entry behind or flip the real board');
+  assert.equal(result.weakPreviewNoCaptures, true);
+  assert.equal(result.occupiedCellPreviewIsEmpty, true);
+  assert.equal(result.vulnerableSetFindsTarget, true);
+  assert.equal(result.noPendingCardMeansNoVulnerable, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
