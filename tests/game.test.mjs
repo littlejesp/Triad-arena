@@ -6687,3 +6687,275 @@ test('a full Random Draft game runs from draft to a result with no errors', asyn
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+// ---------------- Fas 2: AI lookahead (design review overhaul) ----------------
+// The old AI (simulateFlips, now removed) scored only the 4 immediate
+// neighbors of one candidate placement — no idea what the opponent could do
+// next turn. These tests exercise the new minimax/alpha-beta search
+// (simulatePlacementOutcome/searchBestPlacement/chooseAIPlacement) directly
+// via page.evaluate(), same "state-injection" style as the rest of this file.
+
+test('simulatePlacementOutcome: mirrors real capture resolution (Same/Plus/Combo aware) without mutating its input board', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const bahamut = findCardById('bahamut'); // 10/9/9/10
+    const ogre = findCardById('ogre'); // top:8, right:5, bottom:8, left:4
+
+    state.board = Array(9).fill(null);
+    state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+    state.board[1] = freshEntry(ogre, 'red');
+    const before = state.board.slice();
+    const outcome = simulatePlacementOutcome(state.board, 4, bahamut, 'blue');
+    out.inputBoardUntouched = state.board[4] === null && state.board[1].owner === 'red' && state.board.every((e,i) => e === before[i]);
+    out.capturedOgre = outcome[1].owner === 'blue';
+    out.placedCellIsNewObject = outcome[4] && outcome[4].card.id === 'bahamut' && outcome[4].owner === 'blue';
+
+    // Same rule: two neighbors whose raw printed values both match the
+    // placed card's facing side capture outright, no comparison at all —
+    // even a card far too weak to win a normal fight still captures via Same.
+    // weakAttacker's top (3) must match matchA's bottom (3) — cell 1 sits
+    // ABOVE cell 4, so cell 4's placed card's top edge faces cell 1's
+    // bottom edge (see NEIGHBOR_DIRS: dr:-1 -> myEdge:'top', theirEdge:'bottom').
+    // Likewise weakAttacker's left (3) must match matchB's right (3) — cell
+    // 3 sits LEFT of cell 4 (dr:0,dc:-1 -> myEdge:'left', theirEdge:'right').
+    const weakAttacker = { id:'weak-same', name:'WeakSame', top:3, right:9, bottom:9, left:3 };
+    const matchA = { id:'match-a', name:'MatchA', top:9, right:9, bottom:3, left:9 };
+    const matchB = { id:'match-b', name:'MatchB', top:9, right:3, bottom:9, left:9 };
+    state.board = Array(9).fill(null);
+    state.rules = { same:true, plus:false, combo:false, elemental:false, graveyard:false };
+    state.board[1] = freshEntry(matchA, 'red'); // above cell 4
+    state.board[3] = freshEntry(matchB, 'red'); // left of cell 4
+    const sameOutcome = simulatePlacementOutcome(state.board, 4, weakAttacker, 'blue');
+    out.sameRuleCapturesBothDespiteWeakStats = sameOutcome[1].owner === 'blue' && sameOutcome[3].owner === 'blue';
+
+    // onCaptureBonus: a capturing card with this flag should show the bonus
+    // stacked onto ITS OWN captureBonus in the returned scratch board (used
+    // by later plies in the same search to correctly value its next attack).
+    const vayra = findCardById('vayra'); // active.onCaptureBonus:1
+    state.board = Array(9).fill(null);
+    state.board[1] = freshEntry(ogre, 'red');
+    const vayraOutcome = simulatePlacementOutcome(state.board, 4, vayra, 'blue');
+    out.onCaptureBonusStacksOnScratchEntry = vayraOutcome[4].captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.inputBoardUntouched, true, 'simulatePlacementOutcome must never mutate the board it was given');
+  assert.equal(result.capturedOgre, true);
+  assert.equal(result.placedCellIsNewObject, true);
+  assert.equal(result.sameRuleCapturesBothDespiteWeakStats, true, 'Same rule must capture on raw value match regardless of the normal power comparison');
+  assert.equal(result.onCaptureBonusStacksOnScratchEntry, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('searchBestPlacement: a 2-ply lookahead avoids a trap that a 1-ply greedy search walks straight into', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    // A hand-crafted 2-empty-cell endgame: cell 1 (above center) and cell 4
+    // (center) are open. Red holds cardR (top:9,right:5,bottom:1,left:8),
+    // blue holds cardB (top:5,right:5,bottom:5,left:5). Cell 0 holds a weak
+    // blue card W (all 1s); cell 5 holds a second weak blue card W2 (all
+    // 1s); cells 2/3/6/7/8 hold invincible 10/10/10/10 filler (never flip
+    // either way, so they're a constant baseline both branches share).
+    //
+    // Greedy (depth 1) sees two equally-scoring immediate placements (each
+    // captures exactly one weak card) and, on a tie, keeps the first one it
+    // tried in cell order: cell 1 -- which captures W but leaves cardR's
+    // weak bottom (1) exposed to blue's comeback at cell 4 (top:5 beats
+    // bottom:1), recapturing cell 1 right back. Final board-control score
+    // for that line: 3.
+    //
+    // The better line is cell 4 first: it captures W2 immediately (right:5
+    // beats W2's left:1) AND cardR's strong top (9) holds cell 4 against
+    // blue's forced last placement at cell 1 (bottom:5 does not beat top:9).
+    // Final score for that line: 5 -- strictly better, but invisible to a
+    // search that never looks past its own first move.
+    const filler = { id:'filler', name:'Filler', top:10, right:10, bottom:10, left:10 };
+    const W = { id:'w', name:'W', top:1, right:1, bottom:1, left:1 };
+    const W2 = { id:'w2', name:'W2', top:1, right:1, bottom:1, left:1 };
+    const cardR = { id:'cardR', name:'CardR', top:9, right:5, bottom:1, left:8 };
+    const cardB = { id:'cardB', name:'CardB', top:5, right:5, bottom:5, left:5 };
+
+    state.board = Array(9).fill(null);
+    state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+    state.board[0] = freshEntry(W, 'blue');
+    state.board[2] = freshEntry(filler, 'red');
+    state.board[3] = freshEntry(filler, 'red');
+    state.board[5] = freshEntry(W2, 'blue');
+    state.board[6] = freshEntry(filler, 'red');
+    state.board[7] = freshEntry(filler, 'red');
+    state.board[8] = freshEntry(filler, 'red');
+
+    const hands = { blue: [cardB], red: [cardR] };
+    const greedy = searchBestPlacement(state.board, hands, 'red', 'red', 1, -Infinity, Infinity);
+    const lookahead = searchBestPlacement(state.board, hands, 'red', 'red', 2, -Infinity, Infinity);
+
+    const scoreOf = (board) => board.reduce((s,e) => s + (e ? (e.owner==='red' ? 1 : -1) : 0), 0);
+    const trapLineFinal = simulatePlacementOutcome(simulatePlacementOutcome(state.board, 1, cardR, 'red'), 4, cardB, 'blue');
+    const safeLineFinal = simulatePlacementOutcome(simulatePlacementOutcome(state.board, 4, cardR, 'red'), 1, cardB, 'blue');
+
+    out.greedyPicksTrap = greedy.cellIndex === 1;
+    out.lookaheadPicksSafe = lookahead.cellIndex === 4;
+    out.trapLineScore = scoreOf(trapLineFinal);
+    out.safeLineScore = scoreOf(safeLineFinal);
+    out.boardUntouched = state.board[1] === null && state.board[4] === null;
+    return out;
+  })()`);
+  assert.equal(result.greedyPicksTrap, true, "a 1-ply search should fall for the trap (no visibility into the opponent's reply)");
+  assert.equal(result.lookaheadPicksSafe, true, 'a 2-ply search must foresee the trap and play the objectively better move instead');
+  assert.equal(result.trapLineScore, 3);
+  assert.equal(result.safeLineScore, 5);
+  assert.ok(result.safeLineScore > result.trapLineScore, "the lookahead's chosen line must actually score higher, not just look different");
+  assert.equal(result.boardUntouched, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('chooseAIPlacement: full exhaustive endgame search overrides difficulty once few enough cells remain; depth otherwise scales with state.aiDifficulty', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    out.depthMapping = AI_DIFFICULTY_DEPTH.easy === 1 && AI_DIFFICULTY_DEPTH.normal === 2 && AI_DIFFICULTY_DEPTH.hard === 3;
+    out.fullSearchThreshold = AI_FULL_SEARCH_MAX_EMPTY === 5;
+
+    // Reuse the exact trap scenario above (2 empty cells, well under the
+    // full-search threshold) -- even 'easy' must play the objectively
+    // correct endgame move here, since depth stops being a difficulty
+    // knob once the whole rest of the match is cheap to search exactly.
+    const filler = { id:'filler', name:'Filler', top:10, right:10, bottom:10, left:10 };
+    const W = { id:'w', name:'W', top:1, right:1, bottom:1, left:1 };
+    const W2 = { id:'w2', name:'W2', top:1, right:1, bottom:1, left:1 };
+    const cardR = { id:'cardR', name:'CardR', top:9, right:5, bottom:1, left:8 };
+    const cardB = { id:'cardB', name:'CardB', top:5, right:5, bottom:5, left:5 };
+
+    function setupTrapBoard(){
+      state.board = Array(9).fill(null);
+      state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+      state.board[0] = freshEntry(W, 'blue');
+      state.board[2] = freshEntry(filler, 'red');
+      state.board[3] = freshEntry(filler, 'red');
+      state.board[5] = freshEntry(W2, 'blue');
+      state.board[6] = freshEntry(filler, 'red');
+      state.board[7] = freshEntry(filler, 'red');
+      state.board[8] = freshEntry(filler, 'red');
+      state.playerHand = [cardB];
+      state.enemyHand = [cardR];
+      state.turn = 'red';
+      state.phase = 'battle';
+    }
+
+    setupTrapBoard();
+    state.aiDifficulty = 'easy';
+    out.easyPlaysOptimalInEndgame = chooseAIPlacement().cellIndex === 4;
+
+    setupTrapBoard();
+    state.aiDifficulty = 'hard';
+    out.hardPlaysOptimalInEndgame = chooseAIPlacement().cellIndex === 4;
+
+    // Smoke test at a full, realistic board size (9 empty cells, real hands)
+    // for every difficulty -- must return a legal, in-hand move without
+    // hanging or throwing, regardless of how deep the search goes.
+    const freshHand = () => ['bahamut','sarah','zaevir','vayra','darien'].map(id => findCardById(id));
+    out.smoke = {};
+    ['easy','normal','hard'].forEach(diff => {
+      state.board = Array(9).fill(null);
+      state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+      state.playerHand = freshHand();
+      state.enemyHand = freshHand();
+      state.turn = 'red';
+      state.phase = 'battle';
+      state.aiDifficulty = diff;
+      const choice = chooseAIPlacement();
+      out.smoke[diff] = !!choice && state.board[choice.cellIndex] === null && state.enemyHand.some(c => c.id === choice.card.id);
+    });
+
+    return out;
+  })()`);
+  assert.equal(result.depthMapping, true);
+  assert.equal(result.fullSearchThreshold, true);
+  assert.equal(result.easyPlaysOptimalInEndgame, true, 'endgame exhaustive search must apply regardless of difficulty');
+  assert.equal(result.hardPlaysOptimalInEndgame, true);
+  assert.equal(result.smoke.easy, true);
+  assert.equal(result.smoke.normal, true);
+  assert.equal(result.smoke.hard, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('enemyTryUseSpecial: Hard difficulty waits on a once-per-match AOE special until at least 2 enemies are on board (while cells remain); Easy/Normal fire immediately as before', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const elara = findCardById('elara'); // active.special.targets === 'aoe', cost 2, once
+    const ogre = findCardById('ogre');
+
+    function setup(difficulty){
+      state.board = Array(9).fill(null);
+      state.board[4] = freshEntry(elara, 'red');
+      state.board[1] = freshEntry(ogre, 'blue'); // exactly ONE enemy on board
+      state.playerHand = [1,2]; state.enemyHand = [1,2];
+      state.turn = 'red'; state.phase = 'battle';
+      state.wins = { blue:0, red:2 };
+      state.specialUsed = {};
+      state.ultimateBanner = null;
+      state.aiDifficulty = difficulty;
+    }
+
+    setup('hard');
+    out.hardWaitsWithOneEnemyAndEmptyCells = enemyTryUseSpecial() === false && !state.specialUsed['red:elara'];
+
+    setup('normal');
+    out.normalFiresImmediatelyWithOneEnemy = enemyTryUseSpecial() === true;
+
+    setup('easy');
+    out.easyFiresImmediatelyWithOneEnemy = enemyTryUseSpecial() === true;
+
+    // Hard should still fire right away once a second enemy is present.
+    setup('hard');
+    state.board[3] = freshEntry(ogre, 'blue'); // second enemy
+    out.hardFiresWithTwoEnemies = enemyTryUseSpecial() === true;
+
+    // Hard must not wait forever: once the board is completely full (no
+    // more empty cells for a second enemy to ever appear on), it fires even
+    // with only one enemy rather than wasting the special entirely.
+    setup('hard');
+    state.board = state.board.map((c,i) => i === 4 ? freshEntry(elara,'red') : (i === 1 ? freshEntry(ogre,'blue') : freshEntry({id:'filler2',name:'F',top:10,right:10,bottom:10,left:10}, 'red')));
+    out.hardFiresWhenBoardIsFullRegardless = enemyTryUseSpecial() === true;
+
+    return out;
+  })()`);
+  assert.equal(result.hardWaitsWithOneEnemyAndEmptyCells, true);
+  assert.equal(result.normalFiresImmediatelyWithOneEnemy, true, 'only Hard gets the wait heuristic -- Normal keeps the original immediate-fire behavior');
+  assert.equal(result.easyFiresImmediatelyWithOneEnemy, true);
+  assert.equal(result.hardFiresWithTwoEnemies, true);
+  assert.equal(result.hardFiresWhenBoardIsFullRegardless, true, 'Hard must never permanently waste a special by waiting for an enemy that can no longer appear');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('AI difficulty selector: persists via localStorage and survives resetGame()', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    out.defaultsToNormal = state.aiDifficulty === 'normal';
+    state.aiDifficulty = 'hard';
+    saveAIDifficulty('hard');
+    out.savedToLocalStorage = localStorage.getItem(AI_DIFFICULTY_SAVE_KEY) === 'hard';
+    out.loadReturnsSaved = loadAIDifficulty() === 'hard';
+    resetGame();
+    out.survivesReset = state.aiDifficulty === 'hard';
+    return out;
+  })()`);
+  assert.equal(result.defaultsToNormal, true);
+  assert.equal(result.savedToLocalStorage, true);
+  assert.equal(result.loadReturnsSaved, true);
+  assert.equal(result.survivesReset, true, 'resetGame() must preserve the chosen AI difficulty like it already does for rules/draftMode');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

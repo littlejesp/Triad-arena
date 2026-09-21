@@ -230,6 +230,21 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .mode-btn:disabled{ opacity:0.4; cursor:default; }
 
+/* ---------- Fas 2: AI difficulty selector (draft screen) ---------- */
+.difficulty-toggle{ display:flex; gap:8px; margin-bottom:8px; }
+.difficulty-btn{
+  flex:1; padding:9px 8px; border-radius:9px; border:1px solid var(--line);
+  background:var(--panel); color:var(--text-dim); font-family:'Cinzel',serif;
+  font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+  cursor:pointer; transition:all .15s ease;
+}
+.difficulty-btn.active{
+  border-color:var(--gold); color:var(--gold-bright);
+  background:linear-gradient(180deg, rgba(201,162,39,0.16), rgba(201,162,39,0.04));
+  box-shadow:0 0 14px rgba(201,162,39,0.25);
+}
+.difficulty-desc{ font-size:12px; color:var(--text-dim); line-height:1.4; }
+
 .draw-pile-wrap{ display:flex; justify-content:center; padding:10px 0 6px; }
 .card-back{
   width:220px; cursor:pointer; transition:transform .15s ease;
@@ -4061,6 +4076,7 @@ let state = {
   extraTurnPending: null, // owner who gets to act again instead of passing the turn
   placedThisTurn: false,  // true once the active side has placed their one card for this turn
   turnCount: 0,           // increments on every real turn switch (see advanceTurn) — powers "this round" effects
+  aiDifficulty: 'normal', // 'easy' | 'normal' | 'hard' — see chooseAIPlacement()/AI_DIFFICULTY_DEPTH; overwritten from localStorage below, once loadAIDifficulty() is defined
 };
 
 function uid(card, owner){ return owner + ':' + card.id; }
@@ -4475,6 +4491,16 @@ function renderDraft(){
       </label>
     </div>
     ` : ''}
+
+    <div class="rules-toggle-panel">
+      <div class="section-label">Forest AI difficulty</div>
+      <div class="difficulty-toggle">
+        <button class="difficulty-btn ${state.aiDifficulty==='easy' ? 'active' : ''}" data-difficulty="easy">Easy</button>
+        <button class="difficulty-btn ${state.aiDifficulty==='normal' ? 'active' : ''}" data-difficulty="normal">Normal</button>
+        <button class="difficulty-btn ${state.aiDifficulty==='hard' ? 'active' : ''}" data-difficulty="hard">Hard</button>
+      </div>
+      <div class="difficulty-desc">${AI_DIFFICULTY_DESC[state.aiDifficulty]}</div>
+    </div>
 
     <div class="mode-toggle">
       <button class="mode-btn ${state.draftMode==='random' ? 'active' : ''}" id="mode-random" ${HEROES.length===0 ? 'disabled' : ''}>
@@ -5047,6 +5073,13 @@ function attachHandlers(){
       const deck = BEGINNER_DECKS.find(d => d.id === btn.dataset.deck);
       if(!deck) return;
       state.selected = deck.cardIds.slice();
+      render();
+    });
+  });
+  document.querySelectorAll('.difficulty-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.aiDifficulty = btn.dataset.difficulty;
+      saveAIDifficulty(state.aiDifficulty);
       render();
     });
   });
@@ -8806,6 +8839,211 @@ function getPreviewCaptureTargets(){
   return vulnerable;
 }
 
+/* ---------------- AI lookahead (Fas 2 design review) ----------------
+   The old AI (simulateFlips, removed — see git history) only ever scored
+   the 4 immediate neighbors of ONE candidate placement, on raw comparison
+   alone —
+   no Same/Plus/Combo awareness, no idea what the human could do in reply.
+   Everything below replaces that with a real adversarial search: minimax
+   with alpha-beta pruning, using the human's own already-dealt, already-
+   visible-on-screen hand for the "what would they do next" half of the
+   search (approved explicitly — this game deals both hands face-up in the
+   classic Triple Triad sense, even though this UI happens to only display
+   the enemy's OWN hand as face-down "mystery cards" to the human for
+   atmosphere; nothing about the search reads hidden/future randomness, only
+   the same fixed, already-determined hand contents the human can already
+   see for themselves).
+
+   Deliberately scoped: the search's own internal simulation
+   (simulatePlacementOutcome below) models the CORE mechanic the entire
+   match is decided by -- edge comparisons, Same/Plus/Combo, shields/margin
+   blocks, and onCaptureBonus's stacking self-buff -- using the real,
+   already-pure fullEffectiveValue/isShielded/computeSamePlusCaptures
+   functions so it can never drift from how a real placement resolves. It
+   deliberately does NOT model the rarer, more exotic on-win/on-capture
+   side effects (destroy, revive, petrify, frostmark, debuff-this-round,
+   permanent aura flags, ...) during search -- reproducing all ~20 of those
+   inside a cloneable, thousands-of-times-per-turn search function would be
+   a much larger and riskier undertaking than this pass. The move the
+   search ultimately picks is still PLAYED for real via the normal
+   placeCard()/resolveFlips() path (see chooseAIPlacement's caller in
+   enemyTurn), so every card's full kit still fires exactly as written the
+   moment it actually happens -- only the search's own internal lookahead
+   simplifies away from the rarer effects while deciding WHERE to play. */
+
+// A minimal, cloneable board-entry shape carrying only the fields
+// fullEffectiveValue/isShielded actually read (card, owner, captureBonus,
+// sideBonus) -- deliberately dropping every transient VFX/status flag a
+// real entry can carry, since those never affect the comparison itself.
+function cloneScratchBoard(board){
+  return board.map(e => e ? { card: e.card, owner: e.owner, captureBonus: e.captureBonus || 0, sideBonus: e.sideBonus ? { ...e.sideBonus } : undefined } : null);
+}
+
+// Simulates ONE placement (including its Same/Plus captures and, if the
+// Combo rule is on, the resulting chain) on a CLONE of the given board,
+// returning the new board -- never mutates its input. See the file-level
+// comment above for exactly which real-engine pieces this reuses and which
+// side effects it deliberately leaves out.
+function simulatePlacementOutcome(board, cellIndex, card, owner){
+  const scratch = cloneScratchBoard(board);
+  const savedBoard = state.board;
+  state.board = scratch;
+  try {
+    scratch[cellIndex] = { card, owner, captureBonus: 0, sideBonus: {} };
+    const rules = state.rules;
+    const samePlus = (rules.same || rules.plus) ? computeSamePlusCaptures(cellIndex, owner) : new Set();
+    const flipped = [];
+    samePlus.forEach(ni => {
+      const t = scratch[ni];
+      if(t && t.owner !== owner){ t.owner = owner; flipped.push(ni); }
+    });
+
+    const battleOneNeighbor = (fromIndex, fromCard, fromOwner, dir) => {
+      const row = Math.floor(fromIndex/3), col = fromIndex%3;
+      const r = row+dir.dr, c = col+dir.dc;
+      if(r<0||r>2||c<0||c>2) return null;
+      const ni = r*3+c;
+      const target = scratch[ni];
+      if(!target || target.owner === fromOwner) return null;
+      const attackVal = fullEffectiveValue(fromCard, dir.myEdge, target.card, fromIndex, fromOwner, 'attack');
+      const defendVal = fullEffectiveValue(target.card, dir.theirEdge, fromCard, ni, target.owner, 'defense');
+      if(attackVal <= defendVal) return null;
+      if(isShielded(target, ni)) return null;
+      const targetActive = target.card.active;
+      const staticMarginThreshold = targetActive && targetActive.marginShieldThreshold != null ? targetActive.marginShieldThreshold : 0;
+      if(staticMarginThreshold > 0 && (attackVal - defendVal) <= staticMarginThreshold) return null;
+      return ni;
+    };
+
+    NEIGHBOR_DIRS.forEach(dir=>{
+      const row = Math.floor(cellIndex/3), col = cellIndex%3;
+      const r = row+dir.dr, c = col+dir.dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const ni = r*3+c;
+      if(samePlus.has(ni)) return;
+      const captured = battleOneNeighbor(cellIndex, card, owner, dir);
+      if(captured == null) return;
+      scratch[captured].owner = owner;
+      flipped.push(captured);
+      if(card.active && card.active.onCaptureBonus) scratch[cellIndex].captureBonus += card.active.onCaptureBonus;
+    });
+
+    if(rules.combo && flipped.length){
+      const visited = new Set([cellIndex]);
+      const queue = flipped.slice();
+      while(queue.length){
+        const idx = queue.shift();
+        if(visited.has(idx)) continue;
+        visited.add(idx);
+        const chainEntry = scratch[idx];
+        NEIGHBOR_DIRS.forEach(dir=>{
+          const row = Math.floor(idx/3), col = idx%3;
+          const r = row+dir.dr, c = col+dir.dc;
+          if(r<0||r>2||c<0||c>2) return;
+          const ni = r*3+c;
+          if(visited.has(ni)) return;
+          const captured = battleOneNeighbor(idx, chainEntry.card, chainEntry.owner, dir);
+          if(captured == null) return;
+          scratch[captured].owner = chainEntry.owner;
+          queue.push(captured);
+          if(chainEntry.card.active && chainEntry.card.active.onCaptureBonus) chainEntry.captureBonus += chainEntry.card.active.onCaptureBonus;
+        });
+      }
+    }
+
+    return scratch;
+  } finally {
+    state.board = savedBoard;
+  }
+}
+
+// Terminal/leaf heuristic: since the whole match is won purely by final
+// square count (see finishGame), "who currently controls more squares" is
+// not just A proxy for the eventual winner, it IS the win condition itself
+// -- no hand-crafted weighting needed.
+function boardControlScore(board, owner){
+  let mine = 0, theirs = 0;
+  board.forEach(e => { if(!e) return; if(e.owner === owner) mine++; else theirs++; });
+  return mine - theirs;
+}
+
+// Minimax with alpha-beta pruning over BOTH sides' real remaining hands.
+// `aiOwner` is whose final-score perspective we're maximizing throughout the
+// whole recursion (the side the AI is playing as this match); `turnOwner`
+// alternates every ply. Stops and scores the current position once either
+// hand empties, the board fills, or depthRemaining runs out -- the caller
+// (chooseAIPlacement) is responsible for picking a depth that reaches the
+// true end of the game whenever few enough cells remain (see
+// AI_FULL_SEARCH_MAX_EMPTY), so a real "who actually wins" outcome is used
+// instead of the heuristic whenever that's cheap enough to compute.
+function searchBestPlacement(board, hands, turnOwner, aiOwner, depthRemaining, alpha, beta){
+  const emptyCells = board.map((c,i)=>c?null:i).filter(i=>i!==null);
+  const hand = hands[turnOwner];
+  if(emptyCells.length === 0 || !hand || hand.length === 0 || depthRemaining <= 0){
+    return { score: boardControlScore(board, aiOwner), cellIndex:null, card:null };
+  }
+  const maximizing = turnOwner === aiOwner;
+  const nextOwner = turnOwner === 'blue' ? 'red' : 'blue';
+  let best = null;
+  outer:
+  for(const card of hand){
+    for(const cellIndex of emptyCells){
+      const newBoard = simulatePlacementOutcome(board, cellIndex, card, turnOwner);
+      const newHand = hand.filter(c => c !== card);
+      const newHands = { blue: turnOwner === 'blue' ? newHand : hands.blue, red: turnOwner === 'red' ? newHand : hands.red };
+      const child = searchBestPlacement(newBoard, newHands, nextOwner, aiOwner, depthRemaining - 1, alpha, beta);
+      const score = child.score;
+      if(best === null || (maximizing ? score > best.score : score < best.score)){
+        best = { score, cellIndex, card };
+      }
+      if(maximizing) alpha = Math.max(alpha, score); else beta = Math.min(beta, score);
+      if(beta <= alpha) break outer;
+    }
+  }
+  return best;
+}
+
+// Below this many empty cells, an exhaustive search all the way to the end
+// of the match is cheap (worst case a few tens of thousands of leaf paths,
+// well under alpha-beta-pruned real-time budget) and strictly better than
+// any fixed shallow depth, so difficulty stops mattering once the endgame
+// is this close -- every level plays the true best move.
+const AI_FULL_SEARCH_MAX_EMPTY = 5;
+const AI_DIFFICULTY_DEPTH = { easy: 1, normal: 2, hard: 3 };
+const AI_DIFFICULTY_DESC = {
+  easy: 'The Forest plays its best immediate capture, never looking further ahead.',
+  normal: 'The Forest thinks two moves ahead, planning around your likely reply.',
+  hard: 'The Forest thinks several moves ahead and holds its strongest Ultimates for the best moment.',
+};
+const AI_DIFFICULTY_SAVE_KEY = 'triadArenaAIDifficulty';
+
+function loadAIDifficulty(){
+  try {
+    const saved = localStorage.getItem(AI_DIFFICULTY_SAVE_KEY);
+    if(saved && AI_DIFFICULTY_DEPTH[saved]) return saved;
+  } catch(e){}
+  return 'normal';
+}
+function saveAIDifficulty(difficulty){
+  try { localStorage.setItem(AI_DIFFICULTY_SAVE_KEY, difficulty); } catch(e){}
+}
+
+// Top-level entry point called from enemyTurn(). Returns { cellIndex, card }
+// for the chosen placement, or null if the AI genuinely has nothing to play
+// (empty hand or full board -- enemyTurn already guards both, this is just
+// a defensive fallback).
+function chooseAIPlacement(){
+  const emptyCells = state.board.map((c,i)=>c?null:i).filter(i=>i!==null);
+  if(emptyCells.length === 0 || state.enemyHand.length === 0) return null;
+  const depth = emptyCells.length <= AI_FULL_SEARCH_MAX_EMPTY
+    ? emptyCells.length
+    : (AI_DIFFICULTY_DEPTH[state.aiDifficulty] || AI_DIFFICULTY_DEPTH.normal);
+  const hands = { blue: state.playerHand, red: state.enemyHand };
+  const result = searchBestPlacement(state.board, hands, 'red', 'red', depth, -Infinity, Infinity);
+  if(!result || result.cellIndex == null) return null;
+  return { cellIndex: result.cellIndex, card: result.card };
+}
+
 // How much to stagger each successive flip within ONE placement's battles
 // (Same/Plus + regular battle + Combo chain can all flip several cards at
 // once) — capped so a rare huge chain doesn't drag the animation out
@@ -9121,8 +9359,18 @@ function enemyTryUseSpecial(){
 
   for(const c of candidates){
     if(c.special.targets === 'aoe'){
-      const hasEnemy = state.board.some(e => e && e.owner === 'blue');
-      if(!hasEnemy) continue;
+      const enemyCount = state.board.filter(e => e && e.owner === 'blue').length;
+      if(enemyCount === 0) continue;
+      // Fas 2 (Hard difficulty only): a once-per-match AOE hits every enemy
+      // card at once, so firing it into a single lonely target wastes most
+      // of its value -- Easy/Normal keep the original "fire the instant it's
+      // affordable" behavior (still correct, just not tactically patient).
+      // Not gated on remaining hand/turns left, deliberately simple: a
+      // one-line "is this worth it yet" check rather than its own search.
+      if(state.aiDifficulty === 'hard' && enemyCount < 2){
+        const emptyCells = state.board.filter(e => !e).length;
+        if(emptyCells > 0) continue; // more enemies may still appear -- wait
+      }
       executeSpecial(c.sourceIndex);
       return true;
     }
@@ -9281,16 +9529,11 @@ function enemyTurn(){
     const hand = state.enemyHand;
     const emptyCells = state.board.map((c,i)=>c?null:i).filter(i=>i!==null);
     if(hand.length > 0 && emptyCells.length > 0){
-      let best = { score:-1, cellIndex: emptyCells[0], cardIdx:0 };
-      hand.forEach((card, ci)=>{
-        emptyCells.forEach(cellIndex=>{
-          const score = simulateFlips(cellIndex, card, 'red');
-          if(score > best.score) best = { score, cellIndex, cardIdx: ci };
-        });
-      });
-      const card = hand[best.cardIdx];
-      placeCard(best.cellIndex, card.id, 'red');
-      while(enemyTryUseSpecial()){}
+      const choice = chooseAIPlacement();
+      if(choice){
+        placeCard(choice.cellIndex, choice.card.id, 'red');
+        while(enemyTryUseSpecial()){}
+      }
     }
   }
 
@@ -9298,37 +9541,6 @@ function enemyTurn(){
   // not to place), make sure its turn actually concludes rather than
   // leaving state.turn stuck on 'red' with nothing left to trigger it.
   if(state.turn === 'red') advanceTurn('red');
-}
-
-function simulateFlips(index, card, owner){
-  const row = Math.floor(index/3), col = index%3;
-  let score = 0;
-  const neighbors = [
-    { dr:-1, dc:0, myEdge:'top',    theirEdge:'bottom' },
-    { dr:1,  dc:0, myEdge:'bottom', theirEdge:'top' },
-    { dr:0,  dc:-1,myEdge:'left',   theirEdge:'right' },
-    { dr:0,  dc:1, myEdge:'right',  theirEdge:'left' },
-  ];
-  neighbors.forEach(n=>{
-    const r = row+n.dr, c = col+n.dc;
-    if(r<0||r>2||c<0||c>2) return;
-    const ni = r*3+c;
-    const target = state.board[ni];
-    if(!target || target.owner === owner) return;
-    let myVal = fullEffectiveValue(card, n.myEdge, target.card, index, owner, 'attack');
-    const theirVal = fullEffectiveValue(target.card, n.theirEdge, card, ni, target.owner, 'defense');
-    // Seraphine's Celestial Mark, mirrored here so the AI's own move
-    // evaluation accounts for it too — same hardcoded check as battleNeighbors.
-    if(card.id === 'seraphine' && target.seraphineMarked) myVal += 2;
-    // Tilda's Marked Target, mirrored here so the AI's own move evaluation
-    // accounts for it too — same hardcoded check as battleNeighbors, not
-    // gated to a specific attacker id (see the comment there).
-    if(target.tildaMarked) myVal += 2;
-    if(myVal > theirVal){
-      score += isShielded(target, ni) ? 0.25 : 1;
-    }
-  });
-  return score;
 }
 
 function finishGame(){
@@ -9359,6 +9571,7 @@ function finishGame(){
 function resetGame(){
   const keepRules = state.rules;
   const keepMode = state.draftMode || 'random';
+  const keepAiDifficulty = state.aiDifficulty || 'normal';
   // Campaign retry/next/retreat all funnel through here — keep whichever
   // five the player just fielded pre-checked on the way back to the picker
   // (Stage 1 forces the fixed starters regardless, see startCampaignBattle,
@@ -9374,11 +9587,12 @@ function resetGame(){
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
-    tutorialActive: false, tutorialStep: 0,
+    tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty,
   };
   render();
 }
 
+state.aiDifficulty = loadAIDifficulty();
 render();
 loadTesterCount();
 

@@ -2839,8 +2839,88 @@ Hela testsviten grön: 101/101 (100 befintliga + 1 ny). Playwright-
 skärmdumpar bekräftar både förhandsvisningen (grön ⚔-badge på rätt
 rutor, orange ring på rätt fiendekort, diagonaler korrekt oberörda) och
 att alla tre omskrivna glow-effekterna fortfarande syns visuellt
-identiskt efter prestanda-fixen. Fas 2-5 väntar på användarens
-godkännande innan de påbörjas.
+identiskt efter prestanda-fixen.
+
+**Fas 2: AI-överhalning.** Innan koden skrevs stämdes två designval av
+med användaren via AskUserQuestion (båda svarade med det rekommenderade
+alternativet):
+1. Får sökningen använda spelarens redan synliga, redan utdelade hand
+   för sin "vad gör motståndaren härnäst"-resonemang, eller ska den bara
+   gissa på ett generiskt värsta-scenario? → **Ja, använd den riktiga
+   handen** (samma princip som schack-AI: perfekt information om det
+   som redan är känt/utdelat, ingen gissning om framtida slump —
+   dessutom klassisk Triple Triad-regel att BÅDA händer syns för båda
+   spelare, även om just den här UI:n medvetet visar Forest-handen dold
+   för spelaren som atmosfär).
+2. Svårighetsväljare nu eller senare? → **Nu**, en Easy/Normal/Hard-
+   knapprad på draft-skärmen.
+
+Den gamla AI:n (`simulateFlips`, helt borttagen — ingen anropare kvar)
+utvärderade bara de 4 direkta grannarna till EN kandidatplacering, på
+råa värden, utan Same/Plus/Combo-förståelse och utan någon aning om vad
+spelaren kunde göra som svar (bekräftat i designöversynens AI-avsnitt).
+Ersatt med en riktig minimax-sökning med alpha-beta-pruning:
+
+- **`cloneScratchBoard`/`simulatePlacementOutcome(board, cellIndex,
+  card, owner)`** — simulerar EN placering (inklusive Same/Plus-fångst
+  och, om Combo är på, kedjereaktionen) på en KLON av brädet, rör
+  aldrig originalet. Återanvänder de redan rena/read-only bitarna av
+  motorn (`computeSamePlusCaptures`, `fullEffectiveValue`, `isShielded`,
+  `marginShieldThreshold`) så sökningen aldrig kan glida isär från hur
+  en riktig placering faktiskt löser sig. Medveten avgränsning: simulerar
+  INTE de ovanligare on-win/on-capture-bieffekterna (destroy, revive,
+  petrify, frostmark, debuff-this-round, permanenta aura-flaggor, ...) —
+  att återskapa alla ~20 av dem i en klonbar, tusentals-gånger-per-drag
+  sökfunktion vore ett mycket större och mer riskabelt jobb än den här
+  omgången. Det VALDA draget spelas fortfarande på riktigt via
+  `placeCard()`/`resolveFlips()` (se `enemyTurn`), så varje korts fulla
+  kit fortfarande löser ut exakt som skrivet när det faktiskt händer —
+  bara sökningens EGEN interna framåtblick förenklar bort de ovanliga
+  effekterna medan den bestämmer VAR den ska spela.
+- **`boardControlScore(board, owner)`** — löv-heuristiken. Eftersom
+  hela matchen avgörs rent av vem som kontrollerar flest rutor på
+  slutet (`finishGame`), är "vem leder just nu" inte bara EN proxy för
+  vinnaren, det ÄR vinstvillkoret — ingen handgjord viktning behövdes.
+- **`searchBestPlacement(board, hands, turnOwner, aiOwner,
+  depthRemaining, alpha, beta)`** — minimax med alpha-beta-pruning över
+  BÅDA sidornas riktiga kvarvarande händer, alternerar varje ply.
+- **`AI_FULL_SEARCH_MAX_EMPTY = 5`** — under så här många tomma rutor
+  är en uttömmande sökning ända till matchens slut billig (värsta fall
+  några tiotusentals lövvägar, långt under realtidsbudgeten med
+  pruning) och strikt bättre än vilket fast djup som helst, så
+  svårighetsgraden slutar spela roll i slutspelet — alla nivåer spelar
+  det sant bästa draget.
+- **`AI_DIFFICULTY_DEPTH = { easy:1, normal:2, hard:3 }`** — annars,
+  hur många steg som söks framåt. Prestandaverifierat via Playwright:
+  Hard, alla valfria regler på, färskt bräde (9 tomma rutor, 5-korts
+  händer) → **~12-13ms** för hela sökningen. Ingen async/webworker
+  behövdes.
+- **`chooseAIPlacement()`** — anropas från `enemyTurn()`, väljer djup
+  enligt ovan och returnerar `{cellIndex, card}`.
+- **Svårighetsväljare** på draft-skärmen (`.difficulty-toggle`,
+  synlig i alla lägen inklusive Campaign), sparas i `localStorage`
+  (`triadArenaAIDifficulty`, samma mönster som campaign-sparningen) och
+  överlever `resetGame()` precis som `rules`/`draftMode` redan gör.
+- **Smartare special-timing (bara Hard)**: en en-rads "är det värt det
+  än"-koll i `enemyTryUseSpecial` — en engångs-AOE-special väntar med
+  att avfyras tills minst 2 fiendekort finns på brädet (om tomma rutor
+  fortfarande finns kvar där fler kan dyka upp), istället för att som
+  förut avfyras direkt så fort den är råd att ha. Avfyras ändå
+  garanterat om brädet blir helt fullt (aldrig permanent bortkastad).
+  Easy/Normal oförändrade (avfyrar fortfarande direkt).
+
+Verifierat: `node --check` grönt. Fem nya permanenta regressionstester
+tillagda (`simulatePlacementOutcome`s korrekthet+renhet inklusive ett
+Same-regel-fall, ett handbyggt "fälla"-scenario som bevisar att en
+2-stegs sökning undviker vad en 1-stegs girig sökning går rakt in i
+— girig väljer ruta 1 (slutresultat 3), 2-stegs väljer ruta 4
+(slutresultat 5, strikt bättre), `chooseAIPlacement`s slutspels-
+override + rök-test vid fullt bräde för alla tre svårighetsgrader,
+Hard-specialtimingen, samt att svårighetsvalet sparas/överlever
+reset). Hela testsviten grön: **106/106** (101 tidigare + 5 nya).
+Playwright bekräftar även att en riktig AI-omgång (blue placerar →
+red:s tur löser sig) fungerar felfritt end-to-end på Hard, och att
+svårighetsväljaren renderar och fungerar korrekt i UI:t.
 
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
