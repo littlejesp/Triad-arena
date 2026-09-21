@@ -2972,9 +2972,10 @@ const HEROES = [
     {name:"Elara's Bond (Passive)", desc:"Darien gets +2 Power on all sides while Elara is anywhere on your board. (Stacks with the existing +1 when adjacent, from the game's rivalry-pair rule.)"},
     {name:"Special Attack: Shadow Breaker", desc:"Cost 2 Wins. Choose 1 enemy card — unblockable. If its average side Power is 7 or lower, it's destroyed outright. If 8 or higher, it's permanently weakened by -3 Power instead and stays enemy-owned."},
   ]},
-  { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:9, left:8, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{onPlaceBoost:2, shield:true}, special:{ name:'Eternal Arrow', cost:2, once:true, targets:'single' }, skills:[
+  { id:'zaevir', name:"Zaevir", role:"The Eternal Marksman", top:10, right:10, bottom:9, left:8, element:'wind', hue:'linear-gradient(160deg,#131a3a,#0d0b18 60%)', accent:'#b48cf2', active:{onPlaceBoost:2, shield:true, pairPresence:{partner:'sylvarion', amount:1}}, special:{ name:'Eternal Arrow', cost:2, once:true, targets:'single' }, skills:[
     {name:'Eternal Aim (Passive)', desc:'When Zaevir is placed, he gains +2 Power on a random side for the rest of the match.'},
     {name:'Focus (Passive)', desc:'The first time Zaevir would lose a battle, the loss is ignored.'},
+    {name:"Hunt-Bond (Passive)", desc:'Zaevir gets +1 Power on all sides while Sylvarion is anywhere on your board — two hunters of the wind, riding together.'},
     {name:'Special Attack: Eternal Arrow', desc:"Costs 2 wins. Choose an enemy card — Zaevir gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
   ]},
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', active:{shield:true, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:"Aion's Last Light", cost:2, once:true, targets:'single' }, skills:[
@@ -2988,9 +2989,10 @@ const HEROES = [
     {name:"Darien's Grace (Passive)", desc:"Elara gets +2 Power on all sides while Darien is anywhere on your board. (Stacks with the existing +1 when adjacent, from the game's rivalry-pair rule.)"},
     {name:'Special Attack: Requiem of Light', desc:'Costs 2 wins. Every allied card is cleansed of negative effects; each one that had negative effects cleared also gains +1 Power permanently. Usable once per match.'},
   ]},
-  { id:'vayra', name:"Vayra", role:"The Shadowblade — The Wardens of Time", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', active: {marginShieldThreshold:2, onCaptureBonus:1}, special:{ name:'Eclipse', cost:2, once:true, targets:'single' }, skills: [
+  { id:'vayra', name:"Vayra", role:"The Shadowblade — The Wardens of Time", top:10, right:8, bottom:8, left:9, element:'earth', hue:'linear-gradient(160deg,#2a2410,#0d0b18 60%)', accent:'#8fd15a', active: {marginShieldThreshold:2, onCaptureBonus:1, pairPresence:{partner:'torn', amount:1}}, special:{ name:'Eclipse', cost:2, once:true, targets:'single' }, skills: [
     {name:'Shadow Step (Passive)', desc:'If an enemy wins against Vayra by 2 Power or less, the attack is blocked instead and the attacker gets -1 Power this round.'},
     {name:'Silent Strike (Passive)', desc:'Each time Vayra takes control of an enemy card, she permanently gains +1 Power.'},
+    {name:'Kindred Shadows (Passive)', desc:'Vayra gets +1 Power on all sides while Torn is anywhere on your board — two shadowblades of the same order.'},
     {name:'Special Attack: Eclipse', desc:"Costs 2 wins. Choose an enemy card — Vayra gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
   ]},
   { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{vsStrongerTotalPowerBoost:{amount:3}, debuffImmune:true}, special:{ name:'Eternal Eclipse', cost:2, once:true, targets:'single' }, skills: [
@@ -3002,9 +3004,10 @@ const HEROES = [
   // element icon, and no faction/rarity/alignment footer at all (unlike
   // Naline/Deathblade/Vorathos/Vayra), so top/right/bottom/left below are
   // an invented, Legendary-tier estimate, not a transcription — see PROJECT.md.
-  { id:'torn', name:"Torn", role:"Shadowhuntress — Ranger. Assassin. Ghost in the Night.", element:'earth', top:9, right:8, bottom:7, left:9, hue:'linear-gradient(160deg,#182410,#0d0b18 60%)', accent:'#9fd15a', active:{underdogSideBonus:2, onWinDebuffLoserPermanent:1}, special:{ name:'Lethal Volley', cost:2, once:true, targets:'aoe' }, skills: [
+  { id:'torn', name:"Torn", role:"Shadowhuntress — Ranger. Assassin. Ghost in the Night.", element:'earth', top:9, right:8, bottom:7, left:9, hue:'linear-gradient(160deg,#182410,#0d0b18 60%)', accent:'#9fd15a', active:{underdogSideBonus:2, onWinDebuffLoserPermanent:1, pairPresence:{partner:'vayra', amount:1}}, special:{ name:'Lethal Volley', cost:2, once:true, targets:'aoe' }, skills: [
     {name:"Predator's Mark (Passive)", desc:"In any battle where the opponent's facing side is higher than Torn's own printed side, she gets +2 Power on that side."},
     {name:'Poisoned Edge (Passive)', desc:'The defeated card gets -1 Power on all sides for the rest of the match.'},
+    {name:'Kindred Shadows (Passive)', desc:'Torn gets +1 Power on all sides while Vayra is anywhere on your board — two shadowblades of the same order.'},
     {name:'Special Attack: Lethal Volley', desc:"Costs 2 wins. Unleashes a storm of arrows across the whole board — every enemy card permanently loses 2 Power, unblockable."},
   ]},
   { id:'vorathos', name:"Vorathos", role:"The Timelancer — Order of the Timekeepers", top:7, right:10, bottom:8, left:9, element:'wind', hue:'linear-gradient(160deg,#1a1440,#0d0b18 60%)', accent:'#8b6ef2', active:{onWinDirectionalBoost:1, oncePerMatchAttackBoost:{amount:2}}, special:{ name:'Time Collapse', cost:2, once:true, targets:'single' }, skills: [
@@ -3013,9 +3016,10 @@ const HEROES = [
     {name:'Special Attack: Time Collapse', desc:"Costs 2 wins. Choose an enemy card, then a direction — Vorathos gains +4 Power for this attack only. If the attack wins, that direction keeps +1 Power permanently on Vorathos, and the defeated card permanently loses 1 Power on that same direction."},
   ]},
   { id:'templaren', name:"Templaren", role:"Holy Guardian", top:10, right:9, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#2a2418,#0d0b18 60%)', accent:'#d9622b', skills:[{name:"Holy Aura", desc:"On placement, all adjacent allied cards get +1 in the direction facing Templaren."}, {name:"Divine Retribution", desc:"When Templaren takes over an enemy card, he gains +1 Power on all directions for the rest of the round."}, {name:"Faithful Defense", desc:"If Templaren is adjacent to at least two of your own cards, he cannot be taken over this turn."}], active: {conditionalShield:'adjacentAllies2', onCaptureBuffSelfThisRound:1}},
-  { id:'sylvarion', name:"Sylvarion", role:"Herald of the Wild Hunt — The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', active: {flatAttackBonus:2, boardUnderdogAttackBonus:2}, special:{ name:"Herald's Gale", cost:2, once:true, targets:'aoe' }, skills:[
+  { id:'sylvarion', name:"Sylvarion", role:"Herald of the Wild Hunt — The Everwind", top:10, right:8, bottom:10, left:9, element:'wind', hue:'linear-gradient(160deg,#12300f,#0d0b18 60%)', accent:'#8fd15a', active: {flatAttackBonus:2, boardUnderdogAttackBonus:2, pairPresence:{partner:'zaevir', amount:1}}, special:{ name:"Herald's Gale", cost:2, once:true, targets:'aoe' }, skills:[
     {name:'Windrush', desc:'Sylvarion gets +2 Power on the attacking side.'},
     {name:'Vanguard of the Hunt (Passive)', desc:'While your side controls fewer cards than your opponent, Sylvarion gets +2 Power on the attacking side.'},
+    {name:"Hunt-Bond (Passive)", desc:'Sylvarion gets +1 Power on all sides while Zaevir is anywhere on your board — two hunters of the wind, riding together.'},
     {name:"Special Attack: Herald's Gale", desc:"Costs 2 wins. A gale sweeps the board: every enemy card gets -2 Power this round. Sylvarion permanently gains +1 Power on all sides for every card fewer his side controls compared to the opponent at the moment of casting (max +3), locked in at activation. Usable once per match."},
   ]},
   { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:6, bottom:9, left:5, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', active:{vsStrongerTotalPowerBoost:{amount:2}, onCaptureBonus:1}, special:{ name:'Blood Fury', cost:2, once:true, targets:'single' }, skills:[
@@ -3143,14 +3147,16 @@ const HEROES = [
     {name:"Wolf Paw's Grip", desc:"When Pallis is placed, a random side is chosen — the enemy card adjacent to Pallis on that side (if any) gets -2 on the side facing her this round. (Source text lets you choose the side; simplified to random, same as Fenrir/Zalazar's own on-place directional effects. No trigger word in the source text either — assumed to fire on placement, same reasoning as Protective Aura above.)"},
     {name:'Special Attack: Wave of Loyalty', desc:'Costs 2 wins. Choose an element — all your cards of that element get +2 on all sides this round and are protected from being lost until the end of your next round.'},
   ] },
-  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}, onCaptureBonus:1}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Fraternal Fury (Passive)', desc:'Each time Twin Brothers takes control of a card, he permanently gains +1 Power on all sides — the more reckless twin.'},
+    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
     {name:'Brotherly Might', desc:'When Twin Brothers wins a battle, he gets +1 on all sides this round.'},
     {name:'Shared Resolve', desc:'The first time Twin Brothers would lose a battle, the loss is ignored.'},
     {name:'Dual Strike', desc:'When Twin Brothers takes control of a card, choose a side — it gets +2 this round.'},
     {name:'Unbreakable Link', desc:'If Twin Brothers and Twin Sisters are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Solar Tempest', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Brothers gets +3 Power on that side and the enemy's defensive skills can't activate. If he wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}, marginShieldThreshold:1}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Sisterly Ward (Passive)', desc:'If an enemy attacks Twin Sisters and wins by only 1 Power, the battle becomes a draw instead and the attacker gets -1 Power this round — the more careful twin.'},
+    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
     {name:'Synergy of Souls', desc:'When Twin Sisters wins a battle, she gets +1 on all sides this round.'},
     {name:'Protective Bond', desc:'The first time Twin Sisters would lose a battle, the loss is ignored.'},
     {name:'Echoing Power', desc:'When Twin Sisters takes control of a card, choose a side — it gets +2 this round.'},
@@ -3284,9 +3290,10 @@ const HEROES = [
     {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
     {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}, flatAttackBonus:1}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'Each time Maximus takes control of a card, he permanently gains +1 Power on all sides.'},
     {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
+    {name:'Warpath (Passive)', desc:'Maximus gets +1 Power on the attacking side, always — he has no shield or safety net, only forward momentum.'},
     {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
   { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:3}, shield:true}, special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
@@ -3357,11 +3364,11 @@ const HEROES = [
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#8b3bce', icon:'🌑',
-    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:5} } },
+    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:5} }, onWinDestroyWeakestEnemy:true },
     special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:2 },
     skills: [
       {name:'Void Touch (Passive)', desc:'When Nyxara is placed, a random enemy card loses 2 Power permanently.'},
-      {name:'Shadow Rend (Passive)', desc:'A devastating void strike that shreds the weakest. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
+      {name:'Shadow Rend (Passive)', desc:'The first time Nyxara wins a battle, the weakest enemy card anywhere on the board is destroyed outright. Usable once per match.'},
       {name:'Empress Aura (Passive)', desc:'While you control at least 1 Sister, Nyxara gains +1 Power.'},
       {name:"Sister's Command (Passive)", desc:'While you control both of her Sisters, Nyxara gains an additional +4 Power (and her Ultimate costs no Wins, still usable only once per match).'},
       {name:'Weakness — Broken Focus (Passive)', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
@@ -3404,14 +3411,16 @@ const FOREST_FOES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yin Resonance', desc:'Costs 3 wins. Unites with Yang — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}, onCaptureBonus:1}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Fraternal Fury (Passive)', desc:'Each time Twin Brothers takes control of a card, he permanently gains +1 Power on all sides — the more reckless twin.'},
+    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
     {name:'Brotherly Might', desc:'When Twin Brothers wins a battle, he gets +1 on all sides this round.'},
     {name:'Shared Resolve', desc:'The first time Twin Brothers would lose a battle, the loss is ignored.'},
     {name:'Dual Strike', desc:'When Twin Brothers takes control of a card, choose a side — it gets +2 this round.'},
     {name:'Unbreakable Link', desc:'If Twin Brothers and Twin Sisters are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Solar Tempest', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Brothers gets +3 Power on that side and the enemy's defensive skills can't activate. If he wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
+  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}, marginShieldThreshold:1}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Sisterly Ward (Passive)', desc:'If an enemy attacks Twin Sisters and wins by only 1 Power, the battle becomes a draw instead and the attacker gets -1 Power this round — the more careful twin.'},
+    {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
     {name:'Synergy of Souls', desc:'When Twin Sisters wins a battle, she gets +1 on all sides this round.'},
     {name:'Protective Bond', desc:'The first time Twin Sisters would lose a battle, the loss is ignored.'},
     {name:'Echoing Power', desc:'When Twin Sisters takes control of a card, choose a side — it gets +2 this round.'},
@@ -3601,9 +3610,10 @@ const FOREST_FOES = [
     {name:'Loaded Deck (Passive)', desc:'Once per match, Twisted Gipsy gains +3 Power on his next attack (the attacking side).'},
     {name:'Special Attack: House of Shadows', desc:'If Twisted Gipsy wins, he steals 2 Power from the target and gains 1 Power permanently.'},
   ] },
-  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
+  { id:'maximus', name:'Maximus', role:"The Arena's Dominion — Legendary Card", element:'fire', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#c23b3b', icon:'🪓', active:{onCaptureBonus:1, vsStrongerTotalPowerBoost:{amount:3}, flatAttackBonus:1}, special:{ name:'Axe of Dominion', cost:2, once:true, targets:'single' }, skills: [
     {name:"Gladiator's Dominion (Passive)", desc:'Each time Maximus takes control of a card, he permanently gains +1 Power on all sides.'},
     {name:'Blood for Glory (Passive)', desc:'If Maximus has lower total Power than his opponent, he gets +3 Power on the attacking side.'},
+    {name:'Warpath (Passive)', desc:'Maximus gets +1 Power on the attacking side, always — he has no shield or safety net, only forward momentum.'},
     {name:'Special Attack: Axe of Dominion', desc:"Costs 2 wins. Choose an enemy card — Maximus gains +4 Power for this attack only. If the attack wins, he keeps +2 Power on all directions permanently, and if the defeated card had higher total Power than Maximus, he also gets an extra turn."},
   ] },
   { id:'darum', name:'Darum', role:'The Unbreakable Bulwark — Legendary Card', element:'earth', top:10, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#0f2018,#0d0b18 60%)', accent:'#4fd1c5', icon:'🚪', active:{onWinDirectionalBoost:1, vsStrongerTotalPowerBoost:{amount:3}, shield:true}, special:{ name:'Gate of Dominion', cost:2, once:true, targets:'single' }, skills: [
@@ -3676,11 +3686,11 @@ const FOREST_FOES = [
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#160a24,#0d0b18 60%)', accent:'#8b3bce', icon:'🌑',
-    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:5} } },
+    active:{ sisterAura:{ partners:['vaelira','seraphine'], bonusByCount:{1:1,2:5} }, onWinDestroyWeakestEnemy:true },
     special:{ name:'Void Dominion', cost:3, once:true, targets:'aoe', freeIfSistersPresent:2 },
     skills: [
       {name:'Void Touch (Passive)', desc:'When Nyxara is placed, a random enemy card loses 2 Power permanently.'},
-      {name:'Shadow Rend (Passive)', desc:'A devastating void strike that shreds the weakest. (Flavor only — a fully generic "destroy weakest enemy on any round win" hook is not currently wired into the battle engine; see Void Dominion below for her actual board-clearing power.)'},
+      {name:'Shadow Rend (Passive)', desc:'The first time Nyxara wins a battle, the weakest enemy card anywhere on the board is destroyed outright. Usable once per match.'},
       {name:'Empress Aura (Passive)', desc:'While you control at least 1 Sister, Nyxara gains +1 Power.'},
       {name:"Sister's Command (Passive)", desc:'While you control both of her Sisters, Nyxara gains an additional +4 Power (and her Ultimate costs no Wins, still usable only once per match).'},
       {name:'Weakness — Broken Focus (Passive)', desc:'If Nyxara is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
@@ -4421,7 +4431,7 @@ function cardFace(card, opts={}){
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
       ${opts.owner ? `<div class="owner-tint tint-${opts.owner}"></div>` : ''}
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
-      ${card.element ? `<div class="element-badge" title="${card.element}">${ELEMENT_ICONS[card.element]}</div>` : ''}
+      ${card.element ? `<div class="element-badge" title="${card.element}${ELEMENT_BEATS[card.element] ? '' : ' (outside the Elemental Clash cycle)'}">${ELEMENT_ICONS[card.element]}</div>` : ''}
       ${opts.petrified ? `<div class="petrified-badge" title="Petrified — can't use its Special Attack">🗿</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
       ${opts.specialInfo ? `<div class="special-diamond ${opts.specialInfo.ready ? 'ready' : 'locked'}" title="${opts.specialInfo.title}${opts.specialInfo.ready ? ' — tap to unleash' : ' (not enough wins yet)'}"></div>` : ''}
@@ -4483,7 +4493,7 @@ function renderDraft(){
       </label>
       <label class="rule-toggle">
         <input type="checkbox" id="rule-elemental" ${state.rules.elemental ? 'checked' : ''}>
-        <span><b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup.</span>
+        <span><b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup. ❄️✨🌑🔮🖤 (ice/light/dark/magic/shadow) sit outside this cycle by design — they're beyond simple elemental rivalry, though some still carry their own printed weakness against a specific element.</span>
       </label>
       <label class="rule-toggle">
         <input type="checkbox" id="rule-graveyard" ${state.rules.graveyard ? 'checked' : ''}>
@@ -5718,6 +5728,29 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // battle — "wins against a 6-or-lower card" rather than "wins with 10+".
   if(a.onWinDestroyIfLoserWeak && loserIndex != null && totalPower(loserEntry) <= a.onWinDestroyIfLoserWeak.maxTotal){
     if(!isDestroyImmune(loserEntry)) destroyCard(loserIndex, { noRevive: !!a.onWinDestroyIfLoserWeak.noRevive });
+  }
+  // Nyxara's Shadow Rend: "a devastating void strike that shreds the
+  // weakest [enemy card]" — previously Flavor only for lacking a generic
+  // "destroy the weakest enemy anywhere on the board" hook. Scans every
+  // remaining enemy card (post-flip, so the card she just captured is
+  // already hers and never a candidate) for the lowest totalPower and
+  // destroys it, respecting isDestroyImmune.
+  // BALANCE (not a text-fidelity simplification — a deliberate deviation,
+  // same reasoning as onWinLineDestroy below): capped to once per match via
+  // onWinDestroyWeakestUsed. An uncapped "destroy the weakest enemy on every
+  // win" stacked on Nyxara's own already-high stats and sisterAura scaling
+  // would be a snowball with no real counterplay.
+  if(a.onWinDestroyWeakestEnemy && !winnerEntry.onWinDestroyWeakestUsed){
+    let weakestIndex = null, weakestPower = Infinity;
+    state.board.forEach((e, i) => {
+      if(!e || e.owner === winnerEntry.owner || isDestroyImmune(e)) return;
+      const p = totalPower(e);
+      if(p < weakestPower){ weakestPower = p; weakestIndex = i; }
+    });
+    if(weakestIndex != null){
+      destroyCard(weakestIndex);
+      winnerEntry.onWinDestroyWeakestUsed = true;
+    }
   }
   // Nexzoth's World Shatter / Morvath's Abyssal Grasp: "destroy every card
   // further along the line the just-won battle happened on" — read as the
