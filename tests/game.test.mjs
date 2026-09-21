@@ -7246,3 +7246,71 @@ test('Fas 4: campaign stages auto-assign AI difficulty (1-5 Easy, 6-11 Normal, 1
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 5: How to Play button has its own prominent styling, not the muted .ghost treatment', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    const btn = document.getElementById('how-to-play-btn');
+    out.exists = !!btn;
+    out.noGhostClass = !btn.classList.contains('ghost');
+    out.hasOwnClass = btn.classList.contains('how-to-play-btn');
+    const cs = getComputedStyle(btn);
+    out.hasVisibleBorder = cs.borderStyle === 'solid' && cs.borderWidth !== '0px';
+    out.fillsWidth = cs.display === 'flex' && cs.width !== 'auto';
+    return out;
+  })()`);
+  assert.equal(result.exists, true);
+  assert.equal(result.noGhostClass, true, 'must no longer inherit .ghost\'s muted, easy-to-miss look');
+  assert.equal(result.hasOwnClass, true);
+  assert.equal(result.hasVisibleBorder, true, 'expects the new gold-bordered treatment');
+  assert.equal(result.fillsWidth, true, 'expects a full-width flex button, not the old inline .ghost sizing');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 5: hand-card info button gets an expanded invisible tap target on mobile without growing the visible badge', async () => {
+  const { page, pageErrors } = await newPage();
+  await page.setViewportSize({ width: 375, height: 700 });
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    const card = findCardById('bahamut');
+    document.body.insertAdjacentHTML('beforeend', '<div class="side-hand hand-row">' + cardFace(card, { clickable:true }) + '</div>');
+    const btn = document.querySelector('.side-hand.hand-row .info-btn');
+    out.visibleBadgeStaysTiny = getComputedStyle(btn).width === '13px';
+    const before = getComputedStyle(btn, '::before');
+    out.beforeIsAbsolute = before.position === 'absolute';
+    out.beforeExpandsOutward = before.top === '-6px' && before.right === '-6px' && before.bottom === '-6px' && before.left === '-6px';
+    return out;
+  })()`);
+  assert.equal(result.visibleBadgeStaysTiny, true, 'the rendered badge must stay 13px so it does not collide with neighboring badges');
+  assert.equal(result.beforeIsAbsolute, true);
+  assert.equal(result.beforeExpandsOutward, true, 'the invisible ::before overlay should expand the tappable area ~6px in every direction');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 5: rulebook page images carry real English alt text describing their actual (Swedish-language) content', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    out.altArrayMatchesPageCount = RULEBOOK_PAGE_ALT.length === RULEBOOK_PAGES.length;
+    out.everyEntryIsNonTrivialText = RULEBOOK_PAGE_ALT.every(t => typeof t === 'string' && t.length > 40);
+    state.showRulebook = true;
+    state.rulebookPage = 0;
+    const htmlFirst = renderRulebookModal();
+    out.firstPageAltIncludesRealText = htmlFirst.includes(RULEBOOK_PAGE_ALT[0]);
+    state.rulebookPage = 3;
+    const htmlFourth = renderRulebookModal();
+    out.fourthPageAltIncludesRealText = htmlFourth.includes(RULEBOOK_PAGE_ALT[3]);
+    out.stillIncludesPageNumberFallback = htmlFourth.includes('Rulebook page 4 of');
+    return out;
+  })()`);
+  assert.equal(result.altArrayMatchesPageCount, true);
+  assert.equal(result.everyEntryIsNonTrivialText, true);
+  assert.equal(result.firstPageAltIncludesRealText, true);
+  assert.equal(result.fourthPageAltIncludesRealText, true);
+  assert.equal(result.stillIncludesPageNumberFallback, true, 'page-number text stays as a prefix alongside the new description');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

@@ -2410,7 +2410,26 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .choice-picker-cancel{ width:100%; }
 
 /* ---------- "How to Play" entry point + guided tutorial overlay ---------- */
-.how-to-play-btn{ display:block; margin:0 auto 10px; }
+/* Fas 5 (design review, UI/UX polish): this used to inherit .ghost's
+   muted, transparent-background styling -- a first-time player could
+   easily skip right past it on the way to Random Draft, exactly the
+   audience it exists for. Given its own real gold-bordered, tinted
+   treatment (the same visual language .mode-btn.active already uses for
+   "this matters, tap it") instead of competing for attention as an
+   afterthought below the rules text. */
+.how-to-play-btn{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; margin:0 0 20px; padding:13px;
+  border-radius:10px; border:1px solid var(--gold);
+  background:linear-gradient(180deg, rgba(201,162,39,0.2), rgba(201,162,39,0.05));
+  color:var(--gold-bright); font-family:'Cinzel',serif; font-weight:700; font-size:13px;
+  letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:all .15s ease;
+}
+.how-to-play-btn:not(:disabled):hover{
+  background:linear-gradient(180deg, rgba(201,162,39,0.3), rgba(201,162,39,0.1));
+  box-shadow:0 0 14px rgba(201,162,39,0.25);
+}
+.how-to-play-btn:disabled{ opacity:0.4; cursor:default; }
 
 .tutorial-overlay{
   position:fixed; left:0; right:0; bottom:0; z-index:60;
@@ -2495,7 +2514,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   .side-hand.hand-row .stat-n.n-bottom{ bottom:1px; }
   .side-hand.hand-row .stat-n.n-left{ left:1px; }
   .side-hand.hand-row .stat-n.n-right{ right:1px; }
+  /* Fas 5 (design review, UI/UX polish): the visible badge stays tiny
+     (44px cards have no room for a bigger one without colliding with the
+     stat/element badges, see the comment above), but its real tappable
+     area is expanded to a touch-friendly ~25x25px via a transparent
+     ::before overlay -- a click anywhere on that invisible area still
+     counts as a click on the button itself (it's the button's own
+     rendered content, not a sibling), so this needs no JS changes. */
   .side-hand.hand-row .info-btn{ width:13px; height:13px; font-size:7px; top:2px; right:2px; }
+  .side-hand.hand-row .info-btn::before{ content:''; position:absolute; inset:-6px; }
   .side-hand.hand-row .level-stars{ display:none; }
   .side-hand.hand-row .element-badge{ width:10px; height:10px; font-size:6px; }
   .side-hand.hand-row .card-top{ padding-top:12px; }
@@ -2971,6 +2998,25 @@ const RULEBOOK_PAGES = [
   'rulebook-page-basics.jpg',
   'rulebook-page-optional.jpg',
   'rulebook-page-wins.jpg',
+];
+// Fas 5 (design review, UI/UX polish): the rulebook pages are illustrated
+// images with no machine-readable text at all — a screen reader previously
+// only ever heard "Rulebook page N of M". Full text-searchable replacement
+// pages would mean writing (and translating — the source art is in
+// Swedish) an entire parallel rulebook, a much bigger content undertaking;
+// this is the scoped-down version: real, faithful English descriptions of
+// each page's actual content as alt text, so assistive tech gets the real
+// rules instead of a page number. Parallel array (not folded into
+// RULEBOOK_PAGES itself) so every existing `.length`/`.map` use there
+// keeps working unchanged.
+const RULEBOOK_PAGE_ALT = [
+  "Triad Arena rulebook cover: a warrior of light and a shadowed figure face each other. Tagline: Four directions. Endless strategies. Only one can dominate the arena.",
+  "Chapter 1, Overview. Triad Arena is a 1v1 strategy card game in Triple Triad style. You (blue) face the AI opponent \"Forest\" (red) on a 3×3 board. Match end: the game ends when all 9 squares are filled. The side holding the most squares wins. An equal split is a draw.",
+  "Chapter 2, Card Anatomy. Every card has four side values (top, right, bottom, left — each 1 to 10, with 10 shown as \"A\"), an element (some cards have none), a level shown in 1 to 5 stars (Common to Legendary), and may carry a Special Attack (Ultimate) activated by spending Wins.",
+  "Chapter 3, Draft. Before a match you pick five cards for your hand — either at random (Random Draft) or by choosing exactly five yourself (Choose Your Five). A coin flip decides who takes the first turn.",
+  "Chapter 4, Game Basics. On your turn: place a card from your hand on an empty square; its side values are compared against any adjacent enemy card; if yours is higher, that enemy card flips to your color — this happens at once in every direction with an adjacent enemy. Each captured square gives your side +1 Win, accumulated for the whole match.",
+  "Chapter 6, Optional Rules. Same: if 2 or more touching sides exactly match the enemy's facing sides, all matching cards flip at once. Plus: if two pairs of touching sides each sum to the same total, both matching enemy cards flip at once. Combo: cards flipped by Same or Plus immediately battle their own neighbors, chaining further flips — requires Same or Plus. Elemental Clash: fire beats wind, wind beats earth, earth beats water, water beats fire — a favorable element gives +1 Power in that matchup.",
+  "Chapter 7, Wins and Ultimates. Each captured square gives your side +1 Win, accumulated for the whole match. A card with an unused Special Attack shows a pulsing symbol in its corner — dim while you can't afford it yet, bright once it's ready. A Special Attack costs 2 to 3 Wins and can be used only once per card, per match. On your turn you may place a card and/or activate any number of ready Special Attacks, in any order; your turn ends automatically once you can neither place another card nor activate another Special Attack.",
 ];
 
 
@@ -4204,7 +4250,7 @@ function renderRulebookModal(){
     <div class="modal-overlay" id="rulebook-overlay">
       <div class="modal-poster">
         <button class="modal-close" id="rulebook-close">✕</button>
-        <img class="rulebook-pager-img" src="${RULEBOOK_PAGES[i]}" alt="Rulebook page ${i+1} of ${total}">
+        <img class="rulebook-pager-img" src="${RULEBOOK_PAGES[i]}" alt="Rulebook page ${i+1} of ${total}. ${RULEBOOK_PAGE_ALT[i] || ''}">
         <div class="rulebook-nav">
           <button class="rulebook-nav-btn" id="rulebook-prev" ${i===0 ? 'disabled':''}>‹ Prev</button>
           <div class="rulebook-dots">${dots}</div>
@@ -4496,7 +4542,7 @@ function renderDraft(){
       card flips to your banner. When the board of nine is full, <b>whoever holds the
       most squares wins the duel.</b>
     </div>
-    <button class="ghost how-to-play-btn" id="how-to-play-btn" ${HEROES.length===0 ? 'disabled' : ''}>🎓 How to Play</button>
+    <button class="how-to-play-btn" id="how-to-play-btn" ${HEROES.length===0 ? 'disabled' : ''}>🎓 How to Play</button>
     ${state.draftMode !== 'campaign' ? `
     <div class="rules-toggle-panel">
       <div class="section-label">Optional rules</div>
