@@ -5129,7 +5129,7 @@ test("Zaevir: card rebuilt from a 0/4-wired stub -- Eternal Aim (onPlaceBoost), 
   assert.equal(result.statsMatchArt, true, 'stats matched to the approved art: 10/10/9/8 (top/right/bottom/left)');
   assert.equal(result.hasEternalAim, true);
   assert.equal(result.hasFocus, true);
-  assert.equal(result.skillCount, 3, "the printed card carries Eternal Aim, Focus, and Eternal Arrow -- Forest's Path and the old Eternal Arrow chain-attack concept are gone");
+  assert.equal(result.skillCount, 4, "the printed card carries Eternal Aim, Focus, Hunt-Bond (Fas 3 synergy pilot with Sylvarion), and Eternal Arrow -- Forest's Path and the old Eternal Arrow chain-attack concept are gone");
   assert.equal(result.eternalAimBoostedExactlyOneSide, true);
   assert.equal(result.shieldBlockedFirstLoss, true);
   assert.equal(result.arrowFlippedTarget, true);
@@ -5236,10 +5236,10 @@ test('Maximus: card trimmed from a 1/6-wired stub -- Gladiator\'s Dominion (onCa
   assert.equal(result.statsUnchanged, true);
   assert.equal(result.hasGladiatorsDominion, true);
   assert.equal(result.hasBloodForGlory, true);
-  assert.equal(result.skillCount, 3, "the printed card carries Gladiator's Dominion, Blood for Glory, and Axe of Dominion -- Spinning Axe, Arena Rage, and Champion's Will are gone");
+  assert.equal(result.skillCount, 4, "the printed card carries Gladiator's Dominion, Blood for Glory, Warpath (Fas 3 differentiation from Darum), and Axe of Dominion -- Spinning Axe, Arena Rage, and Champion's Will are gone");
   assert.equal(result.dominionGainedPower, true);
-  assert.equal(result.gloryVsStronger, 3);
-  assert.equal(result.gloryVsWeaker, 0);
+  assert.equal(result.gloryVsStronger, 4, 'vsStrongerTotalPowerBoost (+3) plus the new Warpath flatAttackBonus (+1), which applies on every attack regardless of matchup');
+  assert.equal(result.gloryVsWeaker, 1, 'Warpath\'s flatAttackBonus (+1) still applies even against a weaker foe, unlike Blood for Glory');
   assert.equal(result.axeFlippedWeakTarget, true);
   assert.equal(result.axePermanentBoost, true);
   assert.equal(result.axeNoExtraTurnVsWeaker, true, 'no extra turn when the defeated card was NOT stronger');
@@ -6956,6 +6956,171 @@ test('AI difficulty selector: persists via localStorage and survives resetGame()
   assert.equal(result.savedToLocalStorage, true);
   assert.equal(result.loadReturnsSaved, true);
   assert.equal(result.survivesReset, true, 'resetGame() must preserve the chosen AI difficulty like it already does for rules/draftMode');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+// ---------------- Fas 3: card-system coherence pass ----------------
+// Design review found Darum/Maximus and Twin Brothers/Twin Sisters to be
+// near-byte-identical duplicates with no real reason to pick one over the
+// other, and Nyxara's "Shadow Rend" honestly labeled "(Flavor only)" for
+// lacking a generic "destroy the weakest enemy" hook. Also pilots the
+// synergy-surface expansion the review recommended (only ~22% of the
+// roster had any multi-card synergy before this) with two new small
+// pairPresence bonds reusing the existing primitive verbatim.
+
+test('Fas 3: Maximus (Warpath) and Twin Brothers (Fraternal Fury) get an aggressive flat/on-capture hook Darum/Twin Sisters lack; Twin Sisters (Sisterly Ward) gets a defensive margin-shield hook Twin Brothers lacks', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const maximus = findCardById('maximus');
+    const darum = findCardById('darum');
+    out.maximusHasWarpath = maximus.active.flatAttackBonus === 1;
+    out.darumHasNoFlatAttackBonus = !darum.active.flatAttackBonus;
+    out.darumStillHasShield = darum.active.shield === true;
+
+    const brothers = findCardById('twinbrothers');
+    const sisters = findCardById('twinsisters');
+    out.brothersHasOnCaptureBonus = brothers.active.onCaptureBonus === 1;
+    out.sistersHasNoOnCaptureBonus = !sisters.active.onCaptureBonus;
+    out.sistersHasMarginShield = sisters.active.marginShieldThreshold === 1;
+    out.brothersHasNoMarginShield = !brothers.active.marginShieldThreshold;
+    // Both still share the bond and the base shield -- differentiation is
+    // additive, not a replacement of their existing identity.
+    out.bothStillShareBond = brothers.active.pairPresence.partner === 'twinsisters' && brothers.active.pairPresence.amount === 2
+      && sisters.active.pairPresence.partner === 'twinbrothers' && sisters.active.pairPresence.amount === 2;
+    out.bothStillHaveShield = brothers.active.shield === true && sisters.active.shield === true;
+
+    // Twin Sisters' new margin shield actually blocks a narrow (1-Power) loss.
+    state.board = Array(9).fill(null);
+    const sistersDefender = freshEntry(sisters, 'blue'); // top:7
+    sistersDefender.shieldUsed = true; // her own base shield already spent, isolating the NEW margin-shield hook
+    state.board[4] = sistersDefender;
+    const narrowAttacker = freshEntry({ id:'narrow', name:'Narrow', top:1,right:1,bottom:8,left:1 }, 'red'); // beats top:7 by exactly 1
+    state.board[1] = narrowAttacker;
+    resolveFlips(1, 'red');
+    out.marginShieldBlocksNarrowLoss = state.board[4].owner === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.maximusHasWarpath, true);
+  assert.equal(result.darumHasNoFlatAttackBonus, true);
+  assert.equal(result.darumStillHasShield, true);
+  assert.equal(result.brothersHasOnCaptureBonus, true);
+  assert.equal(result.sistersHasNoOnCaptureBonus, true);
+  assert.equal(result.sistersHasMarginShield, true);
+  assert.equal(result.brothersHasNoMarginShield, true);
+  assert.equal(result.bothStillShareBond, true, 'differentiation must not touch the pair\'s existing shared bond');
+  assert.equal(result.bothStillHaveShield, true);
+  assert.equal(result.marginShieldBlocksNarrowLoss, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 3: Nyxara\'s Shadow Rend destroys the weakest enemy on her first win, once per match, respecting destroy-immunity', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const nyxara = findCardById('nyxara');
+    out.hasShadowRendFlag = nyxara.active.onWinDestroyWeakestEnemy === true;
+
+    // She wins against TWO adjacent cards in the SAME placement (index 1
+    // and index 5 are both weak enough to flip directly) while TWO
+    // separate non-adjacent enemies sit at index 0 (weakest) and index 2
+    // (next-weakest) -- neither touched by direct combat, so they can only
+    // change via the Shadow Rend hook. Index 3 is a third adjacent enemy
+    // matched exactly to her own stats (a tie, so she does NOT capture it)
+    // with high total power, proving Shadow Rend correctly skips a strong
+    // survivor in favor of the real weakest card.
+    //
+    // checkOnWinBonuses fires once per capture within this SINGLE
+    // resolveFlips call (NEIGHBOR_DIRS processes top/index1 before right/
+    // index5) -- this is the realistic way a card can "win" more than once
+    // in the same match (one placement flipping multiple weak neighbors at
+    // once), and it proves the once-per-match cap holds even within one
+    // placement: only the FIRST win (index 1) should trigger Shadow Rend
+    // (destroying the true weakest, index 0), while the SECOND win in the
+    // very same call (index 5) must not also destroy index 2.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(nyxara, 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'mid', name:'Mid', top:1,right:1,bottom:1,left:1 }, 'red'); // adjacent (top), she flips this one first
+    state.board[5] = freshEntry({ id:'second-fight', name:'SecondFight', top:1,right:1,bottom:1,left:1 }, 'red'); // adjacent (right), she flips this one second, in the same placement
+    state.board[3] = freshEntry({ id:'strong-enemy', name:'StrongEnemy', top:10,right:10,bottom:10,left:10 }, 'red'); // adjacent (left), ties her own stats -- survives combat, total 40
+    state.board[0] = freshEntry({ id:'weakest', name:'Weakest', top:1,right:1,bottom:1,left:1 }, 'red'); // NOT adjacent to index 4, total 4 -- the true weakest
+    state.board[2] = freshEntry({ id:'another-weak', name:'AnotherWeak', top:2,right:2,bottom:2,left:2 }, 'red'); // NOT adjacent to index 4, total 8 -- weak, but not the weakest
+    resolveFlips(4, 'blue');
+    out.fought1Captured = state.board[1].owner === 'blue';
+    out.secondFightCaptured = state.board[5].owner === 'blue';
+    out.strongEnemySurvivedCombat = state.board[3] !== null && state.board[3].owner === 'red';
+    out.nonAdjacentWeakestDestroyed = state.board[0] === null;
+    out.usedFlagSet = src.onWinDestroyWeakestUsed === true;
+    out.secondWinDoesNotDestroyAgain = state.board[2] !== null;
+
+    // Destroy-immune cards must never be picked, even if they look like
+    // the weakest by raw power -- the next-weakest NON-immune card gets
+    // destroyed instead.
+    state.board = Array(9).fill(null);
+    const src3 = freshEntry(nyxara, 'blue');
+    state.board[4] = src3;
+    state.board[1] = freshEntry({ id:'mid2', name:'Mid2', top:1,right:1,bottom:1,left:1 }, 'red'); // adjacent, triggers the win
+    state.board[0] = freshEntry({ id:'immune-weak', name:'ImmuneWeak', top:1,right:1,bottom:1,left:1, active:{destroyImmune:true} }, 'red'); // lowest power, but immune
+    state.board[2] = freshEntry({ id:'next-weakest', name:'NextWeakest', top:2,right:2,bottom:2,left:2 }, 'red'); // next-lowest power, not immune
+    resolveFlips(4, 'blue');
+    out.immuneCardSurvives = state.board[0] !== null;
+    out.nextWeakestDestroyedInstead = state.board[2] === null;
+
+    return out;
+  })()`);
+  assert.equal(result.hasShadowRendFlag, true);
+  assert.equal(result.fought1Captured, true);
+  assert.equal(result.strongEnemySurvivedCombat, true);
+  assert.equal(result.nonAdjacentWeakestDestroyed, true, 'Shadow Rend must destroy the weakest enemy ANYWHERE on the board, not just the one she fought in direct combat');
+  assert.equal(result.usedFlagSet, true);
+  assert.equal(result.secondFightCaptured, true);
+  assert.equal(result.secondWinDoesNotDestroyAgain, true, 'capped to once per match -- a deliberate balance deviation, same reasoning as onWinLineDestroy');
+  assert.equal(result.immuneCardSurvives, true, 'destroy-immune cards must never be picked as the weakest target');
+  assert.equal(result.nextWeakestDestroyedInstead, true, 'the search must skip the immune card and destroy the actual next-weakest eligible target');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 3: synergy pilot -- Zaevir/Sylvarion and Torn/Vayra each get a small mutual pairPresence bond', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const zaevir = findCardById('zaevir');
+    const sylvarion = findCardById('sylvarion');
+    const torn = findCardById('torn');
+    const vayra = findCardById('vayra');
+
+    out.zaevirBondsToSylvarion = zaevir.active.pairPresence.partner === 'sylvarion' && zaevir.active.pairPresence.amount === 1;
+    out.sylvarionBondsToZaevir = sylvarion.active.pairPresence.partner === 'zaevir' && sylvarion.active.pairPresence.amount === 1;
+    out.tornBondsToVayra = torn.active.pairPresence.partner === 'vayra' && torn.active.pairPresence.amount === 1;
+    out.vayraBondsToTorn = vayra.active.pairPresence.partner === 'torn' && vayra.active.pairPresence.amount === 1;
+
+    // End-to-end via fullEffectiveValue: Zaevir gets +1 on the board while
+    // Sylvarion is anywhere on his side, nothing when she isn't. Hand set
+    // to a non-trivial length so lastStandBonus (0 or 1 cards left -> +1/+2)
+    // can't spuriously inflate the baseline in this hand-less unit test.
+    state.board = Array(9).fill(null);
+    state.playerHand = [1,2,3];
+    state.board[0] = freshEntry(zaevir, 'blue');
+    out.noBondWithoutPartner = fullEffectiveValue(zaevir, 'top', null, 0, 'blue', 'attack') === zaevir.top;
+    state.board[8] = freshEntry(sylvarion, 'blue'); // far corner, not adjacent
+    out.bondAppliesAnywhereOnBoard = fullEffectiveValue(zaevir, 'top', null, 0, 'blue', 'attack') === zaevir.top + 1;
+
+    return out;
+  })()`);
+  assert.equal(result.zaevirBondsToSylvarion, true);
+  assert.equal(result.sylvarionBondsToZaevir, true);
+  assert.equal(result.tornBondsToVayra, true);
+  assert.equal(result.vayraBondsToTorn, true);
+  assert.equal(result.noBondWithoutPartner, true);
+  assert.equal(result.bondAppliesAnywhereOnBoard, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

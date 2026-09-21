@@ -2922,6 +2922,88 @@ Playwright bekräftar även att en riktig AI-omgång (blue placerar →
 red:s tur löser sig) fungerar felfritt end-to-end på Hard, och att
 svårighetsväljaren renderar och fungerar korrekt i UI:t.
 
+**Fas 3: kortsystems-koherens.** Innan koden skrevs stämdes fyra
+konkreta val av med användaren via AskUserQuestion (svaren styrde
+exakt vad som byggdes):
+
+1. **Duplicerade kort** — flera av de "duplicerade" paren
+   (Evil Twist Yang/Yin, Aurelian/Vorlix) är AVSIKTLIGT tematiskt
+   speglade (yin-yang-dualitet, himmel/horisont-syskon) och lämnades
+   helt orörda. Darum/Maximus hade däremot identiska siffror utan
+   någon lore-koppling. Svar: **"Även en lätt touch på tvillingparen"**
+   — så både Darum/Maximus OCH Twin Brothers/Twin Sisters fick varsin
+   liten differentierande krok.
+2. **Elementsystem** — Elemental Clash förstår bara fire/wind/earth/
+   water; 5 andra element gör inget under den regeln. Svar:
+   **"Förklara det som medvetet"** — ren dokumentationsfix, ingen
+   ny beats-kedja.
+3. **"Flavor only"-förmågor** — alla 10 var redan ärligt märkta i
+   speltexten (inget förtroendeproblem). Nyxaras "Shadow Rend" var
+   den ENDA som gick att koppla in med redan befintlig kod. Svar:
+   **"Koppla in bara Nyxara nu"**.
+4. **Synergi-utbyggnad** — bara ~22% av rostret (15/68 kort) hade
+   någon multi-kort-synergi alls. Svar: **"Liten pilot: 2-3 nya
+   synergier"**.
+
+Konkreta ändringar (alla kort finns i BÅDA HEROES och FOREST_FOES där
+tillämpligt — ändrade på båda ställena):
+
+- **Maximus fick "Warpath (Passive)"** — nytt `active.flatAttackBonus:1`
+  (permanent, ovillkorligt +1 vid anfall). Darum rörd INTE alls (han
+  har redan sin egen försvars-identitet via `shield`+
+  `onWinDirectionalBoost` — "Blood for Glory" vs "Crushing Counter"
+  var redan olika mekanismer, bara siffrorna var identiska).
+- **Twin Brothers fick "Fraternal Fury (Passive)"** — nytt
+  `active.onCaptureBonus:1` (permanent +1 alla sidor per erövring,
+  samma primitiv som Bahamut/Vayra/Maximus). **Twin Sisters fick
+  "Sisterly Ward (Passive)"** — nytt `active.marginShieldThreshold:1`
+  (samma primitiv som Darien/Elara/Medusa: en attack som vinner med
+  bara 1 Power blockas istället och blir oavgjord). Deras delade bond
+  (`pairPresence`+2, bas-`shield`, Ultimate) rördes INTE — differentieringen
+  är additiv, inte en ersättning av deras identitet som par.
+- **Elementsystem-förtydligande**: regelpanelens Elemental Clash-text
+  fick en ny mening som förklarar att ❄️✨🌑🔮🖤 (ice/light/dark/magic/
+  shadow) medvetet står utanför cykeln. Element-badgens tooltip på
+  varje kort visar nu "(outside the Elemental Clash cycle)" för de
+  fem elementen `ELEMENT_BEATS` inte känner till.
+- **Nyxaras "Shadow Rend" kopplades in**: nytt `checkOnWinBonuses`-
+  hak (`onWinDestroyWeakestEnemy`), placerat bredvid det redan
+  liknande `onWinDestroyIfLoserWeak`. Skannar HELA brädet (inte bara
+  kortet hon just slogs mot) efter fienden med lägst `totalPower`,
+  respekterar `isDestroyImmune`, och förstör den utan möjlighet till
+  Graveyard-återupplivning. BALANS (medveten avvikelse, samma
+  resonemang som `onWinLineDestroy` ovan): begränsad till en gång per
+  match via `onWinDestroyWeakestUsed` — obegränsad "förstör svagaste
+  fienden vid varje vinst" ovanpå hennes redan höga stats och
+  `sisterAura`-skalning vore en snöbollseffekt utan motspel.
+  Skiltexten bytt från "(Flavor only — ...)" till en riktig
+  beskrivning.
+- **Synergi-pilot, två nya `pairPresence`-band** (samma primitiv som
+  Darien/Elara, +1 istället för Legendary-parens +2 — lägre eftersom
+  dessa inte är lika centrala boss-kort): **Zaevir ↔ Sylvarion**
+  ("Hunt-Bond", två vind-jägare — redan delad wind-element +
+  jägar-/Wild Hunt-tematik i rolltexten) och **Torn ↔ Vayra**
+  ("Kindred Shadows", två earth-"shadowblade"-assassiner — redan
+  delad earth-element + "Shadow"-namngivning i rolltexten). Båda
+  paren var tidigare 100% fristående kort utan någon synergi.
+
+Verifierat: `node --check` grönt. Fyra nya permanenta regressionstester
+tillagda (Maximus/Darum + Twin Brothers/Twin Sisters-differentieringen,
+inklusive ett margin-shield-blockerings-test för Twin Sisters; Nyxaras
+Shadow Rend — träffar rätt icke-angränsande svagaste fiende inte den
+hon faktiskt slogs mot, ignorerar en starkare angränsande överlevare,
+begränsad till en gång per match även inom SAMMA placering med två
+samtidiga erövringar, respekterar destroy-immunitet och väljer näst
+svagaste istället; de två nya pairPresence-banden end-to-end via
+`fullEffectiveValue`). Två befintliga tester (Zaevir, Maximus)
+uppdaterade för att reflektera de nya, avsiktliga `skills`-tilläggen
+och den nya `flatAttackBonus`-siffran. Hela testsviten grön:
+**109/109** (106 tidigare, varav 2 uppdaterade för de nya avsiktliga
+tilläggen, plus 3 helt nya tester). Playwright-skärmdumpar bekräftar
+att alla nya skill-texter
+renderar korrekt i kortmodalen och att regelpanelens nya
+element-förklaring visas läsbart.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
