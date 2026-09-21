@@ -334,11 +334,23 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .card.selected{
   border-color:var(--gold-bright);
   transform:scale(1.06);
+}
+/* Performance fix (Fas 1 design review): this used to animate box-shadow's
+   blur/spread VALUES directly, every frame, for as long as any hand card is
+   selected -- i.e. during ordinary, frequent gameplay (every turn spent
+   deciding where to place), not a rare event. Same fix pattern already used
+   for .card-back-face::after/cardBackGlow: the shadow value is now static,
+   carried by a dedicated ::after layer, and only its opacity animates
+   (compositor-only, no per-frame shadow recompute). */
+.card.selected::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 2px rgba(240,216,121,0.5), 0 0 24px rgba(240,216,121,0.55);
+  opacity:0;
   animation:selectedGlow 1.3s ease-in-out infinite;
 }
 @keyframes selectedGlow{
-  0%,100%{ box-shadow:0 0 0 2px rgba(240,216,121,0.3), 0 0 14px rgba(240,216,121,0.3); }
-  50%{ box-shadow:0 0 0 2px rgba(240,216,121,0.5), 0 0 24px rgba(240,216,121,0.55); }
+  0%,100%{ opacity:0.55; }
+  50%{ opacity:1; }
 }
 .card.disabled{ opacity:0.35; cursor:default; }
 .card.inplay{ opacity:0.3; cursor:default; }
@@ -423,35 +435,28 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   background-size:contain; background-repeat:no-repeat; background-position:center;
   pointer-events:none;
 }
+/* Performance fix (Fas 1 design review): both states used to animate
+   `filter` (saturate/brightness/drop-shadow) directly every frame, and this
+   badge sits on EVERY on-board card with an unused special at once -- for
+   most of an ordinary match, not a rare event, so several of these could be
+   recomputing filters in parallel. filter is now a single static value per
+   state (no interpolation needed -- the "pulse" comes entirely from
+   transform:scale + opacity, both compositor-only). */
 .special-diamond.locked{
+  filter:saturate(0.5) brightness(0.9) drop-shadow(0 0 3px rgba(139,110,242,0.4));
   animation:badgePulseLocked 3.2s ease-in-out infinite;
 }
 .special-diamond.ready{
+  filter:saturate(1.1) brightness(1.1) drop-shadow(0 0 6px rgba(139,110,242,0.85));
   animation:badgePulseReady 1.4s ease-in-out infinite;
 }
 @keyframes badgePulseLocked{
-  0%, 100%{
-    opacity:0.4; transform:scale(0.9);
-    filter:saturate(0.35) brightness(0.8) drop-shadow(0 0 2px rgba(139,110,242,0.3));
-  }
-  50%{
-    opacity:0.7; transform:scale(1);
-    filter:saturate(0.6) brightness(1) drop-shadow(0 0 5px rgba(139,110,242,0.5));
-  }
+  0%, 100%{ opacity:0.55; transform:scale(0.9); }
+  50%{ opacity:0.85; transform:scale(1); }
 }
 @keyframes badgePulseReady{
-  0%, 100%{
-    transform:scale(0.9);
-    filter:saturate(1) brightness(1) drop-shadow(0 0 4px rgba(74,158,255,0.75)) drop-shadow(0 0 9px rgba(74,158,255,0.5));
-  }
-  33%{
-    transform:scale(1.15);
-    filter:saturate(1.2) brightness(1.15) drop-shadow(0 0 8px rgba(139,110,242,0.95)) drop-shadow(0 0 17px rgba(139,110,242,0.7));
-  }
-  66%{
-    transform:scale(1.2);
-    filter:saturate(1.2) brightness(1.2) drop-shadow(0 0 9px rgba(196,72,220,0.95)) drop-shadow(0 0 18px rgba(240,216,121,0.65));
-  }
+  0%, 100%{ opacity:0.85; transform:scale(0.95); }
+  50%{ opacity:1; transform:scale(1.18); }
 }
 .card.special-active{
   border-color:var(--arcane) !important;
@@ -769,20 +774,26 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   0%{ opacity:0; transform:translate(-50%,-50%) scale(0.4); }
   100%{ opacity:1; transform:translate(-50%,-50%) scale(1.5); }
 }
+/* Performance fix (Fas 1 design review): used to animate border-color,
+   box-shadow VALUES and filter:brightness all together, every frame, on
+   every on-board card with an unused special -- often several at once, for
+   most of a normal match. border-color/filter are now static (set once,
+   no interpolation); the box-shadow glow moved to a ::after layer with a
+   static value, animating only opacity -- same fix pattern as
+   .card.selected::after above. */
 .card.special-ready{
+  border-color:var(--arcane);
+  filter:brightness(1.05);
+}
+.card.special-ready::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 2px rgba(139,110,242,0.7), 0 0 26px rgba(139,110,242,0.7), 0 0 46px rgba(240,216,121,0.3);
+  opacity:0;
   animation:specialReadyPulse 2.6s ease-in-out infinite;
 }
 @keyframes specialReadyPulse{
-  0%, 100%{
-    border-color:rgba(139,110,242,0.55);
-    box-shadow:0 0 0 1px rgba(139,110,242,0.22), 0 0 10px rgba(139,110,242,0.24);
-    filter:brightness(1);
-  }
-  50%{
-    border-color:var(--arcane);
-    box-shadow:0 0 0 2px rgba(139,110,242,0.7), 0 0 26px rgba(139,110,242,0.7), 0 0 46px rgba(240,216,121,0.3);
-    filter:brightness(1.14);
-  }
+  0%, 100%{ opacity:0.35; }
+  50%{ opacity:1; }
 }
 .cell.special-target{
   cursor:pointer; border-color:rgba(196,72,46,0.65);
@@ -2012,6 +2023,42 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   animation:cellPulseGold 1.2s ease-in-out infinite;
 }
 @keyframes cellPulseGold{ 0%,100%{ opacity:0.45; transform:scale(1);} 50%{ opacity:0.9; transform:scale(1.07);} }
+/* Live capture preview (see computeCapturePreview) -- an empty targetable
+   cell that would actually flip at least one enemy card gets a distinct
+   green-gold treatment layered on top of .targetable's own gold pulse,
+   plus a small badge (below) showing exactly how many. Border-color is a
+   static value change (cheap), and the ::after pulse only animates
+   opacity/transform -- same compositor-only pattern as the other
+   already-fixed ambient effects in this file, deliberately not another
+   animated-box-shadow/filter instance. */
+.cell.targetable.would-capture{
+  border-color:rgba(143,209,90,0.75);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,0.08),
+    inset 0 -4px 8px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(143,209,90,0.7),
+    0 0 10px rgba(143,209,90,0.5);
+}
+.cell.targetable.would-capture::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:1;
+  background:radial-gradient(circle at 50% 50%, rgba(143,209,90,0.35), transparent 65%);
+  animation:cellPulseGold 1.2s ease-in-out infinite;
+}
+.capture-badge{
+  position:absolute; top:5px; right:5px; z-index:5; pointer-events:none;
+  display:flex; align-items:center; gap:2px;
+  padding:2px 7px; border-radius:999px;
+  background:rgba(10,20,6,0.85); border:1px solid rgba(143,209,90,0.75);
+  color:#c8f2a0; font-family:'Cinzel',serif; font-weight:700; font-size:11px;
+  text-shadow:0 1px 2px rgba(0,0,0,0.9);
+}
+/* An enemy card that at least ONE currently-empty cell would capture right
+   now, using the currently-selected hand card -- a static ring (no
+   animation at all, cheapest possible option) so the player can spot every
+   vulnerable card on the board at a glance without hunting cell by cell. */
+.cell.preview-vulnerable{
+  box-shadow:0 0 0 2px rgba(224,80,30,0.75), 0 0 14px rgba(224,80,30,0.5);
+}
 .cell .card{ position:absolute; inset:0; width:100%; height:100%; cursor:default; }
 .cell .card.placing{ animation: cardLand .48s cubic-bezier(.22,1.6,.4,1); }
 @keyframes cardLand{
@@ -4214,9 +4261,84 @@ function renderModal(){
 // there's no single "current" value for those outside of a real battle —
 // showing one here could show a number that's wrong against whichever
 // neighbor is actually attacked.
+// Design-review finding (Fas 1, "korrekt siffervisning"): the number printed
+// on a card only ever included captureBonus/sideBonus -- every other live
+// modifier in fullEffectiveValue (pairPresence, sisterAura, board-lead,
+// adjacency auras, rivalry, ...) was invisible, so the printed number could
+// silently understate what a card ALREADY on the board is really worth.
+// This folds in every bonus that is both (a) not conditional on which
+// specific opponent/side is attacking (so a single flat number is honestly
+// representable at all) and (b) not role-gated to attack-only or
+// defense-only (so it's true at rest, not just mid-battle) -- i.e. exactly
+// the "standing aura" bonuses, live and recomputed every render off the
+// real board, same primitives fullEffectiveValue itself uses. Deliberately
+// excludes attack-only bonuses (flatAttackBonus, axisBonus, most
+// adjacentEnemiesBoost variants, vsStrongerTotalPowerBoost, ...), Elemental
+// Clash, and weakVsElement -- those only mean something against a specific
+// opponent/role and are exactly what the live capture preview (see
+// computeCapturePreview) already shows correctly, per matchup, instead of
+// pretending they collapse into one static number.
+function staticLiveBonusFor(card, cellIndex, owner){
+  if(cellIndex == null || !owner) return 0;
+  let bonus = 0;
+  bonus += rivalryBonusAt(card.id, cellIndex, owner);
+  bonus += lastStandBonus(owner);
+  if(card.active && card.active.pairPresence && typeof card.active.pairPresence.amount === 'number'){
+    const pp = card.active.pairPresence;
+    if(state.board.some(e => e && e.owner === owner && e.card.id === pp.partner)) bonus += pp.amount;
+  }
+  if(card.active && card.active.sisterAura){
+    const sa = card.active.sisterAura;
+    const count = sistersPresentCount(card.id, owner);
+    if(sa.bonusByCount[count]) bonus += sa.bonusByCount[count];
+  }
+  if(card.active && card.active.boardLeadBonus){
+    const bl = card.active.boardLeadBonus;
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    const theirs = state.board.filter(e => e && e.owner !== owner).length;
+    const meetsThreshold = bl.tieOnly ? mine === theirs : (bl.orEqual ? mine >= theirs : mine > theirs);
+    if(meetsThreshold) bonus += bl.amount;
+  }
+  const row = Math.floor(cellIndex/3), col = cellIndex%3;
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  if(card.active && card.active.adjacentAlliesBoost){
+    const ab = card.active.adjacentAlliesBoost;
+    let allyNeighbors = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner === owner) allyNeighbors++;
+    });
+    if(allyNeighbors >= ab.minCount) bonus += ab.amount;
+  }
+  if(card.active && card.active.adjacentEnemyAuraThisRound){
+    const cfg = card.active.adjacentEnemyAuraThisRound;
+    let enemyNeighbors = 0;
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== owner) enemyNeighbors++;
+    });
+    if(enemyNeighbors >= cfg.minCount) bonus += cfg.amount;
+  }
+  if(card.active && card.active.auraPerPetrifiedEnemy){
+    const cfg = card.active.auraPerPetrifiedEnemy;
+    const petrifiedEnemies = state.board.filter(e => e && e.owner !== owner && e.petrifiedUntilTurnCount > state.turnCount).length;
+    bonus += Math.min(petrifiedEnemies, cfg.max) * cfg.amount;
+  }
+  if(card.active && card.active.auraPerFrostmarkedEnemy){
+    const cfg = card.active.auraPerFrostmarkedEnemy;
+    const frostmarkedEnemies = state.board.filter(e => e && e.owner !== owner && e.frostmarked).length;
+    bonus += Math.min(frostmarkedEnemies, cfg.max) * cfg.amount;
+  }
+  return bonus;
+}
+
 function effectiveStatFor(card, side, opts){
   const base = card[side];
-  const bonus = (opts.captureBonus || 0) + ((opts.sideBonus && opts.sideBonus[side]) || 0);
+  const bonus = (opts.captureBonus || 0) + ((opts.sideBonus && opts.sideBonus[side]) || 0) + staticLiveBonusFor(card, opts.cellIndex, opts.owner);
   return { value: base + bonus, bonus };
 }
 
@@ -4489,7 +4611,7 @@ function renderCoinflip(){
   `;
 }
 
-function boardCellHtml(cell, i){
+function boardCellHtml(cell, i, previewVulnerable){
   let specialInfo = null;
   if(cell && cell.owner === 'blue' && cell.card.special){
     const key = 'blue:' + cell.card.id;
@@ -4502,7 +4624,15 @@ function boardCellHtml(cell, i){
   const specialSrcEntry = state.specialMode && state.board[state.specialMode.sourceIndex];
   const specialTargetable = state.specialMode && !state.specialMode.choices && cell && cell.owner === 'red'
     && !(specialSrcEntry && specialSrcEntry.card.id === 'deathblade' && !sharesLine(state.specialMode.sourceIndex, i));
-  const cellClass = `${placeTargetable ? 'targetable':''} ${specialTargetable ? 'special-target':''}`;
+  // Live capture preview (see computeCapturePreview/getPreviewCaptureTargets):
+  // an empty legal cell gets a would-capture badge showing exactly how many
+  // enemy neighbors the selected card would flip there, and any enemy card
+  // that's capturable from AT LEAST ONE currently-empty cell gets its own
+  // "vulnerable" ring — both computed from the real engine's own comparison
+  // logic, never a guess.
+  const capturePreview = placeTargetable ? computeCapturePreview(state.pendingCard, i, 'blue') : null;
+  const isVulnerable = !!(cell && cell.owner === 'red' && previewVulnerable && previewVulnerable.has(i));
+  const cellClass = `${placeTargetable ? 'targetable':''} ${capturePreview && capturePreview.captures > 0 ? 'would-capture':''} ${specialTargetable ? 'special-target':''} ${isVulnerable ? 'preview-vulnerable':''}`;
   const ghost = !cell && state.destroyGhosts.find(g => g.index === i);
   return `
     <div class="cell ${cellClass}" data-cell="${i}">
@@ -4511,9 +4641,10 @@ function boardCellHtml(cell, i){
           shieldFlash:cell.shieldFlash, bonusFlash:cell.bonusFlash, bonusAmount:cell.bonusAmount,
           attackFlash:cell.attackFlash, fxDelay:cell.fxDelay, fxStep:cell.fxStep, ultimateCasting:cell.ultimateCasting,
           petrified: cell.petrifiedUntilTurnCount > state.turnCount,
-          captureBonus: cell.captureBonus, sideBonus: cell.sideBonus,
+          captureBonus: cell.captureBonus, sideBonus: cell.sideBonus, cellIndex: i,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
         }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : '')}
+      ${capturePreview && capturePreview.captures > 0 ? `<div class="capture-badge">⚔ ${capturePreview.captures}</div>` : ''}
     </div>
   `;
 }
@@ -4521,6 +4652,7 @@ function boardCellHtml(cell, i){
 function renderBattle(){
   const blueCount = state.board.filter(c => c && c.owner === 'blue').length;
   const redCount = state.board.filter(c => c && c.owner === 'red').length;
+  const previewVulnerable = getPreviewCaptureTargets();
 
   // Nyxara's Void Dominion identity VFX -- gated purely by the Ultimate's
   // NAME (not a new state field) so it rides state.ultimateBanner's
@@ -4766,7 +4898,7 @@ function renderBattle(){
       </div>
       ${voidDominionActive ? `<div class="void-dominion-dark phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>` : ''}
       <div class="board">
-        ${state.board.map(boardCellHtml).join('')}
+        ${state.board.map((cell,i) => boardCellHtml(cell, i, previewVulnerable)).join('')}
       </div>
       ${voidDominionActive ? `
         <div class="void-dominion-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--void-x:${voidOriginX}%; --void-y:${voidOriginY}%;">
@@ -8601,6 +8733,77 @@ function computeSamePlusCaptures(index, owner){
   }
 
   return captured;
+}
+
+// Live capture preview (user feedback: "man fattar inte hur spelet fungerar",
+// confirmed by design review that there was no way to see what a placement
+// would do before committing to it) — tells the UI which of a candidate
+// empty cell's enemy neighbors the currently-selected hand card would
+// actually capture, WITHOUT mutating real game state. Reuses the real
+// pure/read-only pieces of the engine (computeSamePlusCaptures,
+// fullEffectiveValue, isShielded) rather than re-deriving the comparison
+// rules a second time, so this can never silently drift out of sync with
+// how a real placement resolves. A temporary stub entry is written to
+// state.board[cellIndex] and removed again synchronously (nothing else
+// runs in between) so those pure functions see a "freshly placed card"
+// exactly like the real engine would, without ever calling the *mutating*
+// battleNeighbors/resolveFlips path itself (which also tags historical
+// flags, consumes shields/once-per-match bonuses, and can cascade into
+// destroyCard/graveyard side effects that must never fire from a mere
+// preview). Deliberately does not simulate a Combo chain (the BFS re-battle
+// that only exists when Same/Plus AND Combo are all on) -- that stays a
+// welcome surprise rather than a fully-spoiled outcome.
+function computeCapturePreview(cardId, cellIndex, owner){
+  if(state.board[cellIndex]) return { captures:0, indices:[] };
+  const card = HEROES.find(h => h.id === cardId) || FOREST_FOES.find(h => h.id === cardId);
+  if(!card) return { captures:0, indices:[] };
+
+  state.board[cellIndex] = { card, owner };
+  const samePlus = (state.rules.same || state.rules.plus) ? computeSamePlusCaptures(cellIndex, owner) : new Set();
+  state.board[cellIndex] = null;
+
+  const capturedIndices = new Set(samePlus);
+  const row = Math.floor(cellIndex/3), col = cellIndex%3;
+  NEIGHBOR_DIRS.forEach(n=>{
+    const r = row+n.dr, c = col+n.dc;
+    if(r<0||r>2||c<0||c>2) return;
+    const ni = r*3+c;
+    if(samePlus.has(ni)) return; // already captured outright by Same/Plus
+    const target = state.board[ni];
+    if(!target || target.owner === owner) return;
+
+    state.board[cellIndex] = { card, owner, shieldUsed:false, grantedShield:false, captureBonus:0 };
+    const attackVal = fullEffectiveValue(card, n.myEdge, target.card, cellIndex, owner, 'attack');
+    const defendVal = fullEffectiveValue(target.card, n.theirEdge, card, ni, target.owner, 'defense');
+    state.board[cellIndex] = null;
+
+    if(attackVal <= defendVal) return;
+    if(isShielded(target, ni)) return;
+    const targetActive = target.card.active;
+    const staticMarginThreshold = targetActive && targetActive.marginShieldThreshold != null ? targetActive.marginShieldThreshold : 0;
+    const weightOfAgesBonus = targetActive && targetActive.weightOfAges ? Math.min(2, Math.floor((target.turnsStanding || 0) / 2)) : 0;
+    const marginThreshold = staticMarginThreshold + weightOfAgesBonus;
+    if(marginThreshold > 0 && (attackVal - defendVal) <= marginThreshold) return;
+    capturedIndices.add(ni);
+  });
+
+  return { captures: capturedIndices.size, indices: Array.from(capturedIndices) };
+}
+
+// Aggregates computeCapturePreview across every currently-empty, legal cell
+// for the selected hand card, so boardCellHtml can mark an enemy card as
+// "vulnerable right now" regardless of which specific empty cell it would
+// be captured from. Cheap: at most 9 cells x 4 neighbors of real,
+// already-optimized engine calls, recomputed once per render.
+function getPreviewCaptureTargets(){
+  const vulnerable = new Set();
+  if(!state.pendingCard || state.turn !== 'blue' || state.phase !== 'battle' || state.placedThisTurn || state.ultimateBanner) return vulnerable;
+  state.board.forEach((cell, i)=>{
+    if(cell) return;
+    const preview = computeCapturePreview(state.pendingCard, i, 'blue');
+    preview.indices.forEach(idx => vulnerable.add(idx));
+  });
+  return vulnerable;
 }
 
 // How much to stagger each successive flip within ONE placement's battles
