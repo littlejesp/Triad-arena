@@ -245,6 +245,12 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .difficulty-desc{ font-size:12px; color:var(--text-dim); line-height:1.4; }
 
+/* ---------- Fas 4: match record panel (Random Draft/Choose Your Five) ---------- */
+.match-stats-row{ display:flex; flex-wrap:wrap; gap:14px; margin-bottom:6px; }
+.match-stats-row:last-child{ margin-bottom:0; }
+.match-stat{ font-size:12px; color:var(--text-dim); }
+.match-stat b{ color:var(--gold-bright); }
+
 .draw-pile-wrap{ display:flex; justify-content:center; padding:10px 0 6px; }
 .card-back{
   width:220px; cursor:pointer; transition:transform .15s ease;
@@ -369,6 +375,13 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 }
 .card.disabled{ opacity:0.35; cursor:default; }
 .card.inplay{ opacity:0.3; cursor:default; }
+/* Fas 4: cosmetic-only ring for a champion unlocked through the campaign
+   story (see cardFace's unlockedClass) — static value, no animation, so it
+   layers cleanly under .selected's own pulsing ::after glow when a card is
+   both unlocked and currently selected. */
+.card.champion-unlocked{
+  box-shadow:0 0 0 2px rgba(240,216,121,0.55), 0 0 10px rgba(240,216,121,0.35);
+}
 
 .card-glow{ position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .card-glow::before{ content:''; position:absolute; inset:0; background:inherit; opacity:0.55; }
@@ -4387,6 +4400,13 @@ function cardFace(card, opts={}){
   const specialActiveClass = opts.specialActive ? 'special-active' : '';
   const specialReadyClass = (opts.specialInfo && opts.specialInfo.ready) ? 'special-ready' : '';
   const destroyedClass = opts.destroyed ? 'destroy-ghost' : '';
+  // Fas 4 (design review, progression pilot): a purely cosmetic gold ring
+  // for champions unlocked via campaign stage clears (campaignProgress.
+  // unlocked) — story-earned pride, never a gameplay gate (that gating was
+  // explicitly removed on the user's own prior request, see campaignPool()).
+  // Static box-shadow value, no animation, so it costs nothing and layers
+  // cleanly under .selected's own pulsing glow when both apply at once.
+  const unlockedClass = opts.unlocked ? 'champion-unlocked' : '';
   // Game feel phase 4: the Ultimate windup glow — distinct from
   // special-active (which only lights up during TARGET SELECTION, before
   // runSpecialResolution even runs) since state.specialMode is already
@@ -4425,7 +4445,7 @@ function cardFace(card, opts={}){
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${unlockedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -4467,6 +4487,7 @@ function cardLevel(card){
 
 function renderDraft(){
   const chosen = state.selected.length;
+  const favoriteCard = favoriteCardInfo();
   return `
     ${masthead()}
     <div class="rules">
@@ -4502,6 +4523,7 @@ function renderDraft(){
     </div>
     ` : ''}
 
+    ${state.draftMode !== 'campaign' ? `
     <div class="rules-toggle-panel">
       <div class="section-label">Forest AI difficulty</div>
       <div class="difficulty-toggle">
@@ -4511,6 +4533,23 @@ function renderDraft(){
       </div>
       <div class="difficulty-desc">${AI_DIFFICULTY_DESC[state.aiDifficulty]}</div>
     </div>
+    ` : ''}
+
+    ${state.draftMode !== 'campaign' && matchStats.matches > 0 ? `
+    <div class="rules-toggle-panel">
+      <div class="section-label">Your record</div>
+      <div class="match-stats-row">
+        <span class="match-stat"><b>${matchStats.wins}</b> Wins</span>
+        <span class="match-stat"><b>${matchStats.losses}</b> Losses</span>
+        <span class="match-stat"><b>${matchStats.draws}</b> Draws</span>
+      </div>
+      <div class="match-stats-row">
+        <span class="match-stat">Streak: <b>${matchStats.currentStreak}</b></span>
+        <span class="match-stat">Best: <b>${matchStats.bestStreak}</b></span>
+        ${favoriteCard ? `<span class="match-stat">Favorite: <b>${favoriteCard.name}</b> (${favoriteCard.wins})</span>` : ''}
+      </div>
+    </div>
+    ` : ''}
 
     <div class="mode-toggle">
       <button class="mode-btn ${state.draftMode==='random' ? 'active' : ''}" id="mode-random" ${HEROES.length===0 ? 'disabled' : ''}>
@@ -4545,7 +4584,7 @@ function renderDraft(){
       </div>
       <div class="section-label">Choose exactly five champions</div>
       <div class="draft-grid">
-        ${HEROES.map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true })).join('')}
+        ${HEROES.map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true, unlocked: campaignProgress.unlocked.includes(h.id) })).join('')}
       </div>
       <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
       <button class="cta" id="begin-btn-manual" ${chosen === 5 ? '' : 'disabled'}>Begin the Duel</button>
@@ -4567,7 +4606,7 @@ function renderCampaignPanel(){
         forest had to offer, and every champion has joined your story.${campaignProgress.ngPlus > 0 ? ` You cleared this New Game+${campaignProgress.ngPlus} run — the forest grows stronger with every cycle.` : ''}
       </div>
       <div class="draft-grid">
-        ${HEROES.filter(h => poolIds.includes(h.id)).map(h => cardFace(h, { clickable:false, noInfo:false })).join('')}
+        ${HEROES.filter(h => poolIds.includes(h.id)).map(h => cardFace(h, { clickable:false, noInfo:false, unlocked: campaignProgress.unlocked.includes(h.id) })).join('')}
       </div>
       <button class="cta" id="campaign-ngplus-btn">Start New Game+${campaignProgress.ngPlus + 1}</button>
       <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
@@ -4577,10 +4616,14 @@ function renderCampaignPanel(){
   const stageNum = campaignProgress.stageIndex + 1;
   const chosen = state.selected.length;
 
+  const stageAIDifficulty = campaignStageAIDifficulty(campaignProgress.stageIndex);
+  const stageAINote = `<div class="difficulty-desc">🌲 Forest AI this stage: <b>${stageAIDifficulty[0].toUpperCase()}${stageAIDifficulty.slice(1)}</b> — ${AI_DIFFICULTY_DESC[stageAIDifficulty]}</div>`;
+
   if(stageNum === 1){
     return `
       <div class="section-label">Stage 1 of ${CAMPAIGN_STAGES.length} — ${stage.name}${ngTag}</div>
       <div class="rules">Your story begins with the five champions who started it all.${campaignProgress.ngPlus > 0 ? ' The forest remembers you — its champions strike harder this time.' : ''}</div>
+      ${stageAINote}
       <div class="draft-grid">
         ${CAMPAIGN_STARTERS.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { clickable:false })).join('')}
       </div>
@@ -4608,11 +4651,12 @@ function renderCampaignPanel(){
     ${loreToggle}
     ${lorePanel}
     <div class="rules">Choose five champions to carry this stage.</div>
+    ${stageAINote}
     <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
     <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
     <div class="section-label">Choose exactly five champions</div>
     <div class="draft-grid">
-      ${poolIds.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true })).join('')}
+      ${poolIds.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true, unlocked: campaignProgress.unlocked.includes(h.id) })).join('')}
     </div>
     <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
   `;
@@ -6133,6 +6177,64 @@ function saveCampaignProgress(){
   try{ localStorage.setItem(CAMPAIGN_SAVE_KEY, JSON.stringify(campaignProgress)); }catch(e){ /* storage unavailable — progress just won't persist */ }
 }
 let campaignProgress = loadCampaignProgress();
+
+// Fas 4 (design review, progression pilot): Random Draft/Choose Your Five
+// had zero persistence at all — no record of wins, losses, streaks, or
+// which champion actually carried you to victory. Campaign already has its
+// own stage-progress tracking (campaignProgress above), so this is
+// deliberately scoped to the other two modes only (see recordMatchResult's
+// own guard). Same localStorage save/load shape as campaign progress.
+const MATCH_STATS_SAVE_KEY = 'triadArenaMatchStats';
+function loadMatchStats(){
+  try{
+    const raw = localStorage.getItem(MATCH_STATS_SAVE_KEY);
+    if(!raw) return { matches:0, wins:0, losses:0, draws:0, currentStreak:0, bestStreak:0, cardWins:{} };
+    const parsed = JSON.parse(raw);
+    return {
+      matches: parsed.matches||0, wins: parsed.wins||0, losses: parsed.losses||0, draws: parsed.draws||0,
+      currentStreak: parsed.currentStreak||0, bestStreak: parsed.bestStreak||0,
+      cardWins: (parsed.cardWins && typeof parsed.cardWins === 'object') ? parsed.cardWins : {},
+    };
+  }catch(e){
+    return { matches:0, wins:0, losses:0, draws:0, currentStreak:0, bestStreak:0, cardWins:{} };
+  }
+}
+function saveMatchStats(){
+  try{ localStorage.setItem(MATCH_STATS_SAVE_KEY, JSON.stringify(matchStats)); }catch(e){ /* storage unavailable — stats just won't persist */ }
+}
+let matchStats = loadMatchStats();
+
+// Called from finishGame() for every Random Draft/Choose Your Five match.
+// "Favorite champion" is tracked as wins-with-that-card-in-your-five, not
+// wins-by-that-specific-card's-own-battles — simple, cheap (one counter per
+// card id, incremented once per match won, not per capture), and matches
+// how a player would naturally think of it ("the five I keep winning with").
+function recordMatchResult(winner){
+  if(state.draftMode === 'campaign') return;
+  matchStats.matches++;
+  if(winner === 'blue'){
+    matchStats.wins++;
+    matchStats.currentStreak++;
+    if(matchStats.currentStreak > matchStats.bestStreak) matchStats.bestStreak = matchStats.currentStreak;
+    state.selected.forEach(id => { matchStats.cardWins[id] = (matchStats.cardWins[id]||0) + 1; });
+  } else if(winner === 'red'){
+    matchStats.losses++;
+    matchStats.currentStreak = 0;
+  } else {
+    matchStats.draws++;
+    matchStats.currentStreak = 0;
+  }
+  saveMatchStats();
+}
+function favoriteCardInfo(){
+  let bestId = null, bestCount = 0;
+  Object.keys(matchStats.cardWins).forEach(id => {
+    if(matchStats.cardWins[id] > bestCount){ bestCount = matchStats.cardWins[id]; bestId = id; }
+  });
+  if(!bestId) return null;
+  const card = findCardById(bestId);
+  return card ? { name: card.name, wins: bestCount } : null;
+}
 
 // On the user's explicit request (etapp 2+ felt too hard with only 5
 // cards to choose from), Campaign no longer gates card access by
@@ -9061,6 +9163,23 @@ function saveAIDifficulty(difficulty){
   try { localStorage.setItem(AI_DIFFICULTY_SAVE_KEY, difficulty); } catch(e){}
 }
 
+// Fas 4: campaign stages auto-assign the Forest's AI difficulty instead of
+// following the player's manual Easy/Normal/Hard choice (which still fully
+// applies in Random Draft/Choose Your Five) — stages 1-5 Easy, 6-11 Normal,
+// 12-17 Hard, mirroring the campaign's own existing rules/stat escalation
+// curve so the late game gets qualitatively sharper play, not just bigger
+// numbers. stageIndex is 0-based (campaignProgress.stageIndex, already the
+// CURRENT stage being fought — finishGame only advances it after a win).
+function campaignStageAIDifficulty(stageIndex){
+  if(stageIndex < 5) return 'easy';
+  if(stageIndex < 11) return 'normal';
+  return 'hard';
+}
+function effectiveAIDifficulty(){
+  if(state.draftMode === 'campaign') return campaignStageAIDifficulty(campaignProgress.stageIndex);
+  return state.aiDifficulty;
+}
+
 // Top-level entry point called from enemyTurn(). Returns { cellIndex, card }
 // for the chosen placement, or null if the AI genuinely has nothing to play
 // (empty hand or full board -- enemyTurn already guards both, this is just
@@ -9070,7 +9189,7 @@ function chooseAIPlacement(){
   if(emptyCells.length === 0 || state.enemyHand.length === 0) return null;
   const depth = emptyCells.length <= AI_FULL_SEARCH_MAX_EMPTY
     ? emptyCells.length
-    : (AI_DIFFICULTY_DEPTH[state.aiDifficulty] || AI_DIFFICULTY_DEPTH.normal);
+    : (AI_DIFFICULTY_DEPTH[effectiveAIDifficulty()] || AI_DIFFICULTY_DEPTH.normal);
   const hands = { blue: state.playerHand, red: state.enemyHand };
   const result = searchBestPlacement(state.board, hands, 'red', 'red', depth, -Infinity, Infinity);
   if(!result || result.cellIndex == null) return null;
@@ -9400,7 +9519,7 @@ function enemyTryUseSpecial(){
       // affordable" behavior (still correct, just not tactically patient).
       // Not gated on remaining hand/turns left, deliberately simple: a
       // one-line "is this worth it yet" check rather than its own search.
-      if(state.aiDifficulty === 'hard' && enemyCount < 2){
+      if(effectiveAIDifficulty() === 'hard' && enemyCount < 2){
         const emptyCells = state.board.filter(e => !e).length;
         if(emptyCells > 0) continue; // more enemies may still appear -- wait
       }
@@ -9595,6 +9714,7 @@ function finishGame(){
       state.campaignUnlocked = newly;
     }
   }
+  recordMatchResult(state.winner);
   if(state.winner === 'blue') SFX.win();
   else if(state.winner === 'red') SFX.lose();
   else SFX.draw();

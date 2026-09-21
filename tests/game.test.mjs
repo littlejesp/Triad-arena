@@ -7124,3 +7124,125 @@ test('Fas 3: synergy pilot -- Zaevir/Sylvarion and Torn/Vayra each get a small m
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+// ---------------- Fas 4: progression pilot ----------------
+// Design review found Random Draft/Choose Your Five had zero persistence
+// (no record, no streaks, no reward for the campaign's own unlocks beyond
+// pure flavor), and that campaign difficulty only ever scaled via raw
+// stats/rules, never the AI's own playing strength. Three scoped additions,
+// confirmed with the user first: (1) win/loss/streak/favorite-card
+// tracking for Random Draft/Choose Your Five, (2) a purely cosmetic gold
+// ring on campaign-unlocked champions (gating stays removed, per the
+// user's own prior explicit request), (3) campaign stages auto-assign the
+// Forest's AI difficulty (1-5 Easy, 6-11 Normal, 12-17 Hard).
+
+test('Fas 4: recordMatchResult tracks wins/losses/draws/streaks/favorite card for Random Draft & Choose Your Five, but never for Campaign', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    try { localStorage.removeItem(MATCH_STATS_SAVE_KEY); } catch(e){}
+    matchStats = loadMatchStats();
+    out.startsAtZero = matchStats.matches === 0 && matchStats.wins === 0 && matchStats.currentStreak === 0 && matchStats.bestStreak === 0;
+
+    state.draftMode = 'random';
+    state.selected = ['bahamut','sarah','zaevir','vayra','darien'];
+    recordMatchResult('blue');
+    recordMatchResult('blue');
+    out.twoWinsTracked = matchStats.wins === 2 && matchStats.matches === 2;
+    out.streakAfterTwoWins = matchStats.currentStreak === 2 && matchStats.bestStreak === 2;
+    out.cardWinsIncremented = matchStats.cardWins.bahamut === 2 && matchStats.cardWins.sarah === 2;
+
+    recordMatchResult('red');
+    out.streakResetsOnLoss = matchStats.currentStreak === 0 && matchStats.bestStreak === 2 && matchStats.losses === 1;
+
+    recordMatchResult('draw');
+    out.drawTrackedAndResetsStreak = matchStats.draws === 1 && matchStats.currentStreak === 0;
+
+    // A later, longer streak correctly raises bestStreak past the old high.
+    recordMatchResult('blue'); recordMatchResult('blue'); recordMatchResult('blue');
+    out.newBestStreak = matchStats.currentStreak === 3 && matchStats.bestStreak === 3;
+
+    out.favorite = favoriteCardInfo();
+
+    // Campaign matches must never be recorded here (they have their own
+    // stage-progress tracking instead).
+    const beforeCampaign = JSON.stringify(matchStats);
+    state.draftMode = 'campaign';
+    recordMatchResult('blue');
+    out.campaignMatchNotRecorded = JSON.stringify(matchStats) === beforeCampaign;
+
+    // Persists to localStorage and survives a fresh load.
+    saveMatchStats();
+    const reloaded = loadMatchStats();
+    out.persistsAcrossReload = reloaded.matches === matchStats.matches && reloaded.wins === matchStats.wins && reloaded.bestStreak === matchStats.bestStreak;
+
+    return out;
+  })()`);
+  assert.equal(result.startsAtZero, true);
+  assert.equal(result.twoWinsTracked, true);
+  assert.equal(result.streakAfterTwoWins, true);
+  assert.equal(result.cardWinsIncremented, true);
+  assert.equal(result.streakResetsOnLoss, true);
+  assert.equal(result.drawTrackedAndResetsStreak, true);
+  assert.equal(result.newBestStreak, true);
+  assert.deepEqual(result.favorite, { name: 'The Celestial Bahamut', wins: 5 }, 'Bahamut was in all 5 winning fives -- the clear favorite');
+  assert.equal(result.campaignMatchNotRecorded, true, 'Campaign has its own stage-progress tracking; recordMatchResult must be a no-op there');
+  assert.equal(result.persistsAcrossReload, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 4: cardFace marks a campaign-unlocked champion with the cosmetic champion-unlocked class, never a gameplay gate', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    const bahamut = findCardById('bahamut');
+    out.notMarkedByDefault = !cardFace(bahamut, { clickable:true }).includes('champion-unlocked');
+    out.markedWhenUnlocked = cardFace(bahamut, { clickable:true, unlocked:true }).includes('champion-unlocked');
+    // Cosmetic only: campaignPool() must still return every HEROES card
+    // regardless of unlocked state -- confirms Fas 4 never re-introduces
+    // the gating the user explicitly had removed before.
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0 };
+    out.poolStillFullyOpen = campaignPool().length === HEROES.length && campaignPool().includes('bahamut');
+    return out;
+  })()`);
+  assert.equal(result.notMarkedByDefault, true);
+  assert.equal(result.markedWhenUnlocked, true);
+  assert.equal(result.poolStillFullyOpen, true, 'unlocking must stay cosmetic -- campaignPool() must never gate again');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 4: campaign stages auto-assign AI difficulty (1-5 Easy, 6-11 Normal, 12-17 Hard); manual choice still applies outside Campaign', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    // 0-based stageIndex: stage 1 = index 0, stage 17 = index 16.
+    out.stage1IsEasy = campaignStageAIDifficulty(0) === 'easy';
+    out.stage5IsEasy = campaignStageAIDifficulty(4) === 'easy';
+    out.stage6IsNormal = campaignStageAIDifficulty(5) === 'normal';
+    out.stage11IsNormal = campaignStageAIDifficulty(10) === 'normal';
+    out.stage12IsHard = campaignStageAIDifficulty(11) === 'hard';
+    out.stage17IsHard = campaignStageAIDifficulty(16) === 'hard';
+
+    state.draftMode = 'campaign';
+    campaignProgress = { stageIndex: 11, unlocked: [], ngPlus: 0 }; // stage 12
+    state.aiDifficulty = 'easy'; // manual choice must be ignored in Campaign
+    out.campaignUsesStageDifficulty = effectiveAIDifficulty() === 'hard';
+
+    state.draftMode = 'random';
+    out.nonCampaignUsesManualChoice = effectiveAIDifficulty() === 'easy';
+
+    return out;
+  })()`);
+  assert.equal(result.stage1IsEasy, true);
+  assert.equal(result.stage5IsEasy, true);
+  assert.equal(result.stage6IsNormal, true);
+  assert.equal(result.stage11IsNormal, true);
+  assert.equal(result.stage12IsHard, true);
+  assert.equal(result.stage17IsHard, true);
+  assert.equal(result.campaignUsesStageDifficulty, true, "Campaign must use the stage's assigned difficulty, ignoring the player's manual Easy/Normal/Hard choice");
+  assert.equal(result.nonCampaignUsesManualChoice, true, 'Random Draft/Choose Your Five must still fully respect the manual choice');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

@@ -3004,6 +3004,77 @@ att alla nya skill-texter
 renderar korrekt i kortmodalen och att regelpanelens nya
 element-förklaring visas läsbart.
 
+**Fas 4: progression — "en match till".** Tre val stämdes av med
+användaren via AskUserQuestion innan koden skrevs (den andra
+AskUserQuestion-omgången i sessionen registrerade bara ETT av tre
+svar första gången — en uppföljande fråga fångade in de två
+resterande):
+
+1. **Meningsfulla campaign-unlocks** — svar: **"Kosmetiskt (ram/glow
+   på kortet)"**, INTE startbonusar. Viktigt: `campaignPool()` gatar
+   fortfarande INGENTING (bekräftat orört — se kommentaren i koden om
+   att detta togs bort på användarens egen tidigare uttryckliga
+   begäran). Den kosmetiska ringen är additiv, aldrig en spärr.
+2. **AI per campaign-etapp** — svar: **"Ja, trappa upp automatiskt"**
+   (etapp 1-5 Easy, 6-11 Normal, 12-17 Hard), matchar den befintliga
+   regel-/stat-eskaleringskurvan. Den manuella väljaren från Fas 2
+   gäller fortsätt fullt ut i Random Draft/Choose Your Five.
+3. **Statistik-omfattning** — svar: **"Vinster/förluster + sträck +
+   favoritkort (Rekommenderas)"**.
+
+Konkreta ändringar:
+
+- **`MATCH_STATS_SAVE_KEY`/`loadMatchStats()`/`saveMatchStats()`/
+  `matchStats`** — exakt samma localStorage-mönster som
+  `campaignProgress`. Ny statistik för Random Draft/Choose Your Five
+  (tidigare helt spårlöst): `matches, wins, losses, draws,
+  currentStreak, bestStreak, cardWins` (en räknare per kort-id).
+- **`recordMatchResult(winner)`** — anropas från `finishGame()`.
+  Explicit no-op för `state.draftMode === 'campaign'` (den har redan
+  sin egen etapp-progress-spårning). Vid vinst inkrementeras
+  `cardWins[id]` för alla fem kort i `state.selected` — "favoritkort"
+  betyder alltså "kort jag vunnit flest MATCHER med i min femma", inte
+  "flest enskilda erövringar med just det kortet" (enklare, billigare,
+  och matchar hur en spelare naturligt skulle tänka på det).
+  `favoriteCardInfo()` läser av argmax.
+- **Ny "Your record"-panel** på draft-skärmen (`renderDraft()`,
+  samma `.rules-toggle-panel`-stil som regel-/svårighets-panelerna),
+  synlig i Random Draft/Choose Your Five (gömd i Campaign) och bara
+  när `matchStats.matches > 0` (inget tomt-state-brus för en helt ny
+  spelare).
+- **`.card.champion-unlocked`** — ny CSS-klass i `cardFace()`, en
+  statisk (oanimerad, kostar inget) guldring runt kort i
+  `campaignProgress.unlocked`. Tillagd på draft-grid-anropen i
+  manual-läget, campaign-etapp-valet och "Campaign complete"-vyn —
+  ALDRIG på stridsplacerade kort (bara i urvals-vyer, per
+  användarens egen "i draft-vyn"-formulering).
+- **`campaignStageAIDifficulty(stageIndex)`/`effectiveAIDifficulty()`**
+  — 0-baserat etapp-index, 1-5→easy, 6-11→normal, 12-17→hard.
+  `effectiveAIDifficulty()` returnerar etapp-nivån i Campaign, annars
+  `state.aiDifficulty` (spelarens manuella val) oförändrat. Både
+  `chooseAIPlacement()` och `enemyTryUseSpecial()`s Hard-special-
+  timing-koll uppdaterade att läsa via denna funktion istället för
+  `state.aiDifficulty` direkt. Den manuella svårighetsväljaren på
+  draft-skärmen gömd helt i Campaign-läget (`state.draftMode !==
+  'campaign'`-gate) och ersatt av en liten info-rad ("🌲 Forest AI this
+  stage: Normal — ...") på både etapp 1 och etapp 2+-vyerna, så
+  spelaren alltid vet vilken nivå de faktiskt möter.
+
+Verifierat: `node --check` grönt. Tre nya permanenta regressionstester
+(`recordMatchResult` — vinst/förlust/oavgjort, sträck-räkning inklusive
+en ny höjd bästa-sträck efter en tidigare förlust nollställt den,
+`cardWins`-inkrementering, campaign-läget spårar INGET, persistens över
+en simulerad omladdning; `cardFace`s kosmetiska klass + en explicit
+kontroll att `campaignPool()` fortfarande returnerar hela rostret
+oavsett unlock-status; `campaignStageAIDifficulty`s alla
+etappgränser plus att `effectiveAIDifficulty()` korrekt växlar mellan
+etapp-styrd och manuellt vald nivå). Hela testsviten grön: **112/112**
+(109 tidigare + 3 nya). Playwright-skärmdumpar bekräftar att "Your
+record"-panelen visar rätt siffror, att ett upplåst kort (Sarah) får
+`champion-unlocked`-klassen och den statiska guldringen medan ett
+icke-upplåst kort (Darien) inte gör det, och att campaign-etapp-vyn
+visar rätt auto-tilldelad AI-nivå utan att den manuella väljaren syns.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
