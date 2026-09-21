@@ -3075,6 +3075,59 @@ record"-panelen visar rätt siffror, att ett upplåst kort (Sarah) får
 icke-upplåst kort (Darien) inte gör det, och att campaign-etapp-vyn
 visar rätt auto-tilldelad AI-nivå utan att den manuella väljaren syns.
 
+**Fas 5: onboarding/UI-polish.** Sista fasen i den ursprungliga
+designöversynens roadmap. Tre konkreta punkter, ingen ny mekanik:
+
+1. **How to Play-knappen fick sin egen framträdande stil.** Den ärvde
+   tidigare `.ghost`-klassen — samma dämpade, halvtransparenta look som
+   knappar man förväntas kunna ignorera. Fel signal för just den
+   knappen: en förstagångsspelare är exakt vem den finns för, och den
+   låg dessutom längst ner under regeltexten, lätt att svepa förbi på
+   väg till Random Draft. Gav den en egen guldkantad/guldtonad
+   helbreddsstil (samma visuella språk som `.mode-btn.active` redan
+   använder för "det här spelar roll, tryck här") istället för att
+   konkurrera om uppmärksamhet som en eftertanke.
+2. **Info-knappen (`i`) på handkort på mobil fick ett större tryckbart
+   område utan att växa synligt.** Den synliga badgen är bara 13×13px
+   på 44px-breda handkort — ingen plats att göra den fysiskt större
+   utan att krocka med stat-/element-badgarna. Löst med en osynlig
+   `::before`-overlay (`position:absolute; inset:-6px`) ovanpå den
+   redan `position:absolute`-placerade knappen — ett klick var som
+   helst inom det utökade ~25×25px-området räknas som ett klick på
+   knappen själv (det är knappens eget renderade innehåll, inte ett
+   syskon-element), så noll JS-ändringar krävdes.
+3. **Regelbokens sidbilder fick riktig alt-text.** Läste igenom alla 7
+   sidbilder (`rulebook-page-*.jpg`) direkt — de är illustrerade och på
+   svenska, med substantiellt regelinnehåll (t.ex. bas-sidan täcker
+   placering/jämförelse/flip plus Same/Plus/Combo/Elemental Clash,
+   "optional"-sidan upprepar samma fyra regler mer detaljerat).
+   Tidigare fick en skärmläsare bara höra "Rulebook page N of M" —
+   ingen maskinläsbar text alls. Vägde en full textbaserad
+   regelboks-ersättning (skulle kräva att skriva OCH översätta en hel
+   parallell regelbok från svenska — ett mycket större
+   innehållsåtagande) mot en nedskalad version: en ny parallell
+   `RULEBOOK_PAGE_ALT`-array (separat från `RULEBOOK_PAGES` så all
+   befintlig `.length`/`.map`-användning där förblir orörd) med en
+   trogen engelsk beskrivning av varje sidas faktiska innehåll,
+   tillagd i `renderRulebookModal()`s `<img alt="...">` som en
+   fortsättning efter det gamla sidnummer-fallbacket. Denna
+   avgränsning (alt-text, inte en full text-regelbok) är ett
+   scope-beslut jag tog själv under arbetet — flaggat till användaren
+   i slutrapporten för fasen, inte förhandsgodkänt.
+
+Verifierat: `node --check` grönt. Tre nya permanenta regressionstester
+(How to Play-knappen saknar `.ghost` och har den nya
+guldkant/helbredd-stilen; `.info-btn::before` expanderar exakt 6px åt
+alla håll på mobil-viewport medan den synliga badgen förblir 13px;
+`RULEBOOK_PAGE_ALT` har lika många poster som `RULEBOOK_PAGES` och
+`renderRulebookModal()` inkluderar rätt beskrivning för både sida 1
+och sida 4, med sidnummer-texten kvar som prefix). Hela testsviten
+grön: **115/115** (112 tidigare + 3 nya). Playwright-skärmdumpar på
+både desktop och 375px mobil-viewport bekräftar att knappen syns
+tydligt guldkantad ovanför "Optional rules"-panelen och att
+mobillayouten inte fått några regressioner; ingen konsol/page-error
+i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
