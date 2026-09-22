@@ -3554,6 +3554,77 @@ målkortet, och Forbidden Harmonys skärmdump visar alla fyra
 systerfärgerna samtidigt runt Triune Desire. Ingen konsol/page-error i
 något test.
 
+**Fas 11: Game-feel-uppföljning — hitstop + impact-punch.** Användaren
+frågade om tips på att göra Ultimate-effekterna ännu bättre. Jag föreslog
+(kort, utforskande svar, inget implementerat än) fyra idéer och
+rekommenderade en: **hitstop/impact-frame-paus** (billigast, träffar hela
+det delade systemet på en gång) + en liten **kamera-punch** (skalzoom vid
+träff). Användaren godkände ("Ja gör det") men la själv till ett genuint
+observation-fynd: för AOE-attacker som förstör kort hinner korten redan
+försvinna från brädet i SAMMA tick som träff-VFX:en visas — spelaren
+hinner aldrig se attacken faktiskt träffa dem innan de förstörs.
+
+Rotorsak: `playUltimateSequence`s gamla fas 2 körde `handler()` (som
+anropar `destroyCard()` synkront) i EXAKT samma tick som impact-
+banderollen sattes och renderades — så det första impact-renderingen
+någonsin visade ett redan-tomt bräde för varje förstört kort, oavsett
+special. Detta gällde inte bara Fas 8-10:s nya AOE-kort utan varenda
+Ultimate i spelet, inklusive redan existerande (Infernal Pact, Silver
+Judgment, Omega Protocol, m.fl.) — ett genuint, tidigare odokumenterat
+game-feel-hål i grundarkitekturen, inte en kort-specifik bugg.
+
+Lösning: `playUltimateSequence` delades upp i tre riktiga faser istället
+för två:
+
+1. **Windup** (oförändrad, `ULTIMATE_WINDUP_MS`).
+2. **Träff** (ny gräns): banderollen växlar till `phase:'impact'`,
+   `attackFlash` sätts, ljud spelas, och rendern visar ring/hit/flash-
+   VFX:en — men brädet är fortfarande OFÖRÄNDRAT. Ny konstant
+   `ULTIMATE_HITSTOP_MS = 220` (samma "spectacle, inte friktion"-princip
+   som de andra `ULTIMATE_*`-konstanterna — medvetet INTE skalad av
+   `fxTime`/Fast Mode) håller kvar detta läge en kort stund.
+3. **Upplösning** (efter hitstop-pausen): `handler()` körs nu FÖRST här —
+   flip/förstörelse/debuff, `capturedCount`, chainShake-beslutet och
+   "Conquered!"-popupen, precis som tidigare kod, bara flyttad bakom
+   hitstop-pausen.
+
+Detta löser användarens observation helt generellt (alla nuvarande OCH
+framtida Ultimate-kort, inte bara AOE-förstörare) utan att röra en enda
+kort-specifik `SPECIAL_HANDLERS`-funktion.
+
+**Impact-punch**: ny `state.impactPunch`-flagga, satt (medvetet
+OVILLKORLIGT — till skillnad från `chainShake`s
+`capturedCount>=3`-tröskel) i samma ögonblick som upplösningen sker, så
+även en enda liten fångst känns som en träff. Renderas som
+`.board.impact-punch` (en kort `scale(1.035)`-puls) — medvetet på
+`.board`, INTE `.arena-frame` (som `chain-shake` redan animerar via
+`transform`), eftersom två `animation`-deklarationer på samma element inte
+går att kombinera i CSS (den senare i källkodsordning vinner helt, de
+adderas inte) — genom att lägga punchen på ett barn-element (`.board`
+inuti `.arena-frame`) kan translate-skaket och scale-punchen köra
+samtidigt utan att krocka.
+
+Verifierat: `node --check` grönt. En stor testfil-uppdatering krävdes —
+24 befintliga tester väntade exakt `ULTIMATE_WINDUP_MS + 50` innan de
+läste av upplösningsresultatet (flip/fångst/förstörelse), vilket nu sker
+`ULTIMATE_HITSTOP_MS` senare; alla uppdaterade till att vänta
+`ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50` (samt tre
+cleanup-väntningar med `+ 1300 + ...`). Tre nya permanenta
+regressionstester: (1) det faktiska hitstop-hålet — ett AOE-förstöra-kort
+(Vaeliras Infernal Pact) har sin impact-banderoll/VFX redan aktiv medan
+målet fortfarande finns kvar OFÖRSTÖRT på brädet, och förstörs först efter
+hitstop-pausen; (2) `impactPunch` triggas ovillkorligt vid en enda liten
+fångst (Twin Brothers' Solar Tempest, som INTE når `chainShake`s
+tröskelvärde) och rensas tillsammans med skaket; (3) `.board` får
+`impact-punch`-klassen bara när flaggan är satt. Hela testsviten grön:
+**137/137** (134 tidigare + 3 nya). Playwright-skärmdumpar av ett riktigt
+Forbidden Harmony-anrop (Triune Desire mot 4 Cave Ogres) bekräftar
+flödet visuellt: en bild tagen precis när impact-fasen börjar visar
+ringen/träff-VFX:en över fyra fullt intakta, ofärgade Cave Ogres, och en
+andra bild tagen precis när `destroyGhosts` faktiskt fylls visar samma
+fyra kort nu krossade/bleknande — exakt den ordning användaren efterfrågade.
+Ingen konsol/page-error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

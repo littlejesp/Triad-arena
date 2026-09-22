@@ -159,7 +159,7 @@ test('conquest banner: an AOE special (Pallis & Pell) triggers it on an actual c
     // Game feel phase 4: the effect no longer resolves synchronously —
     // runSpecialResolution now plays a windup beat first (see
     // playUltimateSequence). Wait past it before reading the result.
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     return { ownerAfter: state.board[1].owner, conquestPopup: state.conquestPopup };
   })()`);
   assert.equal(result.ownerAfter, 'blue');
@@ -180,7 +180,7 @@ test('Hunter\'s Wrath: each defeated card permanently loses 2 Power on all sides
     state.wins = { blue: 5, red: 5 };
     state.specialUsed = {};
     runSpecialResolution(4, null, {});
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     return {
       firstFlipped: state.board[1].owner === 'blue',
       secondFlipped: state.board[7].owner === 'blue',
@@ -209,7 +209,7 @@ test('conquest banner: a non-capturing special (Deathblade\'s swap) does not tri
     state.specialUsed = {};
     state.conquestPopup = false;
     runSpecialResolution(4, 1, {});
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     return { conquestPopup: state.conquestPopup };
   })()`);
   assert.equal(result.conquestPopup, false);
@@ -231,7 +231,7 @@ test('conquest banner: a stale justFlipped flag elsewhere on the board is not a 
     state.specialUsed = {};
     state.conquestPopup = false;
     runSpecialResolution(4, null, {});
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     return { conquestPopup: state.conquestPopup };
   })()`);
   assert.equal(result.conquestPopup, false);
@@ -2000,7 +2000,7 @@ test('AI can now use direction-targeting Ultimates (Vorgrath and friends) — pr
     // now (see playUltimateSequence) — used is still true synchronously
     // (the AI committed to the cast), but the actual board change needs
     // waiting for.
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     return { used, somethingDied: state.board[1] === null || state.board[7] === null };
   })()`);
   assert.equal(result.used, true, 'the AI actually fired a direction-targeting Ultimate');
@@ -2282,7 +2282,7 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
     state.board[1] = freshEntry(findCardById('ogre'), 'red');
     state.playerHand = []; state.enemyHand = [];
     runSpecialResolution(0, null);
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.ghostRecordedAfterResolve = state.destroyGhosts.length === 1 && state.destroyGhosts[0].index === 1;
 
     return out;
@@ -2310,7 +2310,7 @@ test('Visual feedback: SpecialVerbs now flash every changed card (not just singl
     state.board[1] = freshEntry(findCardById('ogre'), 'red');
     state.playerHand = []; state.enemyHand = [];
     runSpecialResolution(0, null);
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 250));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 1300 + 250));
     return state.destroyGhosts.length;
   });
   assert.equal(cleared, 0, 'destroyGhosts is cleared by the existing windup+1300ms animation-cleanup timers');
@@ -5525,7 +5525,7 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
     out.winsDeductedImmediately = state.wins.blue === 3; // cost 2, 5-2=3
     out.boardUntouchedDuringWindup = state.board[1].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.effectResolvedAfterWindup = state.board[1].owner === 'blue';
     out.castingGlowClearedAfterWindup = src.ultimateCasting === false;
     out.impactPhaseAfterWindup = state.ultimateBanner && state.ultimateBanner.phase === 'impact';
@@ -5570,14 +5570,14 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
     out.secondNotResolvedYet = state.board[5].owner === 'red';
 
     // First cast's full lifecycle: windup + impact-hold + fade + cleanup.
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 100));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 1300 + 100));
     out.firstResolved = state.board[1].owner === 'blue';
     // The queued second cast should have started its OWN windup by now
     // (immediately after the first's cleanup), not resolved yet.
     out.secondNowWindingUp = state.ultimateBanner && state.ultimateBanner.sourceIndex === 4 && state.ultimateBanner.phase === 'cast';
     out.secondStillNotResolved = state.board[5].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.secondResolvedAfterItsOwnWindup = state.board[5].owner === 'blue';
 
     return out;
@@ -5703,7 +5703,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
     runSpecialResolution(4, 1, {});
     out.ifritPlayedDuringWindup = playCalls.slice();
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 100));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 1300 + 100));
 
     playCalls.length = 0;
     state.board = Array(9).fill(null);
@@ -5819,7 +5819,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     runSpecialResolution(4, 1, {});
     out.ifritDuringWindup = playCalls.slice(); // only the cast-phase voice line so far
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 1300 + 100));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 1300 + 100));
     out.ifritAtImpact = playCalls.slice(); // now the impact SFX should have joined it
 
     playCalls.length = 0;
@@ -5832,7 +5832,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
     out.nyxaraDuringWindup = playCalls.slice();
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.nyxaraAtImpact = playCalls.slice();
 
     await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
@@ -5847,7 +5847,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
     out.vaeliraDuringWindup = playCalls.slice();
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.vaeliraAtImpact = playCalls.slice();
 
     await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
@@ -5862,7 +5862,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
     out.seraphineDuringWindup = playCalls.slice();
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.seraphineAtImpact = playCalls.slice();
 
     await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
@@ -5877,7 +5877,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
     out.omegaweaponDuringWindup = playCalls.slice();
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.omegaweaponAtImpact = playCalls.slice();
 
     await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
@@ -5892,7 +5892,7 @@ test('Game feel phase 4d: Ifrit\'s Hellfire, Nyxara\'s Void Dominion, Vaelira\'s
     runSpecialResolution(4, null, {}); // AOE: null target, mirrors executeSpecial
     out.shivaDuringWindup = playCalls.slice();
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
     out.shivaAtImpact = playCalls.slice();
 
     window.Audio = OrigAudio;
@@ -5946,7 +5946,7 @@ test('Nyxara Void Dominion identity VFX (one-off test): void aura/darkening/crac
     out.particleCount = document.querySelectorAll('.void-particle').length;
     out.boardUntouchedDuringCast = state.board[1].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: effect has landed (destroy, not a capture -- so
     // justFlipped is never set), the crack/darkening switch to their
@@ -6032,7 +6032,7 @@ test('Ifrit Hellfire identity VFX (one-off test): card aura/rumble/blast/target-
       && Math.abs(parseFloat(fx.style.getPropertyValue('--hellfire-y')) - 50) < 0.1;
     out.boardUntouchedDuringCast = state.board[1].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: the rumble is gone (it was cast-phase only), the blast
     // and target-hit both appear, the target position matches the ACTUAL
@@ -6135,7 +6135,7 @@ test('Vaelira Infernal Pact identity VFX (one-off test): card aura/sigil/wave/pe
     out.hitFlashesInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
     out.boardUntouchedDuringCast = state.board[1].owner === 'red' && state.board[7].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: wave present, exactly ONE hit-flash per enemy that was
     // actually on the board at cast time (2 here), chainShake fires despite
@@ -6237,7 +6237,7 @@ test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/spa
     out.oneBeamPointsStraightDown = beams.some(b => b.style.transform.includes('90deg') && !b.style.transform.includes('-90deg'));
     out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: hit count matches the enemy count, wave and flash both
     // appear, both enemies destroyed, chainShake fires despite a
@@ -6340,7 +6340,7 @@ test('Omega Weapon Omega Protocol identity VFX (one-off test): card aura/targeti
     out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
     out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: blast + explosion hits (one per enemy) + flash all
     // appear, both weak enemies destroyed, chainShake fires despite Omega
@@ -6437,7 +6437,7 @@ test('Shiva Diamond Storm identity VFX (one-off test): card aura/shard rails/fra
     out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
     out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: hit bursts (one per enemy) + wave + flash all appear,
     // both enemies debuffed and Shiva buffed (a plain AOE debuff, not a
@@ -6534,7 +6534,7 @@ test('Bahamut Megaflare identity VFX (one-off test): card aura/charge/sweep/hits
     out.hitsInvisibleDuringCast = castHits.length === 2 && castHits.every(h => getComputedStyle(h).opacity === '0');
     out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[5].owner === 'red';
 
-    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: the full-width sweep + hit bursts (one per enemy) +
     // board-wide wave + lingering stars + flash all appear, both enemies
@@ -8304,6 +8304,102 @@ test('Fas 10 (design review #2, VFX expansion round 3): Eternal Verdict and Forb
   })()`);
   assert.equal(result.eternalVerdictSnapshotsOnlyTheLine, true);
   assert.equal(result.forbiddenHarmonySnapshotsOnlyAdjacent, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 11 (game-feel review: hitstop + impact punch): the impact VFX lands with the struck card(s) still on the board, and destroys/flips only resolve after a brief hitstop hold', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.board = Array(9).fill(null);
+    const src = freshEntry(findCardById('vaelira'), 'blue'); // Infernal Pact -- destroyCard-based AOE
+    state.board[4] = src;
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    // Past the windup, but well before the hitstop hold elapses: the impact
+    // banner/VFX should already be live (this is the moment the player sees
+    // the hit connect), but the target must NOT be destroyed yet -- the
+    // whole point of the hitstop hold.
+    out.impactBannerLiveDuringHitstop = state.ultimateBanner && state.ultimateBanner.phase === 'impact' && state.ultimateBanner.enemyIndices && state.ultimateBanner.enemyIndices.includes(1);
+    out.targetStillOnBoardDuringHitstop = state.board[1] !== null && state.board[1].owner === 'red';
+    out.noGhostYetDuringHitstop = state.destroyGhosts.length === 0;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_HITSTOP_MS + 50));
+    out.targetDestroyedAfterHitstop = state.board[1] === null;
+    out.ghostRecordedAfterHitstop = state.destroyGhosts.length === 1 && state.destroyGhosts[0].index === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.impactBannerLiveDuringHitstop, true, 'the impact VFX must already be showing while the target is still intact');
+  assert.equal(result.targetStillOnBoardDuringHitstop, true, "the target must not be destroyed yet -- that's the entire point of the hitstop hold");
+  assert.equal(result.noGhostYetDuringHitstop, true);
+  assert.equal(result.targetDestroyedAfterHitstop, true, 'the destroy resolves once the hitstop hold elapses');
+  assert.equal(result.ghostRecordedAfterHitstop, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 11 (game-feel review: hitstop + impact punch): state.impactPunch fires on EVERY Ultimate\'s actual resolve moment, not gated by chainShake\'s capture-magnitude threshold, and clears alongside it', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.board = Array(9).fill(null);
+    // Twin Brothers' Solar Tempest: single-target, capturedCount will be 1
+    // (well under chainShake's >=3 threshold and not on its explicit
+    // opt-in list) -- proves impactPunch is unconditional, unlike chainShake.
+    state.board[4] = freshEntry(findCardById('twinbrothers'), 'blue');
+    state.board[1] = freshEntry({ id:'weak1', name:'Weak1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 5, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + 50));
+    out.notPunchedYetDuringHitstop = state.impactPunch === false;
+
+    await new Promise(r => setTimeout(r, ULTIMATE_HITSTOP_MS + 50));
+    out.punchedAtResolve = state.impactPunch === true;
+    out.chainShakeStaysOffForSmallCapture = state.chainShake === false;
+
+    await new Promise(r => setTimeout(r, 500 + 50)); // ULTIMATE_SHAKE_MS
+    out.punchClearedAfterShakeWindow = state.impactPunch === false;
+
+    return out;
+  })()`);
+  assert.equal(result.notPunchedYetDuringHitstop, true);
+  assert.equal(result.punchedAtResolve, true, 'impactPunch fires at the actual resolve moment even for a small single-target capture');
+  assert.equal(result.chainShakeStaysOffForSmallCapture, true, 'a single capture stays under chainShake\'s own magnitude threshold, proving the punch is unconditional and independent of it');
+  assert.equal(result.punchClearedAfterShakeWindow, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 11 (game-feel review: hitstop + impact punch): .board gets the impact-punch class only while state.impactPunch is true', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+    state.board = Array(9).fill(null);
+    state.ultimateBanner = null;
+
+    state.impactPunch = false;
+    out.noClassWhenFalse = !renderBattle().includes('impact-punch');
+
+    state.impactPunch = true;
+    out.classPresentWhenTrue = renderBattle().includes('class="board impact-punch"');
+
+    return out;
+  })()`);
+  assert.equal(result.noClassWhenFalse, true);
+  assert.equal(result.classPresentWhenTrue, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

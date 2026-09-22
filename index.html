@@ -1137,6 +1137,22 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   90%{ transform:translate(1px,0); }
   100%{ transform:translate(0,0); }
 }
+/* Design review #2 follow-up ("gör effekterna bättre" -- hitstop + camera
+   punch): a small, quick zoom-in on the BOARD itself (not .arena-frame,
+   which chain-shake already animates via `transform`) right at the exact
+   moment an Ultimate's effect lands. Deliberately unconditional -- EVERY
+   Ultimate gets this small punch, not just the big-capture-magnitude ones
+   that also earn chain-shake -- so it reads as "this hit landed" even for
+   a single-target special that never triggers chain-shake at all. Putting
+   it on .board instead of .arena-frame means it can layer with chain-shake
+   (translate on the outer frame + scale on the inner board) without the two
+   `animation` declarations fighting over the same element. */
+.board.impact-punch{ animation: impactPunch 0.32s ease; }
+@keyframes impactPunch{
+  0%{ transform:scale(1); }
+  35%{ transform:scale(1.035); }
+  100%{ transform:scale(1); }
+}
 .arena-rosette{ position:absolute; inset:12%; z-index:0; pointer-events:none; opacity:0.85; }
 
 /* Game-feel phase 1: ambient arena life (drifting energy motes + a slow
@@ -4310,6 +4326,7 @@ let state = {
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
+  impactPunch: false,     // true briefly at the exact moment ANY Ultimate's effect lands (every card, not magnitude-gated like chainShake) — .board.impact-punch, see playUltimateSequence
   ultimateBanner: null,   // { phase:'cast'|'impact', owner, name, sourceIndex } while an Ultimate's windup/impact sequence plays — see runSpecialResolution/playUltimateSequence
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
   newAchievements: [], // achievement ids newly unlocked by the just-finished match, for the result screen -- see checkAchievements()
@@ -5420,7 +5437,7 @@ function renderBattle(){
         <span class="arena-mote"></span>
       </div>
       ${voidDominionActive ? `<div class="void-dominion-dark phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>` : ''}
-      <div class="board">
+      <div class="board ${state.impactPunch ? 'impact-punch' : ''}">
         ${state.board.map((cell,i) => boardCellHtml(cell, i, previewVulnerable)).join('')}
       </div>
       ${voidDominionActive ? `
@@ -9332,6 +9349,16 @@ let ultimateQueue = [];
 const ULTIMATE_WINDUP_MS = 950;
 const ULTIMATE_SHAKE_MS = 500;
 const ULTIMATE_CLEANUP_MS = 1300;
+// Game-feel review follow-up ("gör effekterna bättre"): a brief hold
+// between the hit VFX (ring/flash) landing and the actual result (flip/
+// destroy/debuff) resolving, so the player gets to SEE the attack connect
+// with a still-intact card before it's captured or destroyed -- most
+// visible on AOE-destroy cards (Eternal Verdict, Forbidden Harmony,
+// Infernal Pact, etc), where the old single-tick resolve meant destroyCard
+// had already nulled the board slot before the very first impact-phase
+// render ever happened. Same "spectacle, not friction" reasoning as the
+// other ULTIMATE_* constants above -- deliberately not scaled by fxTime.
+const ULTIMATE_HITSTOP_MS = 220;
 
 // Game feel phase 4c: real generated/recorded voice lines per Ultimate —
 // the "actually sounds good" alternative to phase 4b's speechSynthesis
@@ -9487,53 +9514,20 @@ function playUltimateSequence(job){
     if(ultimateBannerToken !== token) return; // superseded — shouldn't happen given the queue above, but matches showConquestPopup's own safety pattern
     srcEntry.ultimateCasting = false;
 
-    // Phase 2: the effect actually resolves now (this is the ONLY part of
-    // the original synchronous code below this point — unchanged logic,
-    // just moved behind the windup delay).
+    // Phase 2: the hit visually LANDS now -- banner switches to its
+    // "impact" look (ring/hit/flash VFX start playing) and the struck
+    // card flashes exactly like a normal attack, but the board is still
+    // completely UNRESOLVED: nothing has flipped, been destroyed, or been
+    // debuffed yet. This used to be the exact same tick as the effect
+    // actually resolving below, which meant an AOE-destroy card (Eternal
+    // Verdict, Forbidden Harmony, Infernal Pact, etc) had already nulled
+    // every struck cell via destroyCard() before the very first
+    // impact-phase render ever happened -- the hit VFX only ever landed on
+    // cells that were already empty. Splitting this into its own beat, held
+    // for ULTIMATE_HITSTOP_MS below, lets the player actually see the
+    // attack connect with the still-intact card(s) first.
     const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
     if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
-    // Snapshot which cells were already flagged justFlipped (from an earlier
-    // action still mid-animation) so an AOE handler's captures — e.g. Pallis &
-    // Pell's Hunter's Wrath, which has no single targetEntry to check — are
-    // still detected below without also re-triggering the banner for a stale
-    // flip that isn't this special's doing.
-    const alreadyFlipped = new Set();
-    state.board.forEach((e, i) => { if(e && e.justFlipped) alreadyFlipped.add(i); });
-    state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
-    const capturedCount = state.board.filter((e, i) => e && e.owner === owner && e.justFlipped && !alreadyFlipped.has(i)).length;
-    if(capturedCount > 0){
-      showConquestPopup(owner);
-    }
-    // Same magnitude-gated shake as phase 3's Same/Combo chains (see
-    // placeCard) — a big Ultimate sweep feels like a big chain, reuses the
-    // same .arena-frame.chain-shake mechanism rather than a new one.
-    // Void Dominion is always a DESTROY (destroyCard), never a flip/capture,
-    // so it would never set justFlipped and capturedCount would always be 0
-    // here — explicitly opted in as part of her one-off VFX test so the
-    // "kort impact/screen shake" she asked for actually fires.
-    // Ifrit's Hellfire is single-target, so capturedCount is realistically
-    // never >= 3 either — same explicit opt-in as Void Dominion above, for
-    // the same reason (her one-off VFX test's screen-shake request).
-    // Vaelira's Infernal Pact and Seraphine's Silver Judgment are the same
-    // destroy-based shape as Void Dominion (destroyCard, never
-    // justFlipped) — same opt-in, same reason. Omega Weapon's Omega
-    // Protocol also destroys via destroyCard (just conditionally, only the
-    // weak enemies) — same opt-in either way.
-    // Shiva's Diamond Storm never flips anything either (a plain AOE
-    // debuff, not a capture or a destroy) so capturedCount is always 0
-    // here too -- same explicit opt-in as every other card in this list,
-    // for the same "kort screen shake vid impacten" request in her brief.
-    // Gorgon's Dominion (petrify-only) and Ragnarök (a pure permanent
-    // debuff via SpecialVerbs.debuff) never flip/capture anything either,
-    // same "never sets justFlipped, so capturedCount would always be 0"
-    // reasoning as every other explicit opt-in in this list.
-    // Eternal Verdict (destroy-or-debuff) and Forbidden Harmony (destroy
-    // only) are the same shape again -- destroyCard/SpecialVerbs.debuff,
-    // never a flip.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony') state.chainShake = true;
-
-    // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
-    // starts fading; the board now shows the real result underneath it.
     state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast, direction: extra && extra.direction };
     SFX.bonus();
     playUltimateImpactSfx(srcEntry.card.id);
@@ -9541,21 +9535,76 @@ function playUltimateSequence(job){
 
     setTimeout(()=>{
       if(ultimateBannerToken !== token) return;
-      state.chainShake = false;
-      render();
-    }, ULTIMATE_SHAKE_MS);
 
-    setTimeout(()=>{
-      if(ultimateBannerToken !== token) return;
-      state.board.forEach(entry=>{
-        if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; entry.fxStep = 0; }
-      });
-      state.destroyGhosts = [];
-      state.ultimateBanner = null;
+      // Phase 3: the effect actually resolves now (this is the ONLY part of
+      // the original synchronous code below this point — unchanged logic,
+      // just moved behind the hitstop hold above instead of running in the
+      // exact same tick as the impact banner).
+      // Snapshot which cells were already flagged justFlipped (from an
+      // earlier action still mid-animation) so an AOE handler's captures —
+      // e.g. Pallis & Pell's Hunter's Wrath, which has no single
+      // targetEntry to check — are still detected below without also
+      // re-triggering the banner for a stale flip that isn't this
+      // special's doing.
+      const alreadyFlipped = new Set();
+      state.board.forEach((e, i) => { if(e && e.justFlipped) alreadyFlipped.add(i); });
+      state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
+      const capturedCount = state.board.filter((e, i) => e && e.owner === owner && e.justFlipped && !alreadyFlipped.has(i)).length;
+      if(capturedCount > 0){
+        showConquestPopup(owner);
+      }
+      // Same magnitude-gated shake as phase 3's Same/Combo chains (see
+      // placeCard) — a big Ultimate sweep feels like a big chain, reuses the
+      // same .arena-frame.chain-shake mechanism rather than a new one.
+      // Void Dominion is always a DESTROY (destroyCard), never a flip/capture,
+      // so it would never set justFlipped and capturedCount would always be 0
+      // here — explicitly opted in as part of her one-off VFX test so the
+      // "kort impact/screen shake" she asked for actually fires.
+      // Ifrit's Hellfire is single-target, so capturedCount is realistically
+      // never >= 3 either — same explicit opt-in as Void Dominion above, for
+      // the same reason (her one-off VFX test's screen-shake request).
+      // Vaelira's Infernal Pact and Seraphine's Silver Judgment are the same
+      // destroy-based shape as Void Dominion (destroyCard, never
+      // justFlipped) — same opt-in, same reason. Omega Weapon's Omega
+      // Protocol also destroys via destroyCard (just conditionally, only the
+      // weak enemies) — same opt-in either way.
+      // Shiva's Diamond Storm never flips anything either (a plain AOE
+      // debuff, not a capture or a destroy) so capturedCount is always 0
+      // here too -- same explicit opt-in as every other card in this list,
+      // for the same "kort screen shake vid impacten" request in her brief.
+      // Gorgon's Dominion (petrify-only) and Ragnarök (a pure permanent
+      // debuff via SpecialVerbs.debuff) never flip/capture anything either,
+      // same "never sets justFlipped, so capturedCount would always be 0"
+      // reasoning as every other explicit opt-in in this list.
+      // Eternal Verdict (destroy-or-debuff) and Forbidden Harmony (destroy
+      // only) are the same shape again -- destroyCard/SpecialVerbs.debuff,
+      // never a flip.
+      if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony') state.chainShake = true;
+      // Game-feel review follow-up: unlike chainShake above (magnitude-
+      // gated), EVERY Ultimate gets this small camera punch right at its
+      // actual resolve moment — see .board.impact-punch.
+      state.impactPunch = true;
       render();
-      maybeEndTurn(owner);
-      if(ultimateQueue.length > 0) playUltimateSequence(ultimateQueue.shift());
-    }, ULTIMATE_CLEANUP_MS);
+
+      setTimeout(()=>{
+        if(ultimateBannerToken !== token) return;
+        state.chainShake = false;
+        state.impactPunch = false;
+        render();
+      }, ULTIMATE_SHAKE_MS);
+
+      setTimeout(()=>{
+        if(ultimateBannerToken !== token) return;
+        state.board.forEach(entry=>{
+          if(entry){ entry.justFlipped = false; entry.shieldFlash = false; entry.bonusFlash = false; entry.attackFlash = false; entry.fxDelay = 0; entry.fxStep = 0; }
+        });
+        state.destroyGhosts = [];
+        state.ultimateBanner = null;
+        render();
+        maybeEndTurn(owner);
+        if(ultimateQueue.length > 0) playUltimateSequence(ultimateQueue.shift());
+      }, ULTIMATE_CLEANUP_MS);
+    }, ULTIMATE_HITSTOP_MS);
   }, ULTIMATE_WINDUP_MS);
 }
 
@@ -10500,7 +10549,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
