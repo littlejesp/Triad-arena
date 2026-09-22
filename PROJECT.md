@@ -3914,6 +3914,27 @@ båda VFX:erna visuellt — Concords gyllene ring träffar tydligt bara sina
 två blå allierade Cave Ogres, den röda Nyxara lämnas helt orörd. Ingen
 konsol/page-error i något test.
 
+**Fas 15, uppföljning: riktig konst tillagd.** Användaren påpekade att
+korten fortfarande saknade bild och frågade om de skulle skicka
+originalbilderna igen — de fanns redan sparade lokalt från den tidigare
+turen, så inget behövdes skickas om. Samma problem som Fas 14:s
+"Erövrad"-badge (siffror/text inbakat i själva bilden) gällde även här,
+men `.card-art`s CSS (`background-size:cover; background-position:center
+15%`) hanterar godtyckliga bildbeskärningar automatiskt, så lösningen var
+enklare denna gång: beskar bort bara den rena karaktärsillustrationen
+(ett vågrätt band mellan ~10% och ~46% av originalbildens höjd, som
+undviker både hörn-siffercirklarna högst upp och kompass-ikon-raden +
+text-panelen längre ner) med Pillow, sparade som
+`cards/card-elyrion.jpg`/`cards/card-concord.jpg` och lade till i
+`CARD_IMAGES` (inte `FULL_CARD_IMAGES` — den vägen renderar bilden RÅ
+utan något kod-overlay alls, vilket bara passar en dedikerad stående
+poster-bild, inte ett vågrätt beskuret band). Ett nytt permanent
+regressionstest lades till (kontrollerar att båda korten har en
+`CARD_IMAGES`-post). Hela testsviten grön: **149/149**. Playwright-
+skärmdumpar bekräftar att konsten renderar korrekt både på spelbrädet
+och i den fulla detalj-modalen (stat-diamanter/färdighetstext läggs
+snyggt ovanpå, som för varje annat kort med egen bild).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

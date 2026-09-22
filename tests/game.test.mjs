@@ -8990,3 +8990,17 @@ test('Fas 15 (VFX for the two new cards): Elyrion\'s Threads of Destiny and The 
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 15 follow-up: Elyrion and The Concord have real CARD_IMAGES art (cropped from the user\'s own supplied images), not just the icon+gradient fallback', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    return {
+      elyrionHasArt: typeof CARD_IMAGES.elyrion === 'string' && CARD_IMAGES.elyrion.length > 0,
+      concordHasArt: typeof CARD_IMAGES.concord === 'string' && CARD_IMAGES.concord.length > 0,
+    };
+  })()`);
+  assert.equal(result.elyrionHasArt, true);
+  assert.equal(result.concordHasArt, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
