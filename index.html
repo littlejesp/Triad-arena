@@ -5178,6 +5178,56 @@ function renderBattle(){
     }));
   }
 
+  // Medusa's Gorgon's Dominion -- a stony petrification AOE: one grey/
+  // green .vfx-ring from her cell, a .vfx-hit per enemy (added to
+  // aoeEnemyIndicesAtCast above, same reasoning as Diamond Storm's own
+  // non-destroying AOE), and a few lingering .vfx-twinkle "stone dust"
+  // particles.
+  const gorgonActive = state.ultimateBanner && state.ultimateBanner.name === "Gorgon's Dominion";
+  let gorgonOriginX = 50, gorgonOriginY = 50, gorgonHitPositions = [];
+  if(gorgonActive){
+    ({ x: gorgonOriginX, y: gorgonOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    gorgonHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      ...cellCenterPercent(i),
+      delay: 0.15 + n * 0.05,
+    }));
+  }
+
+  // Fenrir's Ragnarök -- a directional howl: unlike every AOE card above,
+  // the affected cells aren't "every enemy on the board" but only the
+  // ones in the chosen line (state.ultimateBanner.direction, threaded
+  // through from playUltimateSequence's own job.extra). Reuses
+  // enemiesInDirection() (the same pure function the real resolution/AI
+  // dispatch already use) rather than re-deriving row/col math a third
+  // time, so "which cells are in this line" can never drift out of sync
+  // with what the special itself actually affects.
+  const ragnarokActive = state.ultimateBanner && state.ultimateBanner.name === 'Ragnarök';
+  let ragnarokOriginX = 50, ragnarokOriginY = 50, ragnarokHitPositions = [];
+  if(ragnarokActive){
+    ({ x: ragnarokOriginX, y: ragnarokOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const dir = state.ultimateBanner.direction;
+    const lineCells = dir ? enemiesInDirection(state.ultimateBanner.sourceIndex, dir, state.ultimateBanner.owner) : [];
+    ragnarokHitPositions = lineCells.map((p, n) => ({
+      ...cellCenterPercent(p.index),
+      delay: 0.1 + n * 0.08,
+    }));
+  }
+
+  // Twin Brothers' Solar Tempest / Twin Sisters' Lunar Eclipse -- a
+  // mirrored pair sharing one derivation shape (single-target, warm gold
+  // sun vs cool silver-blue moon) so their VFX reads as two halves of the
+  // same idea rather than two unrelated cards, matching their own
+  // pairPresence bond in the card data.
+  const solarTempestActive = state.ultimateBanner && state.ultimateBanner.name === 'Solar Tempest';
+  const lunarEclipseActive = state.ultimateBanner && state.ultimateBanner.name === 'Lunar Eclipse';
+  let twinTargetX = 50, twinTargetY = 50;
+  if(solarTempestActive || lunarEclipseActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: twinTargetX, y: twinTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
   // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
   // it's a plain one-shot triggered by an ordinary attack). Reads
@@ -5415,6 +5465,33 @@ function renderBattle(){
           ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
         </div>
         <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(143,209,90,0.5); --vfx-flash-delay:0.3s;"></div>
+      ` : ''}
+      ${gorgonActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${gorgonOriginX}%; --vfx-y:${gorgonOriginY}%; --vfx-ring-color:rgba(160,190,150,0.9); --vfx-glow-color:rgba(80,110,70,0.65); --vfx-ring-soft:rgba(140,160,130,0.55); --vfx-hit-color:rgba(180,200,175,0.9); --vfx-hit-color-mid:rgba(90,110,85,0.7); --vfx-twinkle-color:#9fae95;">
+          <div class="vfx-ring"></div>
+          ${gorgonHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(140,160,130,0.4); --vfx-flash-delay:0.3s;"></div>
+      ` : ''}
+      ${ragnarokActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${ragnarokOriginX}%; --vfx-y:${ragnarokOriginY}%; --vfx-ring-color:rgba(170,220,255,0.95); --vfx-glow-color:rgba(94,200,242,0.7); --vfx-ring-soft:rgba(220,245,255,0.6); --vfx-hit-color:rgba(220,245,255,0.95); --vfx-hit-color-mid:rgba(94,180,230,0.7);">
+          <div class="vfx-ring"></div>
+          ${ragnarokHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(94,200,242,0.45); --vfx-flash-delay:0.25s;"></div>
+      ` : ''}
+      ${solarTempestActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${twinTargetX}%; top:${twinTargetY}%; --vfx-ring-color:rgba(255,210,120,0.95); --vfx-glow-color:rgba(224,161,47,0.75); --vfx-ring-soft:rgba(255,240,190,0.6);"></div>
+          <div class="vfx-hit" style="left:${twinTargetX}%; top:${twinTargetY}%; --vfx-hit-color:rgba(255,235,180,0.95); --vfx-hit-color-mid:rgba(224,161,47,0.75);"></div>
+        </div>
+      ` : ''}
+      ${lunarEclipseActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${twinTargetX}%; top:${twinTargetY}%; --vfx-ring-color:rgba(200,190,255,0.95); --vfx-glow-color:rgba(165,104,242,0.7); --vfx-ring-soft:rgba(225,220,255,0.6);"></div>
+          <div class="vfx-hit" style="left:${twinTargetX}%; top:${twinTargetY}%; --vfx-hit-color:rgba(220,215,255,0.95); --vfx-hit-color-mid:rgba(165,104,242,0.7);"></div>
+        </div>
       ` : ''}
       ${odinSlashPairs.length ? `
         <div class="odin-slash-fx" aria-hidden="true">
@@ -9272,7 +9349,7 @@ function playUltimateSequence(job){
   // every other AOE identity-VFX card, rather than re-deriving "who is an
   // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion"){
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
   }
 
@@ -9280,8 +9357,12 @@ function playUltimateSequence(job){
   // is about to happen", the actual effect hasn't run yet.
   // targetIndex is carried on the banner purely for presentation (e.g.
   // Ifrit's Hellfire VFX needs to know WHICH cell to hit, unlike Nyxara's
-  // AOE Void Dominion) -- never read by any gameplay logic.
-  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast };
+  // AOE Void Dominion) -- never read by any gameplay logic. direction is
+  // the same idea for Fenrir's Ragnarök -- a 'direction'-target special's
+  // own extra.direction choice, carried purely for VFX (see fenrirActive
+  // below), never read by gameplay logic (SPECIAL_HANDLERS.fenrir gets
+  // its own direction from job.extra directly, not from this banner).
+  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast, direction: extra && extra.direction };
   srcEntry.ultimateCasting = true;
   SFX.select();
   playUltimateVoiceLine(srcEntry.card.id);
@@ -9327,11 +9408,15 @@ function playUltimateSequence(job){
     // debuff, not a capture or a destroy) so capturedCount is always 0
     // here too -- same explicit opt-in as every other card in this list,
     // for the same "kort screen shake vid impacten" request in her brief.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare') state.chainShake = true;
+    // Gorgon's Dominion (petrify-only) and Ragnarök (a pure permanent
+    // debuff via SpecialVerbs.debuff) never flip/capture anything either,
+    // same "never sets justFlipped, so capturedCount would always be 0"
+    // reasoning as every other explicit opt-in in this list.
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.
-    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast };
+    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast, direction: extra && extra.direction };
     SFX.bonus();
     playUltimateImpactSfx(srcEntry.card.id);
     render();
