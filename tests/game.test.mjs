@@ -840,6 +840,13 @@ test('Triune Desire: Void Embrace buffs the whole team on any win, capped at +3'
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
     state.board = Array(9).fill(null);
+    // Explicit rules-off: triunedesire's flat 10/10/10/10 against four
+    // 1/1/1/1s makes every touching-side sum equal (11 in all four
+    // directions), which would otherwise satisfy the Plus rule (default
+    // ON as of Fas 6's design review #2) and route the capture through
+    // computeSamePlusCaptures instead of the normal battleOneNeighbor
+    // path this test is specifically exercising for the on-win hook.
+    state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
     state.playerHand = [findCardById('triunedesire')];
     const ally = freshEntry({ id:'ally-test', name:'Ally', top:5,right:5,bottom:5,left:5 }, 'blue');
     state.board[0] = ally;
@@ -6821,7 +6828,10 @@ test('chooseAIPlacement: full exhaustive endgame search overrides difficulty onc
     ${freshEntrySnippet()}
     const out = {};
     out.depthMapping = AI_DIFFICULTY_DEPTH.easy === 1 && AI_DIFFICULTY_DEPTH.normal === 2 && AI_DIFFICULTY_DEPTH.hard === 3;
-    out.fullSearchThreshold = AI_FULL_SEARCH_MAX_EMPTY === 5;
+    // Fas 6 (design review #2): tiered per difficulty -- Hard keeps the
+    // original threshold, Easy/Normal now stop playing exhaustively
+    // (provably-perfect) endgame moves much earlier in the match.
+    out.fullSearchThreshold = AI_FULL_SEARCH_MAX_EMPTY.easy === 2 && AI_FULL_SEARCH_MAX_EMPTY.normal === 3 && AI_FULL_SEARCH_MAX_EMPTY.hard === 5;
 
     // Reuse the exact trap scenario above (2 empty cells, well under the
     // full-search threshold) -- even 'easy' must play the objectively
@@ -6883,6 +6893,65 @@ test('chooseAIPlacement: full exhaustive endgame search overrides difficulty onc
   assert.equal(result.smoke.easy, true);
   assert.equal(result.smoke.normal, true);
   assert.equal(result.smoke.hard, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 6 (design review #2): AI_FULL_SEARCH_MAX_EMPTY is tiered per difficulty -- Easy stops playing exhaustively-optimal endgame moves earlier than Normal/Hard', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    // Same trap shape as the 2-empty-cell test above, plus a third empty
+    // cell (6) walled off from the contested zone (its only neighbors, 3
+    // and 7, are same-owner red fillers throughout, so whatever goes there
+    // never wins or loses a battle) and a second red card F (weak 1s, so
+    // it never out-scores cardR's real captures at cell 1/4 either) to
+    // fill it. This keeps the original trap/safe dynamic intact -- cell 1
+    // first still scores 3 once blue replies optimally, cell 4 first still
+    // scores 5 -- but now spread across 3 empty cells/plies instead of 2,
+    // so Easy's new fullSearchMaxEmpty=2 threshold no longer covers it
+    // while Normal's fullSearchMaxEmpty=3 (and Hard's =5) still do.
+    const filler = { id:'filler', name:'Filler', top:10, right:10, bottom:10, left:10 };
+    const W = { id:'w', name:'W', top:1, right:1, bottom:1, left:1 };
+    const W2 = { id:'w2', name:'W2', top:1, right:1, bottom:1, left:1 };
+    const F = { id:'f', name:'F', top:1, right:1, bottom:1, left:1 };
+    const cardR = { id:'cardR', name:'CardR', top:9, right:5, bottom:1, left:8 };
+    const cardB = { id:'cardB', name:'CardB', top:5, right:5, bottom:5, left:5 };
+
+    function setupBoard(){
+      state.board = Array(9).fill(null);
+      state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+      state.board[0] = freshEntry(W, 'blue');
+      state.board[2] = freshEntry(filler, 'red');
+      state.board[3] = freshEntry(filler, 'red');
+      state.board[5] = freshEntry(W2, 'blue');
+      state.board[7] = freshEntry(filler, 'red');
+      state.board[8] = freshEntry(filler, 'red');
+      // cell 6 left empty (was filler in the 2-cell version) for F to fill.
+      state.playerHand = [cardB];
+      state.enemyHand = [cardR, F];
+      state.turn = 'red';
+      state.phase = 'battle';
+    }
+
+    setupBoard();
+    state.aiDifficulty = 'easy';
+    out.easyFallsForTrap = chooseAIPlacement().cellIndex === 1;
+
+    setupBoard();
+    state.aiDifficulty = 'normal';
+    out.normalPlaysSafe = chooseAIPlacement().cellIndex === 4;
+
+    setupBoard();
+    state.aiDifficulty = 'hard';
+    out.hardPlaysSafe = chooseAIPlacement().cellIndex === 4;
+
+    return out;
+  })()`);
+  assert.equal(result.easyFallsForTrap, true, "at 3 empty cells Easy's threshold (2) is exceeded, so it must fall back to its shallow depth-1 search and fall for the trap");
+  assert.equal(result.normalPlaysSafe, true, "Normal's threshold (3) now covers 3 empty cells, so it must search exhaustively and avoid the trap -- this is the actual behavior change from the fix");
+  assert.equal(result.hardPlaysSafe, true, "Hard's threshold (5) already covered this case before the fix -- must be unaffected");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -7311,6 +7380,279 @@ test('Fas 5: rulebook page images carry real English alt text describing their a
   assert.equal(result.firstPageAltIncludesRealText, true);
   assert.equal(result.fourthPageAltIncludesRealText, true);
   assert.equal(result.stillIncludesPageNumberFallback, true, 'page-number text stays as a prefix alongside the new description');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 6 (design review #2): cloneScratchBoard preserves shield/turnsStanding state, so the AI search no longer misjudges shielded or Ancient-Wyrmking-style cards', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    const attacker = { id:'atk', name:'Atk', top:9, right:9, bottom:9, left:9 };
+
+    // 1. A currently-active granted shield (e.g. Tahabata's Soul
+    //    Petrification) must still block the simulated capture -- before
+    //    the fix, cloneScratchBoard dropped grantedShield entirely, so the
+    //    AI's search saw every shielded card as freely capturable.
+    const shieldedDefender = { id:'def1', name:'Def1', top:1, right:1, bottom:1, left:1 };
+    state.board = Array(9).fill(null);
+    state.board[1] = { card: shieldedDefender, owner:'blue', grantedShield:true, shieldUsed:false, captureBonus:0 };
+    let scratch = simulatePlacementOutcome(state.board, 4, attacker, 'red');
+    out.activeGrantedShieldBlocksCapture = scratch[1].owner === 'blue';
+
+    // 2. A one-time active.shield that has ALREADY been spent (shieldUsed:
+    //    true on the real board) must NOT re-protect the card in
+    //    simulation -- before the fix, the clone always reset shieldUsed
+    //    to falsy, so the AI stayed needlessly cautious around a card it
+    //    had already broken through for the rest of the match.
+    const spentShieldDefender = { id:'def2', name:'Def2', top:1, right:1, bottom:1, left:1, active:{ shield:true } };
+    state.board = Array(9).fill(null);
+    state.board[1] = { card: spentShieldDefender, owner:'blue', grantedShield:false, shieldUsed:true, captureBonus:0 };
+    scratch = simulatePlacementOutcome(state.board, 4, attacker, 'red');
+    out.spentShieldNoLongerBlocksCapture = scratch[1].owner === 'red';
+
+    // 3. An UNUSED active.shield must still block, same as the real game --
+    //    confirms the fix widens what's preserved without breaking the
+    //    still-shielded case.
+    const unusedShieldDefender = { id:'def3', name:'Def3', top:1, right:1, bottom:1, left:1, active:{ shield:true } };
+    state.board = Array(9).fill(null);
+    state.board[1] = { card: unusedShieldDefender, owner:'blue', grantedShield:false, shieldUsed:false, captureBonus:0 };
+    scratch = simulatePlacementOutcome(state.board, 4, attacker, 'red');
+    out.unusedShieldStillBlocksCapture = scratch[1].owner === 'blue';
+
+    // 4. Ancient Wyrmking's weightOfAges margin wall (+1 per 2 turns
+    //    standing, capped at +2) was entirely uncomputed in
+    //    simulatePlacementOutcome's battleOneNeighbor before the fix, so
+    //    the AI's search never saw it at all. Attacker beats Wyrmking by
+    //    exactly 1 (9 vs 8) -- with 4 turns standing (bonus 2), that margin
+    //    isn't enough to capture; with 0 turns standing (bonus 0), it is.
+    const wyrmking = { id:'wyrm', name:'Wyrm', top:8, right:8, bottom:8, left:8, active:{ weightOfAges:true } };
+    state.board = Array(9).fill(null);
+    state.board[1] = { card: wyrmking, owner:'blue', grantedShield:false, shieldUsed:false, captureBonus:0, turnsStanding:4 };
+    scratch = simulatePlacementOutcome(state.board, 4, attacker, 'red');
+    out.agedWyrmkingResistsNarrowCapture = scratch[1].owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    state.board[1] = { card: wyrmking, owner:'blue', grantedShield:false, shieldUsed:false, captureBonus:0, turnsStanding:0 };
+    scratch = simulatePlacementOutcome(state.board, 4, attacker, 'red');
+    out.freshWyrmkingIsCaptured = scratch[1].owner === 'red';
+
+    return out;
+  })()`);
+  assert.equal(result.activeGrantedShieldBlocksCapture, true);
+  assert.equal(result.spentShieldNoLongerBlocksCapture, true);
+  assert.equal(result.unusedShieldStillBlocksCapture, true);
+  assert.equal(result.agedWyrmkingResistsNarrowCapture, true, "weightOfAges' margin bonus must now be visible to the AI's search");
+  assert.equal(result.freshWyrmkingIsCaptured, true, 'a freshly-placed Wyrmking (no standing bonus yet) must still be capturable at the same narrow margin');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 6 (design review #2): Same/Plus/Combo default ON for a fresh page (Random Draft/Choose Your Five); Elemental/Graveyard stay opt-in; Campaign still fully overrides from its own per-stage rules', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    out.sameOnByDefault = state.rules.same === true;
+    out.plusOnByDefault = state.rules.plus === true;
+    out.comboOnByDefault = state.rules.combo === true;
+    out.elementalOffByDefault = state.rules.elemental === false;
+    out.graveyardOffByDefault = state.rules.graveyard === false;
+
+    // resetGame() must keep whatever the player last set, same as every
+    // other preference it preserves (aiDifficulty, fastMode, draftMode).
+    state.rules.same = false;
+    resetGame();
+    out.resetGamePreservesCurrentChoice = state.rules.same === false;
+
+    // Campaign must still fully overwrite from CAMPAIGN_STAGES' own
+    // per-stage rules regardless of this default -- confirms the fix
+    // didn't touch the campaign escalation curve at all.
+    state.draftMode = 'campaign';
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0 };
+    startCampaignBattle();
+    out.campaignStage1StillAllOff = !state.rules.same && !state.rules.plus && !state.rules.combo && !state.rules.elemental;
+
+    return out;
+  })()`);
+  assert.equal(result.sameOnByDefault, true);
+  assert.equal(result.plusOnByDefault, true);
+  assert.equal(result.comboOnByDefault, true);
+  assert.equal(result.elementalOffByDefault, true, 'Elemental stays opt-in -- a flat +1 that many cards sit outside of');
+  assert.equal(result.graveyardOffByDefault, true, 'Graveyard stays opt-in -- reviving cards would surprise a new player');
+  assert.equal(result.resetGamePreservesCurrentChoice, true);
+  assert.equal(result.campaignStage1StillAllOff, true, "Campaign's own stage-1 rules (all off) must be untouched by this default change");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 6 (design review #2): Fast Mode persists via localStorage, survives resetGame(), and scales routine timing constants without touching Ultimate spectacle timing', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    out.defaultsToOff = state.fastMode === false;
+    out.fxTimeIsNoOpWhenOff = fxTime(1000) === 1000;
+
+    toggleFastMode();
+    out.toggleTurnsOn = state.fastMode === true;
+    out.savedToLocalStorage = localStorage.getItem(FAST_MODE_SAVE_KEY) === '1';
+    out.loadReturnsSaved = loadFastMode() === true;
+    out.fxTimeScalesDownWhenOn = fxTime(1000) === Math.round(1000 * FAST_MODE_SCALE) && fxTime(1000) < 1000;
+
+    // Deliberately NOT scaled -- Ultimate cast/shake/cleanup windows are
+    // the spectacle payoff, not per-move friction (see fxTime's own
+    // comment in index.html).
+    out.ultimateWindupUntouched = ULTIMATE_WINDUP_MS === 950;
+
+    resetGame();
+    out.survivesReset = state.fastMode === true;
+
+    toggleFastMode();
+    out.toggleTurnsOffAndPersists = state.fastMode === false && localStorage.getItem(FAST_MODE_SAVE_KEY) === '0';
+
+    return out;
+  })()`);
+  assert.equal(result.defaultsToOff, true);
+  assert.equal(result.fxTimeIsNoOpWhenOff, true);
+  assert.equal(result.toggleTurnsOn, true);
+  assert.equal(result.savedToLocalStorage, true);
+  assert.equal(result.loadReturnsSaved, true);
+  assert.equal(result.fxTimeScalesDownWhenOn, true);
+  assert.equal(result.ultimateWindupUntouched, true);
+  assert.equal(result.survivesReset, true, 'resetGame() must preserve Fast Mode like it already does for aiDifficulty/rules');
+  assert.equal(result.toggleTurnsOffAndPersists, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 6 (design review #2): the arena-frame only carries fast-mode when state.fastMode is on, and the masthead toggle button reflects it', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+    state.board = Array(9).fill(null);
+    state.playerHand = []; state.enemyHand = [];
+
+    state.fastMode = false;
+    let html = renderBattle();
+    out.noFastModeClassWhenOff = !/class="arena-frame [^"]*fast-mode/.test(html) && !html.includes('arena-frame fast-mode');
+
+    state.fastMode = true;
+    html = renderBattle();
+    out.fastModeClassWhenOn = html.includes('fast-mode');
+
+    const mastheadHtml = masthead(false);
+    out.toggleButtonPresent = mastheadHtml.includes('id="fast-toggle"');
+    out.toggleShowsOnState = /class="fast-toggle on"/.test(mastheadHtml);
+
+    return out;
+  })()`);
+  assert.equal(result.noFastModeClassWhenOff, true);
+  assert.equal(result.fastModeClassWhenOn, true);
+  assert.equal(result.toggleButtonPresent, true);
+  assert.equal(result.toggleShowsOnState, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 6 (design review #2): the result screen surfaces the win streak (with a new-best flag) and favorite champion right when the match ends, non-campaign only', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    try { localStorage.removeItem(MATCH_STATS_SAVE_KEY); } catch(e){}
+    matchStats = { matches:0, wins:0, losses:0, draws:0, currentStreak:0, bestStreak:0, cardWins:{} };
+    state.draftMode = 'random';
+    state.selected = ['bahamut','sarah','zaevir','vayra','darien'];
+
+    function finishAsWin(){
+      state.board = ['bahamut','sarah','zaevir','vayra','darien','ogre','ogre','ogre','ogre'].map((id,i) =>
+        i < 5 ? { card: findCardById(id), owner:'blue' } : { card: findCardById(id), owner:'red' });
+      state.phase = 'battle';
+      finishGame();
+    }
+
+    // First win: streak 1, not yet worth surfacing (< 2), but a favorite
+    // champion already exists after a single win.
+    finishAsWin();
+    let html = renderBattle();
+    out.singleWinHidesStreakLine = !html.includes('win streak');
+    out.singleWinShowsFavorite = html.includes('Favorite champion') && html.includes('Bahamut');
+
+    // Second consecutive win: 2-win streak, first time it equals bestStreak
+    // -- must show the "new best" flag.
+    finishAsWin();
+    html = renderBattle();
+    out.secondWinShowsStreak = html.includes('2-win streak');
+    out.secondWinFlagsNewBest = html.includes('new best');
+
+    // Third consecutive win: still climbing (3 > previous best of 2) --
+    // still a new best, just at a higher number.
+    finishAsWin();
+    html = renderBattle();
+    out.thirdWinShowsStreakThree = html.includes('3-win streak');
+    out.thirdWinStillNewBest = html.includes('new best');
+
+    // A loss resets the streak to 0 -- nothing streak-related to show,
+    // and it must never claim a "new best" on a loss.
+    state.board = ['bahamut','sarah','zaevir','vayra','darien','ogre','ogre','ogre','ogre'].map((id,i) =>
+      i < 5 ? { card: findCardById(id), owner:'red' } : { card: findCardById(id), owner:'blue' });
+    state.phase = 'battle';
+    finishGame();
+    html = renderBattle();
+    out.lossHidesStreakLine = !html.includes('win streak') && !html.includes('new best');
+
+    // Campaign matches never touch matchStats (recordMatchResult is a
+    // no-op there) -- the result screen must show no stats line at all.
+    state.draftMode = 'campaign';
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0 };
+    state.board = ['bahamut','sarah','zaevir','vayra','darien','ogre','ogre','ogre','ogre'].map((id,i) =>
+      i < 5 ? { card: findCardById(id), owner:'blue' } : { card: findCardById(id), owner:'red' });
+    state.phase = 'battle';
+    finishGame();
+    html = renderBattle();
+    out.campaignShowsNoStatsLine = !html.includes('result-stats');
+
+    return out;
+  })()`);
+  assert.equal(result.singleWinHidesStreakLine, true, 'a 1-win streak is not yet worth surfacing');
+  assert.equal(result.singleWinShowsFavorite, true);
+  assert.equal(result.secondWinShowsStreak, true);
+  assert.equal(result.secondWinFlagsNewBest, true);
+  assert.equal(result.thirdWinShowsStreakThree, true);
+  assert.equal(result.thirdWinStillNewBest, true);
+  assert.equal(result.lossHidesStreakLine, true);
+  assert.equal(result.campaignShowsNoStatsLine, true, 'Campaign has its own stage-progress feedback, never Random Draft/Choose Your Five stats');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 6 (design review #2): a Petrified card with an unused Special no longer hides one badge behind the other', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    const card = findCardById('bahamut');
+    const specialInfo = { ready:true, title:'Test Special' };
+    const faceHtml = cardFace(card, { clickable:true, petrified:true, specialInfo });
+    document.body.insertAdjacentHTML('beforeend', '<div class="cell">' + faceHtml + '</div>');
+    const petrified = document.querySelector('.petrified-badge');
+    const diamond = document.querySelector('.special-diamond');
+    out.bothBadgesPresent = !!petrified && !!diamond;
+    const petrifiedBottom = getComputedStyle(petrified).bottom;
+    const diamondBottom = getComputedStyle(diamond).bottom;
+    out.diamondOffsetWhenBothPresent = diamondBottom !== petrifiedBottom;
+
+    // Without petrification, the diamond must stay at its normal slot
+    // (bottom:4px) -- confirms the sibling-selector fix is scoped to the
+    // actual collision case, not a blanket repositioning.
+    document.body.innerHTML = '';
+    const soloFaceHtml = cardFace(card, { clickable:true, specialInfo });
+    document.body.insertAdjacentHTML('beforeend', '<div class="cell">' + soloFaceHtml + '</div>');
+    out.diamondStaysAtDefaultSlotWithoutPetrification = getComputedStyle(document.querySelector('.special-diamond')).bottom === '4px';
+
+    return out;
+  })()`);
+  assert.equal(result.bothBadgesPresent, true);
+  assert.equal(result.diamondOffsetWhenBothPresent, true, 'the two badges must no longer render at the exact same position');
+  assert.equal(result.diamondStaysAtDefaultSlotWithoutPetrification, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
