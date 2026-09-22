@@ -3219,6 +3219,17 @@ const CARD_IMAGES = {
   zalazar: 'cards/card-zalazar.jpg',
   umbrael: 'cards/card-umbrael.jpg',
   zlaizer: 'cards/card-zlaizer.jpg',
+  // Elyrion/The Concord: cropped from the user's own AI-generated card
+  // concepts (see PROJECT.md Fas 15) -- the supplied images were full
+  // card templates with stats/ability text baked into the artwork
+  // itself, same issue the old "Erövrad" badge had (Fas 14), so only the
+  // pure character-illustration band was kept (no FULL_CARD_IMAGES entry:
+  // that path renders the raw image with NO code overlay at all, which
+  // only works for a dedicated portrait-oriented poster piece -- this
+  // landscape-cropped band works fine as a `background-size:cover`
+  // thumbnail here, but wouldn't read well shown raw and uncropped).
+  elyrion: 'cards/card-elyrion.jpg',
+  concord: 'cards/card-concord.jpg',
 };
 
 const FULL_CARD_IMAGES = {
@@ -3749,6 +3760,39 @@ const HEROES = [
       {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
       {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
     ] },
+  // Elyrion and The Concord: two original character concepts sketched up
+  // externally and reviewed before being built in — see PROJECT.md for the
+  // mechanical-feasibility check and the two changes made before
+  // implementation (Weaver's Touch simplified from a "next round" delayed
+  // effect the engine has no primitive for down to the standard "this
+  // round" window every other on-win debuff already uses; United Presence
+  // changed from a "cannot be captured" immunity — a mechanic category that
+  // doesn't exist anywhere else in the roster and would need checking in
+  // every capture path in the engine — into an ordinary conditional Power
+  // bonus, the exact same shape as Little Jesp's own boardLeadBonus).
+  { id:'elyrion', name:'Elyrion', role:'The Soulweaver — Order of Balance, Arcanist',
+    top:9, right:8, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#0a1c16,#0d0b18 60%)', accent:'#3ecf8e', icon:'🧵',
+    active:{ onWinDebuffLoserThisRound:1, volcanicArmorPenalty:1, onAllyWinResonance:true },
+    special:{ name:'Threads of Destiny', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Soul Threads (Passive)', desc:'When Elyrion is placed, a random card on his side (himself included) gets +1 Power on all sides this round.'},
+      {name:"Weaver's Touch", desc:"Whenever Elyrion wins a battle, the defeated enemy card gets -1 Power on all sides this round. (Source text said \"next round\" — simplified to the engine's standard \"this round\" window, the same primitive every other round-scoped on-win debuff already uses; no delayed/next-round effect exists anywhere else in the engine.)"},
+      {name:'Thread of Fate', desc:"The first time Elyrion would lose a battle each match, the opponent's strength is reduced by -1 in that battle."},
+      {name:'Soul Resonance (Passive)', desc:'Whenever one of your OTHER cards takes control of an enemy card, Elyrion gains +1 Power on the side that card used to win (max +2 total per match).'},
+      {name:'Special Attack: Threads of Destiny', desc:"Costs 2 wins. Choose an enemy card — it gets -2 Power on all sides this round. If that leaves it defeated by Elyrion, all of Elyrion's side gains +1 Power on all sides this round."},
+    ] },
+  { id:'concord', name:'The Concord', role:'United We Rise — Order of Balance, Support',
+    top:8, right:8, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241c08,#0d0b18 60%)', accent:'#e0c02f', icon:'🤝',
+    active:{ alliedCountScaleBonus:{amount:1, max:3}, alliedCountBonus:{minCount:3, amount:2}, buffAlliesOnPlace:true },
+    special:{ name:'United Will', cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Synchronized Souls (Passive)', desc:'For each OTHER card on this side of the board, The Concord gains +1 Power on all sides (max +3).'},
+      {name:'United Presence (Passive)', desc:'While you control at least 3 cards on the board, The Concord gains +2 Power on all sides.'},
+      {name:'Inspiring Aura (Passive)', desc:'Whenever another card on this side is placed on the board, it gains +1 Power on all sides this round.'},
+      {name:'Special Attack: United Will', desc:'Costs 2 wins. If you control at least 3 cards on the board, every one of them gains +1 Power on all sides this round. The Concord itself also gains +2 Power on all sides this round.'},
+    ] },
 ];
 
 
@@ -4158,6 +4202,29 @@ const FOREST_FOES = [
       {name:'Light of Forgiveness (Passive)', desc:"Whenever one of Zlaizer's own cards is destroyed, there's a 50% chance it's placed in his side's Graveyard instead of vanishing completely — even if the Graveyard optional rule is off."},
       {name:'Second Dawn', desc:"Whenever Zlaizer wins a round, up to 2 cards are pulled back from his own Graveyard onto the board, each weakened by -1 Power."},
       {name:'Special Attack: Rebirth', desc:"Costs 3 wins. Pull up to 3 cards back from Zlaizer's own Graveyard onto the board at 1 Power each, fully cleansed of any negative effects."},
+    ] },
+  { id:'elyrion', name:'Elyrion', role:'The Soulweaver — Order of Balance, Arcanist',
+    top:9, right:8, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#0a1c16,#0d0b18 60%)', accent:'#3ecf8e', icon:'🧵',
+    active:{ onWinDebuffLoserThisRound:1, volcanicArmorPenalty:1, onAllyWinResonance:true },
+    special:{ name:'Threads of Destiny', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Soul Threads (Passive)', desc:'When Elyrion is placed, a random card on his side (himself included) gets +1 Power on all sides this round.'},
+      {name:"Weaver's Touch", desc:"Whenever Elyrion wins a battle, the defeated enemy card gets -1 Power on all sides this round. (Source text said \"next round\" — simplified to the engine's standard \"this round\" window, the same primitive every other round-scoped on-win debuff already uses; no delayed/next-round effect exists anywhere else in the engine.)"},
+      {name:'Thread of Fate', desc:"The first time Elyrion would lose a battle each match, the opponent's strength is reduced by -1 in that battle."},
+      {name:'Soul Resonance (Passive)', desc:'Whenever one of your OTHER cards takes control of an enemy card, Elyrion gains +1 Power on the side that card used to win (max +2 total per match).'},
+      {name:'Special Attack: Threads of Destiny', desc:"Costs 2 wins. Choose an enemy card — it gets -2 Power on all sides this round. If that leaves it defeated by Elyrion, all of Elyrion's side gains +1 Power on all sides this round."},
+    ] },
+  { id:'concord', name:'The Concord', role:'United We Rise — Order of Balance, Support',
+    top:8, right:8, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241c08,#0d0b18 60%)', accent:'#e0c02f', icon:'🤝',
+    active:{ alliedCountScaleBonus:{amount:1, max:3}, alliedCountBonus:{minCount:3, amount:2}, buffAlliesOnPlace:true },
+    special:{ name:'United Will', cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Synchronized Souls (Passive)', desc:'For each OTHER card on this side of the board, The Concord gains +1 Power on all sides (max +3).'},
+      {name:'United Presence (Passive)', desc:'While you control at least 3 cards on the board, The Concord gains +2 Power on all sides.'},
+      {name:'Inspiring Aura (Passive)', desc:'Whenever another card on this side is placed on the board, it gains +1 Power on all sides this round.'},
+      {name:'Special Attack: United Will', desc:'Costs 2 wins. If you control at least 3 cards on the board, every one of them gains +1 Power on all sides this round. The Concord itself also gains +2 Power on all sides this round.'},
     ] },
 ];
 
@@ -4686,6 +4753,21 @@ function staticLiveBonusFor(card, cellIndex, owner){
     const theirs = state.board.filter(e => e && e.owner !== owner).length;
     const meetsThreshold = bl.tieOnly ? mine === theirs : (bl.orEqual ? mine >= theirs : mine > theirs);
     if(meetsThreshold) bonus += bl.amount;
+  }
+  // The Concord's Synchronized Souls / United Presence: two more live
+  // "count your own side's board entries, no state needed" reads, same
+  // shape as boardLeadBonus right above -- one scales continuously per
+  // OTHER allied card (capped), one is a flat bonus once a headcount
+  // threshold (including The Concord itself) is met.
+  if(card.active && card.active.alliedCountScaleBonus){
+    const acsb = card.active.alliedCountScaleBonus;
+    const others = state.board.filter(e => e && e.owner === owner).length - 1;
+    bonus += Math.min(acsb.max, Math.max(0, others) * (acsb.amount || 1));
+  }
+  if(card.active && card.active.alliedCountBonus){
+    const acb = card.active.alliedCountBonus;
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    if(mine >= acb.minCount) bonus += acb.amount;
   }
   const row = Math.floor(cellIndex/3), col = cellIndex%3;
   const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
@@ -5530,6 +5612,35 @@ function renderBattle(){
     });
   }
 
+  // Elyrion's Threads of Destiny -- a single-target soul-thread strike,
+  // same ring+hit shape as WorldCleaver/Serpent's Wrath above, just an
+  // emerald/teal palette matching his own accent (a color no earlier card
+  // has used, so his VFX never gets mistaken for anyone else's).
+  const elyrionActive = state.ultimateBanner && state.ultimateBanner.name === 'Threads of Destiny';
+  let elyrionTargetX = 50, elyrionTargetY = 50;
+  if(elyrionActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: elyrionTargetX, y: elyrionTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // The Concord's United Will -- a rallying blessing on the WHOLE own side
+  // (self included), same "derive live off the current board" shape as
+  // Pallis's Wave of Loyalty above (safe here too: the special only ever
+  // buffs, it never destroys or moves anyone, so there's nothing for a
+  // cast-time snapshot to protect against).
+  const concordActive = state.ultimateBanner && state.ultimateBanner.name === 'United Will';
+  let concordOriginX = 50, concordOriginY = 50, concordHitPositions = [];
+  if(concordActive){
+    ({ x: concordOriginX, y: concordOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const rallyOwner = state.ultimateBanner.owner;
+    concordHitPositions = state.board
+      .map((e, i) => (e && e.owner === rallyOwner) ? i : null)
+      .filter(i => i !== null)
+      .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.15 + n * 0.08 }));
+  }
+
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
   // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
   // it's a plain one-shot triggered by an ordinary attack). Reads
@@ -5875,6 +5986,19 @@ function renderBattle(){
           ${theEndingCrackPaths.map(d => `<path class="vfx-crack-line" d="${d}"></path>`).join('')}
         </svg>
         <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(165,104,242,0.5); --vfx-flash-delay:0.35s;"></div>
+      ` : ''}
+      ${elyrionActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${elyrionTargetX}%; top:${elyrionTargetY}%; --vfx-ring-color:rgba(62,207,142,0.95); --vfx-glow-color:rgba(30,140,95,0.65); --vfx-ring-soft:rgba(180,250,220,0.6);"></div>
+          <div class="vfx-hit" style="left:${elyrionTargetX}%; top:${elyrionTargetY}%; --vfx-hit-color:rgba(180,250,220,0.95); --vfx-hit-color-mid:rgba(30,140,95,0.7);"></div>
+        </div>
+      ` : ''}
+      ${concordActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${concordOriginX}%; --vfx-y:${concordOriginY}%; --vfx-ring-color:rgba(224,192,47,0.95); --vfx-glow-color:rgba(180,140,20,0.65); --vfx-ring-soft:rgba(255,240,180,0.6); --vfx-hit-color:rgba(255,240,180,0.95); --vfx-hit-color-mid:rgba(180,140,20,0.7); --vfx-twinkle-color:#f2d98a;">
+          <div class="vfx-ring"></div>
+          ${concordHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+        </div>
       ` : ''}
       ${odinSlashPairs.length ? `
         <div class="odin-slash-fx" aria-hidden="true">
@@ -6879,6 +7003,42 @@ function checkTriuneTeamBoost(owner){
   state.board.forEach(e => { if(e && e.owner === owner) SpecialVerbs.attackBoost(e, 1); });
 }
 
+// Elyrion's Soul Resonance: the same "find the holder card anywhere on
+// the winning side's board" shape as checkTriuneTeamBoost right above
+// (checkOnWinBonuses only ever buffs the specific card that just won,
+// this needs to react to ANY ally's win), but self-only instead of
+// team-wide, and directional (the SAME side the winning ally used, not a
+// flat all-sides amount) instead of a flat team buff — reuses `side`
+// straight from its caller's own p.myEdge, exactly like checkOnWinBonuses'
+// own onWinDirectionalBoost already does for a card's OWN win. Capped at
+// +2 total per match (tracked on Elyrion's own entry), matching the card
+// text's "(max +2 per match)".
+function checkElyrionSoulResonance(owner, side){
+  const elyrion = state.board.find(e => e && e.owner === owner && e.card.active && e.card.active.onAllyWinResonance);
+  if(!elyrion) return;
+  elyrion.soulResonanceStacks = elyrion.soulResonanceStacks || 0;
+  if(elyrion.soulResonanceStacks >= 2) return;
+  elyrion.soulResonanceStacks++;
+  SpecialVerbs.directionalBoost(elyrion, [side], 1);
+}
+
+// The Concord's Inspiring Aura: the reverse direction of every ON_PLACE_
+// HANDLERS entry above (those all react to THEIR OWN card's placement) --
+// this reacts to any OTHER ally being placed while a Concord is already on
+// the board, buffing the card that just arrived. Same "scan the board for
+// a holder card with flag X" shape Morvath's buffOnEnemyDestroyed already
+// established for the destroy event (see destroyCard) -- this is the same
+// idea wired to the placement event instead. Guarded so Concord's own
+// placement doesn't buff itself (the card text describes inspiring
+// ARRIVING allies, not a self-buff on arrival — Synchronized Souls/United
+// Presence already cover Concord's own scaling).
+function checkConcordInspiringAura(placedEntry, owner){
+  if(placedEntry.card.active && placedEntry.card.active.buffAlliesOnPlace) return;
+  const concord = state.board.find(e => e && e.owner === owner && e !== placedEntry && e.card.active && e.card.active.buffAlliesOnPlace);
+  if(!concord) return;
+  SpecialVerbs.buffThisRound(placedEntry, 1);
+}
+
 function rivalryBonusAt(cardId, cellIndex, owner){
   const row = Math.floor(cellIndex/3), col = cellIndex%3;
   const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
@@ -7224,6 +7384,19 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     // same live "no state needed" read, one more branch.
     const meetsThreshold = bl.tieOnly ? mine === theirs : (bl.orEqual ? mine >= theirs : mine > theirs);
     if(meetsThreshold) v += bl.amount;
+  }
+  // The Concord's Synchronized Souls / United Presence -- same two live
+  // headcount reads as staticLiveBonusFor's own copy above, kept in sync
+  // so the capture-preview badge and the real battle math never disagree.
+  if(card.active && card.active.alliedCountScaleBonus){
+    const acsb = card.active.alliedCountScaleBonus;
+    const others = state.board.filter(e => e && e.owner === owner).length - 1;
+    v += Math.min(acsb.max, Math.max(0, others) * (acsb.amount || 1));
+  }
+  if(card.active && card.active.alliedCountBonus){
+    const acb = card.active.alliedCountBonus;
+    const mine = state.board.filter(e => e && e.owner === owner).length;
+    if(mine >= acb.minCount) v += acb.amount;
   }
   if(card.active && card.active.boardUnderdogAttackBonus && role === 'attack'){
     const mine = state.board.filter(e => e && e.owner === owner).length;
@@ -7660,6 +7833,15 @@ const ON_PLACE_HANDLERS = {
     SpecialVerbs.buffThisRound(redemptionTarget, 2);
     redemptionTarget.destroyImmuneUntilTurnCount = state.turnCount + 4;
   },
+  // Elyrion's Soul Threads: random ally (himself included, same "he's
+  // already on state.board by the time ON_PLACE_HANDLERS fires" shape as
+  // Zlaizer's own Divine Balance above), +1 this round.
+  elyrion(entry, owner){
+    const allies = state.board.filter(e => e && e.owner === owner);
+    if(allies.length === 0) return;
+    const target = allies[Math.floor(Math.random()*allies.length)];
+    SpecialVerbs.buffThisRound(target, 1);
+  },
   // Shiva's Frost Aura / Leviathan's Abyssal Presence: identical text on
   // both cards — "every ADJACENT enemy card gets -1 Power on all sides this
   // round" — the first on-place hooks that need real adjacency (every
@@ -7820,6 +8002,7 @@ function placeCard(cellIndex, cardId, owner){
     state.board[cellIndex].sisterWasCaptured = false;
   }
   if(ON_PLACE_HANDLERS[card.id]) ON_PLACE_HANDLERS[card.id](state.board[cellIndex], owner, cellIndex);
+  checkConcordInspiringAura(state.board[cellIndex], owner);
   hand.splice(cardIdx,1);
   state.pendingCard = null;
 
@@ -9499,6 +9682,42 @@ const SPECIAL_HANDLERS = {
       ? `${name}'s Requiem of Light cleanses ${cleansed} allied card${cleansed !== 1 ? 's' : ''} and grants +1 Power each!`
       : `${name}'s Requiem of Light finds no wounds left to heal!`;
   },
+  // Elyrion's Threads of Destiny: debuff the target FIRST, then check if
+  // that leaves it defeated -- same shape as Tilda's Nightfall (see above),
+  // just with the AOE own-side buff (same verb Pallis's Wave of Loyalty
+  // already uses) added on top when the capture actually lands.
+  elyrion({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    SpecialVerbs.debuffThisRound(targetEntry, 2);
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Threads of Destiny unravels ${targetEntry.card.name}'s strength, but it still holds firm!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Threads of Destiny!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    state.board.forEach(e => { if(e && e.owner === owner) SpecialVerbs.buffThisRound(e, 1); });
+    return `${name}'s Threads of Destiny claims ${targetEntry.card.name} — fate favors the weaver's allies!`;
+  },
+  // The Concord's United Will: read literally off the approved card text --
+  // the team-wide +1 is gated behind the 3-allies threshold (same
+  // alliedCountBonus-style headcount check as United Presence, just a
+  // one-off AOE instead of a live stat), but Concord's own +2 is NOT
+  // repeated inside that same conditional clause in the source text, so it
+  // always applies regardless of headcount.
+  concord({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const allyCount = state.board.filter(e => e && e.owner === owner).length;
+    if(allyCount >= 3){
+      state.board.forEach(e => { if(e && e.owner === owner) SpecialVerbs.buffThisRound(e, 1); });
+    }
+    SpecialVerbs.buffThisRound(srcEntry, 2);
+    return allyCount >= 3
+      ? `${name}'s United Will surges through the ranks — every ally grows stronger!`
+      : `${name}'s United Will steels itself, but too few allies stand together to share the surge!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -10480,6 +10699,7 @@ function battleNeighbors(index, owner, result){
       }
       checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni, index, placedVal);
       checkTriuneTeamBoost(owner);
+      checkElyrionSoulResonance(owner, p.myEdge);
       result.flips++;
       newlyFlipped.push(p.ni);
     } else if(placed.id === 'threeheaddragon' && !(target.card.active && target.card.active.debuffImmune)){

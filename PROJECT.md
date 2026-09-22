@@ -3832,6 +3832,109 @@ sida; och Hunter's Wrath-skärmdumpen visar tydligt TVÅ separata badges,
 en på vardera av de två samtidigt erövrade korten. Ingen konsol/page-
 error i något test.
 
+**Fas 15: Två helt nya kort — Elyrion och The Concord — skissade externt
+(ChatGPT), granskade, reviderade och byggda in med VFX.** Användaren
+skickade två färdiga kort-koncept (bild + full text) och bad om ett
+designutlåtande innan något byggdes: kändes de som riktiga Triad Arena-
+kort, tillförde de något nytt? Svar: ja på det mesta, men ett larm — The
+Concords **United Presence** ("cannot be captured" medan 3+ allierade
+kontrolleras) var en HELT NY mekanik-KATEGORI (erövringsimmunitet) som
+inte finns någonstans i de 50+ befintliga korten, skulle behöva kollas i
+varenda erövringsväg i motorn, och en trivialt lätt-nådd tröskel (3 kort
+av 5 i handen) gjorde den till en risk för att kännas orättvis/tråkig för
+motståndaren snarare än taktisk. Elyrions **Weaver's Touch** hade också
+en mindre träffande detalj: "-1 Power NÄSTA runda", en tidsram motorn
+inte har (bara "denna runda" eller permanent).
+
+Användaren godkände båda invändningarna och gav två konkreta revideringar
+innan implementation: Weaver's Touch byter till standardens "denna
+runda"-fönster, och United Presence byts till en vanlig villkorsbaserad
+Power-bonus ("+2 Power alla sidor vid 3+ allierade") utan någon
+immunitets-mekanik alls. Användaren bad uttryckligen om en mekanisk
+kontroll mot den befintliga motorn FÖRST, med bekräftelse att båda
+revideringarna går att bygga med redan existerande primitives — se den
+kontrollen (redovisad i chatten, sammanfattad här): Weaver's Touch mappar
+rakt av mot `active.onWinDebuffLoserThisRound` (redan använt av flera
+kort); United Presence mappar mot exakt samma "räkna `state.board`
+live"-mönster `boardLeadBonus` redan använder i `fullEffectiveValue`/
+`staticLiveBonusFor` (Little Jesp har redan en variant av samma
+grundmönster).
+
+Alla åtta förmågorna (fyra per kort, plus varsin Ultimate) byggdes till
+slut på redan existerande primitives/mönster, en handfull nya men
+lågriskade dispatcher-funktioner följer mönster som redan fanns:
+
+- **Elyrion** ("The Soulweaver"): Soul Threads (samma `ON_PLACE_HANDLERS`-
+  mönster som Zlaizers Divine Balance — slumpmässig allierad, sig själv
+  inräknad); Weaver's Touch (`onWinDebuffLoserThisRound:1`, ren
+  återanvändning); Thread of Fate (`volcanicArmorPenalty:1`, samma flagga
+  Ifrits Volcanic Armor redan använder, ordagrant); Soul Resonance — den
+  enda som behövde en ny liten dispatcher (`checkElyrionSoulResonance`,
+  samma "sök brädet efter innehavar-kortet"-form som Triune Desires
+  `checkTriuneTeamBoost` redan etablerat, bara sig-själv-riktad och
+  sido-specifik istället för lagbred); Ultimate "Threads of Destiny" (
+  samma "debuffa först, kolla sen om besegrad"-form som Tildas Nightfall +
+  samma AOE-egen-sida-bonus som Pallis Wave of Loyalty).
+- **The Concord** ("United We Rise"): Synchronized Souls och United
+  Presence (två nya grenar i `fullEffectiveValue`/`staticLiveBonusFor`,
+  samma `state.board`-räkne-mönster som `boardLeadBonus` — måste hållas i
+  synk på BÅDA ställena, precis som `boardLeadBonus`/`sisterAura` redan
+  är); Inspiring Aura — den andra nya lilla dispatchern
+  (`checkConcordInspiringAura`, samma "sök brädet efter innehavar-
+  kortet"-form som Morvaths `buffOnEnemyDestroyed` redan etablerat för
+  förstörelse-händelsen, bara kopplad till placerings-händelsen istället,
+  och medvetet vaktad så Concords EGEN placering inte buffar sig själv);
+  Ultimate "United Will" (villkorad lag-bonus vid 3+ allierade + en
+  ovillkorad egen-bonus, läst bokstavligt av den godkända kortexten).
+
+Inget kort fick riktig konst — bildmallarna användaren skickade hade
+siffror/förmågetext inbakat direkt i bilden (samma problem som "Erövrad"-
+badgen i Fas 14), vilket krockar med att spelet redan renderar sina egna
+siffror från kod. Korten använder tills vidare bara sin `icon`-emoji
+(🧵/🤝) och gradient-bakgrund — samma inbyggda reservlösning
+`CARD_IMAGES`/`FULL_CARD_IMAGES` redan ger varje kort utan egen bild.
+
+VFX: Elyrion (🧵) fick ett smaragdgrönt enkelmåls-ring+hit (samma form som
+WorldCleaver/Serpent's Wrath), en helt ny färgpalett ingen tidigare
+identitet använt. The Concord (🤝) fick en gyllene "sammanhållnings"-AOE
+som träffar HELA den egna sidan (sig själv inräknad) live-deriverat —
+samma säkra "inget snapshot behövs, förstör aldrig något"-resonemang som
+Pallis Wave of Loyalty redan etablerade.
+
+Verifierat: `node --check` grönt. Ett test-fel hittades och fixades under
+arbetet (mitt eget, inte en spelbugg) — `volcanicArmorPenalty`s
+triggervillkor jämför TOTAL kraft (inte den enskilda sidan), så mitt
+första testupplägg för Thread of Fate hade fel tal; fixat genom att
+spegla exakt samma tal som det redan existerande Ifrit-testet. Fem nya
+permanenta regressionstester (Elyrions fyra passiva förmågor + Ultimate;
+Concords Synchronized Souls/United Presence/Inspiring Aura; Concords
+Ultimate; VFX-verktygslåde-användning för båda). Hela testsviten grön:
+**148/148** (143 tidigare + 5 nya). Playwright-skärmdumpar bekräftar
+båda VFX:erna visuellt — Concords gyllene ring träffar tydligt bara sina
+två blå allierade Cave Ogres, den röda Nyxara lämnas helt orörd. Ingen
+konsol/page-error i något test.
+
+**Fas 15, uppföljning: riktig konst tillagd.** Användaren påpekade att
+korten fortfarande saknade bild och frågade om de skulle skicka
+originalbilderna igen — de fanns redan sparade lokalt från den tidigare
+turen, så inget behövdes skickas om. Samma problem som Fas 14:s
+"Erövrad"-badge (siffror/text inbakat i själva bilden) gällde även här,
+men `.card-art`s CSS (`background-size:cover; background-position:center
+15%`) hanterar godtyckliga bildbeskärningar automatiskt, så lösningen var
+enklare denna gång: beskar bort bara den rena karaktärsillustrationen
+(ett vågrätt band mellan ~10% och ~46% av originalbildens höjd, som
+undviker både hörn-siffercirklarna högst upp och kompass-ikon-raden +
+text-panelen längre ner) med Pillow, sparade som
+`cards/card-elyrion.jpg`/`cards/card-concord.jpg` och lade till i
+`CARD_IMAGES` (inte `FULL_CARD_IMAGES` — den vägen renderar bilden RÅ
+utan något kod-overlay alls, vilket bara passar en dedikerad stående
+poster-bild, inte ett vågrätt beskuret band). Ett nytt permanent
+regressionstest lades till (kontrollerar att båda korten har en
+`CARD_IMAGES`-post). Hela testsviten grön: **149/149**. Playwright-
+skärmdumpar bekräftar att konsten renderar korrekt både på spelbrädet
+och i den fulla detalj-modalen (stat-diamanter/färdighetstext läggs
+snyggt ovanpå, som för varje annat kort med egen bild).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
