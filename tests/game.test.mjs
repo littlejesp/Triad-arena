@@ -8702,3 +8702,291 @@ test('Fas 14 (conquered badge redesign): the badge fades out with the same justF
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 15 (two new cards, externally sketched + reviewed): Elyrion — Soul Threads, Weaver\'s Touch, Thread of Fate, and Soul Resonance all wire onto existing primitives correctly', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Soul Threads: on placement, a random ally (himself included) gets
+    // +1 Power this round. With Elyrion alone on the board, he must be
+    // his own target (no randomness to control for).
+    state.board = Array(9).fill(null);
+    state.playerHand = [findCardById('elyrion')];
+    placeCard(4, 'elyrion', 'blue');
+    out.soulThreadsBuffsSelfWhenAlone = state.board[4].captureBonus === 1;
+
+    // Weaver's Touch: when Elyrion wins a normal battle, the defeated
+    // enemy gets -1 Power on all sides THIS ROUND (active.
+    // onWinDebuffLoserThisRound, an existing generic flag -- not a new
+    // "next round" primitive).
+    state.board = Array(9).fill(null);
+    const weaverElyrion = freshEntry(findCardById('elyrion'), 'blue'); // total 36
+    state.board[4] = weaverElyrion;
+    const weakEnemy = freshEntry({ id:'we1', name:'WE1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakEnemy;
+    resolveFlips(4, 'blue');
+    out.weaversTouchAppliesThisRoundDebuff = weakEnemy.owner === 'blue' && weakEnemy.captureBonus === -1;
+
+    // Thread of Fate: the first time Elyrion would lose, the attacker's
+    // strength is reduced by 1 (same shape/verb and same test numbers as
+    // the existing Ifrit Volcanic Armor test -- volcanicArmorPenalty's own
+    // trigger condition compares TOTAL power, not the single edge: the
+    // attacker's total (40) must exceed Elyrion's real total (36) for the
+    // penalty to even engage, then the -1 lands on the specific edge
+    // (bottom 10 vs Elyrion's top 9), turning that marginal win into a
+    // defended tie.
+    state.board = Array(9).fill(null);
+    const fateElyrion = freshEntry(findCardById('elyrion'), 'blue'); // total 36 (9+8+10+9)
+    state.board[4] = fateElyrion;
+    const fateAttacker = freshEntry({ id:'fa1', name:'FA1', top:10,right:10,bottom:10,left:10 }, 'red'); // total 40; bottom 10 vs Elyrion's top 9
+    state.board[1] = fateAttacker;
+    resolveFlips(1, 'red');
+    out.threadOfFateBlockedFirstLoss = state.board[4].owner === 'blue';
+    out.threadOfFateConsumed = fateElyrion.volcanicArmorUsed === true;
+    // Second attacker: armor already used, so a plain marginal edge (left
+    // 11 vs Elyrion's right 8, from cell 5 which sits to Elyrion's right)
+    // wins outright this time.
+    const fateAttacker2 = freshEntry({ id:'fa2', name:'FA2', top:1,right:1,bottom:1,left:11 }, 'red');
+    state.board[5] = fateAttacker2;
+    resolveFlips(5, 'red');
+    out.threadOfFateOnlyOnce = state.board[4].owner === 'red';
+
+    // Soul Resonance: when an ALLY (not Elyrion himself) wins a battle,
+    // Elyrion gains +1 on the SAME side that ally used to win, capped at
+    // +2 total per match.
+    state.board = Array(9).fill(null);
+    const resonanceElyrion = freshEntry(findCardById('elyrion'), 'blue');
+    state.board[4] = resonanceElyrion; // center -- never battles directly in this scenario
+
+    // First ally win: cell 0's 'bottom' edge beats cell 3.
+    const ally1 = freshEntry({ id:'ra1', name:'RA1', top:1,right:1,bottom:10,left:1 }, 'blue');
+    state.board[0] = ally1;
+    const enemy1 = freshEntry({ id:'re1', name:'RE1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = enemy1;
+    resolveFlips(0, 'blue');
+    out.firstAllyWinStacksOnce = resonanceElyrion.soulResonanceStacks === 1 && resonanceElyrion.sideBonus && resonanceElyrion.sideBonus.bottom === 1;
+    out.allyItselfNotBuffed = ally1.captureBonus === 0;
+
+    // Second ally win: cell 2's 'left' edge beats cell 1 -- a DIFFERENT
+    // side, proving Elyrion's bonus tracks whichever side each ally
+    // actually used, not a single fixed side.
+    const ally2 = freshEntry({ id:'ra2', name:'RA2', top:1,right:1,bottom:1,left:10 }, 'blue');
+    state.board[2] = ally2;
+    const enemy2 = freshEntry({ id:'re2', name:'RE2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = enemy2;
+    resolveFlips(2, 'blue');
+    out.secondAllyWinStacksTwice = resonanceElyrion.soulResonanceStacks === 2 && resonanceElyrion.sideBonus.left === 1;
+
+    // Third ally win: cell 8's 'top' edge beats cell 5 -- must NOT stack a
+    // third time, the +2/match cap is already reached.
+    const ally3 = freshEntry({ id:'ra3', name:'RA3', top:10,right:1,bottom:1,left:1 }, 'blue');
+    state.board[8] = ally3;
+    const enemy3 = freshEntry({ id:'re3', name:'RE3', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[5] = enemy3;
+    resolveFlips(8, 'blue');
+    out.thirdAllyWinCapped = resonanceElyrion.soulResonanceStacks === 2 && !resonanceElyrion.sideBonus.top;
+
+    return out;
+  })()`);
+  assert.equal(result.soulThreadsBuffsSelfWhenAlone, true);
+  assert.equal(result.weaversTouchAppliesThisRoundDebuff, true);
+  assert.equal(result.threadOfFateBlockedFirstLoss, true, "Thread of Fate's -1 penalty turns a marginal loss into a defended tie");
+  assert.equal(result.threadOfFateConsumed, true);
+  assert.equal(result.threadOfFateOnlyOnce, true);
+  assert.equal(result.firstAllyWinStacksOnce, true);
+  assert.equal(result.allyItselfNotBuffed, true, "Soul Resonance buffs ELYRION, not the ally that actually won");
+  assert.equal(result.secondAllyWinStacksTwice, true, 'the bonus tracks whichever side each ally actually used to win');
+  assert.equal(result.thirdAllyWinCapped, true, 'capped at +2 total per match');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 15 (two new cards, externally sketched + reviewed): The Concord — Synchronized Souls scales and caps correctly, United Presence is a flat threshold bonus (NOT a capture-immunity mechanic), and Inspiring Aura buffs arriving allies (never itself)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const concordCard = findCardById('concord');
+    const rawTop = concordCard.top; // 8
+
+    // Synchronized Souls (+1 per OTHER ally, max +3) and United Presence
+    // (+2 flat once 3+ total allies, Concord included) are both live
+    // fullEffectiveValue bonuses -- progressively add allies and check the
+    // combined total at each step.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(concordCard, 'blue');
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    out.aloneNoBonus = fullEffectiveValue(concordCard, 'top', null, 0, 'blue', 'attack') === rawTop;
+
+    state.board[1] = freshEntry({ id:'ca1', name:'CA1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.oneOtherAllyPlusOne = fullEffectiveValue(concordCard, 'top', null, 0, 'blue', 'attack') === rawTop + 1;
+
+    state.board[2] = freshEntry({ id:'ca2', name:'CA2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.twoOthersHitsPresenceThreshold = fullEffectiveValue(concordCard, 'top', null, 0, 'blue', 'attack') === rawTop + 2 + 2; // synced+2, presence+2
+
+    state.board[3] = freshEntry({ id:'ca3', name:'CA3', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.threeOthersSyncedCapsAtThree = fullEffectiveValue(concordCard, 'top', null, 0, 'blue', 'attack') === rawTop + 3 + 2;
+
+    state.board[4] = freshEntry({ id:'ca4', name:'CA4', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.fourOthersStillCappedAtThree = fullEffectiveValue(concordCard, 'top', null, 0, 'blue', 'attack') === rawTop + 3 + 2;
+
+    // Inspiring Aura: place Concord first (no self-buff on its own
+    // placement -- captureBonus stays 0, Synchronized Souls/United
+    // Presence are live bonuses, not stored on captureBonus), then place
+    // another ally -- THAT card gets +1 this round.
+    state.board = Array(9).fill(null);
+    state.playerHand = [findCardById('concord')];
+    placeCard(4, 'concord', 'blue');
+    out.concordOwnPlacementNotBuffed = state.board[4].captureBonus === 0;
+    state.playerHand = [{ id:'ia1', name:'IA1', top:1,right:1,bottom:1,left:1 }];
+    placeCard(1, 'ia1', 'blue');
+    out.arrivingAllyBuffedByAura = state.board[1].captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.aloneNoBonus, true);
+  assert.equal(result.oneOtherAllyPlusOne, true);
+  assert.equal(result.twoOthersHitsPresenceThreshold, true, 'United Presence must be a flat +2 stat bonus once 3+ allies are controlled, not a capture-immunity flag');
+  assert.equal(result.threeOthersSyncedCapsAtThree, true);
+  assert.equal(result.fourOthersStillCappedAtThree, true, "Synchronized Souls' scaling bonus must cap at +3");
+  assert.equal(result.concordOwnPlacementNotBuffed, true);
+  assert.equal(result.arrivingAllyBuffedByAura, true, "Inspiring Aura must buff the ARRIVING ally, not Concord itself");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 15 (two new cards, externally sketched + reviewed): The Concord\'s United Will ultimate -- team buff gated by the 3-ally threshold, self buff always applies', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Below threshold (2 allies total): no team buff, but Concord's own
+    // +2 still applies regardless.
+    state.board = Array(9).fill(null);
+    const soloConcord = freshEntry(findCardById('concord'), 'blue');
+    state.board[4] = soloConcord;
+    const soloAlly = freshEntry({ id:'uw1', name:'UW1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[0] = soloAlly;
+    state.wins = { blue: 2, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.belowThresholdNoTeamBuff = soloAlly.captureBonus === 0;
+    out.belowThresholdSelfStillBuffed = soloConcord.captureBonus === 2;
+
+    // At threshold (3 allies total): team buff fires for everyone,
+    // Concord's own +2 stacks on top (not replaced by the +1).
+    state.ultimateBanner = null;
+    state.board = Array(9).fill(null);
+    const teamConcord = freshEntry(findCardById('concord'), 'blue');
+    state.board[4] = teamConcord;
+    const teamAlly1 = freshEntry({ id:'uw2', name:'UW2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[0] = teamAlly1;
+    const teamAlly2 = freshEntry({ id:'uw3', name:'UW3', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[1] = teamAlly2;
+    state.wins = { blue: 2, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.atThresholdTeamBuffed = teamAlly1.captureBonus === 1 && teamAlly2.captureBonus === 1;
+    out.atThresholdSelfBuffedOnTopOfTeamBuff = teamConcord.captureBonus === 3; // +1 team + +2 self
+
+    return out;
+  })()`);
+  assert.equal(result.belowThresholdNoTeamBuff, true);
+  assert.equal(result.belowThresholdSelfStillBuffed, true, "Concord's own +2 applies unconditionally, per the literal card text");
+  assert.equal(result.atThresholdTeamBuffed, true);
+  assert.equal(result.atThresholdSelfBuffedOnTopOfTeamBuff, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 15 (two new cards, externally sketched + reviewed): Elyrion\'s Threads of Destiny ultimate -- debuffs first, then checks defeat (same shape as Tilda\'s Nightfall), buffs allies only on an actual capture', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Target survives the debuff (still too strong): no capture, no ally buff.
+    state.board = Array(9).fill(null);
+    const weakElyrion = freshEntry({ ...findCardById('elyrion'), top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[4] = weakElyrion;
+    const sturdyTarget = freshEntry({ id:'st1', name:'ST1', top:10,right:10,bottom:10,left:10 }, 'red');
+    state.board[1] = sturdyTarget;
+    const ally = freshEntry({ id:'el-ally1', name:'ElAlly1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[7] = ally;
+    state.wins = { blue: 2, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.survivedTargetStillDebuffed = sturdyTarget.captureBonus === -2 && sturdyTarget.owner === 'red';
+    out.noAllyBuffWhenTargetSurvives = ally.captureBonus === 0;
+
+    // Target is defeated by the debuff: captured, and the whole side gets +1.
+    state.ultimateBanner = null;
+    state.board = Array(9).fill(null);
+    const strongElyrion = freshEntry(findCardById('elyrion'), 'blue'); // top 9
+    state.board[4] = strongElyrion;
+    const marginalTarget = freshEntry({ id:'mt1', name:'MT1', top:10,right:10,bottom:10,left:10 }, 'red'); // totalPower 40, beats Elyrion's 36 alone -- but the -2-all-sides debuff drops it to 32, which loses
+    state.board[1] = marginalTarget;
+    const ally2 = freshEntry({ id:'el-ally2', name:'ElAlly2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[7] = ally2;
+    state.wins = { blue: 2, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, 1, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.defeatedTargetCaptured = marginalTarget.owner === 'blue';
+    out.allySideBuffedOnCapture = ally2.captureBonus === 1 && strongElyrion.captureBonus === 1;
+
+    return out;
+  })()`);
+  assert.equal(result.survivedTargetStillDebuffed, true);
+  assert.equal(result.noAllyBuffWhenTargetSurvives, true);
+  assert.equal(result.defeatedTargetCaptured, true);
+  assert.equal(result.allySideBuffedOnCapture, true, "the whole side (Elyrion included) gets +1 only when the debuff actually defeats the target");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 15 (VFX for the two new cards): Elyrion\'s Threads of Destiny and The Concord\'s United Will both use the shared .ultimate-vfx toolkit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Elyrion: single-target ring+hit, emerald/teal.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('elyrion'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Threads of Destiny', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    let html = renderBattle();
+    out.elyrionHasRingAndHit = html.includes('class="vfx-ring"') && html.includes('class="vfx-hit"');
+    out.elyrionIsEmeraldTeal = html.includes('rgba(62,207,142');
+
+    // The Concord: AOE ring+hit on every own-side ally, distinct gold palette.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('concord'), owner:'blue' };
+    state.board[0] = { card: findCardById('ogre'), owner:'blue' };
+    state.board[8] = { card: findCardById('ogre'), owner:'blue' };
+    state.board[6] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'United Will', sourceIndex:4, targetIndex:null, enemyIndices:null };
+    html = renderBattle();
+    out.concordHitsAllThreeAllies = (html.match(/class="vfx-hit"/g) || []).length === 3; // self + 2 allies, never the red enemy
+    out.concordIsGold = html.includes('rgba(224,192,47');
+
+    return out;
+  })()`);
+  assert.equal(result.elyrionHasRingAndHit, true);
+  assert.equal(result.elyrionIsEmeraldTeal, true);
+  assert.equal(result.concordHitsAllThreeAllies, true, "United Will's VFX must mark every own-side ally (Concord included), never the enemy card");
+  assert.equal(result.concordIsGold, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
