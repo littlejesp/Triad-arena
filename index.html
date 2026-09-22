@@ -1114,7 +1114,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 }
 /* Fast Mode (see toggleFastMode()) -- only speeds up the ROUTINE per-move
    feedback a repeat player sits through every single flip/turn (this
-   variable, read by .cell .card.flipping/captureRing*/.conquest-banner
+   variable, read by .cell .card.flipping/captureRing*/.conquered-badge-small
    below), not the rare Ultimate cast sequences: those are the spectacle
    payoff, not friction, so they keep their full designed length even with
    Fast Mode on. */
@@ -1256,30 +1256,36 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .soul-star{ fill:#f2fff8; animation:soulStarTwinkle ease-in-out infinite; }
 @keyframes soulStarTwinkle{ 0%,100%{ opacity:0.25; } 50%{ opacity:1; } }
 
-/* "Conquered!" banner — a bigger, one-off flourish on top of the routine
-   attack slash. state.conquestPopup holds the owner ('blue'/'red') whose
-   capture triggered it, and the <img>'s src picks the matching artwork —
-   conquered-badge.png for the player, conquered-badge-red.png for the AI
-   (see showConquestPopup()) — since each piece is written from that
-   side's own perspective, not a generic "someone won" graphic. Centered
-   on .arena-frame rather than anchored to the captured cell: Same/Plus/
-   Combo can flip several cells in one placement, so a single
-   card-anchored popup wouldn't have one obvious home anyway. */
-.conquest-banner{
-  position:absolute; z-index:20; top:50%; left:50%;
-  /* Shrunk from 62%/340px (user feedback: "syns för mkt och förstör" --
-     it covered too much of the board and obscured the actual result). */
-  width:40%; max-width:210px;
-  transform:translate(-50%,-50%) scale(0.55);
-  opacity:0; pointer-events:none;
-  filter:drop-shadow(0 6px 22px rgba(0,0,0,0.65));
-  animation: conquestPop calc(1.4s * var(--fx-speed,1)) cubic-bezier(.2,.9,.25,1) forwards;
+/* "Conquered" badge — redesigned per the user's own request ("skriv
+   något coolare... röd och blå" + new AI-generated art) from a single
+   big banner centered over the WHOLE arena into a small badge that pops
+   up directly ON the specific cell that just got captured. This also
+   fixes a real limitation the old centered design had to work around: a
+   Same/Plus/Combo chain or an AOE Ultimate can flip several cells in one
+   action, and one big central image could never show "whose card is
+   whose" for more than one of them at once -- a per-cell badge has no
+   such problem, one instance renders per captured cell (see boardCellHtml,
+   gated on cell.justFlipped, the exact same flag that already drives the
+   card's own flip animation and its ~1300ms/fxTime(1300) cleanup window
+   used throughout placeCard/playUltimateSequence -- no separate timer or
+   state needed here). --fx-delay comes from cell.fxDelay, the same
+   Same/Plus/Combo chain stagger every other per-cell effect already uses,
+   so a multi-flip chain shows its badges cascading in one after another
+   instead of all popping in on the same frame. Src picks conquered-badge.png
+   (blue) or conquered-badge-red.png (red/AI) by cell.owner -- the capturing
+   side, read directly off the entry since a flip already updates .owner. */
+.conquered-badge-small{
+  position:absolute; z-index:6; left:50%; top:50%; width:80%; height:auto;
+  pointer-events:none;
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,0.7));
+  opacity:0;
+  animation: conqueredBadgePop calc(1.05s * var(--fx-speed,1)) cubic-bezier(.2,.9,.25,1) both;
 }
-@keyframes conquestPop{
-  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.55) rotate(-4deg); }
-  14%{ opacity:1; transform:translate(-50%,-50%) scale(1.08) rotate(1deg); }
-  24%{ transform:translate(-50%,-50%) scale(1) rotate(0deg); }
-  78%{ opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+@keyframes conqueredBadgePop{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.45) rotate(-8deg); }
+  16%{ opacity:1; transform:translate(-50%,-50%) scale(1.1) rotate(3deg); }
+  28%{ transform:translate(-50%,-50%) scale(1) rotate(0deg); }
+  74%{ opacity:1; transform:translate(-50%,-50%) scale(1) rotate(0deg); }
   100%{ opacity:0; transform:translate(-50%,-50%) scale(0.92) rotate(0deg); }
 }
 
@@ -4415,7 +4421,6 @@ let state = {
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
   showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
-  conquestPopup: false,   // false, or 'blue'/'red' while that side's "Conquered!" banner is showing
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   impactPunch: false,     // true briefly at the exact moment ANY Ultimate's effect lands (every card, not magnitude-gated like chainShake) — .board.impact-punch, see playUltimateSequence
   ultimateBanner: null,   // { phase:'cast'|'impact', owner, name, sourceIndex } while an Ultimate's windup/impact sequence plays — see runSpecialResolution/playUltimateSequence
@@ -5087,6 +5092,7 @@ function boardCellHtml(cell, i, previewVulnerable){
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
         }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : '')}
       ${capturePreview && capturePreview.captures > 0 ? `<div class="capture-badge">⚔ ${capturePreview.captures}</div>` : ''}
+      ${cell && cell.justFlipped ? `<img class="conquered-badge-small" src="conquered-badge${cell.owner === 'red' ? '-red' : ''}.png" alt="Conquered" aria-hidden="true" style="animation-delay:${cell.fxDelay || 0}ms;">` : ''}
     </div>
   `;
 }
@@ -5881,7 +5887,6 @@ function renderBattle(){
           `).join('')}
         </div>
       ` : ''}
-      ${state.conquestPopup ? `<img class="conquest-banner" src="conquered-badge${state.conquestPopup === 'red' ? '-red' : ''}.png" alt="Conquered!">` : ''}
       ${state.ultimateBanner ? `
         <div class="ultimate-banner ultimate-banner-${state.ultimateBanner.phase} owner-${state.ultimateBanner.owner}">
           <div class="ultimate-banner-label">${state.ultimateBanner.owner === 'blue' ? 'Special Attack' : "Forest's Special Attack"}</div>
@@ -7481,42 +7486,30 @@ function isShielded(targetEntry, targetIndex){
   return false;
 }
 
-// "Conquered!" banner — one piece of art per side (conquered-badge.png for
-// the player, conquered-badge-red.png for the AI), each written from that
-// side's own perspective, so both captures get the flourish now. Uses a
-// token instead of a bare setTimeout so that a second capture landing
-// while the first banner is still up (e.g. a placement capture immediately
-// followed by a special) restarts the window instead of the earlier timer
-// clearing it out from under the newer one. Duration must match
-// .conquest-banner's `conquestPop` animation length in the CSS below —
-// bumped from an original 1s to 1.4s after playtester feedback that
-// captures (this banner included) flew by too fast to actually see.
-const CONQUEST_BANNER_MS = 1400;
+// Game-feel pacing: how long to make the AI wait after a capture before
+// acting, so the player actually gets to see the small per-cell
+// "Conquered" badge land (see boardCellHtml/.conquered-badge-small)
+// before the next move piles more animation on top. Redesigned away from
+// a single big centered banner (see PROJECT.md) into a badge rendered
+// directly on each captured cell, gated on cell.justFlipped -- the same
+// flag that already drives the card's own flip animation and its
+// ~1300ms/fxTime(1300) cleanup window, so no separate popup state/token
+// is needed any more; advanceTurn below just checks state.board directly
+// for that same flag instead of a dedicated conquestPopup field.
+const CAPTURE_PAUSE_MS = 1400;
 
 // Fast Mode (see toggleFastMode()): scales the ROUTINE per-move waits a
-// repeat player sits through every match -- flip stagger, conquest banner,
-// short between-turn pauses -- down to a snappier pace. Deliberately NOT
+// repeat player sits through every match -- flip stagger, the capture
+// pause, short between-turn pauses -- down to a snappier pace. Deliberately NOT
 // applied to ULTIMATE_WINDUP_MS/SHAKE_MS/CLEANUP_MS below: those gate the
 // rare Special-cast spectacle sequences, which are the payoff a player is
 // watching FOR, not friction to cut. Keep this numerically in sync with
 // .arena-frame.fast-mode's --fx-speed in the CSS above -- both scale the
-// same on-screen moment (the flip/banner animation is CSS-timed; this is
+// same on-screen moment (the flip/badge animation is CSS-timed; this is
 // how long JS then waits before the next render/turn).
 const FAST_MODE_SCALE = 0.4;
 function fxTime(ms){
   return state.fastMode ? Math.round(ms * FAST_MODE_SCALE) : ms;
-}
-
-let conquestPopupToken = 0;
-function showConquestPopup(owner){
-  const token = ++conquestPopupToken;
-  state.conquestPopup = owner;
-  setTimeout(()=>{
-    if(conquestPopupToken === token){
-      state.conquestPopup = false;
-      render();
-    }
-  }, fxTime(CONQUEST_BANNER_MS));
 }
 
 // On-placement effects for the Triple Triad Sisters (Void Touch/Undying
@@ -7855,7 +7848,6 @@ function placeCard(cellIndex, cardId, owner){
   }
   if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) state.winsPopup = { owner, amount: flips };
-  if(flips > 0) showConquestPopup(owner);
   if(flips > 0) setTimeout(()=> SFX.flip(flips), fxTime(120));
   if(shielded > 0) setTimeout(()=> SFX.shield(), fxTime(90));
   if(bonusTriggered) setTimeout(()=> SFX.bonus(), fxTime(shielded > 0 ? 260 : 90));
@@ -7915,10 +7907,12 @@ function advanceTurn(owner){
     setTimeout(finishGame, fxTime(500));
     return;
   }
-  // A capture just happened (conquest banner still up) → give the player
-  // a beat to actually see it before the AI's own flip/slash/banner pile
-  // on top. No capture → keep the old snappy pace, nothing to catch up on.
-  const nextTurnDelay = state.conquestPopup ? fxTime(CONQUEST_BANNER_MS + 200) : fxTime(700);
+  // A capture just happened (some cell is still mid-flip, see
+  // cell.justFlipped/.conquered-badge-small) → give the player a beat to
+  // actually see it before the AI's own flip/slash/badge pile on top. No
+  // capture → keep the old snappy pace, nothing to catch up on.
+  const capturedJustNow = state.board.some(e => e && e.justFlipped);
+  const nextTurnDelay = capturedJustNow ? fxTime(CAPTURE_PAUSE_MS + 200) : fxTime(700);
   if(state.extraTurnPending === owner){
     state.extraTurnPending = null;
     state.placedThisTurn = false;
@@ -9785,7 +9779,7 @@ function playUltimateSequence(job){
   render();
 
   setTimeout(()=>{
-    if(ultimateBannerToken !== token) return; // superseded — shouldn't happen given the queue above, but matches showConquestPopup's own safety pattern
+    if(ultimateBannerToken !== token) return; // superseded — shouldn't happen given the queue above, same token-guard pattern used throughout this file
     srcEntry.ultimateCasting = false;
 
     // Phase 2: the hit visually LANDS now -- banner switches to its
@@ -9824,9 +9818,6 @@ function playUltimateSequence(job){
       state.board.forEach((e, i) => { if(e && e.justFlipped) alreadyFlipped.add(i); });
       state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
       const capturedCount = state.board.filter((e, i) => e && e.owner === owner && e.justFlipped && !alreadyFlipped.has(i)).length;
-      if(capturedCount > 0){
-        showConquestPopup(owner);
-      }
       // Same magnitude-gated shake as phase 3's Same/Combo chains (see
       // placeCard) — a big Ultimate sweep feels like a big chain, reuses the
       // same .arena-frame.chain-shake mechanism rather than a new one.
@@ -10832,7 +10823,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
