@@ -5310,6 +5310,59 @@ function renderBattle(){
     }));
   }
 
+  // Vorgrath's The Falling World -- a third direction-target card, same
+  // "line, not whole board" shape as Eternal Verdict/Ragnarök, but this one
+  // ALWAYS destroys (no debuff fallback branch), so it uses the same
+  // cast-time enemyIndices snapshot as Eternal Verdict rather than
+  // Ragnarök's live enemiesInDirection() recompute. Doom-fire palette
+  // (matching Vorgrath's own fire-element accent) instead of Eternal
+  // Verdict's judgment gold or Ragnarök's ice blue.
+  const fallingWorldActive = state.ultimateBanner && state.ultimateBanner.name === 'The Falling World';
+  let fallingWorldOriginX = 50, fallingWorldOriginY = 50, fallingWorldHitPositions = [];
+  if(fallingWorldActive){
+    ({ x: fallingWorldOriginX, y: fallingWorldOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    fallingWorldHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      ...cellCenterPercent(i),
+      delay: 0.1 + n * 0.08,
+    }));
+  }
+
+  // Pallis's Wave of Loyalty -- the first "blessing" identity VFX: unlike
+  // every AOE/direction card above, this one never touches an enemy at
+  // all, it buffs+shields Pallis's OWN element-matching allies. Safe to
+  // derive live off the CURRENT board (never destroys/removes anyone, so
+  // there's nothing for a cast-time snapshot to protect against), reusing
+  // state.ultimateBanner.element (see playUltimateSequence) the same way
+  // Ragnarök/Eternal Verdict reuse .direction.
+  const waveOfLoyaltyActive = state.ultimateBanner && state.ultimateBanner.name === 'Wave of Loyalty';
+  let waveOfLoyaltyOriginX = 50, waveOfLoyaltyOriginY = 50, waveOfLoyaltyHitPositions = [];
+  if(waveOfLoyaltyActive){
+    ({ x: waveOfLoyaltyOriginX, y: waveOfLoyaltyOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const blessedOwner = state.ultimateBanner.owner;
+    const blessedElement = state.ultimateBanner.element;
+    waveOfLoyaltyHitPositions = state.board
+      .map((e, i) => (e && e.owner === blessedOwner && e.card.element === blessedElement) ? i : null)
+      .filter(i => i !== null)
+      .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.15 + n * 0.08 }));
+  }
+
+  // Evil Twist Yang/Yin's Yang Resonance / Yin Resonance -- a mirrored pair
+  // sharing one derivation shape, same "two halves of the same idea"
+  // pattern as Twin Brothers/Twin Sisters, matching their own
+  // pairPresence bond: Yang is white/gold, Yin is black/violet. Both are a
+  // whole-board debuffThisRound AOE (never destroy), so both reuse
+  // aoeEnemyIndicesAtCast the same way Diamond Storm/Wyrmking do.
+  const yangResonanceActive = state.ultimateBanner && state.ultimateBanner.name === 'Yang Resonance';
+  const yinResonanceActive = state.ultimateBanner && state.ultimateBanner.name === 'Yin Resonance';
+  let resonanceOriginX = 50, resonanceOriginY = 50, resonanceHitPositions = [];
+  if(yangResonanceActive || yinResonanceActive){
+    ({ x: resonanceOriginX, y: resonanceOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    resonanceHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      ...cellCenterPercent(i),
+      delay: 0.12 + n * 0.06,
+    }));
+  }
+
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
   // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
   // it's a plain one-shot triggered by an ordinary attack). Reads
@@ -5601,6 +5654,32 @@ function renderBattle(){
           ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
         </div>
         <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(194,59,206,0.4); --vfx-flash-delay:0.3s;"></div>
+      ` : ''}
+      ${fallingWorldActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${fallingWorldOriginX}%; --vfx-y:${fallingWorldOriginY}%; --vfx-ring-color:rgba(220,90,50,0.95); --vfx-glow-color:rgba(184,69,46,0.6); --vfx-ring-soft:rgba(255,160,110,0.6); --vfx-hit-color:rgba(255,150,90,0.95); --vfx-hit-color-mid:rgba(139,40,20,0.7);">
+          <div class="vfx-ring"></div>
+          ${fallingWorldHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(184,69,46,0.4); --vfx-flash-delay:0.25s;"></div>
+      ` : ''}
+      ${waveOfLoyaltyActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${waveOfLoyaltyOriginX}%; --vfx-y:${waveOfLoyaltyOriginY}%; --vfx-ring-color:rgba(255,215,120,0.9); --vfx-glow-color:rgba(201,162,39,0.55); --vfx-ring-soft:rgba(255,240,200,0.6); --vfx-hit-color:rgba(255,240,200,0.95); --vfx-hit-color-mid:rgba(201,162,39,0.7); --vfx-twinkle-color:#f2d98a;">
+          <div class="vfx-ring"></div>
+          ${waveOfLoyaltyHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${yangResonanceActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${resonanceOriginX}%; --vfx-y:${resonanceOriginY}%; --vfx-ring-color:rgba(230,214,150,0.95); --vfx-glow-color:rgba(176,146,74,0.6); --vfx-ring-soft:rgba(255,248,220,0.6); --vfx-hit-color:rgba(255,248,215,0.95); --vfx-hit-color-mid:rgba(176,146,74,0.7);">
+          <div class="vfx-ring"></div>
+          ${resonanceHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${yinResonanceActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${resonanceOriginX}%; --vfx-y:${resonanceOriginY}%; --vfx-ring-color:rgba(120,70,190,0.95); --vfx-glow-color:rgba(60,20,110,0.6); --vfx-ring-soft:rgba(170,120,230,0.6); --vfx-hit-color:rgba(170,120,230,0.95); --vfx-hit-color-mid:rgba(60,20,110,0.7);">
+          <div class="vfx-ring"></div>
+          ${resonanceHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
       ` : ''}
       ${odinSlashPairs.length ? `
         <div class="odin-slash-fx" aria-hidden="true">
@@ -9468,15 +9547,21 @@ function playUltimateSequence(job){
   // every other AOE identity-VFX card, rather than re-deriving "who is an
   // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion"){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion" || special.name === 'Yang Resonance' || special.name === 'Yin Resonance'){
+    // Yang/Yin Resonance (Evil Twist) are the same "never destroys/nulls a
+    // board slot" shape as Diamond Storm -- a plain debuffThisRound AOE --
+    // added here anyway for the same "reuse the shared enemyIndices
+    // mechanism instead of a one-off live re-derivation" reasoning.
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
-  } else if(special.name === 'Eternal Verdict' && extra && extra.direction){
-    // Eternal Verdict only hits the chosen line, not the whole board -- and
-    // unlike Fenrir's Ragnarök (a pure debuff, never destroys) it can
-    // destroy cells outright (see SPECIAL_HANDLERS.celestialjudgment), so it
-    // needs the same "snapshot who was in the line before resolving"
-    // treatment as the whole-board AOE cards above, just scoped to
-    // enemiesInDirection's own line instead of every enemy on the board.
+  } else if((special.name === 'Eternal Verdict' || special.name === 'The Falling World') && extra && extra.direction){
+    // Eternal Verdict (and Vorgrath's The Falling World, an unconditional
+    // version of the same shape) only hit the chosen line, not the whole
+    // board -- and unlike Fenrir's Ragnarök (a pure debuff, never destroys)
+    // they can destroy cells outright (see SPECIAL_HANDLERS.
+    // celestialjudgment/vorgrath), so they need the same "snapshot who was
+    // in the line before resolving" treatment as the whole-board AOE cards
+    // above, just scoped to enemiesInDirection's own line instead of every
+    // enemy on the board.
     aoeEnemyIndicesAtCast = enemiesInDirection(sourceIndex, extra.direction, owner).map(p => p.index);
   } else if(special.name === 'Forbidden Harmony'){
     // Forbidden Harmony only hits the up-to-4 cells immediately adjacent to
@@ -9504,7 +9589,7 @@ function playUltimateSequence(job){
   // own extra.direction choice, carried purely for VFX (see fenrirActive
   // below), never read by gameplay logic (SPECIAL_HANDLERS.fenrir gets
   // its own direction from job.extra directly, not from this banner).
-  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast, direction: extra && extra.direction };
+  state.ultimateBanner = { phase:'cast', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast, direction: extra && extra.direction, element: extra && extra.element };
   srcEntry.ultimateCasting = true;
   SFX.select();
   playUltimateVoiceLine(srcEntry.card.id);
@@ -9528,7 +9613,7 @@ function playUltimateSequence(job){
     // attack connect with the still-intact card(s) first.
     const targetEntry = targetIndex != null ? state.board[targetIndex] : null;
     if(targetEntry) targetEntry.attackFlash = true; // purely visual — same slash as a normal battle
-    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast, direction: extra && extra.direction };
+    state.ultimateBanner = { phase:'impact', owner, name: special.name, sourceIndex, targetIndex, enemyIndices: aoeEnemyIndicesAtCast, direction: extra && extra.direction, element: extra && extra.element };
     SFX.bonus();
     playUltimateImpactSfx(srcEntry.card.id);
     render();
@@ -9578,8 +9663,13 @@ function playUltimateSequence(job){
       // reasoning as every other explicit opt-in in this list.
       // Eternal Verdict (destroy-or-debuff) and Forbidden Harmony (destroy
       // only) are the same shape again -- destroyCard/SpecialVerbs.debuff,
-      // never a flip.
-      if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony') state.chainShake = true;
+      // never a flip. The Falling World (Vorgrath) is the same
+      // never-flips destroy shape too. Yang/Yin Resonance are a plain
+      // debuffThisRound AOE like Diamond Storm above, same opt-in.
+      // Pallis's Wave of Loyalty is deliberately NOT on this list -- it's a
+      // blessing on your OWN side, not an attack landing on an enemy, so a
+      // combat-impact screen shake would read wrong for it.
+      if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony' || special.name === 'The Falling World' || special.name === 'Yang Resonance' || special.name === 'Yin Resonance') state.chainShake = true;
       // Game-feel review follow-up: unlike chainShake above (magnitude-
       // gated), EVERY Ultimate gets this small camera punch right at its
       // actual resolve moment — see .board.impact-punch.
