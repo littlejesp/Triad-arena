@@ -9004,3 +9004,61 @@ test('Fas 15 follow-up: Elyrion and The Concord have real CARD_IMAGES art (cropp
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 16 (better light effects, user-supplied textures): .vfx-ring/.vfx-twinkle are upgraded with real light-burst/spark textures via ::before, and .vfx-magic-circle renders as a true centered circle (regression test for a margin-percentage-relative-to-width CSS bug that broke centering in a non-square container)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('lyrith'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:"Serpent's Wrath", sourceIndex:4, targetIndex:1, enemyIndices:null };
+    render();
+    const ring = document.querySelector('.vfx-ring');
+    const ringBefore = getComputedStyle(ring, '::before');
+    out.ringHasLightBurstTexture = (ringBefore.webkitMaskImage || ringBefore.maskImage || '').includes('vfx-lightburst.png');
+
+    // Serpent's Wrath is single-target and has no .vfx-twinkle at all --
+    // switch to Wave of Loyalty (Pallis), one of the toolkit's twinkle-
+    // using AOE cards, to check the twinkle's own ::before.
+    state.board[4] = { card: findCardById('pallis'), owner:'blue' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Wave of Loyalty', sourceIndex:4, targetIndex:null, enemyIndices:null, element:'earth' };
+    render();
+    const twinkle = document.querySelector('.vfx-twinkle');
+    const twinkleBefore = twinkle ? getComputedStyle(twinkle, '::before') : null;
+    out.twinkleHasSparkTexture = !!twinkleBefore && (twinkleBefore.webkitMaskImage || twinkleBefore.maskImage || '').includes('vfx-spark.png');
+
+    // Magic-circle centering regression test: place it in a deliberately
+    // non-square wrapper (matching .ultimate-vfx's real 5/7 aspect-ratio)
+    // and verify the rendered circle is actually centered on the
+    // wrapper's own center point, with equal width/height (a true
+    // circle, not an oval stretched by the container's own aspect ratio).
+    const probe = document.createElement('div');
+    probe.className = 'ultimate-vfx phase-impact';
+    probe.style.cssText = 'position:absolute; top:100px; left:100px; width:200px; aspect-ratio:5/7;';
+    probe.style.setProperty('--vfx-x', '50%');
+    probe.style.setProperty('--vfx-y', '50%');
+    probe.innerHTML = '<div class="vfx-magic-circle" style="animation:none; opacity:1; transform:translate(-50%,-50%);"></div>';
+    document.body.appendChild(probe);
+    const wrapRect = probe.getBoundingClientRect();
+    const circleRect = probe.querySelector('.vfx-magic-circle').getBoundingClientRect();
+    const wrapCenterX = wrapRect.left + wrapRect.width/2;
+    const wrapCenterY = wrapRect.top + wrapRect.height/2;
+    const circleCenterX = circleRect.left + circleRect.width/2;
+    const circleCenterY = circleRect.top + circleRect.height/2;
+    out.magicCircleCenteredX = Math.abs(circleCenterX - wrapCenterX) < 2;
+    out.magicCircleCenteredY = Math.abs(circleCenterY - wrapCenterY) < 2;
+    out.magicCircleIsRound = Math.abs(circleRect.width - circleRect.height) < 2;
+    probe.remove();
+
+    return out;
+  })()`);
+  assert.equal(result.ringHasLightBurstTexture, true);
+  assert.equal(result.twinkleHasSparkTexture, true);
+  assert.equal(result.magicCircleCenteredX, true);
+  assert.equal(result.magicCircleCenteredY, true, "vertical centering must not break in a non-square container (the margin-percent-uses-width CSS quirk)");
+  assert.equal(result.magicCircleIsRound, true, "width:N%; aspect-ratio:1 must render a true circle regardless of the container's own aspect ratio");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
