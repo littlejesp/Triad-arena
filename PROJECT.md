@@ -3692,6 +3692,146 @@ visar tydligt att den gyllene välsignelsen träffar Pallis två blå
 allierade men lämnar den röda fienden (Nyxara) helt orörd. Ingen
 konsol/page-error i något test.
 
+**Fas 13: VFX-expansion, runda 5 — fyra HELT NYA tekniker, inte bara nya
+färger.** Användaren ville "bygga mer på spelet, göra det coolare" men
+efterfrågade uttryckligen NÅGOT ANNORLUNDA — inte bara fler kort som
+återanvänder samma ring+hit+twinkle-formel som varenda kort hittills
+(Fas 8-12). Jag föreslog fyra genuint nya visuella TEKNIKER (inte
+färgscheman) och lät användaren välja — svaret var "jag håller med dig
+låter bra allt", så alla fyra byggdes i en och samma runda, varsitt kort:
+
+1. **`.vfx-projectile`** (Aurelian — Skybreaker): det FÖRSTA elementet
+   som faktiskt FÄRDAS över skärmen istället för att dyka upp direkt vid
+   target. Ett fallande spjut/stjärnskott som störtar ner från ovanför
+   brädet under hela cast/windup-fasen (synkat exakt mot
+   `ULTIMATE_WINDUP_MS`, 0.95s), och landar precis när rendern växlar
+   till impact-fasen och ersätts av den vanliga ring/hit-explosionen.
+   Matchar hans egen flavor text ("Skybreaker crashes down").
+2. **`.vfx-shard`** (Daron — Shattered Crown): en krona-krossas-burst av
+   kantiga splitter som flyger utåt från målet vid impact. Genuint eget
+   behov — Daron FLIPPAR sitt mål (stjäl kraft), han förstör det aldrig,
+   så det befintliga `destroyGhosts`-blekningsmönstret (för kort som
+   faktiskt LÄMNAR brädet) passar inte alls här.
+3. **`.vfx-clockhand`** (Vorathos — Time Collapse): två tunna linjer som
+   snurrar ett helt varv runt målet under cast-fasen — ROTATION är en
+   helt ny rörelsetyp i verktygslådan (allt tidigare är antingen en
+   statisk ring eller nu (denna runda) en rak fallande bana), passande
+   för en Timelancer-tematik.
+4. **`.vfx-crack-svg` / `.vfx-crack-line`** (Nexzoth — The Ending): den
+   FÖRSTA hel-bräde-skaliga VFX:en — spruckna, taggiga linjer som sprider
+   sig över HELA arenan (inte bara en cell-lokaliserad ring), tecknade
+   med den klassiska stroke-dasharray/stroke-dashoffset-"rita-sig-själv"-
+   tekniken under cast-fasen. Passande för en bokstavligt
+   apokalyptisk hel-bräde-förstörelse ("The World Eater... nothing
+   remains").
+
+Tekniskt: alla fyra kort behövde bara små, redan etablerade
+tillägg utanför själva CSS/markup-arbetet — The Ending lades till i den
+befintliga hel-bräde-`aoeEnemyIndicesAtCast`-listan (samma mönster som
+Megaflare/Infernal Pact, eftersom den förstör alla fiender på hela
+brädet) samt skärm-skaknings-opt-in-listan (aldrig en flip, alltid en
+`destroyCard`). Skybreaker/Shattered Crown/Time Collapse är alla vanliga
+enkelmåls-flippar (redan fullt stödda av `targetIndex`-fältet sedan
+tidigare faser) och behövde ingen ny banderoll-logik alls.
+
+Verifierat: `node --check` grönt. Två nya permanenta regressionstester
+(alla fyra kortens nya primitiv renderar rätt — projektilen syns bara
+under cast-fasen inte impact-fasen, 6 splitter, 2 klockvisare, 5
+sprickor som alla börjar exakt i Nexzoths egen cell; samt ett separat
+test som bekräftar The Endings hel-bräde-`aoeEnemyIndicesAtCast`-
+snapshot vid ett riktigt `runSpecialResolution`-anrop). Ett litet
+testskrivfel (en dubbel-escapead apostrof i en assert-sträng som
+orsakade en JS-syntaxfel i hela testfilen) hittades och fixades direkt.
+Hela testsviten grön: **141/141** (139 tidigare + 2 nya). Playwright-
+skärmdumpar av alla fyra kort bekräftar tekniken visuellt: Skybreakers
+projektil syns tydligt mitt i fallet ovanför brädet (fångad via en
+riktig `runSpecialResolution`-cast, inte en manuellt satt banderoll);
+Shattered Crowns splitter flyger synligt utåt; Time Collapses två
+klockvisare syns mitt i sin rotation; och The Endings sprickor sprider
+sig synligt över HELA arenan (inte bara en cell) innan de bleknar när
+alla tre fiendekorten är förstörda. Ingen konsol/page-error i något
+test.
+
+**Fas 14: "Erövrad"-badgen ombyggd — engelsk text, ny AI-genererad
+konst, och från en stor centrerad banderoll till en liten badge PER
+erövrat kort.** Användaren frågade om vi skulle ta bort hela
+"Erövrad"-slashen nu när Ultimate-VFX:en blivit mycket coolare (Fas
+8-13) — den gamla bilden (`conquered-badge.png`/`-red.png`) visade sig
+ha "ERÖVRAD" + "FIENDEKORTET HAR ERÖVRATS" inbakat direkt i konstverket,
+inte i koden. Efter en kort diskussion (se AskUserQuestion-liknande
+utbyte i chatten) landade vi på: byt inte bort effekten helt (den är
+fortfarande den ENDA flourishen en vanlig 1-korts-fångst får), men bygg
+om den — mindre, på engelska, och sittande direkt PÅ det erövrade
+kortet istället för stort och centrerat över hela brädet.
+
+Eftersom texten satt fast i bilden och den här miljön saknar
+bildgenereringsverktyg skrev jag åt användaren två färdiga
+bildgenererings-prompts (en blå, en röd) att klistra in i ChatGPT/
+DALL-E, medvetet hållna enklare/mer högkontrast än originalet eftersom
+en lika detaljerad bild (kedjor, rök, mängder splitter) hade blivit
+oläslig i den mindre storleken. Användaren skickade tillbaka en bild med
+båda badgesen sida vid sida ("CONQUERED" i guld-beveled fantasy-typografi,
+blå respektive röd blixt/eld-tema) — delades upp i två separata filer med
+Pillow (tight-crop mot alfa-kanalen + nedskalning till 480px, samma
+filstorlek som originalen) och sparades under exakt samma filnamn som
+förut (`conquered-badge.png`/`conquered-badge-red.png`) så ingen kodväg
+behövde ändras.
+
+Den strukturella ombyggnaden var större än bara en bildbyte:
+
+1. **Från ett globalt `state.conquestPopup`-flagga till ett rent
+   per-cell-derat mönster.** Den gamla banderollen behövde en egen
+   `showConquestPopup()`-funktion med sin egen token/timer (samma mönster
+   som `ultimateBannerToken`) eftersom den var en enda delad bild som
+   inte kunde "höra hemma" på ett specifikt kort vid en Same/Plus/Combo-
+   kedja eller en AOE-Ultimate som flippar flera celler samtidigt — det
+   var uttryckligen DÄRFÖR den låg centrerad över hela arenan (dokumenterat
+   i en gammal kommentar). Den nya badgen renderas istället direkt i
+   `boardCellHtml`, gated på `cell.justFlipped` — SAMMA flagga som redan
+   driver kortets egen flip-animation och dess befintliga
+   ~1300ms/`fxTime(1300)`-cleanup — så ingen separat state/timer behövs
+   längre alls. Löser multi-cell-begränsningen helt naturligt: en
+   instans renderas per fångat kort, med `cell.fxDelay` (samma
+   Same/Plus/Combo-kedje-stagger varje annat per-cell-effekt redan
+   använder) så flera badges i en kedja poppar in i en kaskad istället
+   för samtidigt.
+2. **`showConquestPopup`/`conquestPopupToken`/`CONQUEST_BANNER_MS` togs
+   bort helt** (två anropsplatser: `placeCard`s flip-hantering och
+   `playUltimateSequence`s capture-count-koll). `advanceTurn`s AI-paus-
+   logik (som använde `state.conquestPopup` för att avgöra om AI:n skulle
+   vänta lite extra efter en fångst) läser nu istället
+   `state.board.some(e => e && e.justFlipped)` direkt — samma
+   underliggande signal, bara utan mellanhanden. Konstanten döptes om
+   till `CAPTURE_PAUSE_MS` (samma värde, 1400ms, samma playtestade
+   paceringskänsla — bara namnet som beskrev en nu borttagen banderoll
+   var missvisande).
+
+Ett riktigt designfynd under arbetet (inte bara en refaktorering): det
+gamla systemets tredje test ("en `justFlipped`-kvarleva på en annan cell
+ska INTE ge en falsk positiv") skyddade mot ett helt annat buggmönster
+som bara existerade för att banderollen var GLOBAL — en kvarvarande
+flagga på ett kort kunde tidigare felaktigt trigga banderollen för en
+SENARE, orelaterad, icke-fångande handling. I det nya per-cell-systemet
+finns inget sådant globalt tillstånd att korrumpera: en kvarvarande
+flagga på ett kort visar bara det kortets EGEN, fortfarande giltiga,
+badge — inget att skydda mot längre. Testet skrevs om för att istället
+verifiera den nya (enklare) korrekthetsgarantin direkt.
+
+Verifierat: `node --check` grönt. Tre befintliga "conquest banner"-tester
+skrevs om till det nya per-cell-mönstret (inklusive fyndet ovan), plus
+två helt nya tester (röd sida använder rätt bild och aldrig den blå;
+en tvåcells-AOE-fångst — Pallis & Pells Hunter's Wrath — renderar TVÅ
+separata badge-instanser, en per erövrat kort, istället för en delad;
+badgen försvinner med exakt samma cleanup-fönster som allt annat
+per-cell-flip-tillstånd). Hela testsviten grön: **143/143** (141
+tidigare + 2 nya, netto +2 efter att 3 gamla ersattes 1:1 och 2 helt nya
+lades till). Playwright-skärmdumpar bekräftar hela flödet visuellt: en
+liten blå badge sitter prydligt centrerad ovanpå det just erövrade
+kortet (inte längre stort och centrerat över hela brädet); samma för röd
+sida; och Hunter's Wrath-skärmdumpen visar tydligt TVÅ separata badges,
+en på vardera av de två samtidigt erövrade korten. Ingen konsol/page-
+error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

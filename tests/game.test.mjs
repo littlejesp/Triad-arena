@@ -145,25 +145,31 @@ test('round clock: a "this round" effect is symmetric regardless of which side c
   await page.close();
 });
 
-test('conquest banner: an AOE special (Pallis & Pell) triggers it on an actual capture', async () => {
+test('conquered badge: an AOE special (Pallis & Pell) sets justFlipped on the captured cell, and renderBattle() shows the small per-cell badge there', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
+    state.phase = 'battle';
     state.board = Array(9).fill(null);
     state.board[4] = freshEntry(findCardById('pallispell'), 'blue');
     state.board[1] = freshEntry(findCardById('ogre'), 'red');
     state.wins = { blue: 5, red: 5 };
     state.specialUsed = {};
-    state.conquestPopup = false;
     runSpecialResolution(4, null, {});
     // Game feel phase 4: the effect no longer resolves synchronously —
     // runSpecialResolution now plays a windup beat first (see
     // playUltimateSequence). Wait past it before reading the result.
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
-    return { ownerAfter: state.board[1].owner, conquestPopup: state.conquestPopup };
+    const html = renderBattle();
+    return {
+      ownerAfter: state.board[1].owner,
+      justFlippedOnCapturedCell: state.board[1].justFlipped === true,
+      html,
+    };
   })()`);
   assert.equal(result.ownerAfter, 'blue');
-  assert.equal(result.conquestPopup, 'blue');
+  assert.equal(result.justFlippedOnCapturedCell, true, 'the badge (see boardCellHtml) is gated directly on cell.justFlipped');
+  assert.equal(result.html.includes('class="conquered-badge-small" src="conquered-badge.png"'), true, "blue's own capture must use the blue badge art");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -198,43 +204,57 @@ test('Hunter\'s Wrath: each defeated card permanently loses 2 Power on all sides
   await page.close();
 });
 
-test('conquest banner: a non-capturing special (Deathblade\'s swap) does not trigger it', async () => {
+test('conquered badge: a non-capturing special (Deathblade\'s swap) never sets justFlipped, so no badge renders anywhere', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
+    state.phase = 'battle';
     state.board = Array(9).fill(null);
     state.board[4] = freshEntry(findCardById('deathblade'), 'blue');
     state.board[1] = freshEntry(findCardById('tiamat'), 'red');
     state.wins = { blue: 5, red: 5 };
     state.specialUsed = {};
-    state.conquestPopup = false;
     runSpecialResolution(4, 1, {});
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
-    return { conquestPopup: state.conquestPopup };
+    return { anyFlipped: state.board.some(e => e && e.justFlipped), html: renderBattle() };
   })()`);
-  assert.equal(result.conquestPopup, false);
+  assert.equal(result.anyFlipped, false);
+  assert.equal(result.html.includes('conquered-badge-small'), false);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
 
-test('conquest banner: a stale justFlipped flag elsewhere on the board is not a false positive', async () => {
+// The old design used a single GLOBAL state.conquestPopup flag, derived by
+// diffing captures against an "alreadyFlipped" snapshot specifically so a
+// stale justFlipped left over from an earlier, still-animating action
+// wouldn't falsely re-trigger the one shared banner for an unrelated later
+// action. The redesigned badge (see boardCellHtml/.conquered-badge-small)
+// has no such global flag to corrupt any more -- each cell's badge is
+// gated purely on that SAME cell's own justFlipped, so there is nothing
+// left to "falsely trigger": a leftover flag on one cell just means that
+// cell's own still-recent capture is still (correctly) showing its badge,
+// while a genuinely non-capturing action on a DIFFERENT cell simply never
+// sets justFlipped there at all. This test now covers that direct
+// per-cell correctness instead of the old cross-cell contamination bug.
+test('conquered badge: an AOE debuff (Torn\'s Lethal Volley, never captures) does not set justFlipped on the cell it debuffs, even with an unrelated stale flag elsewhere on the board', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(async () => {
     ${freshEntrySnippet()}
+    state.phase = 'battle';
     state.board = Array(9).fill(null);
     const stale = freshEntry(findCardById('ogre'), 'blue');
-    stale.justFlipped = true; // leftover from an earlier, already-resolved action
+    stale.justFlipped = true; // leftover from an earlier, already-resolved action -- still legitimately showing its OWN badge, not a bug
     state.board[0] = stale;
     state.board[4] = freshEntry(findCardById('torn'), 'blue'); // AOE debuff, never captures
     state.board[1] = freshEntry(findCardById('ogre'), 'red');
     state.wins = { blue: 5, red: 5 };
     state.specialUsed = {};
-    state.conquestPopup = false;
     runSpecialResolution(4, null, {});
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
-    return { conquestPopup: state.conquestPopup };
+    return { debuffedCellFlipped: state.board[1].justFlipped === true, staleCellStillFlipped: state.board[0].justFlipped === true };
   })()`);
-  assert.equal(result.conquestPopup, false);
+  assert.equal(result.debuffedCellFlipped, false, "a debuff-only AOE must never set justFlipped on the cell it merely weakened");
+  assert.equal(result.staleCellStillFlipped, true, "an unrelated cell's own pre-existing flag is untouched by a different action -- no cross-cell contamination possible in the per-cell design");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -8529,6 +8549,156 @@ test('Fas 12 (VFX expansion round 4): state.ultimateBanner carries extra.element
   assert.equal(result.castPhaseCarriesElement, true);
   assert.equal(result.fallingWorldSnapshotsOnlyTheLine, true);
   assert.equal(result.yangResonanceSnapshotsWholeBoard, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 13 (VFX expansion round 5, new primitives): Skybreaker, Shattered Crown, Time Collapse, and The Ending each use a genuinely new shared VFX primitive', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Aurelian's Skybreaker: .vfx-projectile (a falling strike, only
+    // present during the CAST/windup phase, not impact).
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('aurelian'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'cast', owner:'blue', name:'Skybreaker', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    let html = renderBattle();
+    out.skybreakerHasProjectileDuringCast = html.includes('class="vfx-projectile"');
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Skybreaker', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.skybreakerHasRingAtImpact = html.includes('class="vfx-ring"');
+
+    // Daron's Shattered Crown: 6 .vfx-shard fragments at impact.
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Shattered Crown', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.shatteredCrownHasSixShards = (html.match(/class="vfx-shard"/g) || []).length === 6;
+
+    // Vorathos's Time Collapse: 2 .vfx-clockhand elements during cast.
+    state.ultimateBanner = { phase:'cast', owner:'blue', name:'Time Collapse', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.timeCollapseHasTwoClockhands = (html.match(/class="vfx-clockhand"/g) || []).length === 2;
+
+    // Nexzoth's The Ending: 5 .vfx-crack-line paths spanning the whole
+    // board, all starting from his own cell's center.
+    state.board = Array(9).fill(null);
+    state.board[0] = { card: findCardById('nexzoth'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.board[8] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'cast', owner:'blue', name:'The Ending', sourceIndex:0, targetIndex:null, enemyIndices:[1,8] };
+    html = renderBattle();
+    out.theEndingHasFiveCracks = (html.match(/class="vfx-crack-line"/g) || []).length === 5;
+    const origin = cellCenterPercent(0);
+    out.theEndingCracksStartAtNexzothsCell = html.includes('d="M ' + origin.x + ',' + origin.y + ' L');
+
+    return out;
+  })()`);
+  assert.equal(result.skybreakerHasProjectileDuringCast, true, 'Skybreaker must show the falling projectile during the cast/windup phase');
+  assert.equal(result.skybreakerHasRingAtImpact, true);
+  assert.equal(result.shatteredCrownHasSixShards, true);
+  assert.equal(result.timeCollapseHasTwoClockhands, true);
+  assert.equal(result.theEndingHasFiveCracks, true);
+  assert.equal(result.theEndingCracksStartAtNexzothsCell, true, "every crack line must originate from the caster's own cell");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 13 (VFX expansion round 5, new primitives): The Ending is added to aoeEnemyIndicesAtCast as a whole-board destroy', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.phase = 'battle';
+    state.board = Array(9).fill(null);
+    const nexzothEntry = freshEntry(findCardById('nexzoth'), 'blue');
+    state.board[0] = nexzothEntry;
+    state.board[1] = freshEntry({ id:'te1', name:'TE1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[8] = freshEntry({ id:'te2', name:'TE2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 3, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(0, null, {});
+    out.theEndingBannerCarriesBothEnemyIndices = state.ultimateBanner
+      && state.ultimateBanner.name === 'The Ending'
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(1)
+      && state.ultimateBanner.enemyIndices.includes(8);
+    return out;
+  })()`);
+  assert.equal(result.theEndingBannerCarriesBothEnemyIndices, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 14 (conquered badge redesign): red side gets the red badge art, and a multi-capture AOE (Pallis & Pell\'s Hunter\'s Wrath) shows one badge PER captured cell instead of a single shared one', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    state.phase = 'battle';
+    const out = {};
+
+    // Red side (the AI/forest) captures -- must use the red badge art, not
+    // the blue one.
+    state.board = Array(9).fill(null);
+    state.board[1] = freshEntry({ id:'weak1', name:'Weak1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.enemyHand = [findCardById('bahamut')];
+    placeCard(4, 'bahamut', 'red'); // 'up' edge attacks weak1's 'bottom'
+    let html = renderBattle();
+    out.redCaptureUsesRedBadge = html.includes('class="conquered-badge-small" src="conquered-badge-red.png"');
+    out.redCaptureNeverUsesBlueBadge = !html.includes('src="conquered-badge.png"');
+
+    // A single AOE Ultimate that captures TWO different cells at once
+    // (Pallis & Pell's Hunter's Wrath) -- each captured cell should carry
+    // its own badge instance, not one shared banner.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('pallispell'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.board[7] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    runSpecialResolution(4, null, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    html = renderBattle();
+    out.bothCellsFlipped = state.board[1].justFlipped === true && state.board[7].justFlipped === true;
+    out.twoBadgeInstancesRendered = (html.match(/class="conquered-badge-small"/g) || []).length === 2;
+
+    return out;
+  })()`);
+  assert.equal(result.redCaptureUsesRedBadge, true);
+  assert.equal(result.redCaptureNeverUsesBlueBadge, true);
+  assert.equal(result.bothCellsFlipped, true);
+  assert.equal(result.twoBadgeInstancesRendered, true, 'a two-cell AOE capture must render two separate per-cell badges, not one shared banner');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 14 (conquered badge redesign): the badge fades out with the same justFlipped cleanup window every other per-cell flip effect already uses, and advanceTurn\'s AI pacing still slows down after a capture', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    state.phase = 'battle';
+    const out = {};
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('pallispell'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    runSpecialResolution(4, null, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.badgeShowsRightAfterCapture = state.board[1].justFlipped === true && renderBattle().includes('conquered-badge-small');
+
+    // The same ULTIMATE_CLEANUP_MS (1300ms) timer that already clears
+    // justFlipped/shieldFlash/etc also removes the badge -- no separate
+    // timer needed any more (see playUltimateSequence's cleanup step).
+    await new Promise(r => setTimeout(r, 1300 + 100));
+    out.badgeGoneAfterCleanup = state.board[1].justFlipped === false && !renderBattle().includes('conquered-badge-small');
+
+    return out;
+  })()`);
+  assert.equal(result.badgeShowsRightAfterCapture, true);
+  assert.equal(result.badgeGoneAfterCleanup, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
