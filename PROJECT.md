@@ -3439,6 +3439,57 @@ faktiskt renderar som avsett, plus ett regressions-spot-check av Nyxara
 träffar på rätt celler) efter geometri-refaktorn — inga visuella
 regressioner. Ingen konsol/page-error i något test.
 
+**Fas 9: VFX-expansion, runda 2.** Användaren bad om merge av Fas 8 till
+`main` OCH att fortsätta med fler kort, "ditt val". Fyra kort valda:
+**Medusa** (Gorgon's Dominion — AOE, förstening), **Fenrir** (Ragnarök —
+riktnings-special, INTE AOE), och tvillingparet **Twin Brothers/Twin
+Sisters** (Solar Tempest/Lunar Eclipse — enkelmål, spegeldesign).
+
+Två genuina fynd under arbetet, inte bara nya kort:
+
+1. **`state.ultimateBanner` saknade `direction`.** Fenrirs Ragnarök är
+   det FÖRSTA riktnings-baserade kortet som får egen VFX — ingen
+   tidigare kort-identitet behövde veta VILKEN rad/kolumn som valts.
+   `extra.direction` fanns redan i `job`-objektet i `playUltimateSequence`
+   (använt av `SPECIAL_HANDLERS.fenrir` själv) men trädde aldrig igenom
+   till `state.ultimateBanner`, som renderingslagret faktiskt läser.
+   Tillagt (`direction: extra && extra.direction`) på både cast- och
+   impact-fasens banner-tilldelning. VFX:en återanvänder den redan
+   existerande `enemiesInDirection(index, direction, owner)`-funktionen
+   (samma som den riktiga upplösningen/AI:n redan använder) istället för
+   att räkna ut rad/kolumn en tredje gång.
+2. **Gorgon's Dominion (Medusa) är en AOE som varken förstör eller
+   fångar** — lades till i `aoeEnemyIndicesAtCast`-listan i
+   `playUltimateSequence` (samma "snapshot fiende-positioner vid cast"-
+   mönster Diamond Storm redan etablerade för icke-förstörande AOE:er)
+   samt i skärm-skaknings-opt-in-listan tillsammans med Ragnarök (båda
+   sätter aldrig `justFlipped`, så `capturedCount` skulle annars alltid
+   bli 0 och skakningen aldrig utlösas — samma resonemang som Void
+   Dominion/Hellfire m.fl. redan dokumenterat där).
+
+Design: Medusa — sten-grå/grön ring + träffar + kvardröjande "stendamm";
+Fenrir — endast cellerna i den FAKTISKT valda riktningen får en isblå
+träff (bekräftat med en Playwright-skärmdump: kortet i "upp"-riktningen
+lyser, kortet i "ner"-riktningen förblir helt orört); tvillingarna —
+varmt guld (Solar Tempest) vs kallt silverblått (Lunar Eclipse), samma
+speglade designspråk som deras `pairPresence`-band i kortdatan.
+
+Verifierat: `node --check` grönt. Två nya permanenta regressionstester
+(alla fyra kortens VFX renderar rätt antal/färg/position, inklusive den
+explicita riktnings-filtreringen och en "ingen riktning vald ännu"-
+säkerhetskoll som inte får krascha; `state.ultimateBanner.direction`
+bekräftat trätt igenom vid en riktig `runSpecialResolution`-anrop, samt
+Gorgon's Dominions `aoeEnemyIndicesAtCast`-snapshot) — en av dessa
+avslöjade en riktig testbugg (inte en spelbugg): `state.ultimateBanner`
+återställdes aldrig till `null` mellan de två testade specialerna, så
+den andra `runSpecialResolution`-anropet köades istället för att köras
+direkt (samma kö-mekanism som förhindrar två samtidiga Ultimate-
+banderoller) — fixat genom att explicit nolla den mellan de två
+scenarierna. Hela testsviten grön: **132/132** (130 tidigare + 2 nya).
+Playwright-skärmdumpar av alla fyra kort bekräftar att de renderar
+korrekt, med Fenrirs riktnings-specifika träff som det tydligaste
+beviset. Ingen konsol/page-error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

@@ -8070,3 +8070,115 @@ test('Fas 8 (design review #2, VFX expansion): Conquests Witnessed (Ancient Wyrm
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 9 (design review #2, VFX expansion round 2): Medusa, Fenrir, and the Twins get identity VFX on the shared toolkit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Medusa's Gorgon's Dominion: true AOE (petrify-only, added to
+    // aoeEnemyIndicesAtCast), one .vfx-hit per enemy present at cast.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('medusa'), owner:'blue' };
+    state.board[0] = { card: findCardById('ogre'), owner:'red' };
+    state.board[8] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:"Gorgon's Dominion", sourceIndex:4, targetIndex:null, enemyIndices:[0,8] };
+    let html = renderBattle();
+    out.gorgonHasTwoHits = (html.match(/class="vfx-hit"/g) || []).length === 2;
+    out.gorgonHasRing = html.includes('vfx-ring');
+
+    // Fenrir's Ragnarök: direction-target, not AOE -- only the cells in
+    // the chosen line get a .vfx-hit, derived via the SAME
+    // enemiesInDirection() the real resolution/AI dispatch use, not a
+    // re-derived line calculation.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('fenrir'), owner:'blue' }; // center
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };    // up from center
+    state.board[7] = { card: findCardById('ogre'), owner:'red' };    // down from center -- must NOT be hit (wrong direction)
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Ragnarök', sourceIndex:4, targetIndex:null, enemyIndices:null, direction:'up' };
+    html = renderBattle();
+    out.ragnarokHitsOnlyUpDirection = (html.match(/class="vfx-hit"/g) || []).length === 1;
+    const upCenter = cellCenterPercent(1);
+    out.ragnarokHitPositionCorrect = html.includes('left:' + upCenter.x + '%; top:' + upCenter.y + '%');
+
+    // Ragnarök with no direction chosen yet (shouldn't happen in practice,
+    // but the banner could theoretically lack one) -- must not throw and
+    // must render zero hits rather than guessing a direction.
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Ragnarök', sourceIndex:4, targetIndex:null, enemyIndices:null, direction:undefined };
+    html = renderBattle();
+    out.ragnarokNoDirectionIsSafe = (html.match(/class="vfx-hit"/g) || []).length === 0;
+
+    // Twin Brothers' Solar Tempest and Twin Sisters' Lunar Eclipse:
+    // single-target, mirrored warm/cool color schemes, never both active
+    // at once.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('twinbrothers'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Solar Tempest', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.solarTempestIsWarmGold = html.includes('rgba(255,210,120') && !html.includes('rgba(200,190,255');
+
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Lunar Eclipse', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.lunarEclipseIsCoolSilver = html.includes('rgba(200,190,255') && !html.includes('rgba(255,210,120');
+
+    return out;
+  })()`);
+  assert.equal(result.gorgonHasTwoHits, true);
+  assert.equal(result.gorgonHasRing, true);
+  assert.equal(result.ragnarokHitsOnlyUpDirection, true, "Ragnarök's VFX must only mark cells in the actual chosen direction, reusing enemiesInDirection()");
+  assert.equal(result.ragnarokHitPositionCorrect, true);
+  assert.equal(result.ragnarokNoDirectionIsSafe, true, 'a missing direction must render safely with zero hits, never throw');
+  assert.equal(result.solarTempestIsWarmGold, true);
+  assert.equal(result.lunarEclipseIsCoolSilver, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 9 (design review #2, VFX expansion round 2): state.ultimateBanner carries extra.direction through both cast and impact phases for direction-target specials, and Gorgon\'s Dominion is added to aoeEnemyIndicesAtCast', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Fenrir: direction threaded onto the banner at both cast and impact.
+    state.board = Array(9).fill(null);
+    const fenrirEntry = freshEntry(findCardById('fenrir'), 'blue');
+    state.board[4] = fenrirEntry;
+    state.board[1] = freshEntry({ id:'fr1', name:'FR1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 2, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    state.phase = 'battle';
+    runSpecialResolution(4, null, { direction: 'up' });
+    out.castPhaseCarriesDirection = state.ultimateBanner && state.ultimateBanner.direction === 'up';
+
+    // Medusa: Gorgon's Dominion snapshots enemy positions at cast time.
+    // state.ultimateBanner must be cleared first -- runSpecialResolution
+    // queues onto ultimateQueue instead of casting immediately whenever
+    // one is already in flight (see playUltimateSequence), and Fenrir's
+    // cast above left one set.
+    state.ultimateBanner = null;
+    state.board = Array(9).fill(null);
+    const medusaEntry = freshEntry(findCardById('medusa'), 'blue');
+    state.board[4] = medusaEntry;
+    state.board[0] = freshEntry({ id:'gd1', name:'GD1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[8] = freshEntry({ id:'gd2', name:'GD2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 3, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.gorgonBannerCarriesBothEnemyIndices = state.ultimateBanner
+      && state.ultimateBanner.name === "Gorgon's Dominion"
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(0)
+      && state.ultimateBanner.enemyIndices.includes(8);
+
+    return out;
+  })()`);
+  assert.equal(result.castPhaseCarriesDirection, true);
+  assert.equal(result.gorgonBannerCarriesBothEnemyIndices, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
