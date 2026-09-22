@@ -8182,3 +8182,128 @@ test('Fas 9 (design review #2, VFX expansion round 2): state.ultimateBanner carr
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 10 (design review #2, VFX expansion round 3): The Celestial Judgment, Lyrith, Vorlix, and Triune Desire get identity VFX on the shared toolkit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // The Celestial Judgment's Eternal Verdict: direction-target, same
+    // "only the chosen line gets a .vfx-hit" shape as Fenrir's Ragnarök,
+    // but driven off the enemyIndices SNAPSHOT (it can destroy cells,
+    // unlike Ragnarök's pure debuff) rather than a live enemiesInDirection()
+    // recompute at render time.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('celestialjudgment'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Eternal Verdict', sourceIndex:4, targetIndex:null, enemyIndices:[1] };
+    let html = renderBattle();
+    out.eternalVerdictHasOneHit = (html.match(/class="vfx-hit"/g) || []).length === 1;
+    const upCenter = cellCenterPercent(1);
+    out.eternalVerdictHitPositionCorrect = html.includes('left:' + upCenter.x + '%; top:' + upCenter.y + '%');
+    out.eternalVerdictIsGold = html.includes('rgba(255,225,120');
+
+    // A destroyed cell (already null on the live board by impact-phase
+    // render) must still show its hit -- the whole reason this card uses
+    // the enemyIndices snapshot instead of a live board query.
+    state.board[1] = null;
+    html = renderBattle();
+    out.eternalVerdictSurvivesDestroyedCell = (html.match(/class="vfx-hit"/g) || []).length === 1;
+
+    // Lyrith's Serpent's Wrath: single-target venomous strike.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('lyrith'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:"Serpent's Wrath", sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.serpentsWrathIsVenomMagenta = html.includes('rgba(194,59,206') && !html.includes('rgba(181,101,242');
+
+    // Vorlix's WorldCleaver: single-target void-purple strike, distinct
+    // color from Lyrith's venom-magenta above.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('vorlix'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'WorldCleaver', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.worldCleaverIsVoidPurple = html.includes('rgba(181,101,242') && !html.includes('rgba(194,59,206');
+
+    // Triune Desire's Forbidden Harmony: up to 4 adjacent-only hits, cycled
+    // through the three sisters' own identity-VFX colors (Nyxara's void
+    // magenta, Vaelira's infernal crimson, Seraphine's silver-gold).
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('triunedesire'), owner:'blue' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Forbidden Harmony', sourceIndex:4, targetIndex:null, enemyIndices:[1,3,5,7] };
+    html = renderBattle();
+    out.forbiddenHarmonyHasFourHits = (html.match(/class="vfx-hit"/g) || []).length === 4;
+    out.forbiddenHarmonyHasAllThreeSisterColors = html.includes('rgba(196,110,240') && html.includes('rgba(230,60,70') && html.includes('rgba(255,230,160');
+
+    return out;
+  })()`);
+  assert.equal(result.eternalVerdictHasOneHit, true);
+  assert.equal(result.eternalVerdictHitPositionCorrect, true);
+  assert.equal(result.eternalVerdictIsGold, true);
+  assert.equal(result.eternalVerdictSurvivesDestroyedCell, true, "Eternal Verdict's hit VFX must come from the cast-time snapshot, not a live board query, since it can destroy cells outright");
+  assert.equal(result.serpentsWrathIsVenomMagenta, true);
+  assert.equal(result.worldCleaverIsVoidPurple, true);
+  assert.equal(result.forbiddenHarmonyHasFourHits, true);
+  assert.equal(result.forbiddenHarmonyHasAllThreeSisterColors, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 10 (design review #2, VFX expansion round 3): Eternal Verdict and Forbidden Harmony snapshot only their OWN affected cells at cast time, not the whole board', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.phase = 'battle';
+
+    // Eternal Verdict: only the enemy in the chosen line (index 1, "up"
+    // from center) belongs in the snapshot -- an enemy elsewhere on the
+    // board (index 6, unrelated to the line) must NOT be included, unlike
+    // the whole-board AOE cards (Infernal Pact, Silver Judgment, etc).
+    state.board = Array(9).fill(null);
+    const judgmentEntry = freshEntry(findCardById('celestialjudgment'), 'blue');
+    state.board[4] = judgmentEntry;
+    state.board[1] = freshEntry({ id:'ev1', name:'EV1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[6] = freshEntry({ id:'ev2', name:'EV2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 2, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, { direction: 'up' });
+    out.eternalVerdictSnapshotsOnlyTheLine = state.ultimateBanner
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(1)
+      && !state.ultimateBanner.enemyIndices.includes(6);
+
+    // Forbidden Harmony: only the up-to-4 cells immediately adjacent to the
+    // caster (index 4's own neighbors) belong in the snapshot -- a
+    // non-adjacent enemy (index 0, a diagonal, never counted as adjacent by
+    // SPECIAL_HANDLERS.triunedesire's own up/right/down/left dirs) must NOT
+    // be included, same "scoped, not whole-board" contrast as above.
+    state.ultimateBanner = null;
+    state.board = Array(9).fill(null);
+    const triuneEntry = freshEntry(findCardById('triunedesire'), 'blue');
+    state.board[4] = triuneEntry;
+    state.board[1] = freshEntry({ id:'fh1', name:'FH1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = freshEntry({ id:'fh2', name:'FH2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[0] = freshEntry({ id:'fh3', name:'FH3', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 4, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.forbiddenHarmonySnapshotsOnlyAdjacent = state.ultimateBanner
+      && state.ultimateBanner.name === 'Forbidden Harmony'
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(1)
+      && state.ultimateBanner.enemyIndices.includes(3)
+      && !state.ultimateBanner.enemyIndices.includes(0);
+
+    return out;
+  })()`);
+  assert.equal(result.eternalVerdictSnapshotsOnlyTheLine, true);
+  assert.equal(result.forbiddenHarmonySnapshotsOnlyAdjacent, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

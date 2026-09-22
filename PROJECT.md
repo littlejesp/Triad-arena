@@ -3490,6 +3490,70 @@ Playwright-skärmdumpar av alla fyra kort bekräftar att de renderar
 korrekt, med Fenrirs riktnings-specifika träff som det tydligaste
 beviset. Ingen konsol/page-error i något test.
 
+**Fas 10: VFX-expansion, runda 3.** Användaren bad om ännu fler kort,
+"ditt val" (samma instruktion som startade Fas 9). Fyra kort valda:
+**The Celestial Judgment** (Eternal Verdict — riktnings-special, precis
+som Fenrirs Ragnarök men kan faktiskt FÖRSTÖRA celler), **Lyrith**
+(Serpent's Wrath — enkelmål, ignorerar sköldar, chans till kritisk
+förstörelse), **Vorlix** (WorldCleaver — enkelmål, tonad som en
+void-lila spegelbild av Aurelians redan-VFX:ade gyllene vertikala tema,
+matchar deras `pairPresence`-band i kortdatan) och **Triune Desire**
+(Forbidden Harmony — förstör upp till 4 angränsande fiender, en per
+riktning).
+
+Ett genuint tekniskt problem, inte bara nya kort: Eternal Verdict är det
+FÖRSTA riktnings-baserade kortet som kan förstöra celler (Fenrirs
+Ragnarök är en ren permanent debuff — cellerna finns alltid kvar på
+brädet). Att återanvända Ragnaröks mönster (läsa `enemiesInDirection()`
+direkt mot `state.board` vid render-tillfället) hade tystat träff-VFX:en
+för varje cell som redan hunnit förstöras innan impact-fasen renderas
+(`destroyCard` nollställer cellen, och en nollställd cell räknas inte
+längre som "fiende i linjen"). Löst genom att utöka
+`playUltimateSequence`s befintliga `aoeEnemyIndicesAtCast`-snapshot-
+mekanism (tidigare bara för hel-bräde-AOE:er som Infernal Pact/Silver
+Judgment) med två nya, mer begränsade varianter:
+
+1. **Eternal Verdict** snapshot:ar bara `enemiesInDirection(sourceIndex,
+   direction, owner)` — samma linje special:en faktiskt träffar, inte
+   hela brädet.
+2. **Forbidden Harmony** snapshot:ar bara de upp-till-4 cellerna direkt
+   angränsande casten (samma rad/kol-loop som
+   `SPECIAL_HANDLERS.triunedesire` själv använder), inte hela brädet
+   heller.
+
+Båda återanvänder samma `enemyIndices`-fält på `state.ultimateBanner`
+som de befintliga hel-bräde-AOE-korten redan trär igenom — inget nytt
+banner-fält behövdes. Båda lades också till i skärm-skaknings-opt-in-
+listan (ingen av dem sätter någonsin `justFlipped`, samma resonemang som
+Ragnarök/Gorgon's Dominion redan dokumenterat).
+
+Design: Eternal Verdict — gyllene/vitt "dom"-tema (matchar Celestial
+Judgments egen guldaccent och vind-element); Serpent's Wrath — giftig
+magenta ring, distinkt färg från Vorlix egen; WorldCleaver — void-lila,
+medvetet skild från Lyriths magenta så de två aldrig kan förväxlas i en
+skärmdump; Forbidden Harmony — varje träff cyklar genom de tre systrarnas
+EGNA identitets-VFX-färger (Nyxaras void-magenta från Void Dominion,
+Vaeliras infernal-crimson från Infernal Pact, Seraphines silver-guld från
+Silver Judgment), samma "cykla en fast palett per träff"-idé som Tiamats
+`FIVEFOLD_COLORS` men tonad till just dessa tre systrar istället för de
+fem elementen — en visuell påminnelse om att "de tre systrarna förenas"
+utan att uppfinna en fjärde paletts.
+
+Verifierat: `node --check` grönt. Två nya permanenta regressionstester
+(alla fyra kortens VFX renderar rätt antal träffar/färger/positioner,
+inklusive ett explicit test att Eternal Verdicts träff-VFX överlever en
+redan-nollställd cell — precis anledningen till att den använder
+snapshot:et istället för en live brädfråga; samt ett separat test som
+bekräftar att både Eternal Verdict och Forbidden Harmony bara snapshot:ar
+SINA EGNA påverkade celler vid en riktig `runSpecialResolution`-anrop,
+inte hela brädet, till skillnad från de befintliga hel-bräde-AOE-korten).
+Hela testsviten grön: **134/134** (132 tidigare + 2 nya). Playwright-
+skärmdumpar av alla fyra kort bekräftar att de renderar korrekt — Serpent's
+Wrath och WorldCleaver visar tydligt sina distinkta ring-färger runt
+målkortet, och Forbidden Harmonys skärmdump visar alla fyra
+systerfärgerna samtidigt runt Triune Desire. Ingen konsol/page-error i
+något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
