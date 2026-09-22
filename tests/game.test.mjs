@@ -8532,3 +8532,82 @@ test('Fas 12 (VFX expansion round 4): state.ultimateBanner carries extra.element
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 13 (VFX expansion round 5, new primitives): Skybreaker, Shattered Crown, Time Collapse, and The Ending each use a genuinely new shared VFX primitive', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Aurelian's Skybreaker: .vfx-projectile (a falling strike, only
+    // present during the CAST/windup phase, not impact).
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('aurelian'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'cast', owner:'blue', name:'Skybreaker', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    let html = renderBattle();
+    out.skybreakerHasProjectileDuringCast = html.includes('class="vfx-projectile"');
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Skybreaker', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.skybreakerHasRingAtImpact = html.includes('class="vfx-ring"');
+
+    // Daron's Shattered Crown: 6 .vfx-shard fragments at impact.
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Shattered Crown', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.shatteredCrownHasSixShards = (html.match(/class="vfx-shard"/g) || []).length === 6;
+
+    // Vorathos's Time Collapse: 2 .vfx-clockhand elements during cast.
+    state.ultimateBanner = { phase:'cast', owner:'blue', name:'Time Collapse', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.timeCollapseHasTwoClockhands = (html.match(/class="vfx-clockhand"/g) || []).length === 2;
+
+    // Nexzoth's The Ending: 5 .vfx-crack-line paths spanning the whole
+    // board, all starting from his own cell's center.
+    state.board = Array(9).fill(null);
+    state.board[0] = { card: findCardById('nexzoth'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.board[8] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'cast', owner:'blue', name:'The Ending', sourceIndex:0, targetIndex:null, enemyIndices:[1,8] };
+    html = renderBattle();
+    out.theEndingHasFiveCracks = (html.match(/class="vfx-crack-line"/g) || []).length === 5;
+    const origin = cellCenterPercent(0);
+    out.theEndingCracksStartAtNexzothsCell = html.includes('d="M ' + origin.x + ',' + origin.y + ' L');
+
+    return out;
+  })()`);
+  assert.equal(result.skybreakerHasProjectileDuringCast, true, 'Skybreaker must show the falling projectile during the cast/windup phase');
+  assert.equal(result.skybreakerHasRingAtImpact, true);
+  assert.equal(result.shatteredCrownHasSixShards, true);
+  assert.equal(result.timeCollapseHasTwoClockhands, true);
+  assert.equal(result.theEndingHasFiveCracks, true);
+  assert.equal(result.theEndingCracksStartAtNexzothsCell, true, "every crack line must originate from the caster's own cell");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 13 (VFX expansion round 5, new primitives): The Ending is added to aoeEnemyIndicesAtCast as a whole-board destroy', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.phase = 'battle';
+    state.board = Array(9).fill(null);
+    const nexzothEntry = freshEntry(findCardById('nexzoth'), 'blue');
+    state.board[0] = nexzothEntry;
+    state.board[1] = freshEntry({ id:'te1', name:'TE1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[8] = freshEntry({ id:'te2', name:'TE2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 3, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(0, null, {});
+    out.theEndingBannerCarriesBothEnemyIndices = state.ultimateBanner
+      && state.ultimateBanner.name === 'The Ending'
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(1)
+      && state.ultimateBanner.enemyIndices.includes(8);
+    return out;
+  })()`);
+  assert.equal(result.theEndingBannerCarriesBothEnemyIndices, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

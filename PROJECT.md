@@ -3692,6 +3692,66 @@ visar tydligt att den gyllene välsignelsen träffar Pallis två blå
 allierade men lämnar den röda fienden (Nyxara) helt orörd. Ingen
 konsol/page-error i något test.
 
+**Fas 13: VFX-expansion, runda 5 — fyra HELT NYA tekniker, inte bara nya
+färger.** Användaren ville "bygga mer på spelet, göra det coolare" men
+efterfrågade uttryckligen NÅGOT ANNORLUNDA — inte bara fler kort som
+återanvänder samma ring+hit+twinkle-formel som varenda kort hittills
+(Fas 8-12). Jag föreslog fyra genuint nya visuella TEKNIKER (inte
+färgscheman) och lät användaren välja — svaret var "jag håller med dig
+låter bra allt", så alla fyra byggdes i en och samma runda, varsitt kort:
+
+1. **`.vfx-projectile`** (Aurelian — Skybreaker): det FÖRSTA elementet
+   som faktiskt FÄRDAS över skärmen istället för att dyka upp direkt vid
+   target. Ett fallande spjut/stjärnskott som störtar ner från ovanför
+   brädet under hela cast/windup-fasen (synkat exakt mot
+   `ULTIMATE_WINDUP_MS`, 0.95s), och landar precis när rendern växlar
+   till impact-fasen och ersätts av den vanliga ring/hit-explosionen.
+   Matchar hans egen flavor text ("Skybreaker crashes down").
+2. **`.vfx-shard`** (Daron — Shattered Crown): en krona-krossas-burst av
+   kantiga splitter som flyger utåt från målet vid impact. Genuint eget
+   behov — Daron FLIPPAR sitt mål (stjäl kraft), han förstör det aldrig,
+   så det befintliga `destroyGhosts`-blekningsmönstret (för kort som
+   faktiskt LÄMNAR brädet) passar inte alls här.
+3. **`.vfx-clockhand`** (Vorathos — Time Collapse): två tunna linjer som
+   snurrar ett helt varv runt målet under cast-fasen — ROTATION är en
+   helt ny rörelsetyp i verktygslådan (allt tidigare är antingen en
+   statisk ring eller nu (denna runda) en rak fallande bana), passande
+   för en Timelancer-tematik.
+4. **`.vfx-crack-svg` / `.vfx-crack-line`** (Nexzoth — The Ending): den
+   FÖRSTA hel-bräde-skaliga VFX:en — spruckna, taggiga linjer som sprider
+   sig över HELA arenan (inte bara en cell-lokaliserad ring), tecknade
+   med den klassiska stroke-dasharray/stroke-dashoffset-"rita-sig-själv"-
+   tekniken under cast-fasen. Passande för en bokstavligt
+   apokalyptisk hel-bräde-förstörelse ("The World Eater... nothing
+   remains").
+
+Tekniskt: alla fyra kort behövde bara små, redan etablerade
+tillägg utanför själva CSS/markup-arbetet — The Ending lades till i den
+befintliga hel-bräde-`aoeEnemyIndicesAtCast`-listan (samma mönster som
+Megaflare/Infernal Pact, eftersom den förstör alla fiender på hela
+brädet) samt skärm-skaknings-opt-in-listan (aldrig en flip, alltid en
+`destroyCard`). Skybreaker/Shattered Crown/Time Collapse är alla vanliga
+enkelmåls-flippar (redan fullt stödda av `targetIndex`-fältet sedan
+tidigare faser) och behövde ingen ny banderoll-logik alls.
+
+Verifierat: `node --check` grönt. Två nya permanenta regressionstester
+(alla fyra kortens nya primitiv renderar rätt — projektilen syns bara
+under cast-fasen inte impact-fasen, 6 splitter, 2 klockvisare, 5
+sprickor som alla börjar exakt i Nexzoths egen cell; samt ett separat
+test som bekräftar The Endings hel-bräde-`aoeEnemyIndicesAtCast`-
+snapshot vid ett riktigt `runSpecialResolution`-anrop). Ett litet
+testskrivfel (en dubbel-escapead apostrof i en assert-sträng som
+orsakade en JS-syntaxfel i hela testfilen) hittades och fixades direkt.
+Hela testsviten grön: **141/141** (139 tidigare + 2 nya). Playwright-
+skärmdumpar av alla fyra kort bekräftar tekniken visuellt: Skybreakers
+projektil syns tydligt mitt i fallet ovanför brädet (fångad via en
+riktig `runSpecialResolution`-cast, inte en manuellt satt banderoll);
+Shattered Crowns splitter flyger synligt utåt; Time Collapses två
+klockvisare syns mitt i sin rotation; och The Endings sprickor sprider
+sig synligt över HELA arenan (inte bara en cell) innan de bleknar när
+alla tre fiendekorten är förstörda. Ingen konsol/page-error i något
+test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

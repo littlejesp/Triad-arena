@@ -2114,6 +2114,97 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .vfx-twinkle-4{ --tx:0px;   --ty:-70px; animation-delay:.6s;  }
 .vfx-twinkle-5{ --tx:-10px; --ty:70px;  animation-delay:.35s; }
 
+/* Design review follow-up ("något annorlunda så det inte blir samma") --
+   four NEW shared primitives, added to the toolkit alongside the existing
+   ring/hit/flash/particle/twinkle set above, each a genuinely different
+   VISUAL TECHNIQUE (not just a new color scheme on the same ring+hit
+   shape): a projectile that actually TRAVELS across the screen instead of
+   appearing instantly, a card-shatter shard burst, a rotating clock hand,
+   and full-board jagged crack lines. See Skybreaker/Shattered Crown/Time
+   Collapse/The Ending below for the first card using each one. */
+
+/* .vfx-projectile: something falling from off-board straight down onto its
+   target over the FULL cast/windup phase (ULTIMATE_WINDUP_MS, 950ms) --
+   every other card's VFX appears instantly at impact; this is the first to
+   show real travel time, landing right as the render swaps to the impact
+   phase and the projectile is replaced by the normal ring/hit burst.
+   Positioned via inline left/top at the TARGET's cell (unlike --vfx-x/-y
+   above, since a falling strike's landing point is what matters, not its
+   origin), with transform doing the actual fall via translateY. */
+.vfx-projectile{
+  position:absolute; width:10px; height:74px; margin:-74px 0 0 -5px;
+  background:linear-gradient(to bottom, transparent, var(--vfx-projectile-color, rgba(94,200,242,0.9)) 60%, #fff);
+  border-radius:50%; filter:blur(0.5px);
+  box-shadow:0 0 16px 4px var(--vfx-projectile-glow, rgba(94,200,242,0.55));
+  opacity:0;
+}
+.ultimate-vfx.phase-cast .vfx-projectile{ animation: vfxProjectileFall 0.95s cubic-bezier(.55,0,.85,1) both; }
+@keyframes vfxProjectileFall{
+  0%{ opacity:0; transform:translateY(-380%) scale(0.6); }
+  10%{ opacity:1; }
+  92%{ opacity:1; }
+  100%{ opacity:0; transform:translateY(0) scale(1.15); }
+}
+
+/* .vfx-shard: a jagged fragment flying outward from the target at impact --
+   for a capture/flip whose flavor is specifically about something
+   breaking (Shattered Crown), distinct from destroyGhosts' fade-in-place
+   (which is for cards actually leaving the board, not captured ones).
+   Positioned via inline left/top at the target cell; --sx/--sy (set per
+   shard) carry each fragment's own flight direction. */
+.vfx-shard{
+  position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px;
+  background:var(--vfx-shard-color, rgba(200,210,255,0.92));
+  clip-path:polygon(50% 0%, 100% 38%, 72% 100%, 22% 92%, 0% 32%);
+  opacity:0;
+}
+.ultimate-vfx.phase-impact .vfx-shard{ animation: vfxShardBurst 0.65s cubic-bezier(.15,.7,.3,1) both; }
+@keyframes vfxShardBurst{
+  0%{ opacity:0.95; transform:translate(0,0) rotate(0deg) scale(1); }
+  100%{ opacity:0; transform:translate(var(--sx,24px), var(--sy,24px)) rotate(170deg) scale(0.35); }
+}
+
+/* .vfx-clockhand: a thin line sweeping in a fast full rotation around the
+   target during cast -- rotation is a genuinely new motion for this
+   toolkit (every other card's VFX is a static ring or a straight-line
+   travel), fitting for a time-themed card (Time Collapse). Positioned via
+   inline left/top at the target cell, rotating around its own base. */
+.vfx-clockhand{
+  position:absolute; width:2px; height:34px; margin:-34px -1px 0 -1px;
+  background:linear-gradient(to top, var(--vfx-clock-color, rgba(139,110,242,0.9)), transparent);
+  transform-origin:50% 100%;
+  opacity:0;
+}
+.ultimate-vfx.phase-cast .vfx-clockhand{ animation: vfxClockSpin 0.95s linear both; }
+@keyframes vfxClockSpin{
+  0%{ opacity:0.9; transform:rotate(0deg); }
+  85%{ opacity:0.9; }
+  100%{ opacity:0; transform:rotate(1080deg); }
+}
+
+/* .vfx-crack-svg / .vfx-crack-line: jagged fracture lines spanning the
+   WHOLE board (not a per-cell ring) -- the first full-board-scale VFX
+   shape in the toolkit, for a truly apocalyptic whole-board destroy (The
+   Ending). Lines "draw themselves on" via the classic stroke-dasharray/
+   stroke-dashoffset trick during cast, then linger and fade during impact.
+   The <svg> itself is positioned exactly like .ultimate-vfx (matching the
+   board's own bounds) so its 0-100 viewBox lines up with cellCenterPercent()
+   coordinates directly. */
+.vfx-crack-svg{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+  overflow:visible;
+}
+.vfx-crack-line{
+  fill:none; stroke:var(--vfx-crack-color, rgba(165,104,242,0.85));
+  stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:220; stroke-dashoffset:220;
+  filter:drop-shadow(0 0 3px var(--vfx-crack-glow, rgba(165,104,242,0.6)));
+}
+.vfx-crack-svg.phase-cast .vfx-crack-line{ animation: vfxCrackDraw 0.9s ease-out forwards; }
+@keyframes vfxCrackDraw{ to{ stroke-dashoffset:0; } }
+.vfx-crack-svg.phase-impact .vfx-crack-line{ opacity:0.55; transition:opacity 1s ease; }
+
 /* Odin's normal-attack Slash VFX (see the user's brief) — NOT an Ultimate
    effect like every *-fx block above (no state.ultimateBanner, no cast/
    impact phase split): it rides state.odinSlashes instead, a plain array
@@ -5363,6 +5454,76 @@ function renderBattle(){
     }));
   }
 
+  // Aurelian's Skybreaker -- the first card to use .vfx-projectile: a
+  // falling spear/star that visibly travels down onto its target over the
+  // whole cast/windup phase instead of appearing instantly at impact,
+  // matching his "Sky Warrior... crashes down" flavor. Single-target, so
+  // only the landing (target) position matters -- same derivation shape as
+  // WorldCleaver/Serpent's Wrath above, just feeding .vfx-projectile
+  // instead of an instant ring.
+  const skybreakerActive = state.ultimateBanner && state.ultimateBanner.name === 'Skybreaker';
+  let skybreakerTargetX = 50, skybreakerTargetY = 50;
+  if(skybreakerActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: skybreakerTargetX, y: skybreakerTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // Daron's Shattered Crown -- the first card to use .vfx-shard: a
+  // crown-shatter burst of jagged fragments flying outward from the
+  // captured target, distinct from destroyGhosts' fade-in-place (Daron
+  // FLIPS his target, he never destroys it -- there's no ghost to reuse
+  // here, this card needed a shape of its own).
+  const SHATTERED_CROWN_SHARDS = [
+    { sx:'-34px', sy:'-22px' }, { sx:'30px', sy:'-30px' }, { sx:'40px', sy:'10px' },
+    { sx:'18px', sy:'34px' }, { sx:'-24px', sy:'32px' }, { sx:'-40px', sy:'2px' },
+  ];
+  const shatteredCrownActive = state.ultimateBanner && state.ultimateBanner.name === 'Shattered Crown';
+  let shatteredCrownTargetX = 50, shatteredCrownTargetY = 50;
+  if(shatteredCrownActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: shatteredCrownTargetX, y: shatteredCrownTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // Vorathos's Time Collapse -- the first card to use .vfx-clockhand: two
+  // thin hands sweeping a fast full rotation around the target during
+  // cast, a genuinely different MOTION (rotation) than every other card's
+  // static ring or straight-line travel, fitting his Timelancer identity.
+  const timeCollapseActive = state.ultimateBanner && state.ultimateBanner.name === 'Time Collapse';
+  let timeCollapseTargetX = 50, timeCollapseTargetY = 50;
+  if(timeCollapseActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: timeCollapseTargetX, y: timeCollapseTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // Nexzoth's The Ending -- the first card to use .vfx-crack-svg: jagged
+  // fracture lines spanning the WHOLE board (not a per-cell ring),
+  // fanning out from The World Eater's own cell, fitting a whole-board
+  // "nothing remains" destroy far better than another AOE ring ever could.
+  // Each entry is a jagged multi-segment path as relative (dx,dy) offsets
+  // from Nexzoth's own cell center, fanning in five different directions.
+  const NEXZOTH_CRACK_DIRS = [
+    [[-18,-10],[-34,-8],[-52,-22]],
+    [[14,-16],[30,-10],[46,-26]],
+    [[-22,8],[-40,18],[-58,14]],
+    [[20,10],[38,4],[54,20]],
+    [[0,20],[6,40],[-8,58]],
+  ];
+  const theEndingActive = state.ultimateBanner && state.ultimateBanner.name === 'The Ending';
+  let theEndingCrackPaths = [];
+  if(theEndingActive){
+    const { x: ox, y: oy } = cellCenterPercent(state.ultimateBanner.sourceIndex);
+    theEndingCrackPaths = NEXZOTH_CRACK_DIRS.map(points => {
+      const d = points.map(([dx,dy]) => `${ox+dx},${oy+dy}`).join(' L ');
+      return `M ${ox},${oy} L ${d}`;
+    });
+  }
+
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
   // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
   // it's a plain one-shot triggered by an ordinary attack). Reads
@@ -5680,6 +5841,34 @@ function renderBattle(){
           <div class="vfx-ring"></div>
           ${resonanceHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
         </div>
+      ` : ''}
+      ${skybreakerActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-projectile" style="left:${skybreakerTargetX}%; top:${skybreakerTargetY}%; --vfx-projectile-color:rgba(94,200,242,0.9); --vfx-projectile-glow:rgba(94,200,242,0.55);"></div>
+          <div class="vfx-ring" style="left:${skybreakerTargetX}%; top:${skybreakerTargetY}%; --vfx-ring-color:rgba(94,200,242,0.95); --vfx-glow-color:rgba(46,120,180,0.7); --vfx-ring-soft:rgba(180,230,255,0.6);"></div>
+          <div class="vfx-hit" style="left:${skybreakerTargetX}%; top:${skybreakerTargetY}%; --vfx-hit-color:rgba(200,235,255,0.95); --vfx-hit-color-mid:rgba(46,120,180,0.7);"></div>
+        </div>
+      ` : ''}
+      ${shatteredCrownActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${shatteredCrownTargetX}%; top:${shatteredCrownTargetY}%; --vfx-ring-color:rgba(139,94,242,0.95); --vfx-glow-color:rgba(90,50,170,0.65); --vfx-ring-soft:rgba(200,180,250,0.6);"></div>
+          <div class="vfx-hit" style="left:${shatteredCrownTargetX}%; top:${shatteredCrownTargetY}%; --vfx-hit-color:rgba(210,200,255,0.95); --vfx-hit-color-mid:rgba(90,50,170,0.7);"></div>
+          ${SHATTERED_CROWN_SHARDS.map(s => `<div class="vfx-shard" style="left:${shatteredCrownTargetX}%; top:${shatteredCrownTargetY}%; --sx:${s.sx}; --sy:${s.sy}; --vfx-shard-color:rgba(200,210,255,0.92);"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${timeCollapseActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-clockhand" style="left:${timeCollapseTargetX}%; top:${timeCollapseTargetY}%; --vfx-clock-color:rgba(139,110,242,0.9); animation-delay:0s;"></div>
+          <div class="vfx-clockhand" style="left:${timeCollapseTargetX}%; top:${timeCollapseTargetY}%; --vfx-clock-color:rgba(94,200,242,0.7); height:24px; margin-top:-24px; animation-delay:0.08s; animation-direction:reverse;"></div>
+          <div class="vfx-ring" style="left:${timeCollapseTargetX}%; top:${timeCollapseTargetY}%; --vfx-ring-color:rgba(139,110,242,0.95); --vfx-glow-color:rgba(90,60,180,0.65); --vfx-ring-soft:rgba(190,170,250,0.6);"></div>
+          <div class="vfx-hit" style="left:${timeCollapseTargetX}%; top:${timeCollapseTargetY}%; --vfx-hit-color:rgba(210,200,255,0.95); --vfx-hit-color-mid:rgba(90,60,180,0.7);"></div>
+        </div>
+      ` : ''}
+      ${theEndingActive ? `
+        <svg class="vfx-crack-svg phase-${state.ultimateBanner.phase}" aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none">
+          ${theEndingCrackPaths.map(d => `<path class="vfx-crack-line" d="${d}"></path>`).join('')}
+        </svg>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(165,104,242,0.5); --vfx-flash-delay:0.35s;"></div>
       ` : ''}
       ${odinSlashPairs.length ? `
         <div class="odin-slash-fx" aria-hidden="true">
@@ -9547,7 +9736,7 @@ function playUltimateSequence(job){
   // every other AOE identity-VFX card, rather than re-deriving "who is an
   // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion" || special.name === 'Yang Resonance' || special.name === 'Yin Resonance'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion" || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending'){
     // Yang/Yin Resonance (Evil Twist) are the same "never destroys/nulls a
     // board slot" shape as Diamond Storm -- a plain debuffThisRound AOE --
     // added here anyway for the same "reuse the shared enemyIndices
@@ -9669,7 +9858,11 @@ function playUltimateSequence(job){
       // Pallis's Wave of Loyalty is deliberately NOT on this list -- it's a
       // blessing on your OWN side, not an attack landing on an enemy, so a
       // combat-impact screen shake would read wrong for it.
-      if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony' || special.name === 'The Falling World' || special.name === 'Yang Resonance' || special.name === 'Yin Resonance') state.chainShake = true;
+      // The Ending (Nexzoth) is a whole-board destroy, never a flip -- same
+      // opt-in reasoning as every other destroy-only card in this list,
+      // and arguably the single biggest "impact" moment in the game
+      // (destroys EVERY enemy on the board at once).
+      if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony' || special.name === 'The Falling World' || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending') state.chainShake = true;
       // Game-feel review follow-up: unlike chainShake above (magnitude-
       // gated), EVERY Ultimate gets this small camera punch right at its
       // actual resolve moment — see .board.impact-punch.
