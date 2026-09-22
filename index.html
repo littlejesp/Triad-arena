@@ -219,6 +219,15 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   padding:12px 16px 14px; margin-bottom:20px;
 }
 .rules-toggle-panel .section-label{ margin-bottom:10px; }
+/* Fas 7 (design review #2): internal sub-headers for the merged "Match
+   settings" panel (Optional rules / Forest AI difficulty / Your record),
+   replacing three separately-bordered .rules-toggle-panel boxes that
+   repeated the same style without adding clarity. */
+.settings-section-label{
+  font-family:'Cinzel',serif; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--gold); margin:16px 0 10px; padding-top:14px; border-top:1px solid var(--line);
+}
+.match-settings-panel .settings-section-label:first-of-type{ margin-top:2px; padding-top:0; border-top:none; }
 .rule-toggle{
   display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; cursor:pointer;
   font-size:13px; line-height:1.5; color:var(--text-dim);
@@ -264,6 +273,14 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .match-stats-row:last-child{ margin-bottom:0; }
 .match-stat{ font-size:12px; color:var(--text-dim); }
 .match-stat b{ color:var(--gold-bright); }
+
+/* Fas 7 (design review #2, "meta layer" tier) -- see ACHIEVEMENTS. */
+.achievement-list{ display:flex; flex-wrap:wrap; gap:8px; }
+.achievement-badge{
+  font-size:11px; color:var(--gold-bright);
+  padding:4px 10px; border-radius:999px; border:1px solid rgba(201,162,39,0.4); background:rgba(201,162,39,0.08);
+  cursor:default;
+}
 
 .draw-pile-wrap{ display:flex; justify-content:center; padding:10px 0 6px; }
 .card-back{
@@ -867,10 +884,19 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .wins-chip{
   display:inline-flex; align-items:center; gap:4px;
   padding:3px 10px; border-radius:999px; border:1px solid var(--line); background:var(--panel);
+  font-size:12px; transition:box-shadow .15s ease, transform .15s ease;
 }
 .wins-chip.blue{ color:var(--blue-side); border-color:rgba(63,111,209,0.5); }
 .wins-chip.red{ color:var(--red-side); border-color:rgba(184,69,46,0.5); }
 .wins-chip b{ color:inherit; }
+/* Fas 7 (design review #2): Wins is the currency that gates every Special
+   Attack -- it matters every single turn, unlike the final square count
+   (.score-num, only decisive at the very end), yet it used to render
+   smaller/quieter than that count. A static glow on whichever side's turn
+   it actually is gives an at-a-glance "this number is live right now" cue
+   without any new DOM/JS -- just reads state.turn where the chip already
+   knows its own side. */
+.wins-chip.active-turn{ box-shadow:0 0 0 1px currentColor, 0 0 10px currentColor; transform:scale(1.08); }
 
 .wins-toast{
   position:absolute; top:100%; left:50%; z-index:9;
@@ -1022,7 +1048,17 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .score-num.blue{ color:var(--blue-side); text-shadow:0 0 10px rgba(63,111,209,0.6); }
 .score-num.red{ color:var(--red-side); text-shadow:0 0 10px rgba(184,69,46,0.6); }
 .score-label{ font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.1em; }
-.turn-indicator{ font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:var(--gold); text-align:center; }
+/* Fas 7 (design review #2): used to render smaller than .score-num (the
+   final square count, which only matters at the very end) even though
+   whose turn it is matters every single move -- bumped weight/size and
+   given a real background pill instead of bare text so it reads as the
+   primary live-state readout it actually is. */
+.turn-indicator{
+  font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em;
+  color:var(--gold-bright); text-align:center;
+  padding:4px 12px; border-radius:999px; border:1px solid rgba(240,216,121,0.4);
+  background:rgba(240,216,121,0.08);
+}
 
 .battle-row{ display:flex; gap:6px; align-items:flex-start; justify-content:center; }
 
@@ -2514,7 +2550,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 
   .scoreboard{ padding:5px 12px; margin-bottom:5px; }
   .score-num{ font-size:15px; }
-  .turn-indicator{ font-size:10px; }
+  .turn-indicator{ font-size:11px; padding:3px 9px; }
   .score-flame{ width:22px; height:22px; }
 
   .battle-row{
@@ -3075,7 +3111,7 @@ const HEROES = [
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', active:{shield:true, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:"Aion's Last Light", cost:2, once:true, targets:'single' }, skills:[
     {name:'Light Shield (Passive)', desc:'The first time Sarah would lose a battle, the loss is ignored.'},
     {name:'Feared Huntress (Passive)', desc:'If Sarah attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
-    {name:"Special Attack: Aion's Last Light", desc:"Costs 2 wins. Choose an enemy card — Sarah gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
+    {name:"Special Attack: Aion's Last Light", desc:"Costs 2 wins. Choose an enemy card — Sarah gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently, and a random ally on the board is shielded."},
   ]},
   { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', active: {onWinCleanseAlly:true, marginShieldThreshold:2, pairPresence:{partner:'darien', amount:2}}, special:{ name:'Requiem of Light', cost:2, once:true, targets:'aoe' }, skills:[
     {name:'Frostbloom (Passive)', desc:'Whenever Elara wins a round, a random allied card is cleansed of negative effects and gains +1 Power (permanent).'},
@@ -3087,12 +3123,12 @@ const HEROES = [
     {name:'Shadow Step (Passive)', desc:'If an enemy wins against Vayra by 2 Power or less, the attack is blocked instead and the attacker gets -1 Power this round.'},
     {name:'Silent Strike (Passive)', desc:'Each time Vayra takes control of an enemy card, she permanently gains +1 Power.'},
     {name:'Kindred Shadows (Passive)', desc:'Vayra gets +1 Power on all sides while Torn is anywhere on your board — two shadowblades of the same order.'},
-    {name:'Special Attack: Eclipse', desc:"Costs 2 wins. Choose an enemy card — Vayra gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
+    {name:'Special Attack: Eclipse', desc:"Costs 2 wins. Choose an enemy card — Vayra gains +3 Power for this attack only, ignoring any shield the target holds. If the attack wins, she keeps +1 Power on all directions permanently."},
   ]},
   { id:'ysara', name:"Ysara", role:"The Timeweaver", top:9, right:7, bottom:10, left:8, element:'wind', hue:'linear-gradient(160deg,#241040,#0d0b18 60%)', accent:'#b48cf2', active:{vsStrongerTotalPowerBoost:{amount:3}, debuffImmune:true}, special:{ name:'Eternal Eclipse', cost:2, once:true, targets:'single' }, skills: [
     {name:'Future Sight (Passive)', desc:'If Ysara attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
     {name:'Paradox Veil (Passive)', desc:"Ysara's Power can never be lowered by an opponent's card skills or Special Attacks."},
-    {name:'Special Attack: Eternal Eclipse', desc:"Costs 2 wins. Choose an enemy card — Ysara gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."},
+    {name:'Special Attack: Eternal Eclipse', desc:"Costs 2 wins. Choose an enemy card — Ysara gains +3 Power for this attack only. If the attack wins, she loops the moment back — you get an extra turn."},
   ]},
   // Torn is a brand-new card — her source art has no stat diamonds, no
   // element icon, and no faction/rarity/alignment footer at all (unlike
@@ -3119,7 +3155,7 @@ const HEROES = [
   { id:'ragnar', name:"Ragnar", role:"Dual Axe Champion", top:9, right:6, bottom:9, left:5, element:'fire', hue:'linear-gradient(160deg,#241a10,#0d0b18 60%)', accent:'#c9a227', active:{vsStrongerTotalPowerBoost:{amount:2}, onCaptureBonus:1}, special:{ name:'Blood Fury', cost:2, once:true, targets:'single' }, skills:[
     {name:'War Breaker (Passive)', desc:'If Ragnar attacks an enemy card with higher total Power than his own, he gets +2 Power on the attacking side.'},
     {name:'Blood Rush (Passive)', desc:'Each time Ragnar takes control of an enemy card, he permanently gains +1 Power.'},
-    {name:'Special Attack: Blood Fury', desc:"Costs 2 wins. Choose an enemy card — Ragnar gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
+    {name:'Special Attack: Blood Fury', desc:"Costs 2 wins. Choose an enemy card — Ragnar gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently, and his rage spills onto a second random enemy (-2 Power this round)."},
   ]},
   // Naline was fully redesigned in a later session from a new poster the
   // user sent ("Naline, The Soul Healer") — same full-rebuild treatment
@@ -3166,7 +3202,7 @@ const HEROES = [
     {name:'Executioner (Passive)', desc:"Whenever Deathblade wins a battle against a card with 6 or lower total Power, that card is destroyed outright instead of captured."},
     {name:'Special Attack: Shadow Assault', desc:"Choose an enemy card — Deathblade swaps physical position with the target, and the target permanently loses 2 Power on all directions."},
   ]},
-  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:7, right:8, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', special:{ name:'Nightfall', cost:2, once:true, targets:'single' }, skills:[{name:"Piercing Shot", desc:"When Tilda is placed, a random direction is chosen — a random enemy card along that line gets -2 Power this round. (Source text lets you choose the direction and target; simplified to random, same as Fenrir/Zalazar's own on-place directional effects.)"}, {name:"Umbral Step", desc:"After Tilda wins a battle, a random one of her directions gets +1 Power for the next turn. (Source text lets you choose the direction; simplified to random, same as every other direction-choice ability in this game. Renamed from 'Shadow Step' to avoid a name collision with Vayra's own unrelated Shadow Step passive.)"}, {name:"Marked Target", desc:"When Tilda is placed, she marks a random enemy card — the next time one of your cards attacks it, it gets +2 Power. (Source text lets you choose the target; simplified to random, same as Seraphine's own Celestial Mark.)"}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}, {name:"Special Attack: Nightfall", desc:"Costs 2 wins. Choose an enemy card — Tilda gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently."}], active: {underdogBonus:2, onWinRandomDirectionalBoost:1}},
+  { id:'tilda', name:"Tilda", role:"Whisperer of the Night", top:7, right:8, bottom:8, left:8, element:'fire', hue:'linear-gradient(160deg,#3a1010,#0d0b18 60%)', accent:'#d9622b', special:{ name:'Nightfall', cost:2, once:true, targets:'single' }, skills:[{name:"Piercing Shot", desc:"When Tilda is placed, a random direction is chosen — a random enemy card along that line gets -2 Power this round. (Source text lets you choose the direction and target; simplified to random, same as Fenrir/Zalazar's own on-place directional effects.)"}, {name:"Umbral Step", desc:"After Tilda wins a battle, a random one of her directions gets +1 Power for the next turn. (Source text lets you choose the direction; simplified to random, same as every other direction-choice ability in this game. Renamed from 'Shadow Step' to avoid a name collision with Vayra's own unrelated Shadow Step passive.)"}, {name:"Marked Target", desc:"When Tilda is placed, she marks a random enemy card — the next time one of your cards attacks it, it gets +2 Power. (Source text lets you choose the target; simplified to random, same as Seraphine's own Celestial Mark.)"}, {name:"Night's Advantage", desc:"If Tilda has a lower total value than the card she's facing, she gets +2 Power in that battle."}, {name:"Special Attack: Nightfall", desc:"Costs 2 wins. Choose an enemy card — it loses -2 Power this round before the strike lands, then Tilda attacks it directly (no self-buff)."}], active: {underdogBonus:2, onWinRandomDirectionalBoost:1}},
   // Divine Bond's card text says "placed ADJACENT to Little Jesp", but the
   // engine's only board-presence passive (pairPresence, see Twin Brothers/
   // Evil Twist) checks "partner anywhere on your board" — reused as-is
@@ -3191,10 +3227,10 @@ const HEROES = [
     {name:'Special Attack: Conquests Witnessed', desc:'Costs 3 wins. For every 2 total Wins already claimed by both sides this match, Ancient Wyrmking permanently gains +1 Power on all sides (max +3, locked in at activation — does not keep growing afterward). All enemy cards also get -1 Power this round. Usable once per match.'},
   ]},
   { id:'shadowking', name:'The Hollow Crown', role:'Legendary Relic of the Shadow Throne', top:9, right:10, bottom:9, left:10, element:'water', hue:'linear-gradient(160deg,#180a20,#0d0b18 60%)', accent:'#a568f2', active:{bonus:{dir:'top',amount:2}}, skills: [{name:'Weight of the Hollow Crown', desc:'This card gets +2 Power in the UP direction during this round.'}]},
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}, volcanicArmorPenalty:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}, volcanicArmorPenalty:1, rageOfTheBeast:true}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
     {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (\"Would lose\" approximated via total Power, same simplification the engine's oncePerMatchVsStrongerBoost family already uses.)"},
-    {name:'Rage of the Beast', desc:"When Ifrit loses control of a card, he gets +2 on all sides next round. (Flavor only — wording not yet resolved: unclear whether this means Ifrit himself being captured, or Ifrit's side losing a DIFFERENT card he previously captured. Left unbuilt until that's decided.)"},
+    {name:'Rage of the Beast', desc:"Whenever a different card on Ifrit's own side is captured by the enemy, Ifrit gets +2 Power on all sides for the rest of that round."},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
@@ -3216,22 +3252,16 @@ const HEROES = [
     {name:"Pyrelord's Awakening", desc:'If Tahabata is surrounded by at least 2 enemy cards, he gets +1 on all sides this round.'},
     {name:'Special Attack: Inferno Dominion', desc:"Costs 2 wins. Choose an adjacent enemy card — Inferno Dominion fails only if the target's total Power is 2 or more higher than Tahabata's. Otherwise he takes control of it, and shields can still block a narrow win — but if Tahabata's total Power beats the target's by 2 or more, shields don't stop him at all."},
   ] },
-  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Divine Judgment (Passive)', desc:"When The Celestial Judgment is placed, choose a direction — the card that loses an attack against that direction becomes permanently Weakened. (Flavor only — would need a stored on-placement direction plus a conditional win-hook keyed to it; skipped to keep this card's scope contained. Judgment Strike and the Ultimate below cover her main identity.)"},
-    {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
+  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
     {name:'Balance', desc:'If The Celestial Judgment controls as many or more squares than her opponent, she gets +1 Power on all sides.'},
-    {name:'Heavenly Aegis', desc:'When this card would lose an attack by a margin of 3 or less, the battle becomes a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
     {name:'Special Attack: Eternal Verdict', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. Any of them with 3 Power or less facing that direction is destroyed outright instead.'},
   ] },
   { id:'infiniteseraph', name:'The Infinite Seraph', role:'Legendary Card — The Keeper of All Possibilities', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1a10,#0d0b18 60%)', accent:'#e0d090', special:{ name:'All Possibilities', cost:2, once:true, targets:'direction' }, skills: [    {name:'Eternal Presence (Passive)', desc:"While The Infinite Seraph is on the board, none of her side's cards can be removed, destroyed, or swapped by the opponent's effects (Vaelira's Infernal Pact, Nyxara's Void Dominion, and Deathblade's Shadow Assault are all blocked while she stands)."},
-    {name:'Cosmic Insight', desc:"When this card wins an attack, you may look at the opponent's hand and choose a card — it can't be played next round. (Flavor only — no hand-reveal/fog-of-war system exists.)"},
-    {name:'Infinite Paths', desc:"You may swap this card's position with any of your own cards on the board after every round. Once per match. (Flavor only — no standalone reposition trigger exists outside of a Special Attack.)"},
-    {name:'Omniscient Aegis', desc:'When this card would lose an attack, you may choose to make it a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
     {name:'Special Attack: All Possibilities', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently.'},
   ] },
   { id:'fenrir', name:'The Eclipse Fenrir', role:'Mystic Card', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#0a0e1c,#0d0b18 60%)', accent:'#5ec8f2', active:{ boardUnderdogAttackBonus:2, onWinDirectionalBoost:1, debuffImmune:true }, special:{ name:'Ragnarök', cost:2, once:true, targets:'direction' }, skills: [    {name:'Hunt of the Eclipse (Passive)', desc:"When The Eclipse Fenrir is placed, choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. (Source text lets you choose the direction — simplified to random, same as Tiamat's Fivefold Catastrophe, since no on-placement direction-choice UI exists.)"},
     {name:'Nordic Wrath', desc:'When Fenrir attacks a card whose side controls more squares than his, he gets +2 Power on all sides during that attack.'},
     {name:"Moon's Shadow", desc:'When Fenrir wins an attack, he gets +1 Power on the direction used, for the rest of the match. Once per match.'},
-    {name:"Fenrir's Curse", desc:"When Fenrir loses an attack, the opponent gets no extra benefit from that win (e.g. an on-win card skill triggering). (Flavor only — would need every current and future on-win bonus to check 'was this against Fenrir', too fragile to maintain generically.)"},
     {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
@@ -3364,7 +3394,6 @@ const HEROES = [
     skills: [
       {name:"Allfather's Gaze (Passive)", desc:"When Odin is placed, you see a random enemy card's sides, and all enemy cards get -1 Power on all sides this round. (The reveal is flavor only — every card's stats are already shown openly in this game.)"},
       {name:'Gungnir Strike', desc:'When Odin attacks, he gets +2 Power on the attacking side.'},
-      {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
       {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
       {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, Odin gets +3 Power on all sides this round, and there is a 50% chance he unleashes Ragnarok, destroying every OTHER card on the board (allies included). Otherwise, the defeated card gets -3 Power on all sides permanently and all other enemy cards get -1 Power on all sides this round. Usable once per match."},
@@ -3410,7 +3439,7 @@ const HEROES = [
   { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
     {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
     {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
-    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
+    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +2 Power on his top and bottom sides permanently."},
   ] },
   { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', active: {axisBonus:{dirs:['left','right'], amount:1}, pairPresence:{partner:'aurelian', amount:2}}, special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
     {name:"Horizon's Reach (Passive)", desc:'Vorlix gets +1 Power on Left and Right when attacking.'},
@@ -3486,7 +3515,6 @@ const HEROES = [
       {name:'Void Embrace', desc:"When this card's side wins a battle, every one of your cards on the board gets +1 Power for the rest of the match (max +3 total). (Card draw is flavor only — no deck/draw system exists in the engine.)"},
       {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power.'},
       {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
-      {name:'Weakness — Broken Focus', desc:"If this card loses control of its unit, it loses -4 Power next match. (Flavor only — the sealing/purification/forced-movement triggers named in the source don't exist in the engine, and no state persists between matches.)"},
       {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
     ] },
 ];
@@ -3545,10 +3573,10 @@ const FOREST_FOES = [
     {name:'Immortal Chaos', desc:"Three Head Dragon can never be destroyed by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Apokalyps', desc:'Costs 2 wins. Every enemy card gets -3 Power on all sides for the rest of this round.'},
   ] },
-  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}, volcanicArmorPenalty:1}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
+  { id:'ifrit', name:'Ifrit', role:'Legendary Card — Lord of the Eternal Flame', element:'fire', top:9, right:10, bottom:8, left:10, hue:'linear-gradient(160deg,#2a1008,#0d0b18 60%)', accent:'#e0562f', active: {onCaptureBonus:1, oncePerMatchAttackBoost:{amount:2}, attackBoostResetsEachRound:true, adjacentDefeatedByMeBoost:{minCount:2, amount:1}, volcanicArmorPenalty:1, rageOfTheBeast:true}, special:{ name:'Hellfire', cost:2, once:true, targets:'single' }, skills: [    {name:'Eternal Inferno (Passive)', desc:'Each time Ifrit takes control of an enemy card, he gains +1 Power (applies to future battles).'},
     {name:'Hellfire Claw', desc:'Once per round: when Ifrit attacks an adjacent card, he gets +2 Power in that attack.'},
     {name:'Volcanic Armor', desc:"The first time Ifrit would lose a battle, the opponent's strength is reduced by -1 in that battle. (\"Would lose\" approximated via total Power, same simplification the engine's oncePerMatchVsStrongerBoost family already uses.)"},
-    {name:'Rage of the Beast', desc:"When Ifrit loses control of a card, he gets +2 on all sides next round. (Flavor only — wording not yet resolved: unclear whether this means Ifrit himself being captured, or Ifrit's side losing a DIFFERENT card he previously captured. Left unbuilt until that's decided.)"},
+    {name:'Rage of the Beast', desc:"Whenever a different card on Ifrit's own side is captured by the enemy, Ifrit gets +2 Power on all sides for the rest of that round."},
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
@@ -3570,22 +3598,16 @@ const FOREST_FOES = [
     {name:"Pyrelord's Awakening", desc:'If Tahabata is surrounded by at least 2 enemy cards, he gets +1 on all sides this round.'},
     {name:'Special Attack: Inferno Dominion', desc:"Costs 2 wins. Choose an adjacent enemy card — Inferno Dominion fails only if the target's total Power is 2 or more higher than Tahabata's. Otherwise he takes control of it, and shields can still block a narrow win — but if Tahabata's total Power beats the target's by 2 or more, shields don't stop him at all."},
   ] },
-  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Divine Judgment (Passive)', desc:"When The Celestial Judgment is placed, choose a direction — the card that loses an attack against that direction becomes permanently Weakened. (Flavor only — would need a stored on-placement direction plus a conditional win-hook keyed to it; skipped to keep this card's scope contained. Judgment Strike and the Ultimate below cover her main identity.)"},
-    {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
+  { id:'celestialjudgment', name:'The Celestial Judgment', role:'Legendary Card — Voice of the Eternal Order', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1808,#0d0b18 60%)', accent:'#e0c02f', active:{ boardLeadBonus:{amount:1, orEqual:true}, onWinDebuffOnce:1 }, special:{ name:'Eternal Verdict', cost:2, once:true, targets:'direction' }, skills: [    {name:'Judgment Strike', desc:'The first time The Celestial Judgment wins an attack, the loser gets -1 Power on all sides, permanently. Once per match.'},
     {name:'Balance', desc:'If The Celestial Judgment controls as many or more squares than her opponent, she gets +1 Power on all sides.'},
-    {name:'Heavenly Aegis', desc:'When this card would lose an attack by a margin of 3 or less, the battle becomes a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
     {name:'Special Attack: Eternal Verdict', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. Any of them with 3 Power or less facing that direction is destroyed outright instead.'},
   ] },
   { id:'infiniteseraph', name:'The Infinite Seraph', role:'Legendary Card — The Keeper of All Possibilities', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#1c1a10,#0d0b18 60%)', accent:'#e0d090', special:{ name:'All Possibilities', cost:2, once:true, targets:'direction' }, skills: [    {name:'Eternal Presence (Passive)', desc:"While The Infinite Seraph is on the board, none of her side's cards can be removed, destroyed, or swapped by the opponent's effects (Vaelira's Infernal Pact, Nyxara's Void Dominion, and Deathblade's Shadow Assault are all blocked while she stands)."},
-    {name:'Cosmic Insight', desc:"When this card wins an attack, you may look at the opponent's hand and choose a card — it can't be played next round. (Flavor only — no hand-reveal/fog-of-war system exists.)"},
-    {name:'Infinite Paths', desc:"You may swap this card's position with any of your own cards on the board after every round. Once per match. (Flavor only — no standalone reposition trigger exists outside of a Special Attack.)"},
-    {name:'Omniscient Aegis', desc:'When this card would lose an attack, you may choose to make it a draw instead. (Flavor only — the engine has no per-square draw outcome, only win/lose.)'},
     {name:'Special Attack: All Possibilities', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -1 Power on all sides, permanently.'},
   ] },
   { id:'fenrir', name:'The Eclipse Fenrir', role:'Mystic Card', element:'wind', top:9, right:10, bottom:9, left:10, hue:'linear-gradient(160deg,#0a0e1c,#0d0b18 60%)', accent:'#5ec8f2', active:{ boardUnderdogAttackBonus:2, onWinDirectionalBoost:1, debuffImmune:true }, special:{ name:'Ragnarök', cost:2, once:true, targets:'direction' }, skills: [    {name:'Hunt of the Eclipse (Passive)', desc:"When The Eclipse Fenrir is placed, choose a direction — every enemy card in that line gets -1 Power on all sides, permanently. (Source text lets you choose the direction — simplified to random, same as Tiamat's Fivefold Catastrophe, since no on-placement direction-choice UI exists.)"},
     {name:'Nordic Wrath', desc:'When Fenrir attacks a card whose side controls more squares than his, he gets +2 Power on all sides during that attack.'},
     {name:"Moon's Shadow", desc:'When Fenrir wins an attack, he gets +1 Power on the direction used, for the rest of the match. Once per match.'},
-    {name:"Fenrir's Curse", desc:"When Fenrir loses an attack, the opponent gets no extra benefit from that win (e.g. an on-win card skill triggering). (Flavor only — would need every current and future on-win bonus to check 'was this against Fenrir', too fragile to maintain generically.)"},
     {name:'Eternal Loyalty', desc:"Fenrir's Power values can never be lowered by an opponent's card skills or Special Attacks."},
     {name:'Special Attack: Ragnarök', desc:'Costs 2 wins. Choose a direction — every enemy card in that line gets -2 Power on all sides, permanently.'},
   ] },
@@ -3684,7 +3706,6 @@ const FOREST_FOES = [
     skills: [
       {name:"Allfather's Gaze (Passive)", desc:"When Odin is placed, you see a random enemy card's sides, and all enemy cards get -1 Power on all sides this round. (The reveal is flavor only — every card's stats are already shown openly in this game.)"},
       {name:'Gungnir Strike', desc:'When Odin attacks, he gets +2 Power on the attacking side.'},
-      {name:"Raven's Insight", desc:"When Odin wins a battle, you see a random enemy card's sides next round. (Flavor only — not currently wired into the battle engine; there is no hidden-card system.)"},
       {name:"Warrior's Soul", desc:'The first time Odin would lose a battle, the loss is ignored.'},
       {name:"Valhalla's Call", desc:'When Odin takes control of an enemy card, all your allied cards get +1 Power on all sides this round.'},
       {name:'Special Attack: Zantetsuken', desc:"Costs 3 wins. Odin unleashes seven lightning-fast strikes. Choose an enemy card. If the attack wins, Odin gets +3 Power on all sides this round, and there is a 50% chance he unleashes Ragnarok, destroying every OTHER card on the board (allies included). Otherwise, the defeated card gets -3 Power on all sides permanently and all other enemy cards get -1 Power on all sides this round. Usable once per match."},
@@ -3730,7 +3751,7 @@ const FOREST_FOES = [
   { id:'aurelian', name:'Aurelian', role:'The Skyward Spear — Sky Warrior', element:'wind', top:10, right:7, bottom:10, left:6, hue:'linear-gradient(160deg,#101c30,#0d0b18 60%)', accent:'#5ec8f2', icon:'🔱', active: {axisBonus:{dirs:['top','bottom'], amount:1}, pairPresence:{partner:'vorlix', amount:2}}, special:{ name:'Skybreaker', cost:2, once:true, targets:'single' }, skills: [
     {name:'Skyward Reach (Passive)', desc:'Aurelian gets +1 Power on Up and Down when attacking.'},
     {name:'Celestial Bond (Passive)', desc:'Aurelian gets +2 Power on all sides while Vorlix is anywhere on your board.'},
-    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +1 Power on all directions permanently."},
+    {name:'Special Attack: Skybreaker', desc:"Costs 2 wins. Choose an enemy card — Aurelian gains +3 Power for this attack only. If the attack wins, he keeps +2 Power on his top and bottom sides permanently."},
   ] },
   { id:'vorlix', name:'Vorlix', role:'The Horizon Blade — Void Warrior', element:'water', top:10, right:9, bottom:6, left:9, hue:'linear-gradient(160deg,#180c28,#0d0b18 60%)', accent:'#b565f2', icon:'🗡️', active: {axisBonus:{dirs:['left','right'], amount:1}, pairPresence:{partner:'aurelian', amount:2}}, special:{ name:'WorldCleaver', cost:2, once:true, targets:'single' }, skills: [
     {name:"Horizon's Reach (Passive)", desc:'Vorlix gets +1 Power on Left and Right when attacking.'},
@@ -3800,7 +3821,6 @@ const FOREST_FOES = [
       {name:'Void Embrace', desc:"When this card's side wins a battle, every one of your cards on the board gets +1 Power for the rest of the match (max +3 total). (Card draw is flavor only — no deck/draw system exists in the engine.)"},
       {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power.'},
       {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
-      {name:'Weakness — Broken Focus', desc:"If this card loses control of its unit, it loses -4 Power next match. (Flavor only — the sealing/purification/forced-movement triggers named in the source don't exist in the engine, and no state persists between matches.)"},
       {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
     ] },
   // Five new bosses, from posters the user sent in one batch ("Lite nya
@@ -4173,6 +4193,7 @@ let state = {
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   ultimateBanner: null,   // { phase:'cast'|'impact', owner, name, sourceIndex } while an Ultimate's windup/impact sequence plays — see runSpecialResolution/playUltimateSequence
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
+  newAchievements: [], // achievement ids newly unlocked by the just-finished match, for the result screen -- see checkAchievements()
   // Fas 6 (design review #2): Same/Plus/Combo default ON in Random Draft/Choose
   // Your Five -- with them off, most casual play was just "compare 4 raw
   // numbers," the shallowest version of the game, with the real strategic
@@ -4593,59 +4614,6 @@ function renderDraft(){
       most squares wins the duel.</b>
     </div>
     <button class="how-to-play-btn" id="how-to-play-btn" ${HEROES.length===0 ? 'disabled' : ''}>🎓 How to Play</button>
-    ${state.draftMode !== 'campaign' ? `
-    <div class="rules-toggle-panel">
-      <div class="section-label">Optional rules</div>
-      <label class="rule-toggle">
-        <input type="checkbox" id="rule-same" ${state.rules.same ? 'checked' : ''}>
-        <span><b>Same</b> — if 2 or more touching sides exactly match the facing enemy sides, all matched cards flip at once.</span>
-      </label>
-      <label class="rule-toggle">
-        <input type="checkbox" id="rule-plus" ${state.rules.plus ? 'checked' : ''}>
-        <span><b>Plus</b> — if two touching-side sums are equal, both matched enemy cards flip at once.</span>
-      </label>
-      <label class="rule-toggle ${(!state.rules.same && !state.rules.plus) ? 'rule-disabled' : ''}">
-        <input type="checkbox" id="rule-combo" ${state.rules.combo ? 'checked' : ''} ${(!state.rules.same && !state.rules.plus) ? 'disabled' : ''}>
-        <span><b>Combo</b> — cards flipped by Same or Plus immediately battle their own neighbors, chaining further flips. Requires Same or Plus.</span>
-      </label>
-      <label class="rule-toggle">
-        <input type="checkbox" id="rule-elemental" ${state.rules.elemental ? 'checked' : ''}>
-        <span><b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup. ❄️✨🌑🔮🖤 (ice/light/dark/magic/shadow) sit outside this cycle by design — they're beyond simple elemental rivalry, though some still carry their own printed weakness against a specific element.</span>
-      </label>
-      <label class="rule-toggle">
-        <input type="checkbox" id="rule-graveyard" ${state.rules.graveyard ? 'checked' : ''}>
-        <span><b>Graveyard</b> — when a card is destroyed (by a Special Attack, not a normal flip), it's recorded in its owner's Graveyard instead of just vanishing. Several cards (Morvath, Zalazar, Naline, Umbrael, Zlaizer) can pull cards back out of a Graveyard, so turning this off denies those abilities any targets.</span>
-      </label>
-    </div>
-    ` : ''}
-
-    ${state.draftMode !== 'campaign' ? `
-    <div class="rules-toggle-panel">
-      <div class="section-label">Forest AI difficulty</div>
-      <div class="difficulty-toggle">
-        <button class="difficulty-btn ${state.aiDifficulty==='easy' ? 'active' : ''}" data-difficulty="easy">Easy</button>
-        <button class="difficulty-btn ${state.aiDifficulty==='normal' ? 'active' : ''}" data-difficulty="normal">Normal</button>
-        <button class="difficulty-btn ${state.aiDifficulty==='hard' ? 'active' : ''}" data-difficulty="hard">Hard</button>
-      </div>
-      <div class="difficulty-desc">${AI_DIFFICULTY_DESC[state.aiDifficulty]}</div>
-    </div>
-    ` : ''}
-
-    ${state.draftMode !== 'campaign' && matchStats.matches > 0 ? `
-    <div class="rules-toggle-panel">
-      <div class="section-label">Your record</div>
-      <div class="match-stats-row">
-        <span class="match-stat"><b>${matchStats.wins}</b> Wins</span>
-        <span class="match-stat"><b>${matchStats.losses}</b> Losses</span>
-        <span class="match-stat"><b>${matchStats.draws}</b> Draws</span>
-      </div>
-      <div class="match-stats-row">
-        <span class="match-stat">Streak: <b>${matchStats.currentStreak}</b></span>
-        <span class="match-stat">Best: <b>${matchStats.bestStreak}</b></span>
-        ${favoriteCard ? `<span class="match-stat">Favorite: <b>${favoriteCard.name}</b> (${favoriteCard.wins})</span>` : ''}
-      </div>
-    </div>
-    ` : ''}
 
     <div class="mode-toggle">
       <button class="mode-btn ${state.draftMode==='random' ? 'active' : ''}" id="mode-random" ${HEROES.length===0 ? 'disabled' : ''}>
@@ -4686,6 +4654,71 @@ function renderDraft(){
       <button class="cta" id="begin-btn-manual" ${chosen === 5 ? '' : 'disabled'}>Begin the Duel</button>
       <div class="footer-note">The forest sends five foes to test your banner — some far more dangerous than others.</div>
     ` : renderCampaignPanel()}
+
+    ${state.draftMode !== 'campaign' ? `
+    <!-- Fas 7 (design review #2): the three settings panels (Optional
+         rules/AI difficulty/Your record) used to sit ABOVE the mode
+         picker and draft grid, so a first-time visitor had to scroll past
+         a wall of settings they had no context for yet, before reaching
+         the actual card-picking UI -- moved below the primary action, and
+         merged into one "Match Settings" panel (internal sections instead
+         of three separately-bordered boxes repeating the same style). -->
+    <div class="rules-toggle-panel match-settings-panel">
+      <div class="section-label">Match settings</div>
+      <div class="settings-section-label">Optional rules</div>
+      <label class="rule-toggle">
+        <input type="checkbox" id="rule-same" ${state.rules.same ? 'checked' : ''}>
+        <span><b>Same</b> — if 2 or more touching sides exactly match the facing enemy sides, all matched cards flip at once.</span>
+      </label>
+      <label class="rule-toggle">
+        <input type="checkbox" id="rule-plus" ${state.rules.plus ? 'checked' : ''}>
+        <span><b>Plus</b> — if two touching-side sums are equal, both matched enemy cards flip at once.</span>
+      </label>
+      <label class="rule-toggle ${(!state.rules.same && !state.rules.plus) ? 'rule-disabled' : ''}">
+        <input type="checkbox" id="rule-combo" ${state.rules.combo ? 'checked' : ''} ${(!state.rules.same && !state.rules.plus) ? 'disabled' : ''}>
+        <span><b>Combo</b> — cards flipped by Same or Plus immediately battle their own neighbors, chaining further flips. Requires Same or Plus.</span>
+      </label>
+      <label class="rule-toggle">
+        <input type="checkbox" id="rule-elemental" ${state.rules.elemental ? 'checked' : ''}>
+        <span><b>Elemental Clash</b> — 🔥 beats 🌪️, 🌪️ beats 🌍, 🌍 beats 💧, 💧 beats 🔥. A favorable element gives +1 Power in that matchup. ❄️✨🌑🔮🖤 (ice/light/dark/magic/shadow) sit outside this cycle by design — they're beyond simple elemental rivalry, though some still carry their own printed weakness against a specific element.</span>
+      </label>
+      <label class="rule-toggle">
+        <input type="checkbox" id="rule-graveyard" ${state.rules.graveyard ? 'checked' : ''}>
+        <span><b>Graveyard</b> — when a card is destroyed (by a Special Attack, not a normal flip), it's recorded in its owner's Graveyard instead of just vanishing. Several cards (Morvath, Zalazar, Naline, Umbrael, Zlaizer) can pull cards back out of a Graveyard, so turning this off denies those abilities any targets.</span>
+      </label>
+
+      <div class="settings-section-label">Forest AI difficulty</div>
+      <div class="difficulty-toggle">
+        <button class="difficulty-btn ${state.aiDifficulty==='easy' ? 'active' : ''}" data-difficulty="easy">Easy</button>
+        <button class="difficulty-btn ${state.aiDifficulty==='normal' ? 'active' : ''}" data-difficulty="normal">Normal</button>
+        <button class="difficulty-btn ${state.aiDifficulty==='hard' ? 'active' : ''}" data-difficulty="hard">Hard</button>
+      </div>
+      <div class="difficulty-desc">${AI_DIFFICULTY_DESC[state.aiDifficulty]}</div>
+
+      ${matchStats.matches > 0 ? `
+      <div class="settings-section-label">Your record</div>
+      <div class="match-stats-row">
+        <span class="match-stat"><b>${matchStats.wins}</b> Wins</span>
+        <span class="match-stat"><b>${matchStats.losses}</b> Losses</span>
+        <span class="match-stat"><b>${matchStats.draws}</b> Draws</span>
+      </div>
+      <div class="match-stats-row">
+        <span class="match-stat">Streak: <b>${matchStats.currentStreak}</b></span>
+        <span class="match-stat">Best: <b>${matchStats.bestStreak}</b></span>
+        ${favoriteCard ? `<span class="match-stat">Favorite: <b>${favoriteCard.name}</b> (${favoriteCard.wins})</span>` : ''}
+      </div>
+      ` : ''}
+
+      ${unlockedAchievements.length > 0 ? `
+      <div class="settings-section-label">Achievements (${unlockedAchievements.length}/${ACHIEVEMENTS.length})</div>
+      <div class="achievement-list">
+        ${ACHIEVEMENTS.filter(a => unlockedAchievements.includes(a.id)).map(a => `
+          <div class="achievement-badge" title="${a.desc}">🏅 ${a.name}</div>
+        `).join('')}
+      </div>
+      ` : ''}
+    </div>
+    ` : ''}
   `;
 }
 
@@ -4714,12 +4747,17 @@ function renderCampaignPanel(){
 
   const stageAIDifficulty = campaignStageAIDifficulty(campaignProgress.stageIndex);
   const stageAINote = `<div class="difficulty-desc">🌲 Forest AI this stage: <b>${stageAIDifficulty[0].toUpperCase()}${stageAIDifficulty.slice(1)}</b> — ${AI_DIFFICULTY_DESC[stageAIDifficulty]}</div>`;
+  // Fas 7 (design review #2): surfaces the new per-stage statBoost so it's
+  // never a silent number change -- same visibility principle as the AI
+  // difficulty note right above it.
+  const stageStatNote = stage.statBoost ? `<div class="difficulty-desc">⚔️ The forest's champions are stronger here: <b>+${stage.statBoost}</b> Power on every side.</div>` : '';
 
   if(stageNum === 1){
     return `
       <div class="section-label">Stage 1 of ${CAMPAIGN_STAGES.length} — ${stage.name}${ngTag}</div>
       <div class="rules">Your story begins with the five champions who started it all.${campaignProgress.ngPlus > 0 ? ' The forest remembers you — its champions strike harder this time.' : ''}</div>
       ${stageAINote}
+      ${stageStatNote}
       <div class="draft-grid">
         ${CAMPAIGN_STARTERS.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { clickable:false })).join('')}
       </div>
@@ -4748,6 +4786,7 @@ function renderCampaignPanel(){
     ${lorePanel}
     <div class="rules">Choose five champions to carry this stage.</div>
     ${stageAINote}
+    ${stageStatNote}
     <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
     <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
     <div class="section-label">Choose exactly five champions</div>
@@ -5029,6 +5068,13 @@ function renderBattle(){
       if(favorite){
         statsLines.push(`⭐ Favorite champion: ${favorite.name} (${favorite.wins} win${favorite.wins>1?'s':''})`);
       }
+      // Fas 7 (design review #2, "meta layer" tier): a newly unlocked
+      // achievement is exactly the kind of payoff that belongs right here,
+      // same principle as the streak/favorite lines above.
+      (state.newAchievements || []).forEach(id => {
+        const ach = ACHIEVEMENTS.find(a => a.id === id);
+        if(ach) statsLines.push(`🏅 Achievement unlocked: ${ach.name}`);
+      });
       resultHtml = `
         <div class="result-banner">
           <h2>${title}</h2>
@@ -5054,9 +5100,9 @@ function renderBattle(){
       </div>
     </div>
     <div class="wins-row">
-      <span class="wins-chip red">⚡ <b>${state.wins.red}</b> wins</span>
+      <span class="wins-chip red ${state.phase === 'battle' && state.turn === 'red' ? 'active-turn' : ''}">⚡ <b>${state.wins.red}</b> wins</span>
       ${state.rules.graveyard ? `<button class="graveyard-toggle" id="graveyard-toggle" title="View the Graveyard">💀 ${state.graveyard.blue.length + state.graveyard.red.length}</button>` : ''}
-      <span class="wins-chip blue">⚡ <b>${state.wins.blue}</b> wins</span>
+      <span class="wins-chip blue ${state.phase === 'battle' && state.turn === 'blue' ? 'active-turn' : ''}">⚡ <b>${state.wins.blue}</b> wins</span>
       ${state.winsPopup ? `<div class="wins-toast ${state.winsPopup.owner}">+${state.winsPopup.amount} Win${state.winsPopup.amount>1?'s':''}!</div>` : ''}
     </div>
 
@@ -5501,12 +5547,23 @@ function ngPlusBoostCard(card, ngPlus){
   return { ...card, top: card.top+boost, right: card.right+boost, bottom: card.bottom+boost, left: card.left+boost };
 }
 
+// Fas 7 (design review #2): a stage's own flat statBoost (see
+// CAMPAIGN_STAGES, stages 9-16) -- same shallow-copy shape as
+// ngPlusBoostCard above but a SEPARATE, uncapped amount that isn't folded
+// into the NG+ cycle math, so a late stage's own escalation and a real
+// New Game+ replay stack additively instead of one silently capping the
+// other.
+function campaignStatBoost(card, amount){
+  if(!amount) return card;
+  return { ...card, top: card.top+amount, right: card.right+amount, bottom: card.bottom+amount, left: card.left+amount };
+}
+
 function startBattle(){
   const chosenHeroes = HEROES.filter(h => state.selected.includes(h.id));
   state.playerHand = shuffle(chosenHeroes.slice());
   const campaignStage = state.draftMode === 'campaign' ? currentCampaignStage() : null;
   state.enemyHand = campaignStage
-    ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean).map(c => ngPlusBoostCard(c, campaignProgress.ngPlus))
+    ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean).map(c => campaignStatBoost(ngPlusBoostCard(c, campaignProgress.ngPlus), campaignStage.statBoost))
     : drawEnemyHand();
   state.board = Array(9).fill(null);
   state.pendingCard = null;
@@ -5767,6 +5824,29 @@ function checkSisterFlip(entry){
 // Execution, Nexzoth/Morvath's line-destroys) — every existing caller only
 // ever passed the first four args, so both are optional.
 function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIndex, winnerVal){
+  // Fas 7 (design review #2): Ifrit's "Rage of the Beast" ("when Ifrit
+  // loses control of a card, he gets +2 on all sides next round") was
+  // flavor-only for an unresolved reading -- himself being captured, or
+  // his SIDE losing a different card he'd previously captured. Read as
+  // the latter (a reactive team-loss trigger fits "Rage" better than a
+  // self-capture clause, and this function already hands us the loser's
+  // owner for free): whenever ANY card on the loser's side goes down in a
+  // normal battle, if Ifrit is on that same losing side, he rages. Checked
+  // BEFORE the `if(!a) return` guard below -- unlike every other hook in
+  // this function, this one is keyed off the LOSER's side having Ifrit,
+  // not the winning card's own active flags, so it must not be skipped
+  // just because the WINNING card happens to have no active object at
+  // all (e.g. a plain filler card). Like every hook here, this only sees
+  // normal directional captures, not Same/Plus/Combo.
+  if(loserEntry){
+    // loserEntry.owner has ALREADY been flipped to the winner's owner by
+    // the time this runs (see battleNeighbors, which sets target.owner
+    // before calling this) -- the loser's ORIGINAL side is the opposite
+    // of winnerEntry's, not loserEntry's own (now-stale) owner field.
+    const losingSide = winnerEntry.owner === 'blue' ? 'red' : 'blue';
+    const ragingIfrit = state.board.find(e => e && e.owner === losingSide && e.card.active && e.card.active.rageOfTheBeast);
+    if(ragingIfrit) SpecialVerbs.buffThisRound(ragingIfrit, 2);
+  }
   const a = winnerEntry.card.active;
   if(!a) return;
   if(a.onWinDirectionalBoost && !winnerEntry.onWinDirectionalBoostUsed){
@@ -6244,22 +6324,32 @@ const CAMPAIGN_STAGES = [
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['darien'] },
   { name:'The Shadowblade Sisters', enemyIds:['lyrith','aurelia','twistedgipsy','maximus','darum'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['vayra','ysara'] },
+  // Fas 7 (design review #2): stages 9-16 previously escalated ONLY via
+  // Hard AI kicking in at stage 12 (campaignStageAIDifficulty) plus
+  // reshuffled enemyIds drawn from the same pool the whole back half used
+  // -- a real difficulty cliff of AI sharpness, but the cards themselves
+  // never got harder. statBoost reuses the exact shallow-copy shape
+  // ngPlusBoostCard already established for New Game+ (see
+  // campaignStatBoost below and its call site in startBattle) as a flat,
+  // separate-from-NG+ per-stage escalation, so returning to an early
+  // stage in NG+2 doesn't double-stack with a late stage's own boost in
+  // some surprising multiplicative way -- both are flat and additive.
   { name:"Hunter's Pact", enemyIds:['daron','aurelian','vorlix','tahabata','ifrit'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['sylvarion','torn'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['sylvarion','torn'], statBoost:1 },
   { name:"The Wild Hunt's Bond", enemyIds:['bahamut','dragon','shadowking','voidqueen','fenrir'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['pallispell','pallis'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['pallispell','pallis'], statBoost:1 },
   { name:'The Twin Storm', enemyIds:['eviltwistyang','eviltwistyin','ifrit','bahamut','tahabata'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['twinbrothers','twinsisters'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['twinbrothers','twinsisters'], statBoost:1 },
   { name:'Yin and Yang Resonance', enemyIds:['medusa','lyrith','aurelia','twistedgipsy','maximus'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['eviltwistyang','eviltwistyin'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['eviltwistyang','eviltwistyin'], statBoost:2 },
   { name:'The Forgotten Legion', enemyIds:['twinbrothers','twinsisters','ifrit','bahamut','tahabata'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['darum','daron','aurelian','vorlix'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['darum','daron','aurelian','vorlix'], statBoost:2 },
   { name:'Wardens of the Wild', enemyIds:['darum','daron','aurelian','vorlix','tahabata'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['medusa','lyrith','aurelia','twistedgipsy','maximus'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['medusa','lyrith','aurelia','twistedgipsy','maximus'], statBoost:2 },
   { name:'Ashes and Frost', enemyIds:['voidqueen','shadowking','dragon','fenrir','twinsisters'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['ferea','tilda','ifrit','bahamut','tahabata'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['ferea','tilda','ifrit','bahamut','tahabata'], statBoost:3 },
   { name:"The Ancient Wyrmking's Domain", enemyIds:['celestialjudgment','infiniteseraph','threeheaddragon','dragon','fenrir'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['dragon','shadowking','voidqueen','celestialjudgment','infiniteseraph','fenrir'] },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['dragon','shadowking','voidqueen','celestialjudgment','infiniteseraph','fenrir'], statBoost:3 },
   // Stage 17 — a dedicated boss stage for the Triple Triad Sisters trio.
   // They were originally FOREST_FOES-only (enemy-only, deliberately kept
   // out of HEROES/campaignPool per an explicit user confirmation) but were
@@ -6347,6 +6437,55 @@ function favoriteCardInfo(){
   if(!bestId) return null;
   const card = findCardById(bestId);
   return card ? { name: card.name, wins: bestCount } : null;
+}
+
+// Fas 7 (design review #2, "meta layer" tier): the progression audit's
+// cheapest suggestion for a real "why play match #50" hook -- a small
+// achievement list, entirely reusing matchStats/state data already
+// tracked (Fas 4), no new tracking system. Campaign has its own
+// stage-progress reward loop already, so (matching recordMatchResult's
+// own guard right above) these never fire there.
+const ACHIEVEMENTS = [
+  { id:'first-blood', name:'First Blood', desc:'Win your first duel.',
+    check: (winner) => winner === 'blue' && matchStats.wins === 1 },
+  { id:'total-domination', name:'Total Domination', desc:'Win by controlling all 9 squares.',
+    check: (winner, blueCount) => winner === 'blue' && blueCount === 9 },
+  { id:'hard-fought', name:'Hard-Fought Victory', desc:'Win a duel with the Forest AI set to Hard.',
+    check: (winner) => winner === 'blue' && effectiveAIDifficulty() === 'hard' },
+  { id:'on-a-roll', name:'On a Roll', desc:'Reach a 5-win streak.',
+    check: () => matchStats.currentStreak >= 5 },
+  { id:'veteran', name:'Veteran', desc:'Win 10 duels.',
+    check: () => matchStats.wins >= 10 },
+  { id:'purist', name:'Purist', desc:'Win a duel with every optional rule active (Same, Plus, Combo, Elemental).',
+    check: (winner) => winner === 'blue' && state.rules.same && state.rules.plus && state.rules.combo && state.rules.elemental },
+];
+const ACHIEVEMENTS_SAVE_KEY = 'triadArenaAchievements';
+function loadAchievements(){
+  try{
+    const raw = localStorage.getItem(ACHIEVEMENTS_SAVE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter(id => ACHIEVEMENTS.some(a => a.id === id)) : [];
+  }catch(e){ return []; }
+}
+function saveAchievements(){
+  try{ localStorage.setItem(ACHIEVEMENTS_SAVE_KEY, JSON.stringify(unlockedAchievements)); }catch(e){}
+}
+let unlockedAchievements = loadAchievements();
+
+// Called from finishGame() right after recordMatchResult() (so
+// matchStats already reflects THIS match) -- returns the ids newly
+// unlocked this match, for the result screen to surface (see
+// state.newAchievements), same "show the payoff right when it happens"
+// principle as the streak/favorite-card result-screen addition above.
+function checkAchievements(winner, blueCount){
+  if(state.draftMode === 'campaign') return [];
+  const newly = [];
+  ACHIEVEMENTS.forEach(a => {
+    if(unlockedAchievements.includes(a.id)) return;
+    if(a.check(winner, blueCount)){ unlockedAchievements.push(a.id); newly.push(a.id); }
+  });
+  if(newly.length) saveAchievements();
+  return newly;
 }
 
 // On the user's explicit request (etapp 2+ felt too hard with only 5
@@ -7626,6 +7765,10 @@ const SPECIAL_HANDLERS = {
   // Ysara's Eternal Eclipse (total-power threshold check + attackBoost),
   // reused directly rather than inventing a third pattern. His axis
   // identity still lives on in the separate Skyward Reach passive above.
+  // Aurelian, "Skybreaker": the permanent gain lands ONLY on his top/bottom
+  // sides (but at double the amount, +2 instead of +1) instead of all four
+  // -- matches his existing axisBonus passive's own vertical-spear
+  // identity (a Sky Warrior's thrust is vertical, not omnidirectional).
   aurelian({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
@@ -7637,8 +7780,8 @@ const SPECIAL_HANDLERS = {
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
-    SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${name}'s Skybreaker splits the sky over ${targetEntry.card.name}!`;
+    SpecialVerbs.directionalBoost(srcEntry, ['top','bottom'], 2);
+    return `${name}'s Skybreaker splits the sky over ${targetEntry.card.name}, permanently sharpening his vertical strike!`;
   },
   vorlix({ srcEntry, targetEntry, targetIndex, owner }){
     const sides = ['left', 'right'];
@@ -8010,23 +8153,33 @@ const SPECIAL_HANDLERS = {
   // reality-bending capture with no concrete numbers at all — invented a
   // standard temp-boost-then-permanent-on-win value (same shape as
   // Astrael's Falling Stars) for each, documented on the cards themselves.
+  // Vayra, "Eclipse": ignores the target's shield entirely (no
+  // specialBlockedByShield check) -- a shadowblade's strike that bypasses
+  // defenses outright, same "ignores defensive skills" pattern Lyrith's
+  // Serpent's Wrath already uses.
   vayra({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
       return `${name}'s Eclipse tries to rewrite fate, but ${targetEntry.card.name} refuses to change!`;
     }
-    if(specialBlockedByShield(targetEntry, targetIndex)){
-      return `${targetEntry.card.name}'s shield holds against the Eclipse!`;
-    }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${name} stops time and rewrites the only ending left — Eclipse claims ${targetEntry.card.name}!`;
+    return `${name} stops time and rewrites the only ending left — Eclipse claims ${targetEntry.card.name}, shields and all!`;
   },
-  // Sarah's first-ever Ultimate, in the same total-power-threshold shape as
-  // Vayra's Eclipse and Ysara's Eternal Eclipse above (+3 temp boost, +1
-  // permanent all-sides on a win) rather than inventing a new pattern.
+  // Fas 7 (design review #2, medium-cost tier): Zaevir's Eternal Arrow (see
+  // its own handler further below) stays the original +3-threshold/+1-
+  // permanent shape as the one baseline every other single-target special
+  // in the file already falls back to (Darien, Vorathos, Deathblade,
+  // Voidqueen, Astrael, Daron, ...). The other 6 of these 7 previously-
+  // byte-identical handlers (Sarah/Vayra/Ysara/Ragnar/Tilda/Aurelian) each
+  // get ONE real mechanical hook below, reusing existing SpecialVerbs so no
+  // new engine primitive was needed — see PROJECT.md's Fas 7 entry for the
+  // full before/after rationale per card.
+  //
+  // Sarah, "Aion's Last Light": on a win, ALSO shields a random ally —
+  // she's the team's last light, not just an attacker.
   sarah({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
@@ -8039,16 +8192,30 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls!`;
+    // Excludes targetEntry too, not just srcEntry -- by this point its
+    // owner has already flipped to `owner`, so without this it could
+    // "shield" the card Sarah just captured this instant rather than an
+    // existing ally, which isn't the intended "protects the team" read.
+    const shieldable = state.board.filter(e => e && e !== srcEntry && e !== targetEntry && e.owner === owner && !e.grantedShield);
+    let shieldMsg = '';
+    if(shieldable.length){
+      const ally = shieldable[Math.floor(Math.random()*shieldable.length)];
+      SpecialVerbs.grantShield(ally);
+      shieldMsg = ` — its glow shields ${ally.card.name}!`;
+    }
+    return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls!${shieldMsg}`;
   },
-  // Tilda's first-ever Ultimate, in the same total-power-threshold shape as
-  // Sarah/Vayra/Ysara/Aurelia/Lyrith's own (+3 temp boost folded into the
-  // threshold check, +1 permanent all-sides on a win) — per the user,
-  // reused as-is rather than inventing a new pattern.
+  // Tilda, "Nightfall": weakens the TARGET first instead of buffing
+  // herself — the attack roll happens against an already-sapped enemy,
+  // a real "sabotage before the strike" tool rather than a self-buff. No
+  // permanent stat gain on a win (the trade-off for reliably softening the
+  // target even on a loss), and naturally weaker against a debuffImmune
+  // target since debuffThisRound() is already a guarded no-op there.
   tilda({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
-    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
-      return `${name}'s Nightfall fails to find purchase — ${targetEntry.card.name} holds firm!`;
+    SpecialVerbs.debuffThisRound(targetEntry, 2);
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Nightfall saps ${targetEntry.card.name}'s strength, but it still holds firm!`;
     }
     if(specialBlockedByShield(targetEntry, targetIndex)){
       return `${targetEntry.card.name}'s shield holds against Nightfall!`;
@@ -8056,14 +8223,10 @@ const SPECIAL_HANDLERS = {
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
-    SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${name}'s Nightfall descends — ${targetEntry.card.name} is claimed by the dark!`;
+    return `${name}'s Nightfall saps ${targetEntry.card.name} before the strike — claimed by the dark!`;
   },
-  // Zaevir's first-ever Ultimate, in the same total-power-threshold shape as
-  // Sarah/Vayra/Ysara's own (+3 temp boost, +1 permanent all-sides on a
-  // win) rather than inventing a new "control 3+ cards" activation gate the
-  // approved art described — that would be a different resource than the
-  // existing Wins-cost system every other Special Attack uses.
+  // Zaevir, "Eternal Arrow": unchanged -- kept as the baseline (see the
+  // file-level comment above this handler block).
   zaevir({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
@@ -8078,10 +8241,9 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.attackBoost(srcEntry, 1);
     return `${name}'s Eternal Arrow finds its mark — ${targetEntry.card.name} falls!`;
   },
-  // Ragnar's first-ever Ultimate, same Eclipse shape as Zaevir/Sarah/Vayra/
-  // Ysara. The approved art described a "control 3+ cards" activation gate
-  // instead of a Wins cost -- not adopted, same call as Zaevir, since it
-  // would need a new resource type outside the existing Wins-cost system.
+  // Ragnar, "Blood Fury": on a win, his rage also splashes onto a second
+  // random enemy (-2 this round) — a berserker's fury doesn't stop at one
+  // target.
   ragnar({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
@@ -8094,8 +8256,19 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${name}'s Blood Fury overwhelms ${targetEntry.card.name}!`;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    const splashable = state.board.filter(e => e && e !== targetEntry && e.owner === enemyOwner);
+    let furyMsg = '';
+    if(splashable.length){
+      const victim = splashable[Math.floor(Math.random()*splashable.length)];
+      SpecialVerbs.debuffThisRound(victim, 2);
+      furyMsg = ` — his rage spills over, weakening ${victim.card.name}!`;
+    }
+    return `${name}'s Blood Fury overwhelms ${targetEntry.card.name}!${furyMsg}`;
   },
+  // Ysara, "Eternal Eclipse": a win grants an extra turn instead of a
+  // permanent stat gain -- the Timeweaver loops the moment back on herself
+  // rather than just hitting harder next time.
   ysara({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
@@ -8107,8 +8280,8 @@ const SPECIAL_HANDLERS = {
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
-    SpecialVerbs.attackBoost(srcEntry, 1);
-    return `${name} chooses the only ending where she remains — Eternal Eclipse claims ${targetEntry.card.name}!`;
+    SpecialVerbs.extraTurn(owner);
+    return `${name} chooses the only ending where she remains — Eternal Eclipse claims ${targetEntry.card.name} and loops the moment back for one more move!`;
   },
   // "Lethal Volley" is explicitly board-wide ("devastating against
   // groups") — a natural fit for the existing targets:'aoe' shape (same
@@ -9832,6 +10005,18 @@ function enemyTryUseSpecial(){
       }
     });
     if(bestTarget != null){
+      // Fas 7 (design review #2): generalizes the AOE branch's own
+      // "is this worth it yet" wait above to single-target specials too --
+      // previously every difficulty fired the instant ANY winnable target
+      // existed, fully deterministic and learnable by a sharp player
+      // (starve the target, or feed a throwaway card to bait it early).
+      // Hard-only, same shape as the AOE check: skip a target worth less
+      // than half this card's own power while emptyCells > 1 still leaves
+      // room for a juicier one to show up later.
+      if(effectiveAIDifficulty() === 'hard'){
+        const emptyCells = state.board.filter(e => !e).length;
+        if(emptyCells > 1 && bestPower < totalPower(c.entry) / 2) continue;
+      }
       executeSpecial(c.sourceIndex);
       resolveSpecialTarget(bestTarget);
       return true;
@@ -9889,6 +10074,7 @@ function finishGame(){
     }
   }
   recordMatchResult(state.winner);
+  state.newAchievements = checkAchievements(state.winner, blueCount);
   if(state.winner === 'blue') SFX.win();
   else if(state.winner === 'red') SFX.lose();
   else SFX.draw();
@@ -9912,7 +10098,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,

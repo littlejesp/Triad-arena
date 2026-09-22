@@ -3056,24 +3056,25 @@ test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Mar
     out.umbralStepExpiredAfterWindow = fullEffectiveValue(tilda, 'top', dummyOpp, 4, 'blue', 'defense') - tilda.top === 0;
     state.turnCount = savedTurnCount;
 
-    // Nightfall: first-ever Ultimate, same total-power-threshold shape as
-    // Sarah/Vayra/Ysara/Aurelia/Lyrith (+3 temp threshold, +1 permanent
-    // all-sides on a win).
+    // Nightfall: Fas 7 (design review #2) rework -- weakens the TARGET
+    // (-2 this round) before the strike lands, instead of buffing Tilda
+    // herself, so it always saps the target even on a failed attack, but
+    // grants no permanent stat gain on a win (the trade-off).
     state.board = Array(9).fill(null);
     const nfSrc = freshEntry(tilda, 'blue');
     state.board[4] = nfSrc;
     const nfWeak = freshEntry({ id:'nf-weak', name:'NFWeak', top:1,right:1,bottom:1,left:1 }, 'red');
     state.board[1] = nfWeak;
     SPECIAL_HANDLERS.tilda({ srcEntry: nfSrc, targetEntry: nfWeak, targetIndex: 1, owner: 'blue' });
-    out.nightfallCapturedAndBuffed = nfWeak.owner === 'blue' && nfSrc.captureBonus === 1;
+    out.nightfallCapturesAndDebuffsWeakTarget = nfWeak.owner === 'blue' && nfWeak.captureBonus === -2 && nfSrc.captureBonus === 0;
 
     state.board = Array(9).fill(null);
     const nfSrc2 = freshEntry(tilda, 'blue'); // total 31
     state.board[4] = nfSrc2;
-    const nfStrong = freshEntry({ id:'nf-strong', name:'NFStrong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, 31+3 <= 80
+    const nfStrong = freshEntry({ id:'nf-strong', name:'NFStrong', top:20,right:20,bottom:20,left:20 }, 'red'); // total 80, still 72 after the -2/-8-total debuff -- 31 still doesn't beat it
     state.board[1] = nfStrong;
     SPECIAL_HANDLERS.tilda({ srcEntry: nfSrc2, targetEntry: nfStrong, targetIndex: 1, owner: 'blue' });
-    out.nightfallNoEffectVsMuchStronger = nfStrong.owner === 'red' && nfSrc2.captureBonus === 0;
+    out.nightfallStillDebuffsButNoCaptureVsMuchStronger = nfStrong.owner === 'red' && nfStrong.captureBonus === -2 && nfSrc2.captureBonus === 0;
 
     return out;
   })()`);
@@ -3092,8 +3093,8 @@ test('Tilda: reworked per audit — stats buffed to 7/8/8/8, Piercing Shot + Mar
   assert.equal(result.umbralStepLiveBonusOnChosenSide, true);
   assert.equal(result.umbralStepNoBonusOnOtherSide, true);
   assert.equal(result.umbralStepExpiredAfterWindow, true);
-  assert.equal(result.nightfallCapturedAndBuffed, true, 'Nightfall captures and grants +1 permanent on a win');
-  assert.equal(result.nightfallNoEffectVsMuchStronger, true, 'Nightfall fails against a target whose total power exceeds the +3 threshold');
+  assert.equal(result.nightfallCapturesAndDebuffsWeakTarget, true, 'Nightfall debuffs the target and captures it, with no self-buff');
+  assert.equal(result.nightfallStillDebuffsButNoCaptureVsMuchStronger, true, 'Nightfall still saps a much stronger target even though it fails to capture it');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -4673,7 +4674,7 @@ test('Vayra: Shadow Step margin-block, Silent Strike permanent capture bonus, an
   await page.close();
 });
 
-test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bond mirrors the Twin pattern, and Skybreaker is unchanged", async () => {
+test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bond mirrors the Twin pattern, and Skybreaker grants +2 top/bottom only on a win (Fas 7 rework)", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -4708,10 +4709,10 @@ test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bon
     const withoutVorlix = fullEffectiveValue(aurelian, 'left', null, 0, 'blue', 'defense');
     out.noBondWithoutVorlix = withoutVorlix - aurelian.left === 0;
 
-    // Skybreaker: rebuilt to match the approved card art -- a total-power
-    // threshold check (+3) rather than an Up/Down-specific temp boost, and
-    // a generic +1 all-sides permanent buff via attackBoost on a win,
-    // same shape as Vayra's Eclipse / Ysara's Eternal Eclipse.
+    // Skybreaker: total-power threshold check (+3), and Fas 7 (design
+    // review #2) reworked the win-bonus from a generic +1 all-sides to a
+    // narrower-but-stronger +2 on just top/bottom (via directionalBoost),
+    // matching his own axisBonus passive's vertical-spear identity.
     state.board = Array(9).fill(null);
     const src = freshEntry(aurelian, 'blue');
     state.board[4] = src;
@@ -4719,7 +4720,7 @@ test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bon
     state.board[1] = weakTarget;
     SPECIAL_HANDLERS.aurelian({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
     out.skybreakerCaptured = weakTarget.owner === 'blue';
-    out.skybreakerBoostedAllSides = src.captureBonus === 1;
+    out.skybreakerBoostedTopBottomOnly = src.sideBonus.top === 2 && src.sideBonus.bottom === 2 && !src.sideBonus.left && !src.sideBonus.right && src.captureBonus === 0;
 
     state.board = Array(9).fill(null);
     const src2 = freshEntry(aurelian, 'blue'); // total 33
@@ -4742,7 +4743,7 @@ test("Aurelian: Skyward Reach only boosts Up/Down while attacking, Celestial Bon
   assert.equal(result.celestialBondBonus, true, '+2 on all sides while Vorlix is anywhere on the board');
   assert.equal(result.noBondWithoutVorlix, true, 'no bonus once Vorlix leaves the board');
   assert.equal(result.skybreakerCaptured, true, 'Skybreaker still captures a much weaker target');
-  assert.equal(result.skybreakerBoostedAllSides, true, 'Skybreaker now grants a generic +1 on all sides, matching the approved card art');
+  assert.equal(result.skybreakerBoostedTopBottomOnly, true, 'Skybreaker grants +2 on top/bottom only, matching Aurelian\'s vertical-spear identity');
   assert.equal(result.skybreakerNoEffectVsMuchStronger, true, 'Skybreaker fails against a target whose total power exceeds the +3 threshold');
   assert.deepEqual(pageErrors, []);
   await page.close();
@@ -4813,7 +4814,7 @@ test("Vorlix: Horizon's Reach only boosts Left/Right while attacking, Celestial 
   await page.close();
 });
 
-test('Ysara: Future Sight vs a stronger foe, Paradox Veil debuff immunity, and Eternal Eclipse is unchanged', async () => {
+test('Ysara: Future Sight vs a stronger foe, Paradox Veil debuff immunity, and Eternal Eclipse now grants an extra turn on a win (Fas 7 rework)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -4839,15 +4840,18 @@ test('Ysara: Future Sight vs a stronger foe, Paradox Veil debuff immunity, and E
     SpecialVerbs.debuff(guarded, 3);
     out.paradoxVeilBlocksDebuffs = guarded.captureBonus === 0;
 
-    // Eternal Eclipse: unchanged, still a total-power threshold check
-    // (+3) with a permanent +1 all-sides buff on a win.
+    // Eternal Eclipse: still a total-power threshold check (+3), but Fas 7
+    // (design review #2) reworked the win-bonus from a permanent +1
+    // all-sides buff into an extra turn instead (the Timeweaver loops the
+    // moment back on herself rather than just hitting harder next time).
     state.board = Array(9).fill(null);
+    state.extraTurnPending = null;
     const src = freshEntry(ysara, 'blue');
     state.board[4] = src;
     const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
     state.board[1] = weakTarget;
     SPECIAL_HANDLERS.ysara({ srcEntry: src, targetEntry: weakTarget, targetIndex: 1, owner: 'blue' });
-    out.eclipseCapturedAndBuffed = weakTarget.owner === 'blue' && src.captureBonus === 1;
+    out.eclipseCapturedAndGrantedExtraTurn = weakTarget.owner === 'blue' && src.captureBonus === 0 && state.extraTurnPending === 'blue';
 
     return out;
   })()`);
@@ -4860,7 +4864,7 @@ test('Ysara: Future Sight vs a stronger foe, Paradox Veil debuff immunity, and E
   assert.equal(result.futureSightVsStronger, true, 'Future Sight grants +3 when attacking a card with higher total Power');
   assert.equal(result.futureSightVsWeaker, true, 'Future Sight grants nothing against an equal-or-weaker foe');
   assert.equal(result.paradoxVeilBlocksDebuffs, true, "Paradox Veil blocks both debuff() and debuffThisRound()");
-  assert.equal(result.eclipseCapturedAndBuffed, true, 'Eternal Eclipse still captures and grants +1 permanent on a win, unchanged from before');
+  assert.equal(result.eclipseCapturedAndGrantedExtraTurn, true, 'Eternal Eclipse still captures on a win, now granting an extra turn instead of a permanent buff');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -7653,6 +7657,251 @@ test('Fas 6 (design review #2): a Petrified card with an unused Special no longe
   assert.equal(result.bothBadgesPresent, true);
   assert.equal(result.diamondOffsetWhenBothPresent, true, 'the two badges must no longer render at the exact same position');
   assert.equal(result.diamondStaysAtDefaultSlotWithoutPetrification, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 7 (design review #2): three of the seven reworked copy-paste Ultimates get real mechanical hooks existing tests happened not to exercise -- Sarah shields an ally, Vayra ignores shields, Ragnar splashes a second enemy', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Sarah's Aion's Last Light: on a win, shields a random OTHER ally
+    // (not herself, not the target) -- needs a second blue card on board
+    // to actually observe, which the pre-existing Sarah test's minimal
+    // 2-card setup never had.
+    state.board = Array(9).fill(null);
+    const sSrc = freshEntry(findCardById('sarah'), 'blue');
+    const sAlly = freshEntry({ id:'s-ally', name:'SAlly', top:5,right:5,bottom:5,left:5 }, 'blue');
+    const sTarget = freshEntry({ id:'s-weak', name:'SWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = sSrc; state.board[0] = sAlly; state.board[1] = sTarget;
+    SPECIAL_HANDLERS.sarah({ srcEntry: sSrc, targetEntry: sTarget, targetIndex: 1, owner: 'blue' });
+    out.sarahShieldedTheOnlyOtherAlly = sTarget.owner === 'blue' && sAlly.grantedShield === true && sSrc.grantedShield !== true;
+
+    // Vayra's Eclipse: ignores an active granted shield entirely -- the
+    // pre-existing Vayra test's target never had a shield, so this never
+    // got exercised.
+    state.board = Array(9).fill(null);
+    const vSrc = freshEntry(findCardById('vayra'), 'blue');
+    const vTarget = freshEntry({ id:'v-weak', name:'VWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    vTarget.grantedShield = true;
+    state.board[4] = vSrc; state.board[1] = vTarget;
+    SPECIAL_HANDLERS.vayra({ srcEntry: vSrc, targetEntry: vTarget, targetIndex: 1, owner: 'blue' });
+    out.eclipseIgnoredTheShield = vTarget.owner === 'blue';
+
+    // Ragnar's Blood Fury: on a win, also splashes -2-this-round onto a
+    // SECOND enemy -- the pre-existing Ragnar test only ever had the one
+    // target on board, so there was never a second enemy to splash onto.
+    state.board = Array(9).fill(null);
+    const rSrc = freshEntry(findCardById('ragnar'), 'blue');
+    const rTarget = freshEntry({ id:'r-weak', name:'RWeak', top:1,right:1,bottom:1,left:1 }, 'red');
+    const rOther = freshEntry({ id:'r-other', name:'ROther', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[4] = rSrc; state.board[1] = rTarget; state.board[8] = rOther;
+    SPECIAL_HANDLERS.ragnar({ srcEntry: rSrc, targetEntry: rTarget, targetIndex: 1, owner: 'blue' });
+    out.bloodFurySplashedTheOnlyOtherEnemy = rTarget.owner === 'blue' && rOther.captureBonus === -2;
+
+    return out;
+  })()`);
+  assert.equal(result.sarahShieldedTheOnlyOtherAlly, true, "Aion's Last Light must shield an ally, never herself, on a win");
+  assert.equal(result.eclipseIgnoredTheShield, true, 'Eclipse must bypass a granted shield entirely');
+  assert.equal(result.bloodFurySplashedTheOnlyOtherEnemy, true, "Blood Fury's rage must splash onto a second enemy, -2 this round");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 7 (design review #2): Ifrit's Rage of the Beast wires in the last dead ability -- +2 this round when a DIFFERENT card on his side is captured, never on his own capture", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ifrit = findCardById('ifrit');
+    out.hasRageFlag = ifrit.active.rageOfTheBeast === true;
+    state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // A different blue card gets captured by a red attacker -- Ifrit (also
+    // blue, but not the one losing) should rage: +2 all sides this round.
+    state.board = Array(9).fill(null);
+    const ragingIfrit = freshEntry(ifrit, 'blue');
+    const ally = freshEntry({ id:'rage-ally', name:'RageAlly', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[0] = ragingIfrit; // corner, not adjacent to cell 4
+    state.board[4] = { card: { id:'rage-atk', name:'RageAtk', top:9,right:9,bottom:9,left:9 }, owner:'red', shieldUsed:false, grantedShield:false, captureBonus:0 };
+    state.board[1] = ally; // adjacent to the attacker at 4
+    resolveFlips(4, 'red');
+    out.allyCaptured = state.board[1].owner === 'red';
+    out.ifritRaged = fullEffectiveValue(ifrit, 'top', {top:1,right:1,bottom:1,left:1}, 0, 'blue', 'defense') - ifrit.top === 2;
+
+    // Ifrit himself being captured must NOT trigger self-rage.
+    state.board = Array(9).fill(null);
+    const selfIfrit = freshEntry(ifrit, 'blue');
+    state.board[4] = { card: { id:'rage-atk2', name:'RageAtk2', top:9,right:9,bottom:9,left:9 }, owner:'red', shieldUsed:false, grantedShield:false, captureBonus:0 };
+    state.board[1] = selfIfrit; // adjacent to the attacker, captured directly
+    resolveFlips(4, 'red');
+    out.ifritSelfCaptured = state.board[1].owner === 'red';
+    out.noSelfRage = selfIfrit.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.hasRageFlag, true);
+  assert.equal(result.allyCaptured, true, 'test setup: the ally must actually be captured');
+  assert.equal(result.ifritRaged, true, "Ifrit must gain +2 all sides this round when a different card on his side is captured");
+  assert.equal(result.ifritSelfCaptured, true, 'test setup: Ifrit himself must actually be captured');
+  assert.equal(result.noSelfRage, true, "Ifrit must not rage from his own capture (only a teammate's)");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 7 (design review #2): campaign stages 9-16 get a flat statBoost on top of AI difficulty, stacking additively with (not capped by) New Game+, surfaced on the campaign panel', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    // Stages 1-8 (index 0-7) and the finale (index 16) get no statBoost;
+    // stages 9-16 (index 8-15) escalate 1/1/1/2/2/2/3/3.
+    out.earlyStagesUnboosted = CAMPAIGN_STAGES.slice(0, 8).every(s => !s.statBoost);
+    out.finaleUnboosted = !CAMPAIGN_STAGES[16].statBoost;
+    out.lateStageBoosts = [8,9,10,11,12,13,14,15].map(i => CAMPAIGN_STAGES[i].statBoost).join(',') === '1,1,1,2,2,2,3,3';
+
+    const card = { id:'boost-test', name:'BoostTest', top:5, right:5, bottom:5, left:5 };
+    out.zeroBoostReturnsSameCard = campaignStatBoost(card, 0) === card;
+    const boosted = campaignStatBoost(card, 3);
+    out.boostAddsFlatAmount = boosted.top === 8 && boosted.right === 8 && boosted.bottom === 8 && boosted.left === 8;
+    out.originalCardUntouched = card.top === 5;
+
+    // statBoost and NG+ must stack additively, not compound or cap each
+    // other -- NG+2 (flat +4, capped at 3 cycles) plus a stage statBoost
+    // of 2 should total +6, not get folded into NG+'s own Math.min(...,3) cap.
+    const stacked = campaignStatBoost(ngPlusBoostCard(card, 2), 2);
+    out.stacksAdditively = stacked.top === 5 + 4 + 2;
+
+    // Wire-up: startBattle() must actually apply it for a real campaign stage.
+    state.draftMode = 'campaign';
+    campaignProgress = { stageIndex: 8, unlocked: [], ngPlus: 0 }; // stage 9, statBoost 1
+    state.selected = HEROES.slice(0, 5).map(h => h.id);
+    startBattle();
+    const stage9Enemy = FOREST_FOES.find(f => f.id === CAMPAIGN_STAGES[8].enemyIds[0]);
+    const placedEnemy = state.enemyHand.find(c => c.id === stage9Enemy.id);
+    out.startBattleAppliesStatBoost = placedEnemy.top === stage9Enemy.top + 1;
+
+    return out;
+  })()`);
+  assert.equal(result.earlyStagesUnboosted, true);
+  assert.equal(result.finaleUnboosted, true, 'the Sisters finale stays a pure difficulty/thematic peak, not a bigger-numbers one');
+  assert.equal(result.lateStageBoosts, true);
+  assert.equal(result.zeroBoostReturnsSameCard, true);
+  assert.equal(result.boostAddsFlatAmount, true);
+  assert.equal(result.originalCardUntouched, true, 'campaignStatBoost must never mutate the shared FOREST_FOES object');
+  assert.equal(result.stacksAdditively, true, "a stage's own statBoost and New Game+ must stack additively, never cap each other");
+  assert.equal(result.startBattleAppliesStatBoost, true, "startBattle() must actually apply the current stage's statBoost to the drawn enemy hand");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 7 (design review #2): a lightweight achievement list unlocks from existing matchStats/state data, persists, never fires in Campaign, and surfaces on the result screen', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    try { localStorage.removeItem(ACHIEVEMENTS_SAVE_KEY); localStorage.removeItem(MATCH_STATS_SAVE_KEY); } catch(e){}
+    unlockedAchievements = [];
+    matchStats = { matches:0, wins:0, losses:0, draws:0, currentStreak:0, bestStreak:0, cardWins:{} };
+    state.draftMode = 'random';
+    state.selected = ['bahamut','sarah','zaevir','vayra','darien'];
+    state.aiDifficulty = 'easy';
+    state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+
+    function winningBoard(){
+      return ['bahamut','sarah','zaevir','vayra','darien','ogre','ogre','ogre','ogre'].map((id,i) =>
+        i < 5 ? { card: findCardById(id), owner:'blue' } : { card: findCardById(id), owner:'red' });
+    }
+
+    // First Blood: fires on the very first win.
+    state.board = winningBoard();
+    state.phase = 'battle';
+    finishGame();
+    out.firstBloodUnlocked = state.newAchievements.includes('first-blood');
+    out.firstBloodPersisted = unlockedAchievements.includes('first-blood');
+    out.savedToLocalStorage = JSON.parse(localStorage.getItem(ACHIEVEMENTS_SAVE_KEY)).includes('first-blood');
+
+    // Never fires twice.
+    state.board = winningBoard();
+    state.phase = 'battle';
+    finishGame();
+    out.firstBloodNotReUnlocked = !state.newAchievements.includes('first-blood');
+
+    // Total Domination: win by controlling all 9 squares.
+    state.board = ['bahamut','sarah','zaevir','vayra','darien','ogre','ogre','ogre','ogre'].map(id => ({ card: findCardById(id), owner:'blue' }));
+    state.phase = 'battle';
+    finishGame();
+    out.totalDominationUnlocked = state.newAchievements.includes('total-domination');
+
+    // Hard-Fought Victory: win with AI difficulty set to Hard.
+    unlockedAchievements = unlockedAchievements.filter(id => id !== 'hard-fought');
+    state.aiDifficulty = 'hard';
+    state.board = winningBoard();
+    state.phase = 'battle';
+    finishGame();
+    out.hardFoughtUnlocked = state.newAchievements.includes('hard-fought');
+    state.aiDifficulty = 'easy';
+
+    // Purist: win with every optional rule active.
+    unlockedAchievements = unlockedAchievements.filter(id => id !== 'purist');
+    state.rules = { same:true, plus:true, combo:true, elemental:true, graveyard:false };
+    state.board = winningBoard();
+    state.phase = 'battle';
+    finishGame();
+    out.puristUnlocked = state.newAchievements.includes('purist');
+    state.rules = { same:false, plus:false, combo:false, elemental:false, graveyard:false };
+
+    // On a Roll: a 5-win streak (matchStats.currentStreak already climbing
+    // from the wins above -- force it to exactly 4 so this next win ticks it to 5).
+    matchStats.currentStreak = 4;
+    unlockedAchievements = unlockedAchievements.filter(id => id !== 'on-a-roll');
+    state.board = winningBoard();
+    state.phase = 'battle';
+    finishGame();
+    out.onARollUnlocked = state.newAchievements.includes('on-a-roll') && matchStats.currentStreak === 5;
+
+    // Veteran: 10 total wins.
+    matchStats.wins = 9;
+    unlockedAchievements = unlockedAchievements.filter(id => id !== 'veteran');
+    state.board = winningBoard();
+    state.phase = 'battle';
+    finishGame();
+    out.veteranUnlocked = state.newAchievements.includes('veteran') && matchStats.wins === 10;
+
+    // Campaign mode: checkAchievements must always return [] there, even
+    // for an objectively-qualifying win (matches recordMatchResult's own
+    // campaign no-op).
+    unlockedAchievements = [];
+    state.draftMode = 'campaign';
+    state.board = ['bahamut','sarah','zaevir','vayra','darien','ogre','ogre','ogre','ogre'].map(id => ({ card: findCardById(id), owner:'blue' }));
+    state.phase = 'battle';
+    out.campaignNeverUnlocks = checkAchievements('blue', 9).length === 0;
+
+    // Result screen surfaces a newly unlocked achievement.
+    state.draftMode = 'random';
+    unlockedAchievements = [];
+    matchStats = { matches:0, wins:0, losses:0, draws:0, currentStreak:0, bestStreak:0, cardWins:{} };
+    state.board = winningBoard();
+    state.phase = 'battle';
+    finishGame();
+    const html = renderBattle();
+    out.resultScreenShowsAchievement = html.includes('Achievement unlocked') && html.includes('First Blood');
+
+    return out;
+  })()`);
+  assert.equal(result.firstBloodUnlocked, true);
+  assert.equal(result.firstBloodPersisted, true);
+  assert.equal(result.savedToLocalStorage, true);
+  assert.equal(result.firstBloodNotReUnlocked, true, 'an achievement must only ever unlock once');
+  assert.equal(result.totalDominationUnlocked, true);
+  assert.equal(result.hardFoughtUnlocked, true);
+  assert.equal(result.puristUnlocked, true);
+  assert.equal(result.onARollUnlocked, true);
+  assert.equal(result.veteranUnlocked, true);
+  assert.equal(result.campaignNeverUnlocks, true, 'Campaign has its own stage-progress reward loop, never achievements');
+  assert.equal(result.resultScreenShowsAchievement, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
