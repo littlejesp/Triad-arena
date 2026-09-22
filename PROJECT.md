@@ -4048,6 +4048,42 @@ att skriva ett nytt separat test — samma mönster, en rad till. Hela
 testsviten grön: **151/151** (oförändrat antal — ett befintligt test
 utökat, inget nytt test tillagt).
 
+**Fas 19: bättre ljuseffekter, runda 2 — riktad ljusstråle-textur.**
+Användaren skickade en ny bild från ChatGPT/DALL-E: en riktad
+ljusstråle-textur (avlång, ljus i ena änden, tonar ut mot den andra).
+Beskuren till alpha-bbox och nedskalad till 800px bredd med Pillow,
+sparad som `vfx-beam.png`.
+
+Byggde två nya delade CSS-primitiver, `.vfx-beam` (yttre) och
+`.vfx-beam-inner` (inre, animerad) med `@keyframes vfxBeamShoot`,
+modellerade direkt efter Seraphines redan existerande skräddarsydda
+`.silver-judgment-beam`/`.silver-judgment-beam-inner`-uppdelning: ett
+element kan inte samtidigt ha en inline `transform:rotate()` (för att
+peka mot målet) OCH en oberoende keyframe-animerad `transform:scaleX()`
+(för "skjuts ut"-effekten) utan att den ena kolliderar med den andra —
+därför håller det yttre elementet den statiska rotationen/positionen/
+bredden, medan det inre håller den animerade scaleX.
+
+Kopplade in strålen på alla fyra kort som redan har ett "riktnings"-
+/linje-mål: Ragnarök (Fenrir), Eternal Verdict (Celestial Judgment), The
+Falling World (Vorgrath) och All Possibilities (Infinite Seraph).
+Återanvände den befintliga `angleAndLengthPercent()`-hjälparen (från Fas
+8) för att räkna ut vinkel och längd från kastarens egen ruta till den
+LÄNGST BORT liggande träffpositionen, så strålen sträcker sig genom hela
+träffraden istället för att stanna vid första fienden. Ny markup lades
+till som FÖRSTA barnet inuti varje korts `.ultimate-vfx`-wrapper (före
+den befintliga `.vfx-ring`), så strålen renderas bakom ring/gnista-
+effekterna snarare än ovanpå dem.
+
+Verifierat med en Playwright-skärmdump (Fenrir på ruta 7 castar
+Ragnarök riktning "upp" mot fiender på rutorna 4 och 1): strålen syns
+tydligt som en ren vit/blå linje som skjuter rakt igenom hela
+mittkolumnen, från Fenrirs ruta upp genom båda Cave Ogre-rutorna, precis
+som tänkt. Nytt permanent regressionstest tillagt (alla fyra kortens
+`.vfx-beam`/`.vfx-beam-inner` verifieras, plus ett edge-case: inga
+träffar → ingen stråle). Hela testsviten grön: **152/152** (151 tidigare
++ 1 ny). Ingen konsol/page-error.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

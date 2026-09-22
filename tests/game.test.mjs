@@ -9129,3 +9129,51 @@ test('Fas 17 (VFX expansion round 6): Three Head Dragon, The Infinite Seraph, Ti
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 19 (better light effects, round 2): direction/line-target cards (Ragnarök, Eternal Verdict, The Falling World, All Possibilities) now show a real .vfx-beam connecting the caster to the farthest hit cell', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Ragnarök: source at 4, one hit at 1 ('up').
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('fenrir'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Ragnarök', sourceIndex:4, targetIndex:null, enemyIndices:null, direction:'up' };
+    let html = renderBattle();
+    out.ragnarokHasBeam = html.includes('class="vfx-beam"') && html.includes('class="vfx-beam-inner"');
+
+    // Eternal Verdict: snapshot-based enemyIndices, still gets a beam.
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Eternal Verdict', sourceIndex:4, targetIndex:null, enemyIndices:[1] };
+    html = renderBattle();
+    out.eternalVerdictHasBeam = html.includes('class="vfx-beam"');
+
+    // The Falling World: same snapshot shape.
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'The Falling World', sourceIndex:4, targetIndex:null, enemyIndices:[1] };
+    html = renderBattle();
+    out.fallingWorldHasBeam = html.includes('class="vfx-beam"');
+
+    // All Possibilities: live direction recompute.
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'All Possibilities', sourceIndex:4, targetIndex:null, enemyIndices:null, direction:'up' };
+    html = renderBattle();
+    out.allPossibilitiesHasBeam = html.includes('class="vfx-beam"');
+
+    // No enemies in the line at all -- must render safely with NO beam
+    // (nothing to point at), not throw.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('fenrir'), owner:'blue' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Ragnarök', sourceIndex:4, targetIndex:null, enemyIndices:null, direction:'up' };
+    html = renderBattle();
+    out.noBeamWhenNoHits = !html.includes('class="vfx-beam"');
+
+    return out;
+  })()`);
+  assert.equal(result.ragnarokHasBeam, true);
+  assert.equal(result.eternalVerdictHasBeam, true);
+  assert.equal(result.fallingWorldHasBeam, true);
+  assert.equal(result.allPossibilitiesHasBeam, true);
+  assert.equal(result.noBeamWhenNoHits, true, 'a direction-target card with nothing in its line must not render a dangling beam');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
