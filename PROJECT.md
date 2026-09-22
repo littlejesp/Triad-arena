@@ -3935,6 +3935,72 @@ skärmdumpar bekräftar att konsten renderar korrekt både på spelbrädet
 och i den fulla detalj-modalen (stat-diamanter/färdighetstext läggs
 snyggt ovanpå, som för varje annat kort med egen bild).
 
+**Fas 16: "Bättre ljuseffekter" — riktiga ljustexturer, inte bara CSS-
+gradienter.** Användaren frågade vad som skulle behövas för bättre
+ljuseffekter, och om ChatGPT kunde generera det. Svar: ja — hela VFX-
+verktygslådan (ring/hit/particle/twinkle/etc, Fas 8-13) är rent CSS
+(gradients, box-shadows, SVG-linjer), vilket alltid känns lite platt
+jämfört med en riktig målad ljustextur. Rekommenderade tre färgneutrala
+(vit/gråskala, för omfärgning per kort i CSS), symmetriska (ingen
+inbyggd "upp"-riktning, funkar roterat) texturer: en ljus-burst/stjärn-
+explosion, en gnist-/partikel-textur, och en magisk cirkel/energiring.
+Skrev tre färdiga bildgenererings-prompts åt användaren med exakta
+tekniska krav inbakade (transparent PNG, vit/grå ton, centrerad
+komposition).
+
+Användaren skickade tillbaka alla tre i EN bild sida vid sida (samma
+mönster som Elyrion/Concord-korten och Erövrad-badgen tidigare) — delades
+upp med Pillow (tredjedels-bredd-delning + tight-crop mot alfa-kanalen),
+sparade som `vfx-lightburst.png`, `vfx-magiccircle.png`, samt en enskild
+gnista beskuren ur partikel-klustret som `vfx-spark.png` (klustret i sig
+behölls inte, bara den beskurna enskilda gnistan behövdes).
+
+Teknisk lösning — CSS `mask-image`/`-webkit-mask-image` istället för
+`filter:hue-rotate()`: en vit/grå textur kan INTE omfärgas meningsfullt
+med hue-rotate (ingen mättnad att rotera), men maskerad mot en
+`background-color: var(--vfx-ring-color)` blir den en ren stencil som tar
+vilken CSS-färg som helst — samma `--vfx-ring-color`/`--vfx-twinkle-color`-
+variabler varje kort redan sätter, så ingen kort-specifik kod behövde
+röras. `mix-blend-mode:screen` gör att ljuset adderas ovanpå den mörka
+arenan istället för att se ut som en platt färgad form.
+
+Två av texturerna las in som `::before`-pseudo-element DIREKT på de
+befintliga delade `.vfx-ring`/`.vfx-twinkle`-klasserna — uppgraderar
+alla ~26+ kort som redan använder dem på en gång, utan att röra en enda
+rad per-kort-markup (en pseudo-elements rendering komponeras som en del
+av sin värd-elements box, så den ärver värdens egen opacity/transform-
+animation gratis, ingen extra animation behövdes). Den tredje (den
+magiska cirkeln) las till som en ny FRISTÅENDE primitive
+(`.vfx-magic-circle`) — medvetet INTE auto-inkopplad i varenda ring
+(hade blivit visuellt rörigt vid den lilla skalan en per-mål-träff
+använder), redo att användas på ett framtida flaggskepps-korts
+ursprungsring istället.
+
+**En riktig CSS-bugg hittades och fixades under arbetet:** den magiska
+cirkeln testades initialt med `width:220%; height:220%; margin:-110% 0 0
+-110%` för centrering — men CSS-`margin`-procent (även `margin-top`)
+räknas alltid mot CONTAINERNS BREDD, aldrig dess höjd, en äkta CSS-kvirk.
+Eftersom `.ultimate-vfx`-wrappern matchar brädets 5:7-porträttformat (inte
+kvadratisk), gjorde detta att cirkeln blev både felcentrerad OCH oval
+istället för rund. Playwright-skärmdumpar avslöjade felet direkt (en
+enorm gul cirkel i fel hörn av skärmen). Fixat genom att byta till
+`width:N%; aspect-ratio:1` (garanterar en sann cirkel oavsett
+container-proportioner) plus `transform:translate(-50%,-50%)` för
+centrering (som använder ELEMENTETS EGEN beräknade storlek, inte
+containerns bredd-kvirk).
+
+Verifierat: `node --check` grönt. Ett nytt permanent regressionstest
+(bekräftar att `.vfx-ring`/`.vfx-twinkle` faktiskt refererar de nya
+texturerna via `::before`, samt ett getBoundingClientRect()-baserat test
+som specifikt återskapar bugg-scenariot — en icke-kvadratisk container —
+och verifierar att cirkeln both är centrerad OCH lika bred som hög).
+Hela testsviten grön: **150/150** (149 tidigare + 1 ny). Playwright-
+skärmdumpar bekräftar den visuella förbättringen tydligt på befintliga
+kort (Serpent's Wrath, Forbidden Harmony) — en riktig strålande
+stjärn-burst istället för bara en ring-kontur, och skarpa gnist-glimmer
+istället för släta prickar — samt den fixade magiska cirkeln, nu perfekt
+centrerad och rund. Ingen konsol/page-error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

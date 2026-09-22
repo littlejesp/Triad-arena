@@ -2036,6 +2036,31 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   box-shadow:0 0 28px 9px var(--vfx-glow-color, rgba(160,160,160,0.6)), inset 0 0 18px var(--vfx-ring-soft, rgba(255,255,255,0.6));
   opacity:0;
 }
+/* Design review follow-up ("bättre ljuseffekter"): a real painterly light-
+   burst texture (user-supplied, see PROJECT.md) layered behind every
+   .vfx-ring via ::before -- upgrades every existing ring-based card's VFX
+   at once, no per-card markup changes needed. Recolored per-card through
+   the SAME --vfx-ring-color variable each card already sets (the source
+   asset is neutral white/grey; painted with background-color and cut to
+   shape via mask-image so it takes on any card's own color), and blended
+   with mix-blend-mode:screen so it reads as light being ADDED to the dark
+   arena rather than a flat colored shape. No separate opacity/transform
+   animation needed: a pseudo-element's rendering is composited as part of
+   its host element's box, so it automatically inherits .vfx-ring's own
+   vfxRingExpand opacity fade and scale transform below for free.
+   -webkit- prefix kept alongside the unprefixed property since this ships
+   only to Chromium (the game's own target/test browser) either way, but
+   costs nothing to include. */
+.vfx-ring::before{
+  content:'';
+  position:absolute; left:50%; top:50%;
+  width:260%; height:260%; margin:-130% 0 0 -130%;
+  background:var(--vfx-ring-color, #fff);
+  -webkit-mask-image:url('vfx-lightburst.png'); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+  mask-image:url('vfx-lightburst.png'); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
+  mix-blend-mode:screen;
+  pointer-events:none;
+}
 .ultimate-vfx.phase-impact .vfx-ring{ animation: vfxRingExpand 0.65s cubic-bezier(.15,.8,.3,1) var(--vfx-ring-delay,0s) both; }
 @keyframes vfxRingExpand{
   0%{ opacity:0.9; transform:scale(0.4); }
@@ -2107,6 +2132,21 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   background:var(--vfx-twinkle-color, #ffffff); box-shadow:0 0 6px 2px var(--vfx-glow-color, rgba(255,255,255,0.8));
   opacity:0;
 }
+/* Same "real texture via ::before, recolored through a mask, inherits the
+   host's own opacity/transform animation for free" upgrade as .vfx-ring
+   above -- a single isolated sparkle (cropped from the user-supplied
+   spark cluster, see PROJECT.md) replaces the plain soft dot with an
+   actual four-pointed glint shape. */
+.vfx-twinkle::before{
+  content:'';
+  position:absolute; left:50%; top:50%;
+  width:600%; height:600%; margin:-300% 0 0 -300%;
+  background:var(--vfx-twinkle-color, #fff);
+  -webkit-mask-image:url('vfx-spark.png'); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+  mask-image:url('vfx-spark.png'); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
+  mix-blend-mode:screen;
+  pointer-events:none;
+}
 .ultimate-vfx.phase-impact .vfx-twinkle{ animation: vfxTwinkleFade 0.9s ease-in-out both; }
 @keyframes vfxTwinkleFade{
   0%{ opacity:0; transform:translate(var(--tx),var(--ty)) scale(0.4); }
@@ -2119,6 +2159,42 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .vfx-twinkle-3{ --tx:-45px; --ty:60px;  animation-delay:.45s; }
 .vfx-twinkle-4{ --tx:0px;   --ty:-70px; animation-delay:.6s;  }
 .vfx-twinkle-5{ --tx:-10px; --ty:70px;  animation-delay:.35s; }
+
+/* Design review follow-up ("bättre ljuseffekter"): an ornate magic-circle
+   glyph (user-supplied, see PROJECT.md), same recolor-via-mask technique
+   as .vfx-ring/.vfx-twinkle's own ::before textures above, available as
+   its own standalone primitive rather than auto-wired into every ring --
+   at per-target hit scale it would read as visual noise, this only earns
+   its place big and centered on a caster's own cell for a future
+   flagship Ultimate's origin flourish. Positioned via --vfx-x/--vfx-y,
+   the same convention .vfx-particle/.vfx-twinkle already use for
+   origin-anchored placement. Not used by any card yet.*/
+.vfx-magic-circle{
+  /* width + aspect-ratio (not width+height%) so the circle stays truly
+     round: percentage height on an absolutely positioned element resolves
+     against the CONTAINING BLOCK's height, but .ultimate-vfx isn't square
+     (it matches the board's 5/7 portrait), so a naive width:220%;
+     height:220% would render an oval. transform:translate(-50%,-50%) for
+     centering, not negative-percentage margin -- margin-top/bottom
+     percentages resolve against the container's WIDTH even though this is
+     a vertical offset (a real CSS quirk), which silently broke centering
+     the same way against a non-square container. */
+  position:absolute; left:var(--vfx-x,50%); top:var(--vfx-y,50%);
+  width:220%; aspect-ratio:1;
+  background:var(--vfx-ring-color, #fff);
+  -webkit-mask-image:url('vfx-magiccircle.png'); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+  mask-image:url('vfx-magiccircle.png'); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
+  mix-blend-mode:screen;
+  opacity:0;
+  pointer-events:none;
+  transform:translate(-50%,-50%);
+}
+.ultimate-vfx.phase-impact .vfx-magic-circle{ animation: vfxMagicCircleSpin 1.1s ease-out both; }
+@keyframes vfxMagicCircleSpin{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.5) rotate(0deg); }
+  25%{ opacity:0.9; }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(1.15) rotate(75deg); }
+}
 
 /* Design review follow-up ("något annorlunda så det inte blir samma") --
    four NEW shared primitives, added to the toolkit alongside the existing
