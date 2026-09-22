@@ -3253,6 +3253,122 @@ Victory-rubriken; båda badgarna syns tydligt särskilda på ett
 petrifierat kort med redo Special. Ingen konsol/page-error i något
 test.
 
+**Fas 7: "resten av listan" — medel-kostnad + de två större punkterna.**
+Efter Fas 6 bad användaren att köra vidare med resten av designöversyn
+#2:s lista. Två AskUserQuestion-omgångar avstämda innan kodning: (1) om
+borttagningarna (skär 2-3 "apocalypse boss"-skurkar, slå ihop Random
+Draft in i Choose Your Five) skulle göras — svar: **"Fråga mig igen
+precis innan varje borttagning"**, och när de faktiska förslagen lades
+fram (skär Zalazar / skär Zalazar+Umbrael, respektive slå ihop Random
+Draft) svarade användaren **nej på båda** — inga kort/lägen togs bort.
+(2) Om de två större punkterna (campaign-eskalering, meta-lager) skulle
+räknas in nu eller sparas — svar: **"Räkna in dem nu också"**.
+
+Sju punkter genomförda, ingen kräver ny grafik/ljud:
+
+1. **De 7 copy-paste-Ultimates fick verkliga, unika effekter.** Alla sju
+   (Zaevir/Sarah/Vayra/Ysara/Ragnar/Tilda/Aurelian) delade tidigare
+   bokstavligt identisk `SPECIAL_HANDLERS`-kod (samma tröskelkoll, samma
+   `attackBoost(srcEntry,1)`), bara olika namn/flavor-text. Zaevirs
+   Eternal Arrow behölls som basversionen (delas redan med ett dussintal
+   lägre-profil-kort som Darien/Vorathos/Deathblade — inte unikt för
+   just honom längre). De andra sex fick varsin mekanisk krok, alla
+   återanvänder befintliga `SpecialVerbs`-primitiv (`grantShield`,
+   `debuffThisRound`, `extraTurn`, `directionalBoost`) — ingen ny
+   motor-kod:
+   - **Sarah** (Aion's Last Light): på vinst skyddar hon nu också en
+     slumpmässig ALLIERAD (aldrig sig själv eller kortet hon precis
+     erövrade — en riktig bugg hittades och fixades här: filtret
+     exkluderade ursprungligen bara `srcEntry`, inte det nyss erövrade
+     `targetEntry`, vilket gjorde testet icke-deterministiskt).
+   - **Vayra** (Eclipse): ignorerar nu mål-kortets sköld helt (samma
+     "ignorerar försvar"-mönster som Lyriths Serpent's Wrath).
+   - **Ysara** (Eternal Eclipse): ger en extra tur vid vinst istället för
+     permanent stat-bonus — Tidsväverskan spolar tillbaka ögonblicket
+     istället för att bara slå hårdare nästa gång.
+   - **Ragnar** (Blood Fury): raseriet skvätter nu över på en andra
+     slumpmässig fiende (-2 denna runda) vid vinst.
+   - **Tilda** (Nightfall): försvagar nu MÅLET (-2 denna runda) INNAN
+     anfallet, istället för att buffa sig själv — en riktig sabotage-
+     mekanik som alltid mattar målet även vid ett misslyckat anfall, men
+     ger ingen permanent vinst.
+   - **Aurelian** (Skybreaker): den permanenta bonusen landar nu bara på
+     topp/botten (men dubbelt så stor, +2 istället för +1) istället för
+     alla fyra sidor — matchar hans egen `axisBonus`-passiv.
+2. **9 döda "(Flavor only)"-förmågor lösta.** Exakt granskning av varje:
+   Ifrits "Rage of the Beast" (tidigare olöst tolkning) kopplades in —
+   tolkad som "när ett ANNAT kort på Ifrits sida erövras av fienden får
+   Ifrit +2 alla sidor denna runda", byggd i `checkOnWinBonuses` (måste
+   ligga FÖRE funktionens `if(!a) return`-early-return, eftersom kroken
+   är knuten till FÖRLORARENS sida, inte vinnarkortets egna `active` —
+   en riktig bugg hittades och fixades här också, upptäckt via ett eget
+   test med en syntetisk anfallare utan `active`-fält alls). De
+   återstående 8 (Celestial Judgments Divine Judgment + Heavenly Aegis,
+   Infinite Seraphs Cosmic Insight + Infinite Paths + Omniscient Aegis,
+   Fenrirs Curse, Odins Raven's Insight, Triune Desires Weakness — Broken
+   Focus) beskriver alla system som genuint inte finns i motorn (oavgjort-
+   utfall per ruta, hand-reveal/fog-of-war, fri ompositionering,
+   matchöverskridande state, generisk negation av ALLA framtida bonusar)
+   — att bygga en hel ny delsystem bara för en rad flavor-text vore precis
+   den scope-creep-fällan granskningen varnade för, så texten togs bort
+   istället för att uppfinna sex nya mekaniker under tidspress.
+3. **AI:ns enkel-mål-special-timing generaliserad.** Samma "är det värt
+   det än"-mönster som redan fanns för AOE-specialer (Fas 2) nu även för
+   vanliga enkel-mål-specialer: på Hard väntar AI:n med en engångs-
+   special om bästa tillgängliga mål är värt mindre än halva kortets
+   egen power OCH fler än en tom ruta återstår — innan var beteendet
+   helt deterministiskt och inlärbart (avfyra alltid direkt när NÅGOT
+   vinnbart mål fanns).
+4. **Draft-skärmen omstrukturerad.** Läges-väljaren (Random Draft/Choose
+   Your Five/Campaign) och den faktiska kort-hämtningen flyttades UPP,
+   före inställningarna — en förstagångsspelare möter nu den primära
+   handlingen direkt istället för att skrolla förbi tre inställnings-
+   paneler först. De tre separata `.rules-toggle-panel`-boxarna (Optional
+   rules/AI-svårighet/Your record) slogs ihop till EN "Match Settings"-
+   panel med interna sektionsrubriker istället för upprepad ram-stil.
+5. **Turn/Wins-hierarkin rättad.** Turordnings-texten fick en egen
+   guld-pill med bakgrund/kant (upp från vanlig text) och Wins-chipsen
+   fick en statisk glow/scale när det är den sidans tur (`.active-turn`)
+   — bådaväger nu visuellt tyngre än rutantalet, som bara spelar roll
+   på slutet men tidigare dominerade visuellt.
+6. **Campaign-etapp 9-16 fick riktig mekanisk eskalering**, inte bara
+   omblandade fiender + hårdare AI. Nytt `statBoost`-fält per etapp
+   (1/1/1/2/2/2/3/3, stapling: `campaignStatBoost()`) — samma shallow-
+   copy-mönster som befintlig `ngPlusBoostCard()` men en SEPARAT,
+   okapad summa som staplar additivt med NG+ istället för att dela dess
+   `Math.min(...,3)`-tak. Etapp 17 (systrarnas final) fick medvetet
+   INGEN stat-boost — den är redan tematiskt/AI-mässigt toppen, inte
+   bara-större-siffror. Syns för spelaren på campaign-panelen, samma
+   synlighetsprincip som AI-svårighets-raden.
+7. **Ett litet achievement-system** (meta-lagret, billigaste versionen
+   av progression-agentens förslag) — återanvänder BARA befintlig
+   `matchStats`-data, inget nytt spårningssystem. Sex prestationer
+   (First Blood, Total Domination, Hard-Fought Victory, On a Roll,
+   Veteran, Purist), persisteras i `localStorage` som `unlockedAchievements`.
+   Aldrig i Campaign (samma no-op-mönster som `recordMatchResult`). Nya
+   låsta upp visas direkt på resultatskärmen ("🏅 Achievement unlocked:
+   ..."), alla upplåsta syns som badge-rad i Match Settings-panelens
+   "Your record"-sektion.
+
+Verifierat: `node --check` grönt genomgående. Fem nya permanenta
+regressionstester utöver att tre BEFINTLIGA tester (Tilda/Aurelian/
+Ysara) uppdaterades för att matcha de nya Ultimate-effekterna istället
+för den gamla "oförändrad"-texten: de tre nya unika Ultimate-krokarna
+(Sarah/Vayra/Ragnar) som befintliga tester råkade inte träffa; Ifrits
+Rage of the Beast (inklusive självfångst-undantaget); campaign
+statBoost (default-av tidiga/final-etapper, rätt stapling 9-16, additiv
+staplig med NG+, faktisk `startBattle()`-tillämpning); achievement-
+systemet (alla sex triggers, ingen dubbelupplåsning, Campaign-no-op,
+resultatskärms-visning). Hela testsviten grön: **126/126** (122
+tidigare + 5 nya, plus 3 uppdaterade + 1 i sig oförändrat test där bara
+namnet gjordes mer korrekt). Playwright-skärmdumpar bekräftar: draft-
+skärmens nya ordning (läges-väljare + kort-hämtning före den
+konsoliderade Match Settings-panelen); resultatskärmen visar flera
+samtidiga achievement-rader korrekt; Match Settings visar "Your record"
++ en badge-rad med upplåsta achievements; turordnings-pillen och den
+aktiva sidans Wins-chip (med glow) läser tydligt som mest framträdande
+över rutantalet. Ingen konsol/page-error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
