@@ -4034,6 +4034,20 @@ bekräftar särskilt att den nya magiska cirkeln (fixad i Fas 16) nu
 sprider sig dramatiskt över hela brädet, precis det "flaggskepps"-momang
 den var tänkt för. Ingen konsol/page-error i något test.
 
+**Fas 18: Morvaths röstlinje.** Användaren skickade en ElevenLabs-
+genererad ljudfil (`ElevenLabs_..._Ifrit_...mp3` — "Ifrit" i filnamnet är
+bara röstprofilen som användes för att generera klippet, inte kortet det
+är till för) med texten "The endless tide". Identifierade kortet direkt
+mot kortdatan: "The Endless Tide" är ordagrant Morvaths (The Abyssal
+King) Ultimate-namn. Sparad som `voices/morvath.mp3`, tillagd i
+`ULTIMATE_VOICE_LINES` (samma befintliga system som redan spelar upp
+riktiga röstlinjer för Ifrit/Nyxara/Vaelira/Seraphine/Triune Desire/
+Bahamut/Tiamat/Three Head Dragon/Omega Weapon/Shiva/Odin). Det
+befintliga "Game feel phase 4c"-testet utökades med Morvath istället för
+att skriva ett nytt separat test — samma mönster, en rad till. Hela
+testsviten grön: **151/151** (oförändrat antal — ett befintligt test
+utökat, inget nytt test tillagt).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
