@@ -5228,6 +5228,71 @@ function renderBattle(){
     }
   }
 
+  // The Celestial Judgment's Eternal Verdict -- a directional judgment
+  // sweep, same "line, not whole board" shape as Fenrir's Ragnarök, but
+  // this one can destroy cells outright (see SPECIAL_HANDLERS.
+  // celestialjudgment) so it can't recompute "who's in the line" live off
+  // state.board the way Ragnarök does -- a destroyed cell would already
+  // read null by the impact-phase render. Uses the enemyIndices snapshot
+  // taken at cast time instead (see playUltimateSequence), same mechanism
+  // every whole-board AOE identity-VFX card already uses, just scoped to
+  // the chosen line.
+  const eternalVerdictActive = state.ultimateBanner && state.ultimateBanner.name === 'Eternal Verdict';
+  let eternalVerdictOriginX = 50, eternalVerdictOriginY = 50, eternalVerdictHitPositions = [];
+  if(eternalVerdictActive){
+    ({ x: eternalVerdictOriginX, y: eternalVerdictOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    eternalVerdictHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      ...cellCenterPercent(i),
+      delay: 0.1 + n * 0.08,
+    }));
+  }
+
+  // Lyrith's Serpent's Wrath -- a venomous single-target strike (ignores
+  // shields, chance to crit-destroy). Single ring+hit at the target cell,
+  // same shape as Twin Brothers/Twin Sisters above.
+  const serpentsWrathActive = state.ultimateBanner && state.ultimateBanner.name === "Serpent's Wrath";
+  let serpentsWrathTargetX = 50, serpentsWrathTargetY = 50;
+  if(serpentsWrathActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: serpentsWrathTargetX, y: serpentsWrathTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // Vorlix's WorldCleaver -- a void-purple single-target strike.
+  const worldCleaverActive = state.ultimateBanner && state.ultimateBanner.name === 'WorldCleaver';
+  let worldCleaverTargetX = 50, worldCleaverTargetY = 50;
+  if(worldCleaverActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: worldCleaverTargetX, y: worldCleaverTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // Triune Desire's Forbidden Harmony -- the three sisters unite: up to 4
+  // adjacent enemies destroyed, one per direction. Each .vfx-hit cycles
+  // through the three sisters' own signature identity-VFX colors (Nyxara's
+  // void magenta from Void Dominion, Vaelira's infernal crimson from
+  // Infernal Pact, Seraphine's silver-gold from Silver Judgment), same
+  // "cycle through a fixed palette per hit" idea as Tiamat's
+  // FIVEFOLD_COLORS, just themed to these three specific sisters instead of
+  // the five elements.
+  const FORBIDDEN_HARMONY_COLORS = [
+    { ring:'rgba(196,110,240,0.95)', glow:'rgba(139,60,180,0.6)' },
+    { ring:'rgba(230,60,70,0.95)', glow:'rgba(139,10,25,0.6)' },
+    { ring:'rgba(255,230,160,0.95)', glow:'rgba(212,175,55,0.6)' },
+  ];
+  const forbiddenHarmonyActive = state.ultimateBanner && state.ultimateBanner.name === 'Forbidden Harmony';
+  let forbiddenHarmonyOriginX = 50, forbiddenHarmonyOriginY = 50, forbiddenHarmonyHitPositions = [];
+  if(forbiddenHarmonyActive){
+    ({ x: forbiddenHarmonyOriginX, y: forbiddenHarmonyOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    forbiddenHarmonyHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      ...cellCenterPercent(i),
+      delay: 0.12 + n * 0.1,
+      color: FORBIDDEN_HARMONY_COLORS[n % FORBIDDEN_HARMONY_COLORS.length],
+    }));
+  }
+
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
   // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
   // it's a plain one-shot triggered by an ordinary attack). Reads
@@ -5492,6 +5557,33 @@ function renderBattle(){
           <div class="vfx-ring" style="left:${twinTargetX}%; top:${twinTargetY}%; --vfx-ring-color:rgba(200,190,255,0.95); --vfx-glow-color:rgba(165,104,242,0.7); --vfx-ring-soft:rgba(225,220,255,0.6);"></div>
           <div class="vfx-hit" style="left:${twinTargetX}%; top:${twinTargetY}%; --vfx-hit-color:rgba(220,215,255,0.95); --vfx-hit-color-mid:rgba(165,104,242,0.7);"></div>
         </div>
+      ` : ''}
+      ${eternalVerdictActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${eternalVerdictOriginX}%; --vfx-y:${eternalVerdictOriginY}%; --vfx-ring-color:rgba(255,225,120,0.95); --vfx-glow-color:rgba(224,192,47,0.7); --vfx-ring-soft:rgba(255,245,200,0.6); --vfx-hit-color:rgba(255,245,210,0.95); --vfx-hit-color-mid:rgba(224,192,47,0.7);">
+          <div class="vfx-ring"></div>
+          ${eternalVerdictHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(224,192,47,0.4); --vfx-flash-delay:0.3s;"></div>
+      ` : ''}
+      ${serpentsWrathActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${serpentsWrathTargetX}%; top:${serpentsWrathTargetY}%; --vfx-ring-color:rgba(194,59,206,0.95); --vfx-glow-color:rgba(120,200,90,0.6); --vfx-ring-soft:rgba(220,140,230,0.6);"></div>
+          <div class="vfx-hit" style="left:${serpentsWrathTargetX}%; top:${serpentsWrathTargetY}%; --vfx-hit-color:rgba(220,140,230,0.95); --vfx-hit-color-mid:rgba(90,170,70,0.7);"></div>
+        </div>
+      ` : ''}
+      ${worldCleaverActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${worldCleaverTargetX}%; top:${worldCleaverTargetY}%; --vfx-ring-color:rgba(181,101,242,0.95); --vfx-glow-color:rgba(110,50,170,0.7); --vfx-ring-soft:rgba(210,170,250,0.6);"></div>
+          <div class="vfx-hit" style="left:${worldCleaverTargetX}%; top:${worldCleaverTargetY}%; --vfx-hit-color:rgba(210,170,250,0.95); --vfx-hit-color-mid:rgba(110,50,170,0.7);"></div>
+        </div>
+      ` : ''}
+      ${forbiddenHarmonyActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${forbiddenHarmonyOriginX}%; --vfx-y:${forbiddenHarmonyOriginY}%; --vfx-ring-color:rgba(194,59,206,0.95); --vfx-glow-color:rgba(139,60,180,0.6); --vfx-ring-soft:rgba(230,180,235,0.6);">
+          <div class="vfx-ring"></div>
+          ${forbiddenHarmonyHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s; --vfx-hit-color:${h.color.ring}; --vfx-hit-color-mid:${h.color.glow};"></div>`).join('')}
+          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(194,59,206,0.4); --vfx-flash-delay:0.3s;"></div>
       ` : ''}
       ${odinSlashPairs.length ? `
         <div class="odin-slash-fx" aria-hidden="true">
@@ -9351,6 +9443,29 @@ function playUltimateSequence(job){
   let aoeEnemyIndicesAtCast = null;
   if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion"){
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
+  } else if(special.name === 'Eternal Verdict' && extra && extra.direction){
+    // Eternal Verdict only hits the chosen line, not the whole board -- and
+    // unlike Fenrir's Ragnarök (a pure debuff, never destroys) it can
+    // destroy cells outright (see SPECIAL_HANDLERS.celestialjudgment), so it
+    // needs the same "snapshot who was in the line before resolving"
+    // treatment as the whole-board AOE cards above, just scoped to
+    // enemiesInDirection's own line instead of every enemy on the board.
+    aoeEnemyIndicesAtCast = enemiesInDirection(sourceIndex, extra.direction, owner).map(p => p.index);
+  } else if(special.name === 'Forbidden Harmony'){
+    // Forbidden Harmony only hits the up-to-4 cells immediately adjacent to
+    // the caster (see SPECIAL_HANDLERS.triunedesire's own row/col dirs), not
+    // the whole board -- same "snapshot before it destroys them" reasoning
+    // as Eternal Verdict above, just scoped to "adjacent" instead of "the
+    // chosen line".
+    const row = Math.floor(sourceIndex/3), col = sourceIndex%3;
+    const dirs = [[-1,0],[0,1],[1,0],[0,-1]];
+    aoeEnemyIndicesAtCast = dirs.map(([dr,dc]) => {
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return null;
+      const idx = r*3+c;
+      const e = state.board[idx];
+      return (e && e.owner !== owner) ? idx : null;
+    }).filter(i => i !== null);
   }
 
   // Phase 1: windup. Board state untouched — this is purely "something big
@@ -9412,7 +9527,10 @@ function playUltimateSequence(job){
     // debuff via SpecialVerbs.debuff) never flip/capture anything either,
     // same "never sets justFlipped, so capturedCount would always be 0"
     // reasoning as every other explicit opt-in in this list.
-    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök') state.chainShake = true;
+    // Eternal Verdict (destroy-or-debuff) and Forbidden Harmony (destroy
+    // only) are the same shape again -- destroyCard/SpecialVerbs.debuff,
+    // never a flip.
+    if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony') state.chainShake = true;
 
     // Phase 3: impact. Banner switches to its "impact" look (see CSS) and
     // starts fading; the board now shows the real result underneath it.
