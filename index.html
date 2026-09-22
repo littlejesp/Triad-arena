@@ -134,6 +134,20 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .masthead.compact .fullscreen-toggle{ width:24px; height:24px; font-size:10px; right:28px; }
 .fullscreen-toggle.on{ color:var(--gold); border-color:var(--gold); }
 
+/* Fas 6 (design review #2, "cheapest + highest impact" list): a repeat
+   player sits through the same flip stagger + conquest banner + turn-wait
+   timing every single match with no way to speed it up. Placed as a third
+   masthead icon rather than another draft-screen settings panel (the
+   review's own UI/UX finding already flagged that screen as overcrowded)
+   -- see toggleFastMode()/fxTime() for what it actually scales. */
+.fast-toggle{
+  position:absolute; top:0; right:80px; width:34px; height:34px; border-radius:50%;
+  border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;
+}
+.masthead.compact .fast-toggle{ width:24px; height:24px; font-size:10px; right:56px; }
+.fast-toggle.on{ color:var(--gold); border-color:var(--gold); }
+
 .book-toggle{
   position:absolute; top:0; left:40px; width:34px; height:34px; border-radius:50%;
   border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
@@ -463,6 +477,15 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   background-size:contain; background-repeat:no-repeat; background-position:center;
   pointer-events:none;
 }
+/* Fas 6 (design review #2): a Petrified card with an unused Special used to
+   render both badges in the exact same bottom-right slot, one hiding the
+   other -- .petrified-badge's own comment above claims a collision-free
+   corner but only accounts for .element-badge (bottom-left), not this one.
+   Stacks the diamond above the petrified badge instead of a 5th corner
+   (both already occupied ones are taken by level-stars/info-btn/
+   element-badge). Relies on petrified-badge being emitted first in
+   cardFace() so the sibling selector matches. */
+.petrified-badge ~ .special-diamond{ bottom:27px; }
 /* Performance fix (Fas 1 design review): both states used to animate
    `filter` (saturate/brightness/drop-shadow) directly every frame, and this
    badge sits on EVERY on-board card with an unused special at once -- for
@@ -1051,7 +1074,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   box-shadow:
     -20px 0 36px -16px rgba(184,69,46,0.4),
     20px 0 36px -16px rgba(63,111,209,0.4);
+  --fx-speed:1;
 }
+/* Fast Mode (see toggleFastMode()) -- only speeds up the ROUTINE per-move
+   feedback a repeat player sits through every single flip/turn (this
+   variable, read by .cell .card.flipping/captureRing*/.conquest-banner
+   below), not the rare Ultimate cast sequences: those are the spectacle
+   payoff, not friction, so they keep their full designed length even with
+   Fast Mode on. */
+.arena-frame.fast-mode{ --fx-speed:0.4; }
 /* Game-feel phase 3: a brief shake for a genuinely large Same/Plus/Combo
    chain (see placeCard's sameOrPlus+combo>=4 gate). transform-only (no
    layout properties touched), decaying amplitude so it reads as a settling
@@ -1190,7 +1221,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   transform:translate(-50%,-50%) scale(0.55);
   opacity:0; pointer-events:none;
   filter:drop-shadow(0 6px 22px rgba(0,0,0,0.65));
-  animation: conquestPop 1.4s cubic-bezier(.2,.9,.25,1) forwards;
+  animation: conquestPop calc(1.4s * var(--fx-speed,1)) cubic-bezier(.2,.9,.25,1) forwards;
 }
 @keyframes conquestPop{
   0%{ opacity:0; transform:translate(-50%,-50%) scale(0.55) rotate(-4deg); }
@@ -2088,7 +2119,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   box-shadow:0 0 0 2px rgba(224,80,30,0.75), 0 0 14px rgba(224,80,30,0.5);
 }
 .cell .card{ position:absolute; inset:0; width:100%; height:100%; cursor:default; }
-.cell .card.placing{ animation: cardLand .48s cubic-bezier(.22,1.6,.4,1); }
+.cell .card.placing{ animation: cardLand calc(.48s * var(--fx-speed,1)) cubic-bezier(.22,1.6,.4,1); }
 @keyframes cardLand{
   0%{ transform:translateY(-28px) scale(0.84); opacity:0; filter:brightness(1.9); }
   60%{ transform:translateY(4px) scale(1.03); opacity:1; }
@@ -2111,9 +2142,9 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   62%{ opacity:0.85; transform:scale(1.15); }
   100%{ opacity:0; transform:scale(1.4); }
 }
-.cell .card.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both; }
-.cell .card.owner-blue.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both, captureRingBlue .55s ease var(--fx-delay,0ms) both; }
-.cell .card.owner-red.flipping{ animation:flip .55s ease var(--fx-delay,0ms) both, captureRingRed .55s ease var(--fx-delay,0ms) both; }
+.cell .card.flipping{ animation:flip calc(.55s * var(--fx-speed,1)) ease var(--fx-delay,0ms) both; }
+.cell .card.owner-blue.flipping{ animation:flip calc(.55s * var(--fx-speed,1)) ease var(--fx-delay,0ms) both, captureRingBlue calc(.55s * var(--fx-speed,1)) ease var(--fx-delay,0ms) both; }
+.cell .card.owner-red.flipping{ animation:flip calc(.55s * var(--fx-speed,1)) ease var(--fx-delay,0ms) both, captureRingRed calc(.55s * var(--fx-speed,1)) ease var(--fx-delay,0ms) both; }
 @keyframes flip{
   0%{ transform:rotateY(0deg) scale(1); filter:brightness(1);}
   45%{ transform:rotateY(90deg) scale(1.07); filter:brightness(1.7);}
@@ -2256,6 +2287,10 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 }
 .result-banner h2{ font-size:20px; margin:0 0 4px; color:var(--gold-bright); }
 .result-banner p{ margin:0; font-size:12px; color:var(--text-dim); }
+/* Fas 6 (design review #2): streak/favorite-card payoff shown right where
+   it happens instead of only in the pre-match "Your record" panel. */
+.result-stats{ margin-top:8px; padding-top:8px; border-top:1px solid rgba(201,162,39,0.25); font-size:12px; color:var(--gold); }
+.result-stats div + div{ margin-top:3px; }
 
 .footer-note{ text-align:center; font-size:11px; color:var(--text-dim); margin-top:26px; opacity:0.7; }
 
@@ -4091,6 +4126,12 @@ function toggleSound(){
   render();
 }
 
+function toggleFastMode(){
+  state.fastMode = !state.fastMode;
+  saveFastMode(state.fastMode);
+  render();
+}
+
 function masthead(compact){
   return `
     <div class="masthead ${compact ? 'compact' : ''}">
@@ -4099,6 +4140,7 @@ function masthead(compact){
       <button class="music-toggle ${musicOn ? 'on':''}" id="music-toggle" title="${musicOn ? 'Mute music' : 'Unmute music'}">${musicOn ? '\u266B' : '\u266B\u0338'}</button>
       <button class="book-toggle" id="book-toggle" title="Rulebook">📖</button>
       <button class="fullscreen-toggle ${isFullscreen ? 'on':''}" id="fullscreen-toggle" title="${isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}">⛶</button>
+      <button class="fast-toggle ${state.fastMode ? 'on':''}" id="fast-toggle" title="${state.fastMode ? 'Fast Mode: on (shorter flip/turn animations)' : 'Fast Mode: off'}">⏩</button>
       <button class="sound-toggle ${soundOn ? 'on':''}" id="sound-toggle" title="${soundOn ? 'Mute' : 'Unmute'}">${soundOn ? '♪' : '✕'}</button>
       <div class="rune">✦</div>
       <h1>TRIAD ARENA</h1>
@@ -4131,7 +4173,14 @@ let state = {
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   ultimateBanner: null,   // { phase:'cast'|'impact', owner, name, sourceIndex } while an Ultimate's windup/impact sequence plays — see runSpecialResolution/playUltimateSequence
   campaignUnlocked: null, // card ids unlocked by the just-finished campaign stage win, for the result screen
-  rules: { same:false, plus:false, combo:false, elemental:false, graveyard:false }, // optional Triple-Triad-style rules
+  // Fas 6 (design review #2): Same/Plus/Combo default ON in Random Draft/Choose
+  // Your Five -- with them off, most casual play was just "compare 4 raw
+  // numbers," the shallowest version of the game, with the real strategic
+  // layer hidden behind a toggle new players never find. Elemental/Graveyard
+  // stay opt-in: weaker effect (a flat +1 that many cards' elements sit
+  // outside of) and graveyard-dependent cards are rare enough that surprising
+  // a new player with revived cards on turn one is worse than the reverse.
+  rules: { same:true, plus:true, combo:true, elemental:false, graveyard:false }, // optional Triple-Triad-style rules
   graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
   destroyGhosts: [],      // { index, card, owner } — brief fade-out visual for a just-destroyed cell, see destroyCard()
   odinSlashes: [],        // { sourceIndex, targetIndex, delay } per pair — Odin's normal-attack Slash VFX, see battleNeighbors/placeCard/renderBattle
@@ -4146,6 +4195,7 @@ let state = {
   placedThisTurn: false,  // true once the active side has placed their one card for this turn
   turnCount: 0,           // increments on every real turn switch (see advanceTurn) — powers "this round" effects
   aiDifficulty: 'normal', // 'easy' | 'normal' | 'hard' — see chooseAIPlacement()/AI_DIFFICULTY_DEPTH; overwritten from localStorage below, once loadAIDifficulty() is defined
+  fastMode: false, // shortens routine flip/turn/banner timing for repeat players — see fxTime()/toggleFastMode(); overwritten from localStorage below, once loadFastMode() is defined
 };
 
 function uid(card, owner){ return owner + ':' + card.id; }
@@ -4965,10 +5015,25 @@ function renderBattle(){
         <button class="cta" id="campaign-retry-btn">Retry Stage</button>
       `;
     } else {
+      // Fas 6 (design review #2): matchStats (Fas 4) was only ever shown
+      // pre-match in the "Your record" panel -- a fresh win streak or a
+      // new best-streak record was invisible right at the moment it
+      // actually happened. Non-campaign only, matching recordMatchResult's
+      // own no-op-in-campaign gating above.
+      const isNewBestStreak = state.winner === 'blue' && matchStats.currentStreak >= 2 && matchStats.currentStreak === matchStats.bestStreak;
+      const favorite = favoriteCardInfo();
+      const statsLines = [];
+      if(state.winner === 'blue' && matchStats.currentStreak >= 2){
+        statsLines.push(`🔥 ${matchStats.currentStreak}-win streak${isNewBestStreak ? ' — new best!' : ''}`);
+      }
+      if(favorite){
+        statsLines.push(`⭐ Favorite champion: ${favorite.name} (${favorite.wins} win${favorite.wins>1?'s':''})`);
+      }
       resultHtml = `
         <div class="result-banner">
           <h2>${title}</h2>
           <p>${sub}</p>
+          ${statsLines.length ? `<div class="result-stats">${statsLines.map(l=>`<div>${l}</div>`).join('')}</div>` : ''}
         </div>
         <button class="cta" id="rematch-btn">Draft Again</button>
       `;
@@ -5001,7 +5066,7 @@ function renderBattle(){
         ${state.enemyHand.map(() => mysteryCard()).join('')}
       </div>
 
-      <div class="arena-frame ${state.chainShake ? 'chain-shake' : ''} ${hellfireActive && state.ultimateBanner.phase === 'cast' ? 'hellfire-rumble' : ''}">
+      <div class="arena-frame ${state.fastMode ? 'fast-mode' : ''} ${state.chainShake ? 'chain-shake' : ''} ${hellfireActive && state.ultimateBanner.phase === 'cast' ? 'hellfire-rumble' : ''}">
       <div class="arena-rosette" aria-hidden="true">
         <svg viewBox="0 0 200 200" width="100%" height="100%">
           <polygon points="100,8 118,84 192,100 118,116 100,192 82,116 8,100 82,84" fill="none" stroke="rgba(139,110,242,0.3)" stroke-width="2"/>
@@ -5154,6 +5219,8 @@ function attachHandlers(){
   if(musicBtn) musicBtn.addEventListener('click', toggleMusic);
   const fsBtn = document.getElementById('fullscreen-toggle');
   if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+  const fastBtn = document.getElementById('fast-toggle');
+  if(fastBtn) fastBtn.addEventListener('click', toggleFastMode);
   const bookBtn = document.getElementById('book-toggle');
   if(bookBtn) bookBtn.addEventListener('click', openRulebook);
 
@@ -6633,6 +6700,21 @@ function isShielded(targetEntry, targetIndex){
 // bumped from an original 1s to 1.4s after playtester feedback that
 // captures (this banner included) flew by too fast to actually see.
 const CONQUEST_BANNER_MS = 1400;
+
+// Fast Mode (see toggleFastMode()): scales the ROUTINE per-move waits a
+// repeat player sits through every match -- flip stagger, conquest banner,
+// short between-turn pauses -- down to a snappier pace. Deliberately NOT
+// applied to ULTIMATE_WINDUP_MS/SHAKE_MS/CLEANUP_MS below: those gate the
+// rare Special-cast spectacle sequences, which are the payoff a player is
+// watching FOR, not friction to cut. Keep this numerically in sync with
+// .arena-frame.fast-mode's --fx-speed in the CSS above -- both scale the
+// same on-screen moment (the flip/banner animation is CSS-timed; this is
+// how long JS then waits before the next render/turn).
+const FAST_MODE_SCALE = 0.4;
+function fxTime(ms){
+  return state.fastMode ? Math.round(ms * FAST_MODE_SCALE) : ms;
+}
+
 let conquestPopupToken = 0;
 function showConquestPopup(owner){
   const token = ++conquestPopupToken;
@@ -6642,7 +6724,7 @@ function showConquestPopup(owner){
       state.conquestPopup = false;
       render();
     }
-  }, CONQUEST_BANNER_MS);
+  }, fxTime(CONQUEST_BANNER_MS));
 }
 
 // On-placement effects for the Triple Triad Sisters (Void Touch/Undying
@@ -6982,9 +7064,9 @@ function placeCard(cellIndex, cardId, owner){
   if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) state.winsPopup = { owner, amount: flips };
   if(flips > 0) showConquestPopup(owner);
-  if(flips > 0) setTimeout(()=> SFX.flip(flips), 120);
-  if(shielded > 0) setTimeout(()=> SFX.shield(), 90);
-  if(bonusTriggered) setTimeout(()=> SFX.bonus(), shielded > 0 ? 260 : 90);
+  if(flips > 0) setTimeout(()=> SFX.flip(flips), fxTime(120));
+  if(shielded > 0) setTimeout(()=> SFX.shield(), fxTime(90));
+  if(bonusTriggered) setTimeout(()=> SFX.bonus(), fxTime(shielded > 0 ? 260 : 90));
 
   let ruleTag = '';
   if(sameOrPlus > 0 && combo > 0) ruleTag = ` (Same/Plus + Combo x${combo}!)`;
@@ -7007,7 +7089,7 @@ function placeCard(cellIndex, cardId, owner){
     if(placed) placed.justPlaced = false;
     state.chainShake = false;
     render();
-  }, 500);
+  }, fxTime(500));
 
   setTimeout(()=>{
     state.board.forEach(entry=>{
@@ -7016,13 +7098,13 @@ function placeCard(cellIndex, cardId, owner){
     state.destroyGhosts = [];
     state.odinSlashes = [];
     render();
-  }, 1300);
+  }, fxTime(1300));
 
   if(flips > 0){
     setTimeout(()=>{
       state.winsPopup = null;
       render();
-    }, 1600);
+    }, fxTime(1600));
   }
 
   state.placedThisTurn = true;
@@ -7038,13 +7120,13 @@ function advanceTurn(owner){
   // hole neither side can fill any more (both hands empty), end the match
   // instead of passing an unplayable turn back and forth forever.
   if(boardFull() || (state.playerHand.length === 0 && state.enemyHand.length === 0)){
-    setTimeout(finishGame, 500);
+    setTimeout(finishGame, fxTime(500));
     return;
   }
   // A capture just happened (conquest banner still up) → give the player
   // a beat to actually see it before the AI's own flip/slash/banner pile
   // on top. No capture → keep the old snappy pace, nothing to catch up on.
-  const nextTurnDelay = state.conquestPopup ? CONQUEST_BANNER_MS + 200 : 700;
+  const nextTurnDelay = state.conquestPopup ? fxTime(CONQUEST_BANNER_MS + 200) : fxTime(700);
   if(state.extraTurnPending === owner){
     state.extraTurnPending = null;
     state.placedThisTurn = false;
@@ -9053,11 +9135,34 @@ function getPreviewCaptureTargets(){
    simplifies away from the rarer effects while deciding WHERE to play. */
 
 // A minimal, cloneable board-entry shape carrying only the fields
-// fullEffectiveValue/isShielded actually read (card, owner, captureBonus,
-// sideBonus) -- deliberately dropping every transient VFX/status flag a
-// real entry can carry, since those never affect the comparison itself.
+// fullEffectiveValue/isShielded actually read -- deliberately dropping
+// every transient VFX flag a real entry can carry, since those never
+// affect the comparison itself.
+//
+// Fas 6 (design review #2): this used to drop grantedShield/shieldUsed/
+// protectiveAuraUntilTurnCount too, which meant isShielded() always saw
+// them as absent inside a simulation -- a granted shield or Pallis's
+// Protective Aura silently vanished (the AI could rate a placement as a
+// sure capture that resolveFlips then actually blocks), AND a one-time
+// active.shield that had already been spent earlier in the real match
+// reset to "unused" in every simulated node (the AI stayed needlessly
+// cautious around a card it had already broken through). Also now carries
+// Ancient Wyrmking's turnsStanding trio so weightOfAges's growing margin
+// wall (see battleOneNeighbor below) is visible to the search too --
+// previously that capture-blocking mechanic wasn't computed in
+// simulation at all.
 function cloneScratchBoard(board){
-  return board.map(e => e ? { card: e.card, owner: e.owner, captureBonus: e.captureBonus || 0, sideBonus: e.sideBonus ? { ...e.sideBonus } : undefined } : null);
+  return board.map(e => e ? {
+    card: e.card, owner: e.owner,
+    captureBonus: e.captureBonus || 0,
+    sideBonus: e.sideBonus ? { ...e.sideBonus } : undefined,
+    grantedShield: e.grantedShield || false,
+    shieldUsed: e.shieldUsed || false,
+    protectiveAuraUntilTurnCount: e.protectiveAuraUntilTurnCount,
+    turnsStanding: e.turnsStanding || 0,
+    turnsStandingOwner: e.turnsStandingOwner,
+    turnsStandingCell: e.turnsStandingCell,
+  } : null);
 }
 
 // Simulates ONE placement (including its Same/Plus captures and, if the
@@ -9092,7 +9197,12 @@ function simulatePlacementOutcome(board, cellIndex, card, owner){
       if(isShielded(target, ni)) return null;
       const targetActive = target.card.active;
       const staticMarginThreshold = targetActive && targetActive.marginShieldThreshold != null ? targetActive.marginShieldThreshold : 0;
-      if(staticMarginThreshold > 0 && (attackVal - defendVal) <= staticMarginThreshold) return null;
+      // Ancient Wyrmking's weightOfAges (see battleNeighbors' own real-game
+      // version above) -- was entirely absent from the search, so the AI
+      // never accounted for his margin wall growing the longer he's stood.
+      const weightOfAgesBonus = targetActive && targetActive.weightOfAges ? Math.min(2, Math.floor((target.turnsStanding || 0) / 2)) : 0;
+      const marginThreshold = staticMarginThreshold + weightOfAgesBonus;
+      if(marginThreshold > 0 && (attackVal - defendVal) <= marginThreshold) return null;
       return ni;
     };
 
@@ -9187,9 +9297,17 @@ function searchBestPlacement(board, hands, turnOwner, aiOwner, depthRemaining, a
 // Below this many empty cells, an exhaustive search all the way to the end
 // of the match is cheap (worst case a few tens of thousands of leaf paths,
 // well under alpha-beta-pruned real-time budget) and strictly better than
-// any fixed shallow depth, so difficulty stops mattering once the endgame
-// is this close -- every level plays the true best move.
-const AI_FULL_SEARCH_MAX_EMPTY = 5;
+// any fixed shallow depth.
+//
+// Fas 6 (design review #2): this used to be one flat 5 for every
+// difficulty -- on a 9-cell board that means the exhaustive "play the
+// true best move" override kicked in once EITHER side had made ~4 total
+// placements, so Easy only ever actually looked shallow for a placement
+// or two before quietly playing perfect chess-engine endgame moves same
+// as Hard. Tiering it per difficulty keeps Easy genuinely beatable in the
+// endgame (matching its own AI_DIFFICULTY_DESC copy below) while leaving
+// Hard's exhaustive window exactly as large as before.
+const AI_FULL_SEARCH_MAX_EMPTY = { easy: 2, normal: 3, hard: 5 };
 const AI_DIFFICULTY_DEPTH = { easy: 1, normal: 2, hard: 3 };
 const AI_DIFFICULTY_DESC = {
   easy: 'The Forest plays its best immediate capture, never looking further ahead.',
@@ -9207,6 +9325,14 @@ function loadAIDifficulty(){
 }
 function saveAIDifficulty(difficulty){
   try { localStorage.setItem(AI_DIFFICULTY_SAVE_KEY, difficulty); } catch(e){}
+}
+
+const FAST_MODE_SAVE_KEY = 'triadArenaFastMode';
+function loadFastMode(){
+  try { return localStorage.getItem(FAST_MODE_SAVE_KEY) === '1'; } catch(e){ return false; }
+}
+function saveFastMode(on){
+  try { localStorage.setItem(FAST_MODE_SAVE_KEY, on ? '1' : '0'); } catch(e){}
 }
 
 // Fas 4: campaign stages auto-assign the Forest's AI difficulty instead of
@@ -9233,9 +9359,11 @@ function effectiveAIDifficulty(){
 function chooseAIPlacement(){
   const emptyCells = state.board.map((c,i)=>c?null:i).filter(i=>i!==null);
   if(emptyCells.length === 0 || state.enemyHand.length === 0) return null;
-  const depth = emptyCells.length <= AI_FULL_SEARCH_MAX_EMPTY
+  const difficulty = effectiveAIDifficulty();
+  const fullSearchMaxEmpty = AI_FULL_SEARCH_MAX_EMPTY[difficulty] || AI_FULL_SEARCH_MAX_EMPTY.normal;
+  const depth = emptyCells.length <= fullSearchMaxEmpty
     ? emptyCells.length
-    : (AI_DIFFICULTY_DEPTH[effectiveAIDifficulty()] || AI_DIFFICULTY_DEPTH.normal);
+    : (AI_DIFFICULTY_DEPTH[difficulty] || AI_DIFFICULTY_DEPTH.normal);
   const hands = { blue: state.playerHand, red: state.enemyHand };
   const result = searchBestPlacement(state.board, hands, 'red', 'red', depth, -Infinity, Infinity);
   if(!result || result.cellIndex == null) return null;
@@ -9276,7 +9404,7 @@ function battleNeighbors(index, owner, result){
     // chain doesn't drag the stagger out forever, but the impact-intensity
     // scaling below wants the real, ever-growing position in the sequence).
     const fxStep = result.flipSeq++;
-    target.fxDelay = Math.min(fxStep, FX_STAGGER_CAP) * FX_STAGGER_MS; // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
+    target.fxDelay = fxTime(Math.min(fxStep, FX_STAGGER_CAP) * FX_STAGGER_MS); // stagger simultaneous flips (Same/Plus/Combo) instead of snapping them all at once
     target.fxStep = fxStep;
     // Odin's normal-attack Slash VFX (see the user's brief): every OTHER
     // card just gets the generic slash-fx above, but Odin's own attacks
@@ -9481,7 +9609,7 @@ function resolveFlips(index, owner){
       target.justFlipped = true;
       checkSisterFlip(target);
       const fxStep = result.flipSeq++;
-      target.fxDelay = Math.min(fxStep, FX_STAGGER_CAP) * FX_STAGGER_MS;
+      target.fxDelay = fxTime(Math.min(fxStep, FX_STAGGER_CAP) * FX_STAGGER_MS);
       target.fxStep = fxStep;
       result.flips++;
       result.sameOrPlus++;
@@ -9771,6 +9899,7 @@ function resetGame(){
   const keepRules = state.rules;
   const keepMode = state.draftMode || 'random';
   const keepAiDifficulty = state.aiDifficulty || 'normal';
+  const keepFastMode = !!state.fastMode;
   // Campaign retry/next/retreat all funnel through here — keep whichever
   // five the player just fielded pre-checked on the way back to the picker
   // (Stage 1 forces the fixed starters regardless, see startCampaignBattle,
@@ -9786,12 +9915,13 @@ function resetGame(){
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, conquestPopup:false, chainShake:false, ultimateBanner:null, campaignUnlocked:null, rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
-    tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty,
+    tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
   };
   render();
 }
 
 state.aiDifficulty = loadAIDifficulty();
+state.fastMode = loadFastMode();
 render();
 loadTesterCount();
 

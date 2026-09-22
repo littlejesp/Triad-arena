@@ -3128,6 +3128,131 @@ tydligt guldkantad ovanför "Optional rules"-panelen och att
 mobillayouten inte fått några regressioner; ingen konsol/page-error
 i något test.
 
+## Designöversyn #2 och Fas 6
+
+Efter att hela Fas 1-5-roadmapen (ovan) var klar och mergad till `main`
+bad användaren om en NY djup kritisk designöversyn av HELA spelet ("Kör
+en ny djup designöversyn på hela spelet igen, säg sen vad vi ska göra
+bättre och ta bort"). Sex parallella research-agenter (kärnloop,
+kortsystem/balans, AI, game feel/VFX-bloat, UI/UX, progression) grävde
+igenom koden var för sig och rapporterade tillbaka; jag sammanställde
+fynden till en prioriterad lista (topp-problem, förbättringar sorterade
+"billigast + störst effekt" → dyrare innehållstunga förslag, samt en
+explicit "vad ska vi ta bort"-lista, eftersom användaren specifikt bad om
+det). Användaren godkände att köra på med "billigast + störst
+effekt"-listan.
+
+**Fas 6: "billigast + störst effekt".** Sex punkter, ingen kräver ny
+grafik/ljud/innehåll:
+
+1. **Same/Plus/Combo på som standard i Random Draft/Choose Your Five.**
+   Kärnloop-agenten pekade ut detta som den enskilt billigaste/mest
+   verkningsfulla ändringen: `state.rules` gick från
+   `{same:false,plus:false,combo:false,elemental:false,graveyard:false}`
+   till `{same:true,plus:true,combo:true,elemental:false,graveyard:false}`
+   — en rad. Innan detta spelades de flesta matcher i praktiken som ren
+   "jämför fyra siffror, högst vinner", det absolut grundaste sättet att
+   spela, eftersom det verkliga strategilagret satt gömt bakom en
+   hopfälld panel nya spelare aldrig hittade. Elemental/Graveyard förblir
+   opt-in (svagare effekt respektive för överraskande för en ny
+   spelare). Campaign påverkas inte alls — `startCampaignBattle()`
+   skriver alltid över `state.rules` helt från etappens egna
+   `CAMPAIGN_STAGES`-data. `resetGame()` bevarar spelarens EGET senaste
+   val precis som för `aiDifficulty`/`fastMode` (ändrar bara
+   förstagångs-defaulten).
+   - Bieffekt: exponerade en latent bugg i ETT befintligt test
+     ("Triune Desire: Void Embrace..."), vars syntetiska bräda (10/10/10/10
+     mot fyra 1/1/1/1:or) råkade göra alla fyra sidosummor lika (11) —
+     exakt Plus-regelns triggervillkor. Med Plus nu på som standard
+     routades capturen via `computeSamePlusCaptures` istället för den
+     normala `battleOneNeighbor`-vägen testet faktiskt skulle pröva,
+     vilket hoppade över on-win-hooken. Fixat genom att sätta
+     `state.rules` explicit till allt-av i just det testet (samma mönster
+     10 andra tester redan använde) — inte en spelbugg, bara en
+     test-setup som tyst förlitat sig på den gamla globala defaulten.
+2. **Fast Mode** — ny ⏩-knapp i masthead (tredje ikonen, bredvid
+   fullscreen/sound), `state.fastMode` (localStorage-persisterad som
+   `aiDifficulty`, bevaras över `resetGame()`). Game feel-agenten pekade
+   ut den obligatoriska, icke-hoppningsbara timingen (flip-stagger,
+   conquest-banner, mellan-drag-väntan) som den största friktionskällan
+   för en spelare som spelar match 50. Ny `fxTime(ms)` skalar de RUTINMÄSSIGA
+   väntetiderna (`CONQUEST_BANNER_MS`, SFX-synk-delayerna, chainShake/
+   cleanup/winsPopup-timeouts, `finishGame`-delayen, `nextTurnDelay`,
+   flip-stagger-beräkningen) ×0.4 när på. CSS-sidan: ny `--fx-speed`
+   custom property på `.arena-frame` (default 1, `.fast-mode` sätter
+   0.4), och `flip`/`captureRingBlue/Red`/`cardLand`/`conquestPop`s
+   `animation`-deklarationer bytta till `calc(Xs * var(--fx-speed,1))`.
+   **Medvetet INTE tillämpat** på `ULTIMATE_WINDUP_MS`/`SHAKE_MS`/
+   `CLEANUP_MS` eller Ultimate-bannerns/per-kort-identitets-VFX:ens CSS —
+   de är den sällsynta "wow"-belöningen en spelare faktiskt vill se i
+   fullängd, inte friktion att skära bort, och sker för sällan (någon
+   gång per match) för att vara värda den extra synk-risken.
+3. **Sköld-bugg i AI-sökningen fixad.** AI-agenten hittade en riktig bugg
+   (inte bara en designkritik): `cloneScratchBoard` (används av
+   `simulatePlacementOutcome`/`searchBestPlacement`) tappade
+   `grantedShield`/`shieldUsed`/`protectiveAuraUntilTurnCount` helt —
+   AI:n kunde alltså bedöma en placering som en säker capture som
+   `resolveFlips` sedan faktiskt blockerade (ett aktivt beviljat skydd
+   "försvann" i simuleringen), OCH ett redan förbrukat engångsskydd
+   (`active.shield` + `shieldUsed:true` på riktiga brädan) återställdes
+   till "oanvänt" i varje simulerad nod (AI:n förblev onödigt försiktig
+   kring ett kort den redan brutit igenom). Samma fynd: Ancient Wyrmkings
+   `weightOfAges`-marginalvägg (växer med `turnsStanding`) beräknades
+   ALDRIG i simuleringens `battleOneNeighbor` — en helt osedd
+   capture-blockerande mekanik. Fixat: `cloneScratchBoard` breddad till
+   att bevara alla dessa fält (plus `turnsStanding`-trion), och
+   `weightOfAges`-bonusen tillagd i `battleOneNeighbor` (speglar exakt
+   den riktiga `battleNeighbors`-logiken).
+4. **`AI_FULL_SEARCH_MAX_EMPTY` trappad per svårighetsgrad** (var en
+   platt `5` för alla nivåer → `{easy:2, normal:3, hard:5}`). AI-agenten
+   pekade ut att på en 9-rutors bräda innebar den gamla platta 5:an att
+   den uttömmande "spela alltid det objektivt bästa draget"-sökningen
+   kickade in redan efter ~4 totala placeringar — Easy spelade alltså
+   bara riktigt grunt de allra första dragen innan den tyst spelade
+   perfekt schackmotor-slutspel precis som Hard. Nu stannar Easy kvar på
+   sitt grunda djup (1-ply) genom hela slutspelet, matchar äntligen sin
+   egen `AI_DIFFICULTY_DESC`-text.
+5. **Matchstatistik syns nu på RESULTATSKÄRMEN**, inte bara i
+   förhandspanelen. Både UI/UX- och progression-agenten oberoende av
+   varandra pekade ut detta som den billigaste missade payoffen i hela
+   progressionssystemet — en ny streak eller ett nytt personbästa var
+   osynligt precis när det faktiskt hände. Ny `.result-stats`-sektion i
+   den icke-campaign resultatvyn: `🔥 N-win streak` (bara från 2 i rad,
+   `— new best!` när `currentStreak === bestStreak`) plus
+   `⭐ Favorite champion` (visas alltid när ett finns, oavsett vinst/
+   förlust). Gated exakt som `recordMatchResult()` redan är — syns
+   ALDRIG i Campaign (som har sin egen etapp-progress-feedback).
+6. **Badge-krock fixad.** UI/UX-agenten hittade en reproducerbar visuell
+   bugg: `.special-diamond` och `.petrified-badge` renderades båda på
+   EXAKT samma position (`bottom:4px; right:4px`) — ett förstenat kort
+   med en oanvänd Special dolde den ena badgen helt bakom den andra,
+   trots att `.petrified-badge`s egen kommentar hävdade en
+   kollisionsfri plats (den räknade bara med `.element-badge`, inte
+   `.special-diamond`). Fixat utan en femte badge-position: ny
+   sibling-selector `.petrified-badge ~ .special-diamond{ bottom:27px; }`
+   (förlitar sig på att petrified-badge redan renderas FÖRE
+   special-diamond i `cardFace()`) staplar diamanten ovanför istället
+   för att kräva ett helt nytt hörn.
+
+Verifierat: `node --check` grönt. Sju nya permanenta regressionstester
+(default-rules + campaign-oberoende + `resetGame()`-bevarande; Fast
+Mode-persistens/toggle/`fxTime()`-skalning/Ultimate-timing orörd;
+`.arena-frame`s `fast-mode`-klass + masthead-knappens `on`-state;
+sköld-/`weightOfAges`-fixen med fyra separata scenarier; AI-trappningen
+bevisad genom en hand-konstruerad 3-tom-cells-fälla där Easy fortfarande
+går i den men Normal/Hard nu undviker den — inte bara en konstant-koll;
+resultatskärmens streak/favoritkort-rader genom en hel sekvens av
+vinst→vinst→vinst→förlust plus ett campaign-särfall; badge-kollisionen
+via `getComputedStyle`). Hela testsviten grön: **122/122** (115 tidigare
++ 7 nya, inklusive den ena befintliga testfixen ovan). Playwright-
+skärmdumpar bekräftar: draft-skärmens regelpanel visar Same/Plus/Combo
+förikryssade och Elemental/Graveyard tomma; ⏩-knappen syns i masthead;
+resultatskärmen visar "🔥 2-win streak — new best!" och
+"⭐ Favorite champion: The Celestial Bahamut (2 wins)" direkt under
+Victory-rubriken; båda badgarna syns tydligt särskilda på ett
+petrifierat kort med redo Special. Ingen konsol/page-error i något
+test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
