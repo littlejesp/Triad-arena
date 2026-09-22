@@ -3625,6 +3625,73 @@ andra bild tagen precis när `destroyGhosts` faktiskt fylls visar samma
 fyra kort nu krossade/bleknande — exakt den ordning användaren efterfrågade.
 Ingen konsol/page-error i något test.
 
+**Fas 12: VFX-expansion, runda 4.** Användaren bad om ännu fler kort,
+"ditt val" (samma återkommande instruktion). Fyra kort valda: **Vorgrath**
+(The Falling World — tredje riktnings-kortet, alltid-förstör-variant),
+**Pallis** (Wave of Loyalty — den FÖRSTA "välsignelse"-identitets-VFX:en,
+riktad mot EGNA element-matchande allierade istället för fiender) och
+paret **Evil Twist Yang/Yin** (Yang/Yin Resonance — spegeldesign,
+vit/guld mot svart/violett, matchar deras `pairPresence`-band).
+
+Två genuina designval, inte bara nya kort:
+
+1. **Wave of Loyalty är den första VFX:en som aldrig rör en fiende.**
+   Pallis special:en läker/skölder sina EGNA element-matchande
+   allierade — helt annorlunda semantik än varje tidigare AOE/enkelmål-
+   VFX i spelet, som alla river ner fiender. Löst genom att återanvända
+   samma `element`-tröskel-mönster som `direction` redan etablerade i
+   Fas 9 (`state.ultimateBanner.element`, trätt igenom från
+   `extra.element` på båda banderoll-tilldelningarna i
+   `playUltimateSequence`), och sedan derivera träffpositionerna live
+   i `renderBattle()` genom att filtrera `state.board` på
+   `owner === banner.owner && card.element === banner.element` — säkert
+   att göra LIVE (inte ett cast-tids-snapshot) eftersom Wave of Loyalty
+   aldrig förstör eller flyttar något, bara buffar det som redan finns
+   kvar. Ett test-fynd under arbetet (inte en spelbugg): Pallis egen
+   `SPECIAL_HANDLERS.pallis`-filter utesluter aldrig casten själv, så om
+   spelaren väljer sitt eget element (Pallis är Earth) välsignar han SIG
+   SJÄLV också — mitt första test förväntade sig 2 träffar men fick 3,
+   fixat genom att korrigera testets förväntan (inte koden, som redan
+   var konsekvent med den riktiga handler-logiken).
+2. **Deltar INTE i skärm-skaknings-opt-in-listan.** Till skillnad från
+   varenda annan AOE-VFX hittills är Wave of Loyalty en välsignelse på
+   egna kort, inte en attack som landar — ett stridsskak hade känts fel
+   för en läkande/skyddande effekt, så den lämnades medvetet utanför
+   `chainShake`-listan (dokumenterat med kommentar i koden).
+
+Vorgraths The Falling World återanvänder exakt samma cast-tids-snapshot-
+mönster som Eternal Verdict (Fas 10) eftersom den, till skillnad från
+Fenrirs Ragnarök, alltid förstör (`destroyCard`, aldrig bara debuff) —
+tillagd i samma villkorsgren i `playUltimateSequence` snarare än en ny
+duplicerad gren. Yang/Yin Resonance är en ren `debuffThisRound`-AOE
+(förstör aldrig) och lades därför till i den befintliga hel-bräde-
+`aoeEnemyIndicesAtCast`-listan, samma resonemang som Diamond Storm redan
+etablerade.
+
+Design: The Falling World — undergångs-eld (rost-orange/djupröd, matchar
+Vorgraths egen eldaccent); Wave of Loyalty — varm honung-guld
+"välsignelse", medvetet ljusare/mjukare än Eternal Verdicts skarpare
+domsguld och utan `.vfx-flash` (ingen fullskärms-krigs-wash för en
+läkande effekt); Yang Resonance — vitt/guld; Yin Resonance — svart/
+violett, tydligt skild från både WorldCleavers void-lila och Lunar
+Eclipses kalla silverblå (verifierat med explicita "inte den andra
+paletten"-kontroll-asserts i testerna, samma mönster som Solar/Lunar i
+Fas 9).
+
+Verifierat: `node --check` grönt. Två nya permanenta regressionstester
+(alla fyra kortens VFX renderar rätt antal träffar/färger — inklusive
+Wave of Loyaltys "bara EGNA element-matchande allierade, aldrig fiender"-
+kontroll och Yang/Yins ömsesidiga färg-uteslutning; samt ett separat test
+som bekräftar `extra.element` trätt igenom banderollen vid ett riktigt
+`runSpecialResolution`-anrop, att The Falling World bara snapshot:ar den
+valda linjen (inte hela brädet), och att Yang Resonance läggs till i
+hel-bräde-`aoeEnemyIndicesAtCast`-listan). Hela testsviten grön:
+**139/139** (137 tidigare + 2 nya). Playwright-skärmdumpar av alla fyra
+korten bekräftar att de renderar korrekt — Wave of Loyaltys skärmdump
+visar tydligt att den gyllene välsignelsen träffar Pallis två blå
+allierade men lämnar den röda fienden (Nyxara) helt orörd. Ingen
+konsol/page-error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

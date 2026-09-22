@@ -8403,3 +8403,132 @@ test('Fas 11 (game-feel review: hitstop + impact punch): .board gets the impact-
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 12 (VFX expansion round 4): Vorgrath, Pallis, and Evil Twist Yang/Yin get identity VFX on the shared toolkit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Vorgrath's The Falling World: direction-target, same shape as
+    // Eternal Verdict but with a fiery doom palette, driven off the
+    // enemyIndices snapshot since it can destroy cells outright.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('vorgrath'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'The Falling World', sourceIndex:4, targetIndex:null, enemyIndices:[1] };
+    let html = renderBattle();
+    out.fallingWorldHasOneHit = (html.match(/class="vfx-hit"/g) || []).length === 1;
+    out.fallingWorldIsDoomFire = html.includes('rgba(220,90,50');
+
+    // Pallis's Wave of Loyalty: a BLESSING on his own element-matching
+    // allies, never an enemy. Pallis is earth himself (so he's a match too
+    // -- SPECIAL_HANDLERS.pallis's own filter never excludes the caster)
+    // plus two more earth allies + one non-earth ally + one enemy on the
+    // board -- only the three earth allies (Pallis included) should get a
+    // hit, and the wind ally / red enemy must NOT.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('pallis'), owner:'blue' }; // earth
+    state.board[0] = { card: { id:'earth1', name:'Earth1', element:'earth', top:1,right:1,bottom:1,left:1 }, owner:'blue' };
+    state.board[8] = { card: { id:'earth2', name:'Earth2', element:'earth', top:1,right:1,bottom:1,left:1 }, owner:'blue' };
+    state.board[2] = { card: { id:'wind1', name:'Wind1', element:'wind', top:1,right:1,bottom:1,left:1 }, owner:'blue' };
+    state.board[6] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Wave of Loyalty', sourceIndex:4, targetIndex:null, enemyIndices:null, element:'earth' };
+    html = renderBattle();
+    out.waveOfLoyaltyHasThreeHits = (html.match(/class="vfx-hit"/g) || []).length === 3;
+    out.waveOfLoyaltyIsWarmGold = html.includes('rgba(255,215,120');
+
+    // Evil Twist Yang/Yin's Resonance: mirrored pair, white/gold vs
+    // black/violet, both whole-board AOE debuffs.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('eviltwistyang'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.board[7] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Yang Resonance', sourceIndex:4, targetIndex:null, enemyIndices:[1,7] };
+    html = renderBattle();
+    out.yangResonanceHasTwoHits = (html.match(/class="vfx-hit"/g) || []).length === 2;
+    out.yangIsWhiteGold = html.includes('rgba(230,214,150') && !html.includes('rgba(120,70,190');
+
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Yin Resonance', sourceIndex:4, targetIndex:null, enemyIndices:[1,7] };
+    html = renderBattle();
+    out.yinResonanceHasTwoHits = (html.match(/class="vfx-hit"/g) || []).length === 2;
+    out.yinIsBlackViolet = html.includes('rgba(120,70,190') && !html.includes('rgba(230,214,150');
+
+    return out;
+  })()`);
+  assert.equal(result.fallingWorldHasOneHit, true);
+  assert.equal(result.fallingWorldIsDoomFire, true);
+  assert.equal(result.waveOfLoyaltyHasThreeHits, true, "Wave of Loyalty's VFX must only mark the caster's own element-matching allies (Pallis himself included), never enemies or off-element allies");
+  assert.equal(result.waveOfLoyaltyIsWarmGold, true);
+  assert.equal(result.yangResonanceHasTwoHits, true);
+  assert.equal(result.yangIsWhiteGold, true);
+  assert.equal(result.yinResonanceHasTwoHits, true);
+  assert.equal(result.yinIsBlackViolet, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 12 (VFX expansion round 4): state.ultimateBanner carries extra.element through both phases, Vorgrath\'s The Falling World snapshots only the chosen line, and Yang/Yin Resonance are added to aoeEnemyIndicesAtCast', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.phase = 'battle';
+
+    // Pallis: element threaded onto the banner at cast time.
+    state.board = Array(9).fill(null);
+    const pallisEntry = freshEntry(findCardById('pallis'), 'blue');
+    state.board[4] = pallisEntry;
+    state.board[1] = freshEntry({ id:'earth1', name:'Earth1', element:'earth', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.wins = { blue: 2, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, { element: 'earth' });
+    out.castPhaseCarriesElement = state.ultimateBanner && state.ultimateBanner.element === 'earth';
+
+    // Vorgrath: only the enemy in the chosen line (index 1, "up" from
+    // center) belongs in the snapshot -- an enemy elsewhere (index 6)
+    // must NOT be included.
+    state.ultimateBanner = null;
+    state.board = Array(9).fill(null);
+    const vorgrathEntry = freshEntry(findCardById('vorgrath'), 'blue');
+    state.board[4] = vorgrathEntry;
+    state.board[1] = freshEntry({ id:'fw1', name:'FW1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[6] = freshEntry({ id:'fw2', name:'FW2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 3, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, { direction: 'up' });
+    out.fallingWorldSnapshotsOnlyTheLine = state.ultimateBanner
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(1)
+      && !state.ultimateBanner.enemyIndices.includes(6);
+
+    // Evil Twist Yang: whole-board snapshot (like Diamond Storm), not
+    // scoped to a line or adjacency.
+    state.ultimateBanner = null;
+    state.board = Array(9).fill(null);
+    const yangEntry = freshEntry(findCardById('eviltwistyang'), 'blue');
+    const yinEntry = freshEntry(findCardById('eviltwistyin'), 'blue'); // requiresPartner
+    state.board[4] = yangEntry;
+    state.board[0] = yinEntry;
+    state.board[1] = freshEntry({ id:'yr1', name:'YR1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[8] = freshEntry({ id:'yr2', name:'YR2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 3, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    runSpecialResolution(4, null, {});
+    out.yangResonanceSnapshotsWholeBoard = state.ultimateBanner
+      && state.ultimateBanner.name === 'Yang Resonance'
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(1)
+      && state.ultimateBanner.enemyIndices.includes(8);
+
+    return out;
+  })()`);
+  assert.equal(result.castPhaseCarriesElement, true);
+  assert.equal(result.fallingWorldSnapshotsOnlyTheLine, true);
+  assert.equal(result.yangResonanceSnapshotsWholeBoard, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
