@@ -5717,6 +5717,69 @@ function renderBattle(){
       .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.15 + n * 0.08 }));
   }
 
+  // Three Head Dragon's Apokalyps -- the first card to use the new
+  // .vfx-magic-circle primitive (see Fas 16): a whole-board debuff, never
+  // destroys anyone, so safe to derive hit positions live off the current
+  // board (same reasoning as Ragnarök/All Possibilities below) rather than
+  // needing a cast-time snapshot.
+  const apokalypsActive = state.ultimateBanner && state.ultimateBanner.name === 'Apokalyps';
+  let apokalypsOriginX = 50, apokalypsOriginY = 50, apokalypsHitPositions = [];
+  if(apokalypsActive){
+    ({ x: apokalypsOriginX, y: apokalypsOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const dragonOwner = state.ultimateBanner.owner;
+    apokalypsHitPositions = state.board
+      .map((e, i) => (e && e.owner !== dragonOwner) ? i : null)
+      .filter(i => i !== null)
+      .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.15 + n * 0.08 }));
+  }
+
+  // The Infinite Seraph's All Possibilities -- a permanent (not "this
+  // round") direction-line debuff that, like Fenrir's Ragnarök, never
+  // destroys anyone, so it reuses the exact same live enemiesInDirection()
+  // recompute instead of a cast-time snapshot.
+  const allPossibilitiesActive = state.ultimateBanner && state.ultimateBanner.name === 'All Possibilities';
+  let allPossibilitiesOriginX = 50, allPossibilitiesOriginY = 50, allPossibilitiesHitPositions = [];
+  if(allPossibilitiesActive){
+    ({ x: allPossibilitiesOriginX, y: allPossibilitiesOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const dir = state.ultimateBanner.direction;
+    const lineCells = dir ? enemiesInDirection(state.ultimateBanner.sourceIndex, dir, state.ultimateBanner.owner) : [];
+    allPossibilitiesHitPositions = lineCells.map((p, n) => ({
+      ...cellCenterPercent(p.index),
+      delay: 0.1 + n * 0.08,
+    }));
+  }
+
+  // Tilda's Nightfall -- a single-target shadow strike, same ring+hit
+  // shape as WorldCleaver/Serpent's Wrath, a dark indigo "night" palette.
+  const nightfallActive = state.ultimateBanner && state.ultimateBanner.name === 'Nightfall';
+  let nightfallTargetX = 50, nightfallTargetY = 50;
+  if(nightfallActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: nightfallTargetX, y: nightfallTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // Graff's Whirlwind Assault -- a hybrid shape none of the other cards
+  // use yet: a real single TARGET (the capture attempt) plus an
+  // unconditional debuff SPLASH on every other enemy at once, both in the
+  // same special. Two positions arrays instead of one -- the chosen
+  // target gets the main ring+hit, every other enemy gets a smaller
+  // splash hit marker. Splash never destroys anyone, safe to derive live.
+  const whirlwindActive = state.ultimateBanner && state.ultimateBanner.name === 'Whirlwind Assault';
+  let whirlwindTargetX = 50, whirlwindTargetY = 50, whirlwindSplashPositions = [];
+  if(whirlwindActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: whirlwindTargetX, y: whirlwindTargetY } = cellCenterPercent(tIdx));
+    }
+    const whirlwindOwner = state.ultimateBanner.owner;
+    whirlwindSplashPositions = state.board
+      .map((e, i) => (e && e.owner !== whirlwindOwner && i !== tIdx) ? i : null)
+      .filter(i => i !== null)
+      .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.12 + n * 0.08 }));
+  }
+
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
   // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
   // it's a plain one-shot triggered by an ordinary attack). Reads
@@ -6074,6 +6137,33 @@ function renderBattle(){
           <div class="vfx-ring"></div>
           ${concordHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
           ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${apokalypsActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${apokalypsOriginX}%; --vfx-y:${apokalypsOriginY}%; --vfx-ring-color:rgba(139,110,242,0.95); --vfx-glow-color:rgba(90,60,180,0.65); --vfx-ring-soft:rgba(200,180,255,0.6); --vfx-hit-color:rgba(210,195,255,0.95); --vfx-hit-color-mid:rgba(90,60,180,0.7);">
+          <div class="vfx-magic-circle"></div>
+          <div class="vfx-ring"></div>
+          ${apokalypsHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(139,110,242,0.4); --vfx-flash-delay:0.3s;"></div>
+      ` : ''}
+      ${allPossibilitiesActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${allPossibilitiesOriginX}%; --vfx-y:${allPossibilitiesOriginY}%; --vfx-ring-color:rgba(200,190,220,0.95); --vfx-glow-color:rgba(140,120,170,0.6); --vfx-ring-soft:rgba(230,220,245,0.6); --vfx-hit-color:rgba(230,220,245,0.95); --vfx-hit-color-mid:rgba(140,120,170,0.7);">
+          <div class="vfx-ring"></div>
+          ${allPossibilitiesHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${nightfallActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${nightfallTargetX}%; top:${nightfallTargetY}%; --vfx-ring-color:rgba(60,40,110,0.95); --vfx-glow-color:rgba(20,10,40,0.7); --vfx-ring-soft:rgba(140,110,200,0.6);"></div>
+          <div class="vfx-hit" style="left:${nightfallTargetX}%; top:${nightfallTargetY}%; --vfx-hit-color:rgba(140,110,200,0.95); --vfx-hit-color-mid:rgba(40,20,70,0.7);"></div>
+        </div>
+      ` : ''}
+      ${whirlwindActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${whirlwindTargetX}%; top:${whirlwindTargetY}%; --vfx-ring-color:rgba(180,210,190,0.95); --vfx-glow-color:rgba(90,130,100,0.6); --vfx-ring-soft:rgba(220,240,225,0.6);"></div>
+          <div class="vfx-hit" style="left:${whirlwindTargetX}%; top:${whirlwindTargetY}%; --vfx-hit-color:rgba(220,240,225,0.95); --vfx-hit-color-mid:rgba(90,130,100,0.7);"></div>
+          ${whirlwindSplashPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s; --vfx-hit-color:rgba(190,215,195,0.8); --vfx-hit-color-mid:rgba(70,100,80,0.6);"></div>`).join('')}
         </div>
       ` : ''}
       ${odinSlashPairs.length ? `

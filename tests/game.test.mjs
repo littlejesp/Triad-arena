@@ -9062,3 +9062,65 @@ test('Fas 16 (better light effects, user-supplied textures): .vfx-ring/.vfx-twin
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 17 (VFX expansion round 6): Three Head Dragon, The Infinite Seraph, Tilda, and Graff get identity VFX on the shared toolkit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Three Head Dragon's Apokalyps: the first card to use .vfx-magic-circle
+    // (Fas 16's new standalone primitive), plus hit markers on every enemy.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('threeheaddragon'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.board[7] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Apokalyps', sourceIndex:4, targetIndex:null, enemyIndices:null };
+    let html = renderBattle();
+    out.apokalypsUsesMagicCircle = html.includes('class="vfx-magic-circle"');
+    out.apokalypsHasTwoHits = (html.match(/class="vfx-hit"/g) || []).length === 2;
+    out.apokalypsIsViolet = html.includes('rgba(139,110,242');
+
+    // The Infinite Seraph's All Possibilities: direction-target, only the
+    // chosen line gets a hit, live enemiesInDirection() recompute (never
+    // destroys, same shape as Ragnarök).
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('infiniteseraph'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.board[7] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'All Possibilities', sourceIndex:4, targetIndex:null, enemyIndices:null, direction:'up' };
+    html = renderBattle();
+    out.allPossibilitiesHitsOnlyUpDirection = (html.match(/class="vfx-hit"/g) || []).length === 1;
+    out.allPossibilitiesIsLavender = html.includes('rgba(200,190,220');
+
+    // Tilda's Nightfall: single-target dark palette.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('tilda'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Nightfall', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.nightfallIsDarkIndigo = html.includes('rgba(60,40,110');
+
+    // Graff's Whirlwind Assault: hybrid shape -- a main target hit PLUS a
+    // splash hit on every OTHER enemy, in the same special.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('graff'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.board[3] = { card: findCardById('ogre'), owner:'red' };
+    state.board[5] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Whirlwind Assault', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.whirlwindHasThreeHits = (html.match(/class="vfx-hit"/g) || []).length === 3; // 1 main target + 2 splash (cells 3,5; cell1 is the target itself, excluded from splash)
+
+    return out;
+  })()`);
+  assert.equal(result.apokalypsUsesMagicCircle, true, "Apokalyps must be the first card using the new .vfx-magic-circle primitive");
+  assert.equal(result.apokalypsHasTwoHits, true);
+  assert.equal(result.apokalypsIsViolet, true);
+  assert.equal(result.allPossibilitiesHitsOnlyUpDirection, true, "All Possibilities' VFX must only mark cells in the actual chosen direction");
+  assert.equal(result.allPossibilitiesIsLavender, true);
+  assert.equal(result.nightfallIsDarkIndigo, true);
+  assert.equal(result.whirlwindHasThreeHits, true, "Whirlwind Assault must show the main target hit PLUS a splash hit on every OTHER enemy, never double-counting the target itself");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

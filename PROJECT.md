@@ -4001,6 +4001,39 @@ stjärn-burst istället för bara en ring-kontur, och skarpa gnist-glimmer
 istället för släta prickar — samt den fixade magiska cirkeln, nu perfekt
 centrerad och rund. Ingen konsol/page-error i något test.
 
+**Fas 17: VFX-expansion, runda 7 — och den nya magiska cirkeln får sin
+flaggskeppsdebut.** Användaren bad om fler kort (mitt val) och erbjöd sig
+skicka fler texturer om det behövdes. Fyra kort valda: **Three Head
+Dragon** (Apokalyps — hel-bräde-debuff, FÖRSTA kortet som använder Fas
+16:s nya `.vfx-magic-circle`-primitive), **The Infinite Seraph** (All
+Possibilities — riktnings-debuff, permanent inte "denna runda", samma
+live-`enemiesInDirection()`-mönster som Fenrirs Ragnarök eftersom den
+aldrig förstör), **Tilda** (Nightfall — enkelmål, mörk "natt"-palett) och
+**Graff** (Whirlwind Assault — en helt ny HYBRID-form: ett riktigt
+enkelmål PLUS en ovillkorad debuff-splash på varenda annan fiende, i
+samma special).
+
+Graffs kort krävde en genuint ny mönster-variant: tidigare kort har
+antingen varit rena enkelmål ELLER ren AOE, aldrig båda samtidigt. Löst
+med TVÅ separata positions-arrayer i samma derivations-block — en stor
+huvud-träff vid det faktiska målet (samma `.vfx-ring`+`.vfx-hit`-form som
+alla andra enkelmålskort), plus mindre, svagare `.vfx-hit`-markörer
+(egen `--vfx-hit-color`-override, dämpad opacitet) på varje annan
+fiende, live-deriverat eftersom splashen (`debuffThisRound`) aldrig
+förstör någon. Playwright-skärmdumpen visar tydligt skillnaden: en stark
+ljus kärnträff på huvudmålet, en svagare vindby-liknande dis över de två
+splash-träffade fienderna.
+
+Verifierat: `node --check` grönt. Ett nytt permanent regressionstest
+(alla fyra kortens VFX renderar rätt — inklusive en explicit koll att
+Apokalyps faktiskt använder `.vfx-magic-circle`, och att Whirlwind
+Assault visar exakt 3 träffar: 1 huvudmål + 2 splash, aldrig
+dubbelräknar målet självt). Hela testsviten grön: **151/151** (150
+tidigare + 1 ny). Playwright-skärmdumpar bekräftar alla fyra — Apokalyps
+bekräftar särskilt att den nya magiska cirkeln (fixad i Fas 16) nu
+sprider sig dramatiskt över hela brädet, precis det "flaggskepps"-momang
+den var tänkt för. Ingen konsol/page-error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
