@@ -7905,3 +7905,168 @@ test('Fas 7 (design review #2): a lightweight achievement list unlocks from exis
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 8 (design review #2, VFX expansion): cellCenterPercent/angleAndLengthPercent geometry helpers produce the exact same numbers the 7 existing cards previously computed inline', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    // Center cell (4): dead center, 50/50.
+    const center = cellCenterPercent(4);
+    out.centerIsFiftyFifty = Math.abs(center.x - 50) < 1e-9 && Math.abs(center.y - 50) < 1e-9;
+    // Corner cells: (0,0) top-left -> (16.67, 16.67); (8) bottom-right -> (83.33, 83.33).
+    const topLeft = cellCenterPercent(0);
+    const bottomRight = cellCenterPercent(8);
+    out.topLeftCorrect = Math.abs(topLeft.x - 100/6) < 1e-9 && Math.abs(topLeft.y - 100/6) < 1e-9;
+    out.bottomRightCorrect = Math.abs(bottomRight.x - 500/6) < 1e-9 && Math.abs(bottomRight.y - 500/6) < 1e-9;
+
+    // Angle/length: a target directly to the right (same row) must be
+    // angle 0, and a target directly below (same column) must account
+    // for the wrapper's 5/7 aspect-ratio normalization (not a naive 90deg
+    // for equal raw percentage deltas).
+    const rightOf = angleAndLengthPercent(50, 50, 83.33, 50);
+    out.rightAngleIsZero = Math.abs(rightOf.angleDeg) < 0.01;
+    const below = angleAndLengthPercent(50, 50, 50, 83.33);
+    out.belowAngleIsNinety = Math.abs(below.angleDeg - 90) < 0.01;
+    out.belowLengthReflectsAspectRatio = Math.abs(below.lengthPercent - 33.33 * (7/5)) < 0.1;
+
+    return out;
+  })()`);
+  assert.equal(result.centerIsFiftyFifty, true);
+  assert.equal(result.topLeftCorrect, true);
+  assert.equal(result.bottomRightCorrect, true);
+  assert.equal(result.rightAngleIsZero, true);
+  assert.equal(result.belowAngleIsNinety, true);
+  assert.equal(result.belowLengthReflectsAspectRatio, true, 'the 5/7 aspect-ratio normalization must survive the extraction into a shared helper');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 8 (design review #2, VFX expansion): the geometry refactor left every existing card\'s derived VFX positions/angles numerically unchanged', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Nyxara (single-origin AOE): origin must be her own cell's center.
+    state.board = Array(9).fill(null);
+    state.board[0] = { card: findCardById('nyxara'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Void Dominion', sourceIndex:0, targetIndex:null, enemyIndices:[1] };
+    let html = renderBattle();
+    const nyxaraCenter = cellCenterPercent(0);
+    out.nyxaraOriginCorrect = html.includes('--void-x:' + nyxaraCenter.x + '%') && html.includes('--void-y:' + nyxaraCenter.y + '%');
+
+    // Bahamut (enemyIndices-based hit delays derived from horizontal
+    // distance from his own column): a target in the SAME column should
+    // get the minimum possible delay (horizFraction 0 -> hitDelay 0.15 + n*0.02).
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('bahamut'), owner:'blue' };
+    state.board[7] = { card: findCardById('ogre'), owner:'red' }; // same column as cell 4
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Megaflare', sourceIndex:4, targetIndex:null, enemyIndices:[7] };
+    html = renderBattle();
+    out.megaflareSameColumnHasMinimalDelay = html.includes('megaflare-hit') && html.includes('animation-delay:0.15s');
+
+    // Silver Judgment (angle/length trig for a directional beam): a
+    // target directly below her own cell must produce a 90deg beam.
+    state.board = Array(9).fill(null);
+    state.board[1] = { card: findCardById('seraphine'), owner:'blue' }; // top-middle
+    state.board[4] = { card: findCardById('ogre'), owner:'red' }; // center, directly below
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Silver Judgment', sourceIndex:1, targetIndex:null, enemyIndices:[4] };
+    html = renderBattle();
+    const beamAngleMatch = html.match(/transform:rotate\\(([-\\d.]+)deg\\)/);
+    out.silverJudgmentBeamAngleCorrect = !!beamAngleMatch && Math.abs(parseFloat(beamAngleMatch[1]) - 90) < 0.01;
+
+    return out;
+  })()`);
+  assert.equal(result.nyxaraOriginCorrect, true);
+  assert.equal(result.megaflareSameColumnHasMinimalDelay, true);
+  assert.equal(result.silverJudgmentBeamAngleCorrect, true, "Silver Judgment's beam angle math must still work identically through the shared helper");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 8 (design review #2, VFX expansion): three new cards (Odin/Tiamat/Ancient Wyrmking) get identity VFX built on the shared .ultimate-vfx/.vfx-* toolkit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    // Odin's Zantetsuken: single-target, 7 staggered .vfx-hit strikes at
+    // the target position plus one finishing .vfx-ring.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('odin'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Zantetsuken', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    let html = renderBattle();
+    out.odinUsesSharedToolkit = html.includes('ultimate-vfx') && html.includes('vfx-hit') && html.includes('vfx-ring');
+    out.odinHasSevenStrikes = (html.match(/class="vfx-hit"/g) || []).length === 7;
+    const odinTargetCenter = cellCenterPercent(1); // top-middle
+    out.odinTargetPositioned = html.includes('left:' + odinTargetCenter.x + '%; top:' + odinTargetCenter.y + '%; animation-delay:0s');
+
+    // Tiamat's Fivefold Apocalypse: 5 differently-colored rings.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('tiamat'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'The Fivefold Apocalypse', sourceIndex:4, targetIndex:1, enemyIndices:null };
+    html = renderBattle();
+    out.fivefoldHasFiveRings = (html.match(/class="vfx-ring"/g) || []).length === 5;
+    out.fivefoldColorsDistinct = html.includes('rgba(255,140,60') && html.includes('rgba(150,90,220') && html.includes('rgba(150,220,120');
+
+    // Ancient Wyrmking's Conquests Witnessed: true AOE (see the dedicated
+    // aoeEnemyIndicesAtCast test below) -- one .vfx-hit per enemy present
+    // at cast, positions supplied via state.ultimateBanner.enemyIndices.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('dragon'), owner:'blue' };
+    state.board[0] = { card: findCardById('ogre'), owner:'red' };
+    state.board[8] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Conquests Witnessed', sourceIndex:4, targetIndex:null, enemyIndices:[0,8] };
+    html = renderBattle();
+    out.wyrmkingHasTwoHits = (html.match(/class="vfx-hit"/g) || []).length === 2;
+    out.wyrmkingHasTwinkles = (html.match(/vfx-twinkle-\\d/g) || []).length === 6;
+
+    // No card active -- none of the three should render anything.
+    state.board = Array(9).fill(null);
+    state.ultimateBanner = null;
+    html = renderBattle();
+    out.nothingRendersWithNoBanner = !html.includes('vfx-ring') && !html.includes('vfx-hit') && !html.includes('vfx-particle');
+
+    return out;
+  })()`);
+  assert.equal(result.odinUsesSharedToolkit, true);
+  assert.equal(result.odinHasSevenStrikes, true, "Zantetsuken's seven lightning-fast strikes must render as 7 distinct .vfx-hit elements");
+  assert.equal(result.odinTargetPositioned, true);
+  assert.equal(result.fivefoldHasFiveRings, true, "The Fivefold Apocalypse must render all 5 elemental rings regardless of which power was mechanically chosen");
+  assert.equal(result.fivefoldColorsDistinct, true);
+  assert.equal(result.wyrmkingHasTwoHits, true);
+  assert.equal(result.wyrmkingHasTwinkles, true);
+  assert.equal(result.nothingRendersWithNoBanner, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 8 (design review #2, VFX expansion): Conquests Witnessed (Ancient Wyrmking) is a true AOE, added to playUltimateSequence\'s aoeEnemyIndicesAtCast snapshot list', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.board = Array(9).fill(null);
+    const wyrmkingEntry = freshEntry(findCardById('dragon'), 'blue');
+    state.board[4] = wyrmkingEntry;
+    state.board[0] = freshEntry({ id:'w1', name:'W1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[8] = freshEntry({ id:'w2', name:'W2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.wins = { blue: 3, red: 0 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    state.phase = 'battle';
+    runSpecialResolution(4, null, {});
+    out.bannerCarriesBothEnemyIndices = state.ultimateBanner
+      && state.ultimateBanner.name === 'Conquests Witnessed'
+      && state.ultimateBanner.enemyIndices
+      && state.ultimateBanner.enemyIndices.includes(0)
+      && state.ultimateBanner.enemyIndices.includes(8);
+    return out;
+  })()`);
+  assert.equal(result.bannerCarriesBothEnemyIndices, true, "Conquests Witnessed must snapshot enemy positions at cast time exactly like the other 6 AOE identity-VFX cards");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

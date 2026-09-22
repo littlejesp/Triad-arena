@@ -3369,6 +3369,76 @@ samtidiga achievement-rader korrekt; Match Settings visar "Your record"
 aktiva sidans Wins-chip (med glow) läser tydligt som mest framträdande
 över rutantalet. Ingen konsol/page-error i något test.
 
+**Fas 8: VFX-expansion — fler kort, delat system.** Användaren ville ha
+fler kort med egen Ultimate-VFX-identitet (som Nyxara/Ifrit/Vaelira/
+Seraphine/Omega Weapon/Shiva/Bahamut redan hade). Två snabba
+AskUserQuestion-avstämningar: (1) bygga om till ett delat, parametriserat
+system FÖRST (istället för att kopiera in ett 8:e ~80%-identiskt block,
+precis vad designöversynens game feel-agent flaggade som nästa-touch-
+kandidat) — svar: **"Ja (Rekommenderas)"**. (2) vilka kort — svar:
+**"Låt mig välja åt dig"**. Användaren klargjorde också att ljud kommer
+i efterhand — bara VFX den här omgången.
+
+Två delar:
+
+1. **Delad geometri (JS) — ren refaktor, noll visuell risk.** Två
+   funktioner extraherade: `cellCenterPercent(cellIndex)` (cellens
+   mittpunkt i % av brädet) och `angleAndLengthPercent(originX,originY,
+   targetX,targetY)` (vinkel+längd för en riktad stråle, normaliserad för
+   brädets 5/7-bildförhållande — en Silver Judgment-kommentar refererade
+   redan till en `angleAndLengthPercent()` som om den fanns, den gjorde
+   det inte förrän nu). Samma exakta matematik som fanns inline på **8
+   ställen** (Nyxara/Ifrit/Vaelira/Seraphine/Omega/Shiva/Bahamut/Odins
+   attack-slash) migrerade till att anropa de delade funktionerna —
+   identiska tal, bara deduplicerat.
+2. **Delat CSS-verktygslåda (`.ultimate-vfx`/`.vfx-*`) — ny, för kort
+   FRAMÅT.** De 7 befintliga kortens fungerande, redan finjusterade
+   `*-fx`-block rördes INTE (verklig regressions-risk för noll synlig
+   vinst, ren intern städning) — istället en ny, ren uppsättning
+   återanvändbara primitiver som varje nytt kort bygger på: `.vfx-ring`
+   (expanderande våg/blast — det absolut mest upprepade mönstret i alla
+   7 befintliga kort), `.vfx-hit` (per-mål-träff), `.vfx-flash`
+   (helskärms-färgvåg), `.vfx-particle` (8 fasta erbjudna offset-
+   positioner, indragning under cast), `.vfx-twinkle` (6 kvardröjande
+   glitter-partiklar) — alla färgsatta via CSS custom properties
+   (`--vfx-ring-color` osv.) istället för hårdkodad rgba() per kort.
+   Tre nya kort byggda helt på detta:
+   - **Odin — Zantetsuken** ("sju blixtsnabba slag"): 7 staggade
+     `.vfx-hit`-träffar på samma mål (7×0.07s mellanrum) följt av en
+     avslutande `.vfx-ring`, guld/vitt.
+   - **Tiamat — The Fivefold Apocalypse**: alla fem krafter (eld/is/
+     storm/void/natur) manifesteras SAMTIDIGT som fem olikfärgade
+     `.vfx-ring` som konvergerar på målet, oavsett vilken kraft spelaren
+     faktiskt valde mekaniskt (att koppla VFX:en till det faktiska valet
+     hade krävt att leda `extra.power` genom `state.ultimateBanner` bara
+     för detta — undvikt, "Fivefold" läses lika bra som hela gruppen av
+     krafter som visar sig på en gång).
+   - **Ancient Wyrmking — Conquests Witnessed**: drakisk rytande
+     chockvåg — en stor jordfärgad `.vfx-ring` från hans egen cell +
+     `.vfx-hit` per fiende (riktig AOE, `'Conquests Witnessed'` tillagd
+     i `playUltimateSequence`s `aoeEnemyIndicesAtCast`-lista precis som
+     de 6 andra AOE-korten) + kvardröjande `.vfx-twinkle`-damm.
+
+Verifierat: `node --check` grönt. Fyra nya permanenta regressionstester
+(de två delade geometri-funktionerna ger exakt samma tal som cellindex
+0/4/8 samt korrekt vinkel/längd inklusive bildförhållande-normalisering;
+en explicit regressionskoll att Nyxara/Bahamut/Seraphines härledda
+VFX-positioner/vinklar är numeriskt OFÖRÄNDRADE efter refaktorn — två av
+dessa körningar avslöjade en flyttals-precisionsfälla i själva testet
+(`100/6` och `0.5/3*100` är INTE bit-identiska i JavaScript trots att de
+är matematiskt lika — `false !== true` på ett strikt strängmatchnings-
+test), fixat genom att beräkna det förväntade värdet via samma delade
+funktion istället för en handskriven bråkform; de tre nya kortens VFX
+använder verktygslådan korrekt (Odins 7 träffar, Tiamats 5 ringar,
+Wyrmkings AOE-träffar+glitter, inget renderas utan aktiv banner);
+Conquests Witnessed snapshotas korrekt i `aoeEnemyIndicesAtCast`. Hela
+testsviten grön: **130/130** (126 tidigare + 4 nya). Playwright-
+skärmdumpar av alla tre nya kort (cast + impact-fas) bekräftar att de
+faktiskt renderar som avsett, plus ett regressions-spot-check av Nyxara
+(Void Dominion-cirkel korrekt centrerad) och Bahamut (Megaflare-svepet +
+träffar på rätt celler) efter geometri-refaktorn — inga visuella
+regressioner. Ingen konsol/page-error i något test.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

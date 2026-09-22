@@ -1979,6 +1979,125 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   100%{ opacity:0; }
 }
 
+/* ---------- Fas 8 (design review #2, VFX expansion): shared Ultimate
+   identity VFX primitives ----------
+   The 7 cards above each hand-built their own ring/hit/particle/flash --
+   real, working, ~80% identical code each time (flagged by the design
+   review as a "consolidate on next touch" candidate). Rather than risk
+   re-touching 7 already-shipped, already-tuned effects for a purely
+   internal cleanup with zero player-visible upside, these primitives are
+   a clean NEW shared toolkit that every card added FROM HERE ON draws
+   from -- color/size/delay are CSS custom properties instead of
+   hardcoded per-selector rgba() values, so a new card's VFX is "pick a
+   wrapper class + set --vfx-* properties + choose which pieces", not
+   "re-derive four keyframe blocks". Each new card still gets its own
+   `.cardname-fx` wrapper div (for its own bespoke pieces, if any) but
+   ALSO the shared `.ultimate-vfx` marker class, which is what these
+   selectors key off -- so one rule here covers every card that opts in,
+   present and future.
+   Same .board-matching wrapper positioning as every existing *-fx above. */
+.ultimate-vfx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+/* A generic expanding ring/wave/blast -- the single most-repeated shape
+   across all 7 existing cards (void-crack/hellfire-blast/infernal-pact-
+   wave/silver-judgment-wave/omega-protocol-blast/diamond-storm-wave/
+   megaflare-wave were all this exact shape, just recolored). Color flows
+   through --vfx-ring-color/--vfx-glow-color/--vfx-ring-soft (each with a
+   neutral white/grey fallback so a card that forgets to set one still
+   renders something reasonable rather than invisible). */
+.vfx-ring{
+  position:absolute; left:var(--vfx-x,50%); top:var(--vfx-y,50%);
+  width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%;
+  border:2px solid var(--vfx-ring-color, rgba(255,255,255,0.95));
+  box-shadow:0 0 28px 9px var(--vfx-glow-color, rgba(160,160,160,0.6)), inset 0 0 18px var(--vfx-ring-soft, rgba(255,255,255,0.6));
+  opacity:0;
+}
+.ultimate-vfx.phase-impact .vfx-ring{ animation: vfxRingExpand 0.65s cubic-bezier(.15,.8,.3,1) var(--vfx-ring-delay,0s) both; }
+@keyframes vfxRingExpand{
+  0%{ opacity:0.9; transform:scale(0.4); }
+  55%{ opacity:0.5; transform:scale(10); }
+  100%{ opacity:0; transform:scale(14); }
+}
+/* A per-target impact flash -- reused as hellfire-target-hit/infernal-
+   pact-hit/silver-judgment-hit/omega-protocol-hit/diamond-storm-hit/
+   megaflare-hit all were. Positioned via inline left/top per cell
+   (variable count, 0-8 enemies), same as those. */
+.vfx-hit{
+  position:absolute; width:24px; height:24px; margin:-12px 0 0 -12px; border-radius:50%;
+  background:radial-gradient(circle, var(--vfx-hit-color, rgba(255,255,255,0.95)) 0%, var(--vfx-hit-color-mid, rgba(190,190,190,0.65)) 50%, transparent 78%);
+  opacity:0;
+}
+.ultimate-vfx.phase-impact .vfx-hit{ animation: vfxHitPop 0.55s ease-out both; }
+@keyframes vfxHitPop{
+  0%{ opacity:0; transform:scale(0.3); }
+  35%{ opacity:1; transform:scale(1.6); }
+  100%{ opacity:0; transform:scale(2.2); }
+}
+/* A full-frame color wash, same soft-pulse shape as silver-judgment-
+   flash/omega-protocol-flash/diamond-storm-flash/megaflare-flash --
+   sibling of .board (not .ultimate-vfx), needs to wash the WHOLE
+   arena-frame like those did. */
+.vfx-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, var(--vfx-flash-color, rgba(255,255,255,0.6)) 0%, transparent 70%);
+  opacity:0;
+}
+.vfx-flash.phase-impact{ animation: vfxFlashPulse 0.45s ease-out var(--vfx-flash-delay,0.3s) both; }
+@keyframes vfxFlashPulse{
+  0%{ opacity:0; }
+  30%{ opacity:1; }
+  100%{ opacity:0; }
+}
+/* 8 fixed-offset particles pulled INTO the origin during cast (windup) --
+   the same shape/8 offsets infernal-pact-particle and diamond-storm-
+   fragment each already independently hardcoded. Color via --vfx-
+   particle-color/--vfx-glow-color. */
+.vfx-particle{
+  position:absolute; left:var(--vfx-x,50%); top:var(--vfx-y,50%);
+  width:4px; height:4px; border-radius:50%;
+  background:var(--vfx-particle-color, #ffffff); box-shadow:0 0 8px 2px var(--vfx-glow-color, rgba(255,255,255,0.8));
+  opacity:0;
+}
+.ultimate-vfx.phase-cast .vfx-particle{ animation: vfxParticlePull 0.85s ease-in both; }
+@keyframes vfxParticlePull{
+  0%{ opacity:0; transform:translate(var(--px),var(--py)) scale(1); }
+  22%{ opacity:0.9; }
+  100%{ opacity:0; transform:translate(0,0) scale(0.2); }
+}
+.vfx-particle-0{ --px:-70px; --py:-30px; animation-delay:0s;   }
+.vfx-particle-1{ --px:60px;  --py:-45px; animation-delay:.04s; }
+.vfx-particle-2{ --px:80px;  --py:20px;  animation-delay:.08s; }
+.vfx-particle-3{ --px:40px;  --py:60px;  animation-delay:.12s; }
+.vfx-particle-4{ --px:-50px; --py:55px;  animation-delay:.02s; }
+.vfx-particle-5{ --px:-80px; --py:10px;  animation-delay:.06s; }
+.vfx-particle-6{ --px:0px;   --py:-70px; animation-delay:.10s; }
+.vfx-particle-7{ --px:10px;  --py:70px;  animation-delay:.14s; }
+/* A handful of lingering twinkles that fade in late and last through the
+   impact/cleanup tail -- same shape diamond-storm-glitter/megaflare-star
+   each already independently hardcoded (6 fixed offsets). Positioned
+   from --vfx-x/--vfx-y like .vfx-particle, since twinkles radiate from
+   the same origin point as everything else for a given card. */
+.vfx-twinkle{
+  position:absolute; left:var(--vfx-x,50%); top:var(--vfx-y,50%);
+  width:4px; height:4px; border-radius:50%;
+  background:var(--vfx-twinkle-color, #ffffff); box-shadow:0 0 6px 2px var(--vfx-glow-color, rgba(255,255,255,0.8));
+  opacity:0;
+}
+.ultimate-vfx.phase-impact .vfx-twinkle{ animation: vfxTwinkleFade 0.9s ease-in-out both; }
+@keyframes vfxTwinkleFade{
+  0%{ opacity:0; transform:translate(var(--tx),var(--ty)) scale(0.4); }
+  40%{ opacity:0.85; transform:translate(var(--tx),var(--ty)) scale(1.1); }
+  100%{ opacity:0; transform:translate(var(--tx),var(--ty)) scale(0.5); }
+}
+.vfx-twinkle-0{ --tx:-60px; --ty:-50px; animation-delay:.4s;  }
+.vfx-twinkle-1{ --tx:70px;  --ty:-30px; animation-delay:.5s;  }
+.vfx-twinkle-2{ --tx:50px;  --ty:55px;  animation-delay:.55s; }
+.vfx-twinkle-3{ --tx:-45px; --ty:60px;  animation-delay:.45s; }
+.vfx-twinkle-4{ --tx:0px;   --ty:-70px; animation-delay:.6s;  }
+.vfx-twinkle-5{ --tx:-10px; --ty:70px;  animation-delay:.35s; }
+
 /* Odin's normal-attack Slash VFX (see the user's brief) — NOT an Ultimate
    effect like every *-fx block above (no state.ultimateBanner, no cast/
    impact phase split): it rides state.odinSlashes instead, a plain array
@@ -4864,6 +4983,27 @@ function boardCellHtml(cell, i, previewVulnerable){
   `;
 }
 
+// Fas 8 (design review #2, VFX expansion): the two pieces of geometry
+// every per-card Ultimate identity VFX derivation below needs -- a
+// cell's center as a percentage of the board (for --*-x/--*-y origin/
+// target custom properties) and, for anything that visually points at a
+// target (a beam, a rail, Odin's own normal-attack slash trail), the
+// angle+length between two such points, normalized for the board
+// wrapper's 5/7 (not square) aspect ratio before the atan2 -- a straight
+// percentage delta would point every beam at the wrong angle otherwise.
+// Previously re-derived inline at every call site (a Silver Judgment
+// comment even already referred to this as "angleAndLengthPercent()" as
+// if it existed); extracted here, verbatim same math, so adding a new
+// card's VFX is "call these two", not "re-copy this block again".
+function cellCenterPercent(cellIndex){
+  return { x: ((cellIndex % 3) + 0.5) / 3 * 100, y: (Math.floor(cellIndex / 3) + 0.5) / 3 * 100 };
+}
+function angleAndLengthPercent(originX, originY, targetX, targetY){
+  const dxUnits = (targetX - originX) / 100;
+  const dyUnits = (targetY - originY) / 100 * (7/5);
+  return { angleDeg: Math.atan2(dyUnits, dxUnits) * (180/Math.PI), lengthPercent: Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100 };
+}
+
 function renderBattle(){
   const blueCount = state.board.filter(c => c && c.owner === 'blue').length;
   const redCount = state.board.filter(c => c && c.owner === 'red').length;
@@ -4877,9 +5017,7 @@ function renderBattle(){
   const voidDominionActive = state.ultimateBanner && state.ultimateBanner.name === 'Void Dominion';
   let voidOriginX = 50, voidOriginY = 50;
   if(voidDominionActive){
-    const idx = state.ultimateBanner.sourceIndex;
-    voidOriginX = ((idx % 3) + 0.5) / 3 * 100;
-    voidOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    ({ x: voidOriginX, y: voidOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
   }
 
   // Ifrit's Hellfire identity VFX -- same derivation pattern as Void
@@ -4888,13 +5026,10 @@ function renderBattle(){
   const hellfireActive = state.ultimateBanner && state.ultimateBanner.name === 'Hellfire';
   let hellfireOriginX = 50, hellfireOriginY = 50, hellfireTargetX = 50, hellfireTargetY = 50;
   if(hellfireActive){
-    const idx = state.ultimateBanner.sourceIndex;
-    hellfireOriginX = ((idx % 3) + 0.5) / 3 * 100;
-    hellfireOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    ({ x: hellfireOriginX, y: hellfireOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
     const tIdx = state.ultimateBanner.targetIndex;
     if(tIdx != null){
-      hellfireTargetX = ((tIdx % 3) + 0.5) / 3 * 100;
-      hellfireTargetY = (Math.floor(tIdx / 3) + 0.5) / 3 * 100;
+      ({ x: hellfireTargetX, y: hellfireTargetY } = cellCenterPercent(tIdx));
     }
   }
 
@@ -4905,12 +5040,9 @@ function renderBattle(){
   const infernalPactActive = state.ultimateBanner && state.ultimateBanner.name === 'Infernal Pact';
   let infernalPactOriginX = 50, infernalPactOriginY = 50, infernalPactHitPositions = [];
   if(infernalPactActive){
-    const idx = state.ultimateBanner.sourceIndex;
-    infernalPactOriginX = ((idx % 3) + 0.5) / 3 * 100;
-    infernalPactOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    ({ x: infernalPactOriginX, y: infernalPactOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
     infernalPactHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
-      x: ((i % 3) + 0.5) / 3 * 100,
-      y: (Math.floor(i / 3) + 0.5) / 3 * 100,
+      ...cellCenterPercent(i),
       delay: 0.1 + n * 0.05,
     }));
   }
@@ -4926,16 +5058,10 @@ function renderBattle(){
   const silverJudgmentActive = state.ultimateBanner && state.ultimateBanner.name === 'Silver Judgment';
   let silverJudgmentOriginX = 50, silverJudgmentOriginY = 50, silverJudgmentBeams = [];
   if(silverJudgmentActive){
-    const idx = state.ultimateBanner.sourceIndex;
-    silverJudgmentOriginX = ((idx % 3) + 0.5) / 3 * 100;
-    silverJudgmentOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    ({ x: silverJudgmentOriginX, y: silverJudgmentOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
     silverJudgmentBeams = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
-      const targetX = ((i % 3) + 0.5) / 3 * 100;
-      const targetY = (Math.floor(i / 3) + 0.5) / 3 * 100;
-      const dxUnits = (targetX - silverJudgmentOriginX) / 100;
-      const dyUnits = (targetY - silverJudgmentOriginY) / 100 * (7/5);
-      const angleDeg = Math.atan2(dyUnits, dxUnits) * (180/Math.PI);
-      const lengthPercent = Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100;
+      const { x: targetX, y: targetY } = cellCenterPercent(i);
+      const { angleDeg, lengthPercent } = angleAndLengthPercent(silverJudgmentOriginX, silverJudgmentOriginY, targetX, targetY);
       return { targetX, targetY, angleDeg, lengthPercent, beamDelay: n * 0.03, hitDelay: 0.3 + n * 0.04 };
     });
   }
@@ -4947,12 +5073,9 @@ function renderBattle(){
   const omegaProtocolActive = state.ultimateBanner && state.ultimateBanner.name === 'Omega Protocol';
   let omegaProtocolOriginX = 50, omegaProtocolOriginY = 50, omegaProtocolTargets = [];
   if(omegaProtocolActive){
-    const idx = state.ultimateBanner.sourceIndex;
-    omegaProtocolOriginX = ((idx % 3) + 0.5) / 3 * 100;
-    omegaProtocolOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    ({ x: omegaProtocolOriginX, y: omegaProtocolOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
     omegaProtocolTargets = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
-      x: ((i % 3) + 0.5) / 3 * 100,
-      y: (Math.floor(i / 3) + 0.5) / 3 * 100,
+      ...cellCenterPercent(i),
       lockDelay: n * 0.05,
       hitDelay: 0.25 + n * 0.04,
     }));
@@ -4967,16 +5090,10 @@ function renderBattle(){
   const diamondStormActive = state.ultimateBanner && state.ultimateBanner.name === 'Diamond Storm';
   let diamondStormOriginX = 50, diamondStormOriginY = 50, diamondStormRails = [];
   if(diamondStormActive){
-    const idx = state.ultimateBanner.sourceIndex;
-    diamondStormOriginX = ((idx % 3) + 0.5) / 3 * 100;
-    diamondStormOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    ({ x: diamondStormOriginX, y: diamondStormOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
     diamondStormRails = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
-      const targetX = ((i % 3) + 0.5) / 3 * 100;
-      const targetY = (Math.floor(i / 3) + 0.5) / 3 * 100;
-      const dxUnits = (targetX - diamondStormOriginX) / 100;
-      const dyUnits = (targetY - diamondStormOriginY) / 100 * (7/5);
-      const angleDeg = Math.atan2(dyUnits, dxUnits) * (180/Math.PI);
-      const lengthPercent = Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100;
+      const { x: targetX, y: targetY } = cellCenterPercent(i);
+      const { angleDeg, lengthPercent } = angleAndLengthPercent(diamondStormOriginX, diamondStormOriginY, targetX, targetY);
       return { targetX, targetY, angleDeg, lengthPercent, shard1Delay: n * 0.03, shard2Delay: 0.06 + n * 0.03, hitDelay: 0.3 + n * 0.05 };
     });
   }
@@ -4991,15 +5108,74 @@ function renderBattle(){
   const megaflareActive = state.ultimateBanner && state.ultimateBanner.name === 'Megaflare';
   let megaflareOriginX = 50, megaflareOriginY = 50, megaflareHits = [];
   if(megaflareActive){
-    const idx = state.ultimateBanner.sourceIndex;
-    megaflareOriginX = ((idx % 3) + 0.5) / 3 * 100;
-    megaflareOriginY = (Math.floor(idx / 3) + 0.5) / 3 * 100;
+    ({ x: megaflareOriginX, y: megaflareOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
     megaflareHits = (state.ultimateBanner.enemyIndices || []).map((i, n) => {
-      const x = ((i % 3) + 0.5) / 3 * 100;
-      const y = (Math.floor(i / 3) + 0.5) / 3 * 100;
+      const { x, y } = cellCenterPercent(i);
       const horizFraction = Math.min(1, Math.abs(x - megaflareOriginX) / 100 * 1.5);
       return { x, y, hitDelay: 0.15 + horizFraction * 0.3 + n * 0.02 };
     });
+  }
+
+  // Fas 8 (design review #2, VFX expansion): the first three cards built
+  // on the shared .ultimate-vfx/.vfx-* toolkit above instead of a bespoke
+  // *-fx block each. All three still derive origin/target positions the
+  // same way every existing card does (state.ultimateBanner's
+  // sourceIndex/targetIndex/enemyIndices) -- only the CSS pieces they
+  // compose are shared now, not re-invented.
+
+  // Odin's Zantetsuken -- "seven lightning-fast strikes" against one
+  // target: 7 staggered .vfx-hit flashes at the SAME target position
+  // (delay set per-strike below, read inline in the markup) followed by
+  // one .vfx-ring as the finishing blow. Single-target, so no
+  // enemyIndices needed.
+  const zantetsukenActive = state.ultimateBanner && state.ultimateBanner.name === 'Zantetsuken';
+  let zantetsukenOriginX = 50, zantetsukenOriginY = 50, zantetsukenTargetX = 50, zantetsukenTargetY = 50, zantetsukenStrikes = [];
+  if(zantetsukenActive){
+    ({ x: zantetsukenOriginX, y: zantetsukenOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: zantetsukenTargetX, y: zantetsukenTargetY } = cellCenterPercent(tIdx));
+      zantetsukenStrikes = [0,1,2,3,4,5,6].map(n => ({ delay: n * 0.07 }));
+    }
+  }
+
+  // Tiamat's The Fivefold Apocalypse -- all five of her powers (fire/ice/
+  // storm/void/nature) manifest together as five differently-colored
+  // rings converging on the target in rapid sequence, regardless of which
+  // one the player actually chose (SPECIAL_HANDLERS.tiamat's own choice
+  // only affects the mechanical outcome) -- "Fivefold" reads as the whole
+  // group of powers appearing at once, not just the picked one, and
+  // avoids needing to thread the extra.power choice through
+  // state.ultimateBanner just for this.
+  const fivefoldActive = state.ultimateBanner && state.ultimateBanner.name === 'The Fivefold Apocalypse';
+  let fivefoldTargetX = 50, fivefoldTargetY = 50;
+  const FIVEFOLD_COLORS = [
+    { ring:'rgba(255,140,60,0.95)', glow:'rgba(224,80,20,0.65)' },   // fire
+    { ring:'rgba(170,225,255,0.95)', glow:'rgba(100,180,230,0.6)' }, // ice
+    { ring:'rgba(220,180,255,0.95)', glow:'rgba(150,100,220,0.6)' }, // storm
+    { ring:'rgba(150,90,220,0.95)', glow:'rgba(60,20,90,0.7)' },     // void
+    { ring:'rgba(150,220,120,0.95)', glow:'rgba(70,140,50,0.6)' },   // nature
+  ];
+  if(fivefoldActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: fivefoldTargetX, y: fivefoldTargetY } = cellCenterPercent(tIdx));
+    }
+  }
+
+  // Ancient Wyrmking's Conquests Witnessed -- a draconic roar/shockwave:
+  // one big earthy .vfx-ring from his own cell plus a .vfx-hit per enemy
+  // present at cast (true AOE, added to the aoeEnemyIndicesAtCast list in
+  // playUltimateSequence), with a few lingering dust .vfx-twinkle
+  // particles settling afterward.
+  const wyrmkingActive = state.ultimateBanner && state.ultimateBanner.name === 'Conquests Witnessed';
+  let wyrmkingOriginX = 50, wyrmkingOriginY = 50, wyrmkingHitPositions = [];
+  if(wyrmkingActive){
+    ({ x: wyrmkingOriginX, y: wyrmkingOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    wyrmkingHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({
+      ...cellCenterPercent(i),
+      delay: 0.15 + n * 0.05,
+    }));
   }
 
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
@@ -5010,14 +5186,9 @@ function renderBattle(){
   // trail correctly points from his cell at whichever cell he actually
   // attacked, however many pairs fired this placement.
   const odinSlashPairs = (state.odinSlashes || []).map(s => {
-    const sx = ((s.sourceIndex % 3) + 0.5) / 3 * 100;
-    const sy = (Math.floor(s.sourceIndex / 3) + 0.5) / 3 * 100;
-    const tx = ((s.targetIndex % 3) + 0.5) / 3 * 100;
-    const ty = (Math.floor(s.targetIndex / 3) + 0.5) / 3 * 100;
-    const dxUnits = (tx - sx) / 100;
-    const dyUnits = (ty - sy) / 100 * (7/5);
-    const angleDeg = Math.atan2(dyUnits, dxUnits) * (180/Math.PI);
-    const lengthPercent = Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100;
+    const { x: sx, y: sy } = cellCenterPercent(s.sourceIndex);
+    const { x: tx, y: ty } = cellCenterPercent(s.targetIndex);
+    const { angleDeg, lengthPercent } = angleAndLengthPercent(sx, sy, tx, ty);
     return { sx, sy, tx, ty, angleDeg, lengthPercent, delay: (s.delay || 0) / 1000 };
   });
 
@@ -5216,6 +5387,34 @@ function renderBattle(){
           ${[0,1,2,3,4,5].map(n => `<div class="megaflare-star megaflare-star-${n}"></div>`).join('')}
         </div>
         <div class="megaflare-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${zantetsukenActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${zantetsukenOriginX}%; --vfx-y:${zantetsukenOriginY}%; --vfx-particle-color:#f2d675; --vfx-glow-color:rgba(212,175,55,0.8);">
+          ${[0,1,2,3,4,5,6,7].map(n => `<div class="vfx-particle vfx-particle-${n}"></div>`).join('')}
+        </div>
+        ${zantetsukenStrikes.length ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-hit-color:rgba(255,250,230,0.95); --vfx-hit-color-mid:rgba(212,175,55,0.7); --vfx-ring-color:rgba(255,250,230,0.95); --vfx-glow-color:rgba(212,175,55,0.75); --vfx-ring-soft:rgba(255,255,255,0.7); --vfx-ring-delay:0.5s;">
+          ${zantetsukenStrikes.map(s => `<div class="vfx-hit" style="left:${zantetsukenTargetX}%; top:${zantetsukenTargetY}%; animation-delay:${s.delay}s;"></div>`).join('')}
+          <div class="vfx-ring" style="left:${zantetsukenTargetX}%; top:${zantetsukenTargetY}%;"></div>
+        </div>
+        ` : ''}
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(212,175,55,0.55); --vfx-flash-delay:0.55s;"></div>
+      ` : ''}
+      ${fivefoldActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          ${FIVEFOLD_COLORS.map((c, n) => `
+            <div class="vfx-ring" style="left:${fivefoldTargetX}%; top:${fivefoldTargetY}%; --vfx-ring-color:${c.ring}; --vfx-glow-color:${c.glow}; --vfx-ring-soft:${c.ring}; --vfx-ring-delay:${n * 0.08}s;"></div>
+          `).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(165,104,242,0.5); --vfx-flash-delay:0.4s;"></div>
+      ` : ''}
+      ${wyrmkingActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${wyrmkingOriginX}%; --vfx-y:${wyrmkingOriginY}%; --vfx-ring-color:rgba(180,230,140,0.95); --vfx-glow-color:rgba(90,150,60,0.7); --vfx-ring-soft:rgba(220,245,200,0.6); --vfx-hit-color:rgba(220,245,200,0.95); --vfx-hit-color-mid:rgba(120,180,80,0.7); --vfx-twinkle-color:#d9c48a;">
+          <div class="vfx-ring"></div>
+          ${wyrmkingHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(143,209,90,0.5); --vfx-flash-delay:0.3s;"></div>
       ` : ''}
       ${odinSlashPairs.length ? `
         <div class="odin-slash-fx" aria-hidden="true">
@@ -9073,7 +9272,7 @@ function playUltimateSequence(job){
   // every other AOE identity-VFX card, rather than re-deriving "who is an
   // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed'){
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
   }
 
