@@ -5834,6 +5834,141 @@ function renderBattle(){
       .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.12 + n * 0.08 }));
   }
 
+  // ---- VFX expansion round 7: every remaining card whose Ultimate had no
+  // bespoke identity VFX yet (just the plain name banner, no ring/hit/
+  // twinkle). Grouped into a handful of shared shapes instead of 29
+  // separate copy-pasted derivation blocks -- most of these are mechanically
+  // identical to a card that already got the copy-paste treatment earlier
+  // (a plain single-target capture, or a plain whole-board debuff), so a
+  // small lookup table keyed by special name covers them without actually
+  // duplicating the ring+hit markup 15 more times. Colors are hand-picked
+  // approximations of each card's own `accent` (see HEROES/FOREST_FOES),
+  // same manual-rgba approach every earlier VFX round already used.
+
+  // Plain single-target captures -- ring+hit at the target cell, exactly
+  // WorldCleaver/Nightfall/Shattered Crown's own shape, just keyed by name
+  // instead of one const per card. A couple (Eternal Arrow, Royal Choco
+  // Meteor) also get a falling .vfx-projectile like Skybreaker's, matching
+  // their own "something flies in from outside" flavor (a marksman's arrow,
+  // a literal meteor).
+  const SIMPLE_SINGLE_TARGET_VFX = {
+    'Shadow Breaker':    { ring:'rgba(94,200,242,0.95)',  glow:'rgba(30,90,140,0.65)',  soft:'rgba(180,225,250,0.6)' },
+    'Eternal Arrow':     { ring:'rgba(180,140,242,0.95)', glow:'rgba(90,60,140,0.6)',   soft:'rgba(220,200,250,0.6)', projectile:true },
+    "Aion's Last Light": { ring:'rgba(110,168,242,0.95)', glow:'rgba(50,80,140,0.6)',   soft:'rgba(190,215,250,0.6)' },
+    'Eclipse':           { ring:'rgba(143,209,90,0.95)',  glow:'rgba(40,60,20,0.7)',    soft:'rgba(210,240,190,0.55)' },
+    'Eternal Eclipse':   { ring:'rgba(180,140,242,0.95)', glow:'rgba(90,60,140,0.6)',   soft:'rgba(220,200,250,0.6)' },
+    'Blood Fury':        { ring:'rgba(201,162,39,0.95)',  glow:'rgba(120,40,20,0.65)',  soft:'rgba(250,220,160,0.6)' },
+    'Shadow Assault':    { ring:'rgba(165,104,242,0.95)', glow:'rgba(50,20,80,0.7)',    soft:'rgba(210,180,250,0.6)' },
+    'Inferno Dominion':  { ring:'rgba(217,98,43,0.95)',   glow:'rgba(120,40,10,0.7)',   soft:'rgba(250,190,150,0.6)' },
+    "Dawn's Reckoning":  { ring:'rgba(242,214,117,0.95)', glow:'rgba(150,110,30,0.6)',  soft:'rgba(255,240,200,0.65)' },
+    'House of Shadows':  { ring:'rgba(212,175,55,0.95)',  glow:'rgba(90,60,110,0.65)',  soft:'rgba(230,200,255,0.6)' },
+    'Axe of Dominion':   { ring:'rgba(194,59,59,0.95)',   glow:'rgba(90,20,20,0.7)',    soft:'rgba(250,180,160,0.6)' },
+    'Gate of Dominion':  { ring:'rgba(79,209,197,0.95)',  glow:'rgba(20,80,75,0.65)',   soft:'rgba(190,245,240,0.6)' },
+    'Falling Stars':     { ring:'rgba(184,160,242,0.95)', glow:'rgba(60,40,120,0.65)',  soft:'rgba(220,210,255,0.6)', twinkle:true },
+    'Zanmato':           { ring:'rgba(194,59,59,0.95)',   glow:'rgba(60,15,15,0.7)',    soft:'rgba(240,170,170,0.6)' },
+    'Royal Choco Meteor':{ ring:'rgba(224,192,47,0.95)',  glow:'rgba(120,90,10,0.65)',  soft:'rgba(255,235,170,0.6)', projectile:true },
+  };
+  let simpleSingleTargetVfx = null, simpleSingleTargetX = 50, simpleSingleTargetY = 50;
+  if(state.ultimateBanner && SIMPLE_SINGLE_TARGET_VFX[state.ultimateBanner.name]){
+    simpleSingleTargetVfx = SIMPLE_SINGLE_TARGET_VFX[state.ultimateBanner.name];
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null) ({ x: simpleSingleTargetX, y: simpleSingleTargetY } = cellCenterPercent(tIdx));
+  }
+
+  // Own-side "blessing" AOEs -- Elara's Requiem of Light, Naline's Rise
+  // Again, and Zlaizer's Rebirth all heal/revive the CASTER'S OWN side
+  // rather than striking an enemy, so they reuse Wave of Loyalty's
+  // own-side shape (ring at the caster + a staggered hit marker on every
+  // allied cell) instead of the enemy-hit shape every card above uses.
+  // Naline/Zlaizer's actual revived cells depend on which Graveyard slots
+  // the handler happens to pick at resolve time, which isn't knowable yet
+  // during the impact-phase render -- marking the whole side is the same
+  // "flat effect over the caster's board" approximation Concord's United
+  // Will already uses for its own team-wide buff.
+  const OWN_SIDE_BLESSING_VFX = {
+    'Requiem of Light': { ring:'rgba(143,224,255,0.95)', glow:'rgba(40,110,140,0.6)', soft:'rgba(210,245,255,0.65)' },
+    'Rise Again':       { ring:'rgba(240,216,121,0.95)', glow:'rgba(140,110,30,0.6)', soft:'rgba(255,245,205,0.65)' },
+    'Rebirth':          { ring:'rgba(240,216,121,0.95)', glow:'rgba(110,70,140,0.6)', soft:'rgba(240,220,255,0.65)' },
+  };
+  let ownSideBlessingVfx = null, ownSideBlessingOriginX = 50, ownSideBlessingOriginY = 50, ownSideBlessingHitPositions = [];
+  if(state.ultimateBanner && OWN_SIDE_BLESSING_VFX[state.ultimateBanner.name]){
+    ownSideBlessingVfx = OWN_SIDE_BLESSING_VFX[state.ultimateBanner.name];
+    ({ x: ownSideBlessingOriginX, y: ownSideBlessingOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const blessedOwner = state.ultimateBanner.owner;
+    ownSideBlessingHitPositions = state.board
+      .map((e, i) => (e && e.owner === blessedOwner) ? i : null)
+      .filter(i => i !== null)
+      .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.15 + n * 0.08 }));
+  }
+
+  // Whole-board enemy strikes -- Torn's Lethal Volley, Sylvarion's Herald's
+  // Gale, Ferea's The Frozen Crown, and Leviathan's Abyssal Deluge (plain
+  // debuffs, never destroy) plus Morvath's The Endless Tide and Zalazar's
+  // Apocalypse (whole-board DESTROYS) all mark every enemy cell from the
+  // cast-time enemyIndices snapshot -- exactly Yang/Yin Resonance's own
+  // shape (see resonanceHitPositions above), just keyed by name here too.
+  const WHOLE_BOARD_ENEMY_VFX = {
+    'Lethal Volley':    { ring:'rgba(159,209,90,0.95)',  glow:'rgba(60,90,20,0.65)',  soft:'rgba(220,245,190,0.6)' },
+    "Herald's Gale":     { ring:'rgba(143,209,90,0.95)',  glow:'rgba(50,90,40,0.6)',   soft:'rgba(210,240,200,0.6)' },
+    'The Frozen Crown':  { ring:'rgba(143,224,255,0.95)', glow:'rgba(30,90,130,0.65)', soft:'rgba(210,245,255,0.65)' },
+    'Abyssal Deluge':    { ring:'rgba(74,143,214,0.95)',  glow:'rgba(15,50,90,0.7)',   soft:'rgba(180,220,255,0.6)' },
+    'The Endless Tide':  { ring:'rgba(94,200,242,0.95)',  glow:'rgba(10,40,70,0.75)',  soft:'rgba(180,225,255,0.65)', magicCircle:true },
+    'Apocalypse':        { ring:'rgba(217,98,43,0.95)',   glow:'rgba(90,25,10,0.75)',  soft:'rgba(255,190,140,0.65)' },
+    'Dragonslayer':      { ring:'rgba(201,162,39,0.95)',  glow:'rgba(90,60,10,0.7)',   soft:'rgba(250,225,160,0.6)' },
+    'End of All':        { ring:'rgba(139,110,242,0.95)', glow:'rgba(40,20,80,0.75)',  soft:'rgba(210,195,255,0.65)' },
+    "Hunter's Wrath":    { ring:'rgba(201,162,39,0.95)',  glow:'rgba(80,55,10,0.65)',  soft:'rgba(250,225,170,0.6)' },
+  };
+  let wholeBoardEnemyVfx = null, wholeBoardEnemyOriginX = 50, wholeBoardEnemyOriginY = 50, wholeBoardEnemyHitPositions = [];
+  if(state.ultimateBanner && WHOLE_BOARD_ENEMY_VFX[state.ultimateBanner.name]){
+    wholeBoardEnemyVfx = WHOLE_BOARD_ENEMY_VFX[state.ultimateBanner.name];
+    ({ x: wholeBoardEnemyOriginX, y: wholeBoardEnemyOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    wholeBoardEnemyHitPositions = (state.ultimateBanner.enemyIndices || []).map((i, n) => ({ ...cellCenterPercent(i), delay: 0.12 + n * 0.06 }));
+  }
+
+  // Voidqueen's Oblivion's Call -- unlike every single-target card above,
+  // this one never touches the chosen target itself (no capture, no
+  // shield check -- see SPECIAL_HANDLERS.voidqueen), it withers whatever
+  // enemies stand ADJACENT to it. Never destroys anyone, so safe to
+  // derive live from the target's own position instead of a cast-time
+  // snapshot -- same reasoning as Whirlwind Assault's splash above.
+  const oblivionsCallActive = state.ultimateBanner && state.ultimateBanner.name === "Oblivion's Call";
+  let oblivionsCallOriginX = 50, oblivionsCallOriginY = 50, oblivionsCallHitPositions = [];
+  if(oblivionsCallActive){
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null){
+      ({ x: oblivionsCallOriginX, y: oblivionsCallOriginY } = cellCenterPercent(tIdx));
+      const row = Math.floor(tIdx/3), col = tIdx%3;
+      const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+      const oblivionsCallOwner = state.ultimateBanner.owner;
+      oblivionsCallHitPositions = dirs.map(([dr,dc]) => {
+        const r = row+dr, c = col+dc;
+        if(r<0||r>2||c<0||c>2) return null;
+        const idx = r*3+c;
+        const e = state.board[idx];
+        return (e && e.owner !== oblivionsCallOwner) ? idx : null;
+      }).filter(i => i !== null).map((i, n) => ({ ...cellCenterPercent(i), delay: 0.12 + n * 0.08 }));
+    }
+  }
+
+  // Little Jesp's Scales of Judgment -- a self-buff plus a debuff on
+  // whichever side currently holds more Wins (could be either side, or
+  // neither if tied -- see SPECIAL_HANDLERS.littlejesp). state.wins is
+  // already final by the impact-phase render (the handler hasn't run yet,
+  // and casting never itself changes the win tally), so which side is
+  // "leading" is safe to read live instead of needing a cast-time snapshot.
+  const scalesOfJudgmentActive = state.ultimateBanner && state.ultimateBanner.name === 'Scales of Judgment';
+  let scalesOfJudgmentOriginX = 50, scalesOfJudgmentOriginY = 50, scalesOfJudgmentHitPositions = [];
+  if(scalesOfJudgmentActive){
+    ({ x: scalesOfJudgmentOriginX, y: scalesOfJudgmentOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const leadingOwner = state.wins.blue === state.wins.red ? null : (state.wins.blue > state.wins.red ? 'blue' : 'red');
+    if(leadingOwner){
+      scalesOfJudgmentHitPositions = state.board
+        .map((e, i) => (e && e.owner === leadingOwner) ? i : null)
+        .filter(i => i !== null)
+        .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.12 + n * 0.06 }));
+    }
+  }
+
   // Odin's normal-attack Slash VFX -- unlike every derivation above, this
   // one is NOT gated on state.ultimateBanner at all (no cast/impact phase,
   // it's a plain one-shot triggered by an ordinary attack). Reads
@@ -6222,6 +6357,40 @@ function renderBattle(){
           <div class="vfx-ring" style="left:${whirlwindTargetX}%; top:${whirlwindTargetY}%; --vfx-ring-color:rgba(180,210,190,0.95); --vfx-glow-color:rgba(90,130,100,0.6); --vfx-ring-soft:rgba(220,240,225,0.6);"></div>
           <div class="vfx-hit" style="left:${whirlwindTargetX}%; top:${whirlwindTargetY}%; --vfx-hit-color:rgba(220,240,225,0.95); --vfx-hit-color-mid:rgba(90,130,100,0.7);"></div>
           ${whirlwindSplashPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s; --vfx-hit-color:rgba(190,215,195,0.8); --vfx-hit-color-mid:rgba(70,100,80,0.6);"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${simpleSingleTargetVfx ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          ${simpleSingleTargetVfx.projectile ? `<div class="vfx-projectile" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-projectile-color:${simpleSingleTargetVfx.ring}; --vfx-projectile-glow:${simpleSingleTargetVfx.glow};"></div>` : ''}
+          <div class="vfx-ring" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-ring-color:${simpleSingleTargetVfx.ring}; --vfx-glow-color:${simpleSingleTargetVfx.glow}; --vfx-ring-soft:${simpleSingleTargetVfx.soft};"></div>
+          <div class="vfx-hit" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-hit-color:${simpleSingleTargetVfx.soft}; --vfx-hit-color-mid:${simpleSingleTargetVfx.glow};"></div>
+          ${simpleSingleTargetVfx.twinkle ? `<div class="vfx-twinkle" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%;"></div>` : ''}
+        </div>
+      ` : ''}
+      ${ownSideBlessingVfx ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${ownSideBlessingOriginX}%; --vfx-y:${ownSideBlessingOriginY}%; --vfx-ring-color:${ownSideBlessingVfx.ring}; --vfx-glow-color:${ownSideBlessingVfx.glow}; --vfx-ring-soft:${ownSideBlessingVfx.soft}; --vfx-hit-color:${ownSideBlessingVfx.soft}; --vfx-hit-color-mid:${ownSideBlessingVfx.glow};">
+          <div class="vfx-ring"></div>
+          ${ownSideBlessingHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+          ${[0,1,2,3].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${wholeBoardEnemyVfx ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${wholeBoardEnemyOriginX}%; --vfx-y:${wholeBoardEnemyOriginY}%; --vfx-ring-color:${wholeBoardEnemyVfx.ring}; --vfx-glow-color:${wholeBoardEnemyVfx.glow}; --vfx-ring-soft:${wholeBoardEnemyVfx.soft}; --vfx-hit-color:${wholeBoardEnemyVfx.soft}; --vfx-hit-color-mid:${wholeBoardEnemyVfx.glow};">
+          <div class="vfx-ring"></div>
+          ${wholeBoardEnemyVfx.magicCircle ? `<div class="vfx-magic-circle"></div>` : ''}
+          ${wholeBoardEnemyHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${oblivionsCallActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${oblivionsCallOriginX}%; top:${oblivionsCallOriginY}%; --vfx-ring-color:rgba(165,104,242,0.95); --vfx-glow-color:rgba(50,20,80,0.7); --vfx-ring-soft:rgba(210,180,250,0.6);"></div>
+          ${oblivionsCallHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s; --vfx-hit-color:rgba(200,170,245,0.85); --vfx-hit-color-mid:rgba(50,20,80,0.6);"></div>`).join('')}
+        </div>
+      ` : ''}
+      ${scalesOfJudgmentActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${scalesOfJudgmentOriginX}%; top:${scalesOfJudgmentOriginY}%; --vfx-ring-color:rgba(201,162,39,0.95); --vfx-glow-color:rgba(90,70,20,0.65); --vfx-ring-soft:rgba(250,225,170,0.6);"></div>
+          ${scalesOfJudgmentHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s; --vfx-hit-color:rgba(230,200,150,0.8); --vfx-hit-color-mid:rgba(80,60,20,0.6);"></div>`).join('')}
         </div>
       ` : ''}
       ${odinSlashPairs.length ? `
@@ -9349,27 +9518,6 @@ const SPECIAL_HANDLERS = {
       ? `${name}'s Lethal Volley rains down — ${enemies.length} enemy ${enemies.length === 1 ? 'card is' : 'cards are'} struck!`
       : `${name}'s Lethal Volley finds no enemies to strike!`;
   },
-  // Explicitly unblockable per the card text ("Kan inte blockeras") — no
-  // specialBlockedByShield check, unlike most other capture specials. The
-  // Pallis & Pell bonus reuses the same "anywhere on your board" check as
-  // this card's Divine Bond passive (active.pairPresence), not a stricter
-  // adjacency check, so the whole card stays internally consistent.
-  littlejesp({ srcEntry, targetEntry, owner }){
-    const name = srcEntry.card.name;
-    if(totalPower(srcEntry) + 5 <= totalPower(targetEntry)){
-      return `${name}'s Divine Arrow flies wide — ${targetEntry.card.name} holds firm!`;
-    }
-    targetEntry.owner = owner;
-    targetEntry.justFlipped = true;
-    checkSisterFlip(targetEntry);
-    const bonded = state.board.some(e => e && e.owner === owner && e.card.id === 'pallispell');
-    let msg = `${name}'s Divine Arrow claims ${targetEntry.card.name}!`;
-    if(bonded){
-      SpecialVerbs.attackBoost(srcEntry, 2);
-      msg += ` With Pallis & Pell at his side, his power surges permanently!`;
-    }
-    return msg;
-  },
   // No explicit attack bonus in the source text (unlike most single-target
   // ultimates, which invent one) — a plain totalPower comparison per target,
   // same shield rules as a normal battle. "Choose up to 2" is simplified to
@@ -10174,12 +10322,46 @@ function playUltimateSequence(job){
   // every other AOE identity-VFX card, rather than re-deriving "who is an
   // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion" || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion" || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending' || special.name === 'Lethal Volley' || special.name === "Herald's Gale" || special.name === 'The Frozen Crown' || special.name === 'Abyssal Deluge' || special.name === 'The Endless Tide' || special.name === 'Apocalypse'){
     // Yang/Yin Resonance (Evil Twist) are the same "never destroys/nulls a
     // board slot" shape as Diamond Storm -- a plain debuffThisRound AOE --
     // added here anyway for the same "reuse the shared enemyIndices
     // mechanism instead of a one-off live re-derivation" reasoning.
+    // VFX expansion round 7 (Torn/Sylvarion/Ferea/Leviathan, plain
+    // whole-board debuffThisRound AOEs, and Morvath/Zalazar, whole-board
+    // DESTROY AOEs) added to this same list for the same two reasons —
+    // debuff-only cards for consistency with Diamond Storm above, and the
+    // two destroy cards because they need the actual "who was an enemy
+    // before this nulled their board slots" snapshot treatment.
     aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.owner !== owner) ? i : null).filter(i => i !== null);
+  } else if(special.name === 'Dragonslayer'){
+    // Kaeldryx's Dragonslayer doesn't target "enemies" at all -- it
+    // destroys every Dragon-tagged card on the board regardless of owner
+    // (see SPECIAL_HANDLERS.kaeldryx), so the snapshot has to filter by
+    // card.isDragon instead of by owner. Stored in the same enemyIndices
+    // field anyway -- it's presentation-only, VFX doesn't care what the
+    // field is semantically called, just which cells to mark.
+    aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && e.card.isDragon) ? i : null).filter(i => i !== null);
+  } else if(special.name === 'End of All'){
+    // Umbrael's End of All destroys literally everyone else on the board,
+    // allied and enemy alike (see SPECIAL_HANDLERS.umbrael) -- the only
+    // exclusion is his own cell.
+    aoeEnemyIndicesAtCast = state.board.map((e,i) => (e && i !== sourceIndex) ? i : null).filter(i => i !== null);
+  } else if(special.name === "Hunter's Wrath"){
+    // Pallis & Pell's Hunter's Wrath only hits up to 2 enemies immediately
+    // adjacent to their own cell (see SPECIAL_HANDLERS.pallispell) -- same
+    // adjacent-only shape as Forbidden Harmony below, just never destroys
+    // (a plain flip), so this branch is really only here to reuse the
+    // shared enemyIndices mechanism rather than a one-off live re-derivation.
+    const row = Math.floor(sourceIndex/3), col = sourceIndex%3;
+    const dirs = [[-1,0],[0,1],[1,0],[0,-1]];
+    aoeEnemyIndicesAtCast = dirs.map(([dr,dc]) => {
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return null;
+      const idx = r*3+c;
+      const e = state.board[idx];
+      return (e && e.owner !== owner) ? idx : null;
+    }).filter(i => i !== null);
   } else if((special.name === 'Eternal Verdict' || special.name === 'The Falling World') && extra && extra.direction){
     // Eternal Verdict (and Vorgrath's The Falling World, an unconditional
     // version of the same shape) only hit the chosen line, not the whole

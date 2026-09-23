@@ -9228,3 +9228,132 @@ test('Fas 19 (better light effects, round 2): direction/line-target cards (Ragna
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('VFX expansion round 7: every remaining card without bespoke identity VFX (29 cards) now renders real ring/hit VFX instead of just the plain name banner', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+    state.wins = { blue: 5, red: 2 };
+
+    // Plain single-target captures -- ring+hit at the target cell.
+    const singleTargetCases = [
+      ['darien', 'Shadow Breaker'], ['zaevir', 'Eternal Arrow'], ['sarah', "Aion's Last Light"],
+      ['vayra', 'Eclipse'], ['ysara', 'Eternal Eclipse'], ['ragnar', 'Blood Fury'],
+      ['deathblade', 'Shadow Assault'], ['tahabata', 'Inferno Dominion'], ['aurelia', "Dawn's Reckoning"],
+      ['twistedgipsy', 'House of Shadows'], ['maximus', 'Axe of Dominion'], ['darum', 'Gate of Dominion'],
+      ['astrael', 'Falling Stars'], ['yojimbo', 'Zanmato'], ['chocoboking', 'Royal Choco Meteor'],
+    ];
+    out.singleTargetResults = singleTargetCases.map(([id, name]) => {
+      state.board = Array(9).fill(null);
+      state.board[4] = { card: findCardById(id), owner:'blue' };
+      state.board[1] = { card: findCardById('ogre'), owner:'red' };
+      state.ultimateBanner = { phase:'impact', owner:'blue', name, sourceIndex:4, targetIndex:1, enemyIndices:null };
+      const html = renderBattle();
+      return { id, hasRing: html.includes('class="vfx-ring"'), hasHit: html.includes('vfx-hit') };
+    });
+    out.zaevirHasProjectile = (() => {
+      state.board = Array(9).fill(null);
+      state.board[4] = { card: findCardById('zaevir'), owner:'blue' };
+      state.board[1] = { card: findCardById('ogre'), owner:'red' };
+      state.ultimateBanner = { phase:'impact', owner:'blue', name:'Eternal Arrow', sourceIndex:4, targetIndex:1, enemyIndices:null };
+      return renderBattle().includes('vfx-projectile');
+    })();
+    out.astraelHasTwinkle = (() => {
+      state.board = Array(9).fill(null);
+      state.board[4] = { card: findCardById('astrael'), owner:'blue' };
+      state.board[1] = { card: findCardById('ogre'), owner:'red' };
+      state.ultimateBanner = { phase:'impact', owner:'blue', name:'Falling Stars', sourceIndex:4, targetIndex:1, enemyIndices:null };
+      return renderBattle().includes('vfx-twinkle');
+    })();
+
+    // Own-side "blessing" AOEs -- ring at the caster + a hit marker on
+    // every allied cell (Elara/Naline/Zlaizer heal/revive their OWN side).
+    const ownSideCases = [['elara', 'Requiem of Light'], ['naline', 'Rise Again'], ['zlaizer', 'Rebirth']];
+    out.ownSideResults = ownSideCases.map(([id, name]) => {
+      state.board = Array(9).fill(null);
+      state.board[4] = { card: findCardById(id), owner:'blue' };
+      state.board[0] = { card: findCardById('ogre'), owner:'blue' }; // ally
+      state.board[1] = { card: findCardById('ogre'), owner:'red' }; // enemy -- must NOT be marked
+      state.ultimateBanner = { phase:'impact', owner:'blue', name, sourceIndex:4, targetIndex:null, enemyIndices:null };
+      const html = renderBattle();
+      // Exactly 2 hits expected: the caster (index 4) and the one ally (index 0) -- never the enemy.
+      const hitCount = (html.match(/class="vfx-hit"/g) || []).length;
+      return { id, hasRing: html.includes('class="vfx-ring"'), hitCount };
+    });
+
+    // Whole-board enemy strikes (debuff-only AND destroy-all cards alike)
+    // -- ring at the caster + a hit marker on every cast-time enemyIndices cell.
+    const wholeBoardCases = [
+      ['torn', 'Lethal Volley'], ['sylvarion', "Herald's Gale"], ['ferea', 'The Frozen Crown'],
+      ['leviathan', 'Abyssal Deluge'], ['morvath', 'The Endless Tide'], ['zalazar', 'Apocalypse'],
+      ['kaeldryx', 'Dragonslayer'], ['umbrael', 'End of All'], ['pallispell', "Hunter's Wrath"],
+    ];
+    out.wholeBoardResults = wholeBoardCases.map(([id, name]) => {
+      state.board = Array(9).fill(null);
+      state.board[4] = { card: findCardById(id), owner:'blue' };
+      state.board[1] = { card: findCardById('ogre'), owner:'red' };
+      state.board[7] = { card: findCardById('ogre'), owner:'red' };
+      state.ultimateBanner = { phase:'impact', owner:'blue', name, sourceIndex:4, targetIndex:null, enemyIndices:[1,7] };
+      const html = renderBattle();
+      const hitCount = (html.match(/class="vfx-hit"/g) || []).length;
+      return { id, hasRing: html.includes('class="vfx-ring"'), hitCount };
+    });
+    out.morvathUsesMagicCircle = (() => {
+      state.ultimateBanner = { phase:'impact', owner:'blue', name:'The Endless Tide', sourceIndex:4, targetIndex:null, enemyIndices:[1,7] };
+      state.board[4] = { card: findCardById('morvath'), owner:'blue' };
+      return renderBattle().includes('vfx-magic-circle');
+    })();
+
+    // Voidqueen's Oblivion's Call -- ring at the TARGET (not the caster),
+    // plus a hit marker only on enemies ADJACENT to that target.
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('voidqueen'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' }; // the chosen target
+    state.board[2] = { card: findCardById('ogre'), owner:'red' }; // adjacent to target -- withered
+    state.board[7] = { card: findCardById('ogre'), owner:'red' }; // NOT adjacent to target -- untouched
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:"Oblivion's Call", sourceIndex:4, targetIndex:1, enemyIndices:null };
+    let html = renderBattle();
+    out.oblivionHasRing = html.includes('class="vfx-ring"');
+    out.oblivionHitCount = (html.match(/class="vfx-hit"/g) || []).length; // only cell 2, not cell 7
+
+    // Little Jesp's Scales of Judgment -- self ring + a hit marker on
+    // whichever side currently holds MORE wins (live from state.wins).
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('littlejesp'), owner:'blue' };
+    state.board[0] = { card: findCardById('ogre'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.wins = { blue: 6, red: 2 }; // blue is leading -- blue's own 2 cells (4 and 0) get marked
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Scales of Judgment', sourceIndex:4, targetIndex:null, enemyIndices:null };
+    html = renderBattle();
+    out.scalesHasRing = html.includes('class="vfx-ring"');
+    out.scalesHitCountLeading = (html.match(/class="vfx-hit"/g) || []).length;
+    state.wins = { blue: 3, red: 3 }; // tied -- no side is "leading", no hits at all
+    html = renderBattle();
+    out.scalesHitCountTied = (html.match(/class="vfx-hit"/g) || []).length;
+
+    return out;
+  })()`);
+  result.singleTargetResults.forEach(r => {
+    assert.equal(r.hasRing, true, `${r.id} must render a .vfx-ring`);
+    assert.equal(r.hasHit, true, `${r.id} must render a .vfx-hit`);
+  });
+  assert.equal(result.zaevirHasProjectile, true, "Eternal Arrow (a ranged marksman's shot) should get a falling .vfx-projectile like Skybreaker");
+  assert.equal(result.astraelHasTwinkle, true, 'Falling Stars should get a .vfx-twinkle for its cosmic/starry flavor');
+  result.ownSideResults.forEach(r => {
+    assert.equal(r.hasRing, true, `${r.id} must render a .vfx-ring`);
+    assert.equal(r.hitCount, 2, `${r.id} must mark the caster + the one ally, never the enemy cell`);
+  });
+  result.wholeBoardResults.forEach(r => {
+    assert.equal(r.hasRing, true, `${r.id} must render a .vfx-ring`);
+    assert.equal(r.hitCount, 2, `${r.id} must mark both enemyIndices cells`);
+  });
+  assert.equal(result.morvathUsesMagicCircle, true, "Morvath's The Endless Tide is the flagship treatment for this round and should use .vfx-magic-circle");
+  assert.equal(result.oblivionHasRing, true);
+  assert.equal(result.oblivionHitCount, 1, "Oblivion's Call must wither only the enemy ADJACENT to the target, never the non-adjacent one");
+  assert.equal(result.scalesHasRing, true);
+  assert.equal(result.scalesHitCountLeading, 2, 'Scales of Judgment must mark every cell on the currently-leading side');
+  assert.equal(result.scalesHitCountTied, 0, 'a perfectly tied score must mark no one');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
