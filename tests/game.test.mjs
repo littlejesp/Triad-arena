@@ -9425,3 +9425,164 @@ test('VFX polish pass on the older single-target cards: shard/twinkle/clockhand/
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Bug fix: simulatePlacementDetailed no longer seeds its Combo chain from an ordinary (non-Same/Plus) battle capture, matching resolveFlips\' own samePlusSeeds-only queue', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.rules.same = false;
+    state.rules.plus = false;
+    state.rules.combo = true;
+    state.board = Array(9).fill(null);
+    const mk = (id, top, right, bottom, left, owner) => ({
+      card: { id, name: id, top, right, bottom, left }, owner, captureBonus: 0,
+    });
+    // Placed card wins an ORDINARY battle against index1 (top 9 vs its
+    // bottom 3, no Same/Plus rule active at all) -- index1, if allowed to
+    // chain, would ALSO win against index0 (its own left 9 vs index0's
+    // right 2). The old bug: simulatePlacementDetailed's combo BFS used
+    // to seed its queue from every capture so far (including this plain
+    // battle win), so index0 got wrongly captured too. Fixed: the queue
+    // only ever seeds from real Same/Plus captures, so with both rules
+    // off, index0 must never be touched.
+    state.board[1] = mk('mid', 1, 1, 3, 9, 'red');
+    state.board[0] = mk('corner', 1, 2, 1, 1, 'red');
+    const placed = { id:'src', name:'Src', top:9, right:1, bottom:1, left:1 };
+
+    const detailed = simulatePlacementDetailed(state.board, 4, placed, 'blue');
+    out.sameOrPlus = detailed.sameOrPlus;
+    out.combo = detailed.combo;
+    out.index1Captured = detailed.board[1].owner === 'blue';
+    out.index0StaysRed = detailed.board[0].owner === 'red';
+    out.inputBoardUntouched = state.board[1].owner === 'red' && state.board[0].owner === 'red';
+
+    return out;
+  })()`);
+  assert.equal(result.index1Captured, true, 'the ordinary battle win at index 1 must still happen');
+  assert.equal(result.sameOrPlus, 0, 'no Same/Plus rule was active, so sameOrPlus must be 0');
+  assert.equal(result.combo, 0, 'an ordinary battle capture must never seed a further Combo chain -- this is the bug being fixed');
+  assert.equal(result.index0StaysRed, true, 'index 0 must NOT be captured -- the old bug let the chain wrongly reach it from the plain battle win at index 1');
+  assert.equal(result.inputBoardUntouched, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('simulatePlacementDetailed: a Same-seeded chain correctly cascades through a second hop, counted in .combo (not just .sameOrPlus)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.rules.same = true;
+    state.rules.plus = false;
+    state.rules.combo = true;
+    state.board = Array(9).fill(null);
+    const mk = (id, top, right, bottom, left, owner) => ({
+      card: { id, name: id, top, right, bottom, left }, owner, captureBonus: 0,
+    });
+    // The Same rule only ever fires with AT LEAST 2 simultaneous matches
+    // (see computeSamePlusCaptures' own matches.length >= 2 gate) -- a
+    // lone matching neighbor never captures on its own, classic Triple
+    // Triad Same semantics. So this needs two matched neighbors: index3
+    // (left 5, matches placed's left-facing 5, no further chain of its
+    // own) and index5 (left 5, matches placed's right-facing 5) -- index5
+    // then, now blue, wins an ORDINARY battle against index2 via its own
+    // top edge (9) against index2's bottom (1), a real second-hop Combo
+    // capture only reachable because index5 itself was a genuine Same
+    // capture.
+    state.board[3] = mk('same-a', 1, 5, 1, 1, 'red');
+    state.board[5] = mk('same-b', 9, 1, 1, 5, 'red');
+    state.board[2] = mk('hop2', 1, 1, 1, 1, 'red');
+    const placed = { id:'src', name:'Src', top:1, right:5, bottom:1, left:5 };
+
+    const detailed = simulatePlacementDetailed(state.board, 4, placed, 'blue');
+    out.sameOrPlus = detailed.sameOrPlus;
+    out.combo = detailed.combo;
+    out.sameACaptured = detailed.board[3].owner === 'blue';
+    out.sameBCaptured = detailed.board[5].owner === 'blue';
+    out.hop2Captured = detailed.board[2].owner === 'blue';
+
+    return out;
+  })()`);
+  assert.equal(result.sameACaptured, true);
+  assert.equal(result.sameBCaptured, true);
+  assert.equal(result.hop2Captured, true, 'the second-hop capture, chained from a real Same capture, must succeed');
+  assert.equal(result.sameOrPlus, 2, 'both simultaneous Same matches count toward sameOrPlus');
+  assert.equal(result.combo, 1, 'exactly one further Combo-chain capture happened at hop 2, beyond the two immediate Same captures');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Gameplay aids (Easy/Normal only, user-requested "extra hjälpmedel"): the suggested-placement hint picks the one cell that actually captures, and the "crazy combo" glow lights up a cell that would trigger a big Same chain -- both suppressed entirely on Hard', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.draftMode = null;
+    state.phase = 'battle';
+    state.turn = 'blue';
+    state.placedThisTurn = false;
+    state.ultimateBanner = null;
+    state.enemyHand = [];
+    state.rules.same = false;
+    state.rules.plus = false;
+    state.rules.combo = false;
+
+    // Cave Ogre (top8/right5/bottom8/left4, no active abilities -- a real,
+    // plain registered card) placed next to a lone enemy Cave Ogre at
+    // index 4: only index 3 (attacking with right(5) into the enemy's
+    // left(4)) wins; index 1/7 tie (8 vs 8) and index 5 loses (4 vs 5).
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('ogre'), owner:'red', captureBonus:0 };
+    state.pendingCard = 'ogre';
+
+    state.aiDifficulty = 'normal';
+    out.suggestedNormal = getSuggestedPlacementCell();
+
+    state.aiDifficulty = 'hard';
+    out.suggestedHard = getSuggestedPlacementCell();
+    out.comboHardEmpty = getComboChainCells().size;
+
+    // Reset for the combo-glow check: a real registered card (Cave Ogre)
+    // as the caster, surrounded by four synthetic enemies whose facing
+    // edge exactly matches the ogre's own -- a real, deterministic 4-way
+    // Same capture reaching BIG_COMBO_CHAIN_THRESHOLD in one hop.
+    state.rules.same = true;
+    state.rules.combo = true;
+    state.board = Array(9).fill(null);
+    const mk = (top, right, bottom, left) => ({ card: { id:'synth', name:'Synth', top, right, bottom, left }, owner:'red', captureBonus:0 });
+    state.board[1] = mk(1, 1, 8, 1); // bottom 8 matches ogre's top 8
+    state.board[3] = mk(1, 4, 1, 1); // right 4 matches ogre's left 4
+    state.board[5] = mk(1, 1, 1, 5); // left 5 matches ogre's right 5
+    state.board[7] = mk(8, 1, 1, 1); // top 8 matches ogre's bottom 8
+    state.pendingCard = 'ogre';
+    state.aiDifficulty = 'normal';
+    out.comboNormal = Array.from(getComboChainCells());
+
+    state.aiDifficulty = 'hard';
+    out.comboHard = Array.from(getComboChainCells());
+    out.suggestedHardOnComboBoard = getSuggestedPlacementCell();
+
+    // Full render wiring: cell 4 should carry BOTH the suggested-ring and
+    // the combo-hint-ring markup on Normal, and NEITHER on Hard.
+    state.aiDifficulty = 'normal';
+    let html = renderBattle();
+    out.htmlHasSuggestedRingNormal = (html.match(/class="suggested-ring"/g) || []).length;
+    out.htmlHasComboRingNormal = (html.match(/class="combo-hint-ring"/g) || []).length;
+    state.aiDifficulty = 'hard';
+    html = renderBattle();
+    out.htmlHasSuggestedRingHard = (html.match(/class="suggested-ring"/g) || []).length;
+    out.htmlHasComboRingHard = (html.match(/class="combo-hint-ring"/g) || []).length;
+
+    return out;
+  })()`);
+  assert.equal(result.suggestedNormal, 3, 'the only cell that actually captures (index 3) must be the suggested one');
+  assert.equal(result.suggestedHard, null, 'no suggestion at all on Hard difficulty');
+  assert.equal(result.comboHardEmpty, 0, 'no combo glow at all on Hard difficulty');
+  assert.deepEqual(result.comboNormal, [4], 'the 4-way Same capture cell must glow -- it reaches BIG_COMBO_CHAIN_THRESHOLD in a single hop');
+  assert.deepEqual(result.comboHard, [], 'the combo glow must also be fully suppressed on Hard, even though the same board would glow on Normal');
+  assert.equal(result.suggestedHardOnComboBoard, null);
+  assert.equal(result.htmlHasSuggestedRingNormal, 1);
+  assert.equal(result.htmlHasComboRingNormal, 1);
+  assert.equal(result.htmlHasSuggestedRingHard, 0);
+  assert.equal(result.htmlHasComboRingHard, 0);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

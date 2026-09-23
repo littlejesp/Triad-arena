@@ -2493,6 +2493,41 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .cell.preview-vulnerable{
   box-shadow:0 0 0 2px rgba(224,80,30,0.75), 0 0 14px rgba(224,80,30,0.5);
 }
+/* Gameplay aids (Easy/Normal only, user-requested "extra hjälpmedel" --
+   see aidsEnabled/getSuggestedPlacementCell/getComboChainCells). Real
+   child elements rather than pseudo-elements or extra box-shadow layers:
+   a cell can carry .targetable/.would-capture (its own ::before/::after +
+   box-shadow already) AT THE SAME TIME as either of these, and pseudo-
+   element slots/box-shadow don't stack across separate class rules the
+   way independent child elements do -- this avoids that whole class of
+   collision regardless of which combination is present on a given cell. */
+.suggested-ring{
+  position:absolute; inset:-2px; z-index:4; pointer-events:none; border-radius:inherit;
+  box-shadow:0 0 0 2px rgba(94,200,242,0.85), 0 0 12px rgba(94,200,242,0.6);
+  animation:suggestedPulse 1.4s ease-in-out infinite;
+}
+.suggested-badge{
+  position:absolute; top:5px; left:5px; z-index:5; pointer-events:none;
+  font-size:14px; filter:drop-shadow(0 0 4px rgba(94,200,242,0.9));
+  animation:suggestedPulse 1.4s ease-in-out infinite;
+}
+@keyframes suggestedPulse{ 0%,100%{ opacity:0.55; } 50%{ opacity:1; } }
+/* "Slingrande ljus" -- a winding light chasing around the cell's border,
+   for a cell that would trigger a big enough Same/Plus/Combo chain (see
+   BIG_COMBO_CHAIN_THRESHOLD). A conic-gradient ring, masked down to just
+   the outline via mask-composite:exclude (content-box cutout XORed
+   against the full box), continuously rotating. */
+.combo-hint-ring{
+  position:absolute; inset:-4px; z-index:4; pointer-events:none;
+  border-radius:inherit; padding:4px;
+  background:conic-gradient(from 0deg, transparent 0%, #ffe08a 12%, #fff6d8 18%, #ffe08a 24%, transparent 40%, transparent 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite:exclude;
+  animation:comboHintSpin 1.8s linear infinite;
+}
+@keyframes comboHintSpin{ to{ transform:rotate(360deg); } }
 .cell .card{ position:absolute; inset:0; width:100%; height:100%; cursor:default; }
 .cell .card.placing{ animation: cardLand calc(.48s * var(--fx-speed,1)) cubic-bezier(.22,1.6,.4,1); }
 @keyframes cardLand{
@@ -5247,7 +5282,7 @@ function renderCoinflip(){
   `;
 }
 
-function boardCellHtml(cell, i, previewVulnerable){
+function boardCellHtml(cell, i, previewVulnerable, suggestedCell, comboHintCells){
   let specialInfo = null;
   if(cell && cell.owner === 'blue' && cell.card.special){
     const key = 'blue:' + cell.card.id;
@@ -5268,6 +5303,14 @@ function boardCellHtml(cell, i, previewVulnerable){
   // logic, never a guess.
   const capturePreview = placeTargetable ? computeCapturePreview(state.pendingCard, i, 'blue') : null;
   const isVulnerable = !!(cell && cell.owner === 'red' && previewVulnerable && previewVulnerable.has(i));
+  // Gameplay aids (Easy/Normal only -- see aidsEnabled): isSuggested marks
+  // the single cell the Forest AI's own search rates best for the
+  // selected card, isComboHint marks every cell that would trigger a big
+  // enough Same/Plus/Combo chain to shake the screen. Both gated on
+  // placeTargetable too as a defensive belt-and-braces (getSuggestedPlacementCell/
+  // getComboChainCells already only ever consider empty, legal cells).
+  const isSuggested = placeTargetable && suggestedCell === i;
+  const isComboHint = placeTargetable && comboHintCells && comboHintCells.has(i);
   const cellClass = `${placeTargetable ? 'targetable':''} ${capturePreview && capturePreview.captures > 0 ? 'would-capture':''} ${specialTargetable ? 'special-target':''} ${isVulnerable ? 'preview-vulnerable':''}`;
   const ghost = !cell && state.destroyGhosts.find(g => g.index === i);
   return `
@@ -5282,6 +5325,8 @@ function boardCellHtml(cell, i, previewVulnerable){
         }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : '')}
       ${capturePreview && capturePreview.captures > 0 ? `<div class="capture-badge">⚔ ${capturePreview.captures}</div>` : ''}
       ${cell && cell.justFlipped ? `<img class="conquered-badge-small" src="conquered-badge${cell.owner === 'red' ? '-red' : ''}.png" alt="Conquered" aria-hidden="true" style="animation-delay:${cell.fxDelay || 0}ms;">` : ''}
+      ${isComboHint ? `<div class="combo-hint-ring" aria-hidden="true"></div>` : ''}
+      ${isSuggested ? `<div class="suggested-ring" aria-hidden="true"></div><div class="suggested-badge" aria-hidden="true">💡</div>` : ''}
     </div>
   `;
 }
@@ -5311,6 +5356,8 @@ function renderBattle(){
   const blueCount = state.board.filter(c => c && c.owner === 'blue').length;
   const redCount = state.board.filter(c => c && c.owner === 'red').length;
   const previewVulnerable = getPreviewCaptureTargets();
+  const suggestedCell = getSuggestedPlacementCell();
+  const comboHintCells = getComboChainCells();
 
   // Nyxara's Void Dominion identity VFX -- gated purely by the Ultimate's
   // NAME (not a new state field) so it rides state.ultimateBanner's
@@ -6127,7 +6174,7 @@ function renderBattle(){
       </div>
       ${voidDominionActive ? `<div class="void-dominion-dark phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>` : ''}
       <div class="board ${state.impactPunch ? 'impact-punch' : ''}">
-        ${state.board.map((cell,i) => boardCellHtml(cell, i, previewVulnerable)).join('')}
+        ${state.board.map((cell,i) => boardCellHtml(cell, i, previewVulnerable, suggestedCell, comboHintCells)).join('')}
       </div>
       ${voidDominionActive ? `
         <div class="void-dominion-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--void-x:${voidOriginX}%; --void-y:${voidOriginY}%;">
@@ -8409,6 +8456,14 @@ const ON_PLACE_HANDLERS = {
   },
 };
 
+// How big a Same/Plus/Combo chain needs to be (result.sameOrPlus +
+// result.combo, see resolveFlips) before it's treated as a genuinely big
+// moment -- triggers placeCard's own chainShake below, and is reused
+// verbatim by the "crazy combo" placement hint (getComboChainCells) so a
+// cell the hint promised would be a big chain always actually shakes the
+// screen when you play it.
+const BIG_COMBO_CHAIN_THRESHOLD = 4;
+
 function placeCard(cellIndex, cardId, owner){
   const hand = owner === 'blue' ? state.playerHand : state.enemyHand;
   const cardIdx = hand.findIndex(c => c.id === cardId);
@@ -8453,7 +8508,11 @@ function placeCard(cellIndex, cardId, owner){
   // in the existing 500ms justPlaced timeout below (not the later 1300ms
   // one) so the ~420ms shake animation finishes on its own before that
   // render() would otherwise restart it from frame 0.
-  if(sameOrPlus + combo >= 4) state.chainShake = true;
+  // Same threshold the "crazy combo" placement hint uses (see
+  // getComboChainCells/BIG_COMBO_CHAIN_THRESHOLD) to promise a shake --
+  // now a shared named constant instead of two separate magic 4s, so they
+  // can never silently drift apart.
+  if(sameOrPlus + combo >= BIG_COMBO_CHAIN_THRESHOLD) state.chainShake = true;
   // Odin's normal-attack Slash VFX: a brief moderate shake on every one of
   // his ordinary attacks (win or lose, same "every real battle" scope as
   // the underlying slash), reusing this exact same chainShake mechanism
@@ -10687,6 +10746,63 @@ function getPreviewCaptureTargets(){
   return vulnerable;
 }
 
+// Gameplay aids (user-requested "extra hjälpmedel" for Easy/Normal):
+// shared gating both hint helpers below use -- same base conditions as
+// getPreviewCaptureTargets above, plus "not on Hard" (a skilled player
+// doesn't want the game telling it where to play), reading through
+// effectiveAIDifficulty() so campaign-stage-assigned difficulty (see
+// campaignStageAIDifficulty) is respected the same way it already governs
+// how sharp the Forest AI itself plays.
+function aidsEnabled(){
+  if(!state.pendingCard || state.turn !== 'blue' || state.phase !== 'battle' || state.placedThisTurn || state.ultimateBanner) return false;
+  return effectiveAIDifficulty() !== 'hard';
+}
+
+// "Var är smartast att lägga sina kort" -- which empty cell the Forest
+// AI's OWN search (searchBestPlacement, the exact minimax that already
+// decides its moves) considers the single best placement for the
+// currently-selected hand card. Restricting `hands.blue` to just that one
+// card reuses the real search verbatim instead of inventing a separate,
+// possibly-disagreeing heuristic -- the hint can never recommend a cell
+// the AI itself wouldn't also rate highest for that same card. Depth 2
+// matches AI_DIFFICULTY_DEPTH.normal ("thinks two moves ahead") regardless
+// of the actual difficulty setting -- the hint's own sharpness doesn't
+// need to scale with how hard the OPPONENT currently plays, only whether
+// it's shown at all (see aidsEnabled).
+const PLACEMENT_HINT_SEARCH_DEPTH = 2;
+function getSuggestedPlacementCell(){
+  if(!aidsEnabled()) return null;
+  const card = findCardById(state.pendingCard);
+  if(!card) return null;
+  const emptyCells = state.board.map((c,i)=>c?null:i).filter(i=>i!==null);
+  if(emptyCells.length === 0) return null;
+  const hands = { blue: [card], red: state.enemyHand };
+  const result = searchBestPlacement(state.board, hands, 'blue', 'blue', PLACEMENT_HINT_SEARCH_DEPTH, -Infinity, Infinity);
+  return (result && result.cellIndex != null) ? result.cellIndex : null;
+}
+
+// "När man kan göra en galen combo lyser just den rutan" -- every empty
+// cell where placing the selected card would trigger a Same/Plus/Combo
+// chain at least as big as BIG_COMBO_CHAIN_THRESHOLD, the exact number
+// that already triggers a real chain-shake on an actual placement (see
+// placeCard) -- so the glow always keeps its promise. Uses
+// simulatePlacementDetailed (the same safe, non-mutating simulation the
+// AI's own search already relies on) purely for its sameOrPlus/combo
+// breakdown, never for the resulting board itself.
+function getComboChainCells(){
+  const glowing = new Set();
+  if(!aidsEnabled()) return glowing;
+  if(!state.rules.combo || !(state.rules.same || state.rules.plus)) return glowing;
+  const card = findCardById(state.pendingCard);
+  if(!card) return glowing;
+  state.board.forEach((cell, i) => {
+    if(cell) return;
+    const { sameOrPlus, combo } = simulatePlacementDetailed(state.board, i, card, 'blue');
+    if(sameOrPlus + combo >= BIG_COMBO_CHAIN_THRESHOLD) glowing.add(i);
+  });
+  return glowing;
+}
+
 /* ---------------- AI lookahead (Fas 2 design review) ----------------
    The old AI (simulateFlips, removed — see git history) only ever scored
    the 4 immediate neighbors of ONE candidate placement, on raw comparison
@@ -10752,10 +10868,23 @@ function cloneScratchBoard(board){
 
 // Simulates ONE placement (including its Same/Plus captures and, if the
 // Combo rule is on, the resulting chain) on a CLONE of the given board,
-// returning the new board -- never mutates its input. See the file-level
-// comment above for exactly which real-engine pieces this reuses and which
-// side effects it deliberately leaves out.
-function simulatePlacementOutcome(board, cellIndex, card, owner){
+// returning { board, sameOrPlus, combo } -- never mutates its input. See
+// the file-level comment above for exactly which real-engine pieces this
+// reuses and which side effects it deliberately leaves out. sameOrPlus/
+// combo mirror resolveFlips' own result fields (added for the "crazy
+// combo" placement hint below, which needs to know specifically how big a
+// SAME/PLUS-seeded chain would be, not just the total capture count).
+//
+// Bug fix found while adding that: this function's own combo-chain BFS
+// used to seed its queue from `flipped` (every capture so far, INCLUDING
+// plain neighbor-battle wins with no Same/Plus involved at all), not just
+// the Same/Plus captures. The real engine (resolveFlips/battleNeighbors)
+// only ever chains onward from a Same or Plus capture -- an ordinary
+// battle win never starts a Combo chain on its own (see resolveFlips'
+// own samePlusSeeds-only queue). That let the AI's search occasionally
+// credit a placement with chain captures the real engine would never
+// actually produce. Fixed here to match resolveFlips' own seeding exactly.
+function simulatePlacementDetailed(board, cellIndex, card, owner){
   const scratch = cloneScratchBoard(board);
   const savedBoard = state.board;
   state.board = scratch;
@@ -10763,10 +10892,9 @@ function simulatePlacementOutcome(board, cellIndex, card, owner){
     scratch[cellIndex] = { card, owner, captureBonus: 0, sideBonus: {} };
     const rules = state.rules;
     const samePlus = (rules.same || rules.plus) ? computeSamePlusCaptures(cellIndex, owner) : new Set();
-    const flipped = [];
     samePlus.forEach(ni => {
       const t = scratch[ni];
-      if(t && t.owner !== owner){ t.owner = owner; flipped.push(ni); }
+      if(t && t.owner !== owner) t.owner = owner;
     });
 
     const battleOneNeighbor = (fromIndex, fromCard, fromOwner, dir) => {
@@ -10800,13 +10928,13 @@ function simulatePlacementOutcome(board, cellIndex, card, owner){
       const captured = battleOneNeighbor(cellIndex, card, owner, dir);
       if(captured == null) return;
       scratch[captured].owner = owner;
-      flipped.push(captured);
       if(card.active && card.active.onCaptureBonus) scratch[cellIndex].captureBonus += card.active.onCaptureBonus;
     });
 
-    if(rules.combo && flipped.length){
+    let comboCount = 0;
+    if(rules.combo && samePlus.size){
       const visited = new Set([cellIndex]);
-      const queue = flipped.slice();
+      const queue = Array.from(samePlus);
       while(queue.length){
         const idx = queue.shift();
         if(visited.has(idx)) continue;
@@ -10822,15 +10950,23 @@ function simulatePlacementOutcome(board, cellIndex, card, owner){
           if(captured == null) return;
           scratch[captured].owner = chainEntry.owner;
           queue.push(captured);
+          comboCount++;
           if(chainEntry.card.active && chainEntry.card.active.onCaptureBonus) chainEntry.captureBonus += chainEntry.card.active.onCaptureBonus;
         });
       }
     }
 
-    return scratch;
+    return { board: scratch, sameOrPlus: samePlus.size, combo: comboCount };
   } finally {
     state.board = savedBoard;
   }
+}
+
+// Thin wrapper kept for every existing caller (searchBestPlacement below,
+// plus this function's own dedicated tests) that only ever wanted the
+// resulting board, not the sameOrPlus/combo breakdown.
+function simulatePlacementOutcome(board, cellIndex, card, owner){
+  return simulatePlacementDetailed(board, cellIndex, card, owner).board;
 }
 
 // Terminal/leaf heuristic: since the whole match is won purely by final
