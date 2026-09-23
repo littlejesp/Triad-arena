@@ -2249,6 +2249,35 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   100%{ opacity:0; transform:translate(var(--dx,0),var(--dy,0)) scale(1); }
 }
 
+/* The Gambler's Ultima: a single commissioned full-board art asset
+   (gambler-ultima.png, a void/dice explosion in purple/green/blue) instead
+   of the procedural ring/hit primitives above -- the user's own request
+   was "en attack som tar hela bordet lite rörande i färg" (an attack that
+   covers the whole board, its color drifting a bit), so this deliberately
+   overshoots .ultimate-vfx's board-aligned box (140%, not 100%) to bleed
+   past the board's edges, and cycles hue/saturation instead of staying a
+   single fixed tone like every other card's --vfx-ring-color. */
+.ultima-board-img{
+  position:absolute; left:50%; top:50%; width:140%; height:140%;
+  transform:translate(-50%,-50%); object-fit:contain; pointer-events:none;
+  opacity:0;
+}
+.ultimate-vfx.phase-impact .ultima-board-img{
+  animation:
+    ultimaBoardPunch 1.1s ease-out both,
+    ultimaColorShift 1.1s ease-in-out both;
+}
+@keyframes ultimaBoardPunch{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(0.6); }
+  30%{ opacity:1; transform:translate(-50%,-50%) scale(1.05); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(1.25); }
+}
+@keyframes ultimaColorShift{
+  0%{ filter:hue-rotate(0deg) saturate(1.3) brightness(1.1); }
+  50%{ filter:hue-rotate(65deg) saturate(1.6) brightness(1.3); }
+  100%{ filter:hue-rotate(-45deg) saturate(1.3) brightness(1.1); }
+}
+
 /* Design review follow-up ("bättre ljuseffekter"): an ornate magic-circle
    glyph (user-supplied, see PROJECT.md), same recolor-via-mask technique
    as .vfx-ring/.vfx-twinkle's own ::before textures above, available as
@@ -2470,6 +2499,32 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .odin-slash-spark-1{ --sx:14px;  --sy:-13px; }
 .odin-slash-spark-2{ --sx:12px;  --sy:12px;  }
 .odin-slash-spark-3{ --sx:-14px; --sy:11px;  }
+
+/* The Gambler's Roll the Dice: same board-aligned positioning box as
+   .odin-slash-fx above (so cellCenterPercent()'s left/top percentages
+   land on the right cell), one .gambler-strike-hit per die-roll hit
+   (see battleNeighbors/renderBattle's gamblerRollHits) -- the commissioned
+   strike-bolt art punches in, tip-first, at the target cell and fades,
+   staggered a beat apart so a Double/Triple Attack visibly reads as
+   separate strikes landing rather than one blob. Purely a flourish: see
+   the comment in battleNeighbors for why it never affects the actual
+   battle result. */
+.gambler-strike-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.gambler-strike-hit{
+  position:absolute; width:34px; height:60px; margin:-60px 0 0 -17px;
+  background-image:url('gambler-strike.png'); background-size:contain;
+  background-repeat:no-repeat; background-position:center bottom;
+  opacity:0; filter:drop-shadow(0 0 8px rgba(240,200,90,0.8));
+  animation: gamblerStrikeHit 0.4s ease-out both;
+}
+@keyframes gamblerStrikeHit{
+  0%{ opacity:0; transform:scale(0.4) rotate(var(--rot,0deg)); }
+  35%{ opacity:1; transform:scale(1.05) rotate(var(--rot,0deg)); }
+  100%{ opacity:0; transform:scale(0.85) rotate(var(--rot,0deg)); }
+}
 
 .coinflip-wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 0 20px; animation:coinFadeOut .5s ease 2.3s forwards; }
 .coinflip-frame{
@@ -3406,6 +3461,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 <script>
 /* ---------------- Character portraits ---------------- */
 const CARD_IMAGES = {
+  gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
   omegaweapon: 'cards/card-omegaweapon.jpg',
@@ -4041,6 +4097,11 @@ const HEROES = [
       {name:'Inspiring Aura (Passive)', desc:'Whenever another card on this side is placed on the board, it gains +1 Power on all sides this round.'},
       {name:'Special Attack: United Will', desc:'Costs 2 wins. If you control at least 3 cards on the board, every one of them gains +1 Power on all sides this round. The Concord itself also gains +2 Power on all sides this round.'},
     ] },
+  { id:'gambler', name:'The Gambler', role:'Trickster Card — Herald of Chaos', top:10, right:10, bottom:10, left:10, element:'void', hue:'linear-gradient(160deg,#1a1030,#0d0b18 60%)', accent:'#8b6ef2', icon:'🎲', special:{ name:'Ultima', cost:4, once:true, targets:'aoe' }, skills:[
+    {name:'Roll the Dice (Passive)', desc:"Every time The Gambler attacks, he rolls three dice first — real dice odds: about a 56% chance of no match (a single strike), 42% for two matching (a Double Attack), and 3% for all three matching (a Triple Attack). Purely a visual flourish: however many strikes land, the last one is what decides the battle, exactly like any other card."},
+    {name:'Flare (Passive)', desc:'When The Gambler is placed, a burst of chaotic energy hits every adjacent enemy card for -1 Power on all sides this round.'},
+    {name:'Special Attack: Ultima', desc:'Costs 4 wins. Reality breaks across the whole board — every enemy card gets -2 Power on all sides this round. Usable once per match.'},
+  ]},
 ];
 
 
@@ -4474,6 +4535,11 @@ const FOREST_FOES = [
       {name:'Inspiring Aura (Passive)', desc:'Whenever another card on this side is placed on the board, it gains +1 Power on all sides this round.'},
       {name:'Special Attack: United Will', desc:'Costs 2 wins. If you control at least 3 cards on the board, every one of them gains +1 Power on all sides this round. The Concord itself also gains +2 Power on all sides this round.'},
     ] },
+  { id:'gambler', name:'The Gambler', role:'Trickster Card — Herald of Chaos', top:10, right:10, bottom:10, left:10, element:'void', hue:'linear-gradient(160deg,#1a1030,#0d0b18 60%)', accent:'#8b6ef2', icon:'🎲', special:{ name:'Ultima', cost:4, once:true, targets:'aoe' }, skills:[
+    {name:'Roll the Dice (Passive)', desc:"Every time The Gambler attacks, he rolls three dice first — real dice odds: about a 56% chance of no match (a single strike), 42% for two matching (a Double Attack), and 3% for all three matching (a Triple Attack). Purely a visual flourish: however many strikes land, the last one is what decides the battle, exactly like any other card."},
+    {name:'Flare (Passive)', desc:'When The Gambler is placed, a burst of chaotic energy hits every adjacent enemy card for -1 Power on all sides this round.'},
+    {name:'Special Attack: Ultima', desc:'Costs 4 wins. Reality breaks across the whole board — every enemy card gets -2 Power on all sides this round. Usable once per match.'},
+  ]},
 ];
 
 function drawEnemyHand(){
@@ -4755,6 +4821,7 @@ let state = {
   graveyard: { blue: [], red: [] }, // destroyed cards, recorded here instead of vanishing when rules.graveyard is on — see destroyCard()
   destroyGhosts: [],      // { index, card, owner } — brief fade-out visual for a just-destroyed cell, see destroyCard()
   odinSlashes: [],        // { sourceIndex, targetIndex, delay } per pair — Odin's normal-attack Slash VFX, see battleNeighbors/placeCard/renderBattle
+  gamblerRolls: [],       // { targetIndex, hitCount, delay } per battle — The Gambler's Roll the Dice VFX, see battleNeighbors/placeCard/renderBattle
   tutorialActive: false,  // true while the guided "How to Play" walkthrough is running — see startTutorial()/TUTORIAL_STEPS
   tutorialStep: 0,        // index into TUTORIAL_STEPS while tutorialActive
   draftMode: 'random',    // 'random' | 'manual'
@@ -5885,6 +5952,14 @@ function renderBattle(){
       .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.15 + n * 0.08 }));
   }
 
+  // The Gambler's Ultima -- the first Ultimate to use a single commissioned
+  // full-board art asset (gambler-ultima.png) instead of the procedural
+  // ring/hit/particle primitives every other card above builds from. Covers
+  // the whole board (not one cell/origin), per the user's own request
+  // ("en attack som tar hela bordet lite rörande i färg") -- see
+  // .ultima-board-img/@keyframes ultimaColorShift for the color-cycling.
+  const ultimaActive = state.ultimateBanner && state.ultimateBanner.name === 'Ultima';
+
   // Evil Twist Yang/Yin's Yang Resonance / Yin Resonance -- a mirrored pair
   // sharing one derivation shape, same "two halves of the same idea"
   // pattern as Twin Brothers/Twin Sisters, matching their own
@@ -6247,6 +6322,18 @@ function renderBattle(){
     return { sx, sy, tx, ty, angleDeg, lengthPercent, delay: (s.delay || 0) / 1000 };
   });
 
+  // The Gambler's Roll the Dice -- one .gambler-strike-hit per strike
+  // (hitCount from the dice roll in battleNeighbors), staggered so a
+  // Double/Triple Attack visibly lands as separate hits rather than one
+  // blob, each with its own small random tilt for variety.
+  const gamblerRollHits = (state.gamblerRolls || []).flatMap(r => {
+    const { x: tx, y: ty } = cellCenterPercent(r.targetIndex);
+    const baseDelay = (r.delay || 0) / 1000;
+    return Array.from({ length: r.hitCount }, (_, i) => ({
+      tx, ty, delay: baseDelay + i * 0.14, rot: (Math.random() * 30 - 15).toFixed(1),
+    }));
+  });
+
   let turnText;
   if(state.phase === 'result'){
     turnText = '';
@@ -6542,6 +6629,12 @@ function renderBattle(){
           ${particleSwarmHtml(10)}
         </div>
       ` : ''}
+      ${ultimaActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <img class="ultima-board-img" src="gambler-ultima.png" alt="" aria-hidden="true">
+        </div>
+        <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(139,110,242,0.4); --vfx-flash-delay:0.3s;"></div>
+      ` : ''}
       ${yangResonanceActive ? `
         <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${resonanceOriginX}%; --vfx-y:${resonanceOriginY}%; --vfx-ring-color:rgba(230,214,150,0.95); --vfx-glow-color:rgba(176,146,74,0.6); --vfx-ring-soft:rgba(255,248,220,0.6); --vfx-hit-color:rgba(255,248,215,0.95); --vfx-hit-color-mid:rgba(176,146,74,0.7);">
           <div class="vfx-ring"></div>
@@ -6679,6 +6772,11 @@ function renderBattle(){
             <div class="odin-slash-impact" style="left:${p.tx}%; top:${p.ty}%; animation-delay:${p.delay + 0.15}s;"></div>
             ${[0,1,2,3].map(n => `<div class="odin-slash-spark odin-slash-spark-${n}" style="left:${p.tx}%; top:${p.ty}%; animation-delay:${p.delay + 0.16}s;"></div>`).join('')}
           `).join('')}
+        </div>
+      ` : ''}
+      ${gamblerRollHits.length ? `
+        <div class="gambler-strike-fx" aria-hidden="true">
+          ${gamblerRollHits.map(h => `<div class="gambler-strike-hit" style="left:${h.tx}%; top:${h.ty}%; animation-delay:${h.delay}s; --rot:${h.rot}deg;"></div>`).join('')}
         </div>
       ` : ''}
       ${state.ultimateBanner ? `
@@ -7099,7 +7197,7 @@ const ELEMENT_BEATS = { fire:'wind', wind:'earth', earth:'water', water:'fire' }
 // were silently printing the literal text "undefined" before this fix —
 // a pre-existing gap from whenever those cards' elements were added,
 // noticed and fixed in passing while giving Shiva her own 'ice').
-const ELEMENT_ICONS = { fire:'🔥', wind:'🌪️', earth:'🌍', water:'💧', ice:'❄️', light:'✨', dark:'🌑', shadow:'🖤', magic:'🔮' };
+const ELEMENT_ICONS = { fire:'🔥', wind:'🌪️', earth:'🌍', water:'💧', ice:'❄️', light:'✨', dark:'🌑', shadow:'🖤', magic:'🔮', void:'🌌' };
 function elementBeats(a, b){ return a && b && ELEMENT_BEATS[a] === b; }
 
 // Choice sets for specials whose targets:'element' or two-step flow needs
@@ -8636,6 +8734,11 @@ const ON_PLACE_HANDLERS = {
   leviathan(entry, owner, cellIndex){
     adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner !== owner) SpecialVerbs.debuffThisRound(n, 1); });
   },
+  // The Gambler's Flare: "a burst of chaotic energy, light area damage" —
+  // same adjacentEntries() shape as Shiva/Leviathan above.
+  gambler(entry, owner, cellIndex){
+    adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner !== owner) SpecialVerbs.debuffThisRound(n, 1); });
+  },
   // Odin's Allfather's Gaze: "you see a random enemy card's sides, and all
   // enemy cards get -1 Power this round." The reveal half is flavor only —
   // every card's stats are already shown openly on both sides in this game
@@ -8792,6 +8895,7 @@ function placeCard(cellIndex, cardId, owner){
     state.board[cellIndex].sisterWasCaptured = false;
   }
   if(ON_PLACE_HANDLERS[card.id]) ON_PLACE_HANDLERS[card.id](state.board[cellIndex], owner, cellIndex);
+  if(ON_PLACE_SFX[card.id]) playOnPlaceSfx(card.id);
   checkConcordInspiringAura(state.board[cellIndex], owner);
   hand.splice(cardIdx,1);
   state.pendingCard = null;
@@ -8822,6 +8926,13 @@ function placeCard(cellIndex, cardId, owner){
   if(result.odinSlashes && result.odinSlashes.length){
     state.chainShake = true;
     state.odinSlashes = result.odinSlashes;
+  }
+  // The Gambler's Roll the Dice: same threading as odinSlashes above, but
+  // no chainShake -- a flurry of dice-strikes landing on the target is its
+  // own visual event, not a board-wide impact like a big Same/Plus/Combo
+  // chain or Odin's lightning trail.
+  if(result.gamblerRolls && result.gamblerRolls.length){
+    state.gamblerRolls = result.gamblerRolls;
   }
   if(flips > 0) state.wins[owner] += flips;
   if(flips > 0) state.winsPopup = { owner, amount: flips };
@@ -8858,6 +8969,7 @@ function placeCard(cellIndex, cardId, owner){
     });
     state.destroyGhosts = [];
     state.odinSlashes = [];
+    state.gamblerRolls = [];
     render();
   }, fxTime(1300));
 
@@ -10491,6 +10603,24 @@ const SPECIAL_HANDLERS = {
       ? `${name}'s United Will surges through the ranks — every ally grows stronger!`
       : `${name}'s United Will steels itself, but too few allies stand together to share the surge!`;
   },
+  // The Gambler's Ultima: "reality breaks, a devastating strike from the
+  // void" -- a whole-board AOE, same debuffThisRound-every-enemy shape as
+  // Diamond Storm/Vorgrath's Crushing Weight, added to aoeEnemyIndicesAtCast
+  // above so it gets the same shared identity-VFX treatment (see
+  // ultimaActive/renderBattle).
+  gambler({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    let hit = 0;
+    state.board.forEach(e => {
+      if(!e || e.owner !== enemyOwner) return;
+      SpecialVerbs.debuffThisRound(e, 2);
+      hit++;
+    });
+    return hit > 0
+      ? `${name}'s Ultima tears reality apart — ${hit} enem${hit>1?'ies':'y'} weakened across the board!`
+      : `${name}'s Ultima finds no one left to strike!`;
+  },
 };
 
 function executeSpecial(sourceIndex){
@@ -10657,6 +10787,7 @@ function playUltimateVoiceLine(cardId){
 // the windup. Keyed by card id the same way; add an entry whenever a real
 // impact SFX exists for a card.
 const ULTIMATE_IMPACT_SFX = {
+  gambler: 'sfx/gambler.mp3',
   ifrit: 'sfx/ifrit.mp3',
   nyxara: 'sfx/nyxara.mp3',
   vaelira: 'sfx/vaelira.mp3',
@@ -10673,6 +10804,27 @@ function playUltimateImpactSfx(cardId){
   try{
     const audio = new Audio(src);
     audio.volume = 0.9;
+    const p = audio.play();
+    if(p && p.catch) p.catch(()=>{});
+  }catch(e){}
+}
+
+// Same idea as ULTIMATE_IMPACT_SFX above, but for an on-PLACE passive
+// ability instead of a Special Attack -- nothing else needed this before
+// (every other on-place ability just relies on the generic SFX.place()
+// thump every card gets), so this is its own small lookup rather than
+// overloading ULTIMATE_IMPACT_SFX, which is keyed to the Ultimate
+// cast/impact lifecycle specifically. Keyed by card id, same convention.
+const ON_PLACE_SFX = {
+  gambler: 'sfx/gambler-flare.mp3',
+};
+function playOnPlaceSfx(cardId){
+  if(!soundOn) return;
+  const src = ON_PLACE_SFX[cardId];
+  if(!src) return;
+  try{
+    const audio = new Audio(src);
+    audio.volume = 0.8;
     const p = audio.play();
     if(p && p.catch) p.catch(()=>{});
   }catch(e){}
@@ -10723,7 +10875,7 @@ function playUltimateSequence(job){
   // every other AOE identity-VFX card, rather than re-deriving "who is an
   // enemy" live in renderBattle() as a one-off special case.
   let aoeEnemyIndicesAtCast = null;
-  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion" || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending' || special.name === 'Lethal Volley' || special.name === "Herald's Gale" || special.name === 'The Frozen Crown' || special.name === 'Abyssal Deluge' || special.name === 'The Endless Tide' || special.name === 'Apocalypse'){
+  if(special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === 'Conquests Witnessed' || special.name === "Gorgon's Dominion" || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending' || special.name === 'Lethal Volley' || special.name === "Herald's Gale" || special.name === 'The Frozen Crown' || special.name === 'Abyssal Deluge' || special.name === 'The Endless Tide' || special.name === 'Apocalypse' || special.name === 'Ultima'){
     // Yang/Yin Resonance (Evil Twist) are the same "never destroys/nulls a
     // board slot" shape as Diamond Storm -- a plain debuffThisRound AOE --
     // added here anyway for the same "reuse the shared enemyIndices
@@ -11443,6 +11595,20 @@ function battleNeighbors(index, owner, result){
       if(!result.odinSlashes) result.odinSlashes = [];
       result.odinSlashes.push({ sourceIndex: index, targetIndex: p.ni, delay: target.fxDelay });
     }
+    // The Gambler's Roll the Dice: a real 3-die roll (actual dice odds, not
+    // a hand-picked percentage) decides how many strikes land visually --
+    // no match (~56%) is a single hit, a pair (~42%) is a Double Attack,
+    // all three matching (~3%) is a Triple Attack. Pure flourish, same as
+    // attackFlash above -- placedVal/targetVal below are computed exactly
+    // the same regardless of the roll, so however many strikes land, the
+    // real (last) one is what actually decides the battle. See
+    // gamblerRolls/renderBattle() for the visual side.
+    if(placed.id === 'gambler'){
+      const d1 = 1 + Math.floor(Math.random()*6), d2 = 1 + Math.floor(Math.random()*6), d3 = 1 + Math.floor(Math.random()*6);
+      const hitCount = (d1===d2 && d2===d3) ? 3 : (d1===d2 || d2===d3 || d1===d3) ? 2 : 1;
+      if(!result.gamblerRolls) result.gamblerRolls = [];
+      result.gamblerRolls.push({ targetIndex: p.ni, hitCount, delay: target.fxDelay });
+    }
 
     let placedVal = fullEffectiveValue(placed, p.myEdge, target.card, index, owner, 'attack');
     let targetVal = fullEffectiveValue(target.card, p.theirEdge, placed, p.ni, target.owner, 'defense');
@@ -11964,7 +12130,7 @@ function resetGame(){
     log:'Choose the five champions who will carry your banner.', winner:null,
     viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
-    turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
+    turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
   };
   render();
