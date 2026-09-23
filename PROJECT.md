@@ -4464,6 +4464,103 @@ gnist-punkter runt kortet, tydligt skild från den gamla symmetriska
 6-punkts-layouten. Hela testsviten grön: **160/160** (159 tidigare + 1
 ny).
 
+**Fas 26: Leaderboard — en riktig delad topplista mellan spelare, med en
+gratis Firebase/Firestore-databas.** Användaren frågade "Ska vi göra en
+ranking list?", vilket jag först tolkade (via `AskUserQuestion`) som en
+tier-lista över korten (S/A/B/C) — men fick omedelbart en uppföljning som
+omdefinierade hela begäran: "Inte bara det menar jag så man kan se en
+topp lista på spelare som var spelat". Två ytterligare
+`AskUserQuestion`-rundor klargjorde exakt vad som skulle byggas: en
+RIKTIG delad topplista (alla spelare, inte bara lokal historik på egen
+enhet), vilket kräver en databas, och att användaren själv skulle skapa
+ett gratis Firebase-projekt och bli guidad steg för steg genom
+konsolen (eftersom jag inte kan skapa eller äga ett konto åt dem). Innan
+någon kod skrevs klargjorde jag också explicit att en topplista och
+riktig realtids-multiplayer är två helt separata saker — multiplayer är
+ett mycket större separat projekt (matchmaking, realtidssynk,
+disconnect-hantering) och lämnades uttryckligen som en möjlig framtida
+egen begäran, inte något som byggdes här.
+
+Ledde användaren (icke-teknisk med Firebase specifikt) genom hela
+konsol-flödet i flera skärmdump-baserade utbyten: skapa projekt, välja
+Web-appen (`</>`), hoppa över `npm install` helt (spelet är en enda
+statisk HTML-fil utan byggsteg — jag skötte all kodkoppling själv mot
+den riktiga `firebaseConfig` användaren klistrade in), skapa
+Firestore-databasen, och publicera säkerhetsreglerna. Reglerna är
+medvetet öppna för läsning (`read: if true`, så alla kan se listan utan
+inloggning) men valideringsstyrda för skrivning — bara rätt fältformer,
+strängtyper och en maxlängd på spelarnamnet godkänns, ingen riktig
+auktorisering. En medveten avvägning för ett hobbyspel utan
+inloggningssystem: en tekniskt kunnig spelare skulle kunna manipulera
+sin EGEN rad via devtools, men inte andras, och konsekvensen av det är
+låg.
+
+Spelaridentitet utan inloggning: ett slumpat `playerId`
+(`crypto.randomUUID()` med fallback) genereras en gång och sparas för
+alltid i `localStorage`, används som Firestore-dokument-ID
+(`players/{playerId}`) så en återvändande spelare uppdaterar sin egen
+rad istället för att skapa dubbletter. Ett separat, spelarvalt
+`playerName` (också `localStorage`-sparat) är det enda som någonsin
+visas publikt, redigerbart direkt i Match Settings-panelen. Eftersom
+detta är den FÖRSTA fritextinmatningen någon spelare kan skriva i hela
+spelet, och den renderas (via `innerHTML`) i alla andra spelares
+webbläsare, byggdes en `escapeHtml()`-hjälpare och en dedikerad
+regressionstest med en riktig `<img src=x onerror=...>`-payload som
+bevisar att den aldrig exekveras, varken i namn-inputen eller i
+listraderna — Firestore-reglerna validerar bara typ/längd, inte
+HTML-säkerhet.
+
+`syncLeaderboardScore()` anropas som sista raden i `recordMatchResult()`
+efter varje avslutad match och följer samma "best-effort, kraschar
+aldrig kärnspelet"-filosofi som redan gäller för presentationslager i
+spelet: om `window.leaderboardSyncScore` saknas (Firebase-modulen inte
+laddad, nätverket nere, en annonsblockerare) skippas synken tyst utan
+att påverka spelflödet. Bryggan mellan spelets klassiska (icke-modul)
+huvudscript och Firebases moduluppbyggda JS-SDK (laddat via CDN som
+`<script type="module">`) sker via två globalt exponerade funktioner,
+`window.leaderboardSyncScore`/`window.leaderboardFetchTop`, som spelets
+kod anropar utan att veta något om Firebase internt.
+
+Två separata CSS-specificitetsbuggar hittades och fixades under
+byggandet, båda av exakt samma buggklass: en generell basstil med lika
+eller högre specificitet vinner över en ny, mer specifik klass oavsett
+källordning, tills den nya regeln får en STÖRRE specificitet. Först
+kollapsade "Visa topplista"-knappen namn-inputen till ~22px bredd,
+eftersom `button.ghost{ width:100%; }` (tagg+klass, specificitet
+(0,1,1)) övertrumfade min klass-bara `.leaderboard-view-btn`
+((0,1,0)) — fixat med `button.ghost.leaderboard-view-btn`
+(tagg+2 klasser, (0,2,1)). Sedan visade själva topplistemodalen namn
+trunkerade till en enda bokstav och en helt fel proportionerad layout;
+`getComputedStyle`-diagnostik avslöjade att `.leaderboard-modal`s
+`max-width` faktiskt var 780px, inte de 480px jag satt. Orsaken:
+korts-infomodalens `@media (min-width:700px){ .modal-poster{
+max-width:780px; display:flex; ... } }` (för dess sida-vid-sida
+art+skills-layout) delar samma bas-klass `.modal-poster` som
+topplistemodalen återanvänder, med LIKA specificitet (0,1,0) — och
+eftersom den regeln står senare i filen vann den på källordning, vilket
+både blåste ut bredden och tvingade `display:flex` på hela
+modal-elementet (så rubrik/status/lista klämdes ihop i kolumner istället
+för att staplas). Fixat på samma sätt: `.modal-poster.leaderboard-modal`
+(två klasser, (0,2,0)) med explicit `display:block`, som vinner
+oavsett var i filen den nyare regeln står.
+
+Denna sandlådemiljös nätverksproxy blockerar utgående anrop till
+externa domäner som `www.gstatic.com` (bekräftat via `connect_rejected`
+i agent-proxy-loggen), så en riktig end-to-end-test mot det verkliga
+Firebase-projektet är omöjlig härifrån. Testningen byggdes istället kring
+mockade `window.leaderboardSyncScore`/`leaderboardFetchTop`-funktioner i
+Playwright, vilket dessutom naturligt speglar produktionsbeteendet bakom
+en annonsblockerare eller offline (testramverkets `newPage()` blockerar
+redan alla externa nätverksanrop av andra skäl). Två nya permanenta
+regressionstest: ett som bekräftar att spelet aldrig kraschar utan
+Firebase-modulen laddad OCH att rätt payload/anrop sker när funktionerna
+mockas in, och ett som bevisar XSS-skyddet med en riktig
+`<img onerror>`-payload. Hela testsviten grön: **162/162** (160 tidigare
++ 2 nya). Eftersom den riktiga nätverksanslutningen inte kan testas
+härifrån behöver användaren själv göra en sista manuell koll live
+(skriva ett namn, spela en match, öppna topplistan) för att bekräfta att
+synken mot den riktiga databasen fungerar end-to-end.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

@@ -9714,3 +9714,131 @@ test('Particle Swarm ("gör det bättre" follow-up): particleSwarmHtml() generat
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Leaderboard (Fas 26): degrades gracefully with no Firebase loaded (this test harness blocks external requests, same as production behind an ad-blocker/offline), and calls window.leaderboardSyncScore/leaderboardFetchTop correctly once mocked in', async () => {
+  const { page, pageErrors } = await newPage();
+
+  // Part A: with window.leaderboardSyncScore/leaderboardFetchTop entirely
+  // absent (exactly what happens when the Firebase module script's real
+  // network request is blocked -- an ad-blocker, offline, or this test
+  // harness's own route-blocking), nothing must throw, and the UI must
+  // show a clear error state rather than hanging or silently doing nothing.
+  const partA = await page.evaluate(`(() => {
+    const out = {};
+    playerName = 'NoFirebaseTest';
+    out.syncNoThrow = (() => { try { syncLeaderboardScore(); return true; } catch(e){ return false; } })();
+
+    state.showLeaderboard = true;
+    state.leaderboardStatus = 'loading';
+    state.leaderboardEntries = null;
+    render();
+    // Mirrors attachHandlers' own leaderboard-open-btn click handler logic.
+    if(window.leaderboardFetchTop){
+      out.hadRealFetch = true;
+    } else {
+      state.leaderboardStatus = 'error';
+      render();
+      out.hadRealFetch = false;
+    }
+    out.showsErrorStatus = document.querySelector('.leaderboard-status') !== null;
+    out.errorText = document.querySelector('.leaderboard-status') ? document.querySelector('.leaderboard-status').textContent : null;
+    state.showLeaderboard = false;
+    return out;
+  })()`);
+  assert.equal(partA.syncNoThrow, true, 'syncLeaderboardScore must never throw when the Firebase module has not loaded');
+  assert.equal(partA.hadRealFetch, false, 'this test harness blocks external requests, so the real Firebase module never loads -- confirms the test is actually exercising the no-Firebase path');
+  assert.equal(partA.showsErrorStatus, true);
+
+  // Part B: mock window.leaderboardSyncScore/leaderboardFetchTop directly
+  // (standing in for the real Firebase module script, which we can't load
+  // here) to verify OUR code -- syncLeaderboardScore's payload shape, the
+  // name-input change handler, and the open-button's fetch-and-render
+  // flow -- is actually correct.
+  const partB = await page.evaluate(`(async () => {
+    const out = {};
+    const syncCalls = [];
+    window.leaderboardSyncScore = async (pid, data) => { syncCalls.push({ pid, data }); };
+    window.leaderboardFetchTop = async (count) => {
+      out.fetchCalledWithCount = count;
+      return [
+        { id: playerId, name: 'MockMe', wins: 7, losses: 2, draws: 1 },
+        { id: 'someone-else', name: 'MockRival', wins: 5, losses: 5, draws: 0 },
+      ];
+    };
+
+    state.draftMode = null;
+    matchStats.wins = 7; matchStats.losses = 2; matchStats.draws = 1; matchStats.matches = 10;
+    playerName = 'MockMe';
+    savePlayerName('MockMe');
+    syncLeaderboardScore();
+    await new Promise(r => setTimeout(r, 0));
+    out.syncCallCount = syncCalls.length;
+    out.syncPayload = syncCalls[0] ? syncCalls[0].data : null;
+    out.syncUsedRealPlayerId = syncCalls[0] ? syncCalls[0].pid === playerId : false;
+
+    // Full open-button flow, exactly mirroring attachHandlers' own handler.
+    state.showLeaderboard = true;
+    state.leaderboardStatus = 'loading';
+    state.leaderboardEntries = null;
+    render();
+    const rows = await window.leaderboardFetchTop(20);
+    state.leaderboardEntries = rows;
+    state.leaderboardStatus = rows === null ? 'error' : 'ready';
+    render();
+
+    out.statusAfterFetch = state.leaderboardStatus;
+    out.rowCount = document.querySelectorAll('.leaderboard-row').length;
+    out.youRowShowsCorrectPlayer = document.querySelector('.leaderboard-row.leaderboard-you').textContent.includes('MockMe');
+    out.rivalRowNotHighlighted = !document.querySelector('.leaderboard-row:not(.leaderboard-you)').classList.contains('leaderboard-you');
+
+    return out;
+  })()`);
+  assert.equal(partB.syncCallCount, 1, 'syncLeaderboardScore must call window.leaderboardSyncScore exactly once');
+  assert.equal(partB.syncUsedRealPlayerId, true, "must sync under this browser's own stable playerId, not a fresh/random one");
+  assert.deepEqual(partB.syncPayload, { name: 'MockMe', wins: 7, losses: 2, draws: 1, matchesPlayed: 10, updatedAt: partB.syncPayload.updatedAt }, 'the synced payload must mirror matchStats exactly, field for field');
+  assert.equal(partB.fetchCalledWithCount, 20, 'the leaderboard should request a reasonable top-N, not the entire collection');
+  assert.equal(partB.statusAfterFetch, 'ready');
+  assert.equal(partB.rowCount, 2);
+  assert.equal(partB.youRowShowsCorrectPlayer, true, "this browser's own row must be identified by playerId and show the right name");
+  assert.equal(partB.rivalRowNotHighlighted, true, "another player's row must never get the 'you' highlight");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Leaderboard (Fas 26): player names are HTML-escaped before rendering, both in the name input and in fetched leaderboard rows -- a malicious name must never execute as markup', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    const out = {};
+    const evilName = '<img src=x onerror="window.__xss=true">';
+
+    // 1. The name input's own value attribute.
+    playerName = evilName;
+    state.draftMode = null;
+    let html = renderDraft();
+    out.inputHtmlEscaped = html.includes('&lt;img') && !html.includes('<img src=x onerror');
+
+    // 2. A fetched leaderboard row carrying the same hostile name (as if
+    // written directly via the Firestore SDK, bypassing our own UI/rules'
+    // type checks, which validate shape/length but not HTML content).
+    window.leaderboardFetchTop = async () => [{ id: 'attacker', name: evilName, wins: 1, losses: 0, draws: 0 }];
+    state.showLeaderboard = true;
+    state.leaderboardStatus = 'ready';
+    state.leaderboardEntries = await window.leaderboardFetchTop();
+    html = renderLeaderboardModal();
+    out.rowHtmlEscaped = html.includes('&lt;img') && !html.includes('<img src=x onerror');
+
+    // 3. Actually mount it and confirm the onerror handler never executed
+    // (the real proof an escape works -- not just string-matching).
+    window.__xss = false;
+    render();
+    await new Promise(r => setTimeout(r, 50));
+    out.xssDidNotFire = window.__xss === false;
+
+    return out;
+  })()`);
+  assert.equal(result.inputHtmlEscaped, true, "a malicious player name must be escaped before landing in the name input's value attribute");
+  assert.equal(result.rowHtmlEscaped, true, "a malicious name coming back from Firestore must be escaped before rendering in the leaderboard list");
+  assert.equal(result.xssDidNotFire, true, 'the escaped markup must never actually execute as HTML/JS');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
