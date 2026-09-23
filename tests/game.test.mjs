@@ -9586,3 +9586,66 @@ test('Gameplay aids (Easy/Normal only, user-requested "extra hjälpmedel"): the 
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Bug fix (reported: AI turn freezes right after a Same/Plus capture): a card with an on-win DESTROY passive (Nexzoth\'s onWinDestroyLoserAlways) chained into via Combo must not get queued for further chaining once its "capture" is actually a destroy', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+    state.turn = 'red';
+    state.placedThisTurn = false;
+    state.ultimateBanner = null;
+    state.draftMode = null;
+    state.rules = { same: true, plus: true, combo: true, elemental: false };
+    state.chainShake = false;
+    state.destroyGhosts = [];
+    state.specialUsed = {};
+    state.wins = { blue: 2, red: 1 };
+    state.graveyard = { blue: [], red: [] };
+
+    // Exact reproduction of the reported freeze: Astrael placed at the
+    // center, Same/Plus-capturing BOTH Leviathan (index 1) and Nexzoth
+    // (index 5) at once. The Combo chain then routes an attack through
+    // Nexzoth (now red) against Chocobo King (index 2) -- Nexzoth wins,
+    // but his own onWinDestroyLoserAlways passive ("destroyed outright
+    // instead of captured") destroys Chocobo King instead of capturing
+    // him. The old bug: battleNeighbors still unconditionally counted
+    // that as a flip and queued index 2 for further Combo chaining, so
+    // popping it later called battleNeighbors/getEnemyNeighbors on a now-
+    // null board slot and threw, aborting placeCard() mid-way -- the
+    // whole game silently wedged exactly like the Fas 20 bug (nothing
+    // rendering further, turn stuck).
+    const mkEntry = (id, owner) => ({ card: findCardById(id), owner, shieldUsed:false, grantedShield:false, captureBonus:0 });
+    state.board = Array(9).fill(null);
+    state.board[0] = mkEntry('omegaweapon', 'blue');
+    state.board[1] = mkEntry('leviathan', 'blue');
+    state.board[2] = mkEntry('chocoboking', 'blue');
+    state.board[5] = mkEntry('nexzoth', 'blue');
+    state.enemyHand = [findCardById('astrael')];
+    state.playerHand = [findCardById('ragnar'), findCardById('tilda')];
+
+    let threw = null;
+    try {
+      placeCard(4, 'astrael', 'red');
+    } catch (e) {
+      threw = e.message;
+    }
+
+    out.threw = threw;
+    out.chocoboKingDestroyed = state.board[2] === null;
+    out.nexzothCaptured = state.board[5] && state.board[5].owner === 'red';
+    out.leviathanCaptured = state.board[1] && state.board[1].owner === 'red';
+    // The destroyed cell must never count toward the winner's flip/win
+    // tally -- it was destroyed, not actually claimed as territory.
+    out.winsAfter = state.wins.red;
+
+    return out;
+  })()`);
+  assert.equal(result.threw, null, 'placeCard must not throw when a Combo-chained card destroys (rather than captures) its target');
+  assert.equal(result.chocoboKingDestroyed, true, "Nexzoth's onWinDestroyLoserAlways must still actually destroy the target");
+  assert.equal(result.nexzothCaptured, true);
+  assert.equal(result.leviathanCaptured, true);
+  assert.equal(result.winsAfter, 3, 'red should gain exactly 2 wins (Leviathan + Nexzoth via Same/Plus) -- the destroyed Chocobo King must NOT also count as a flip/win');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

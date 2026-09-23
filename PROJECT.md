@@ -4357,6 +4357,62 @@ fånga"-badgen kvar, opåverkad). Hela testsviten grön: **158/158** (155
 tidigare + 3 nya: buggfixen, kedje-cascade-testet, och hela
 hjälpmedels-integrationstestet).
 
+**Fas 24: buggfix — spelet frös på riktigt efter en Same/Plus-fångst.**
+Användaren skickade en skärmdump från en verklig match: precis efter att
+ha placerat Chocobo King och fått "Chocobo King claims 2 enemy squares!
+(Same/Plus!)" i loggen, frös skärmen helt på "THE FOREST'S MOVE...".
+
+Undersökte i flera steg. Först uteslöts prestanda som orsak: tidtagning
+av `chooseAIPlacement()` (AI:ns egen minimax-sökning) på ett bräde med
+samma form som skärmdumpen (4 upptagna rutor, 5 tomma, 2-3 kort på
+handen) tog under 30ms även på Hard — inte en långsam sökning som
+"känns" som en frysning.
+
+Byggde istället ett sviep-script som körde `enemyTurn()` FÖR RIKTIGT
+(inte bara sökningen) mot exakt samma bräde (Omega Weapon/Leviathan/
+Chocobo King/Nexzoth, alla blå-ägda) med varje enskilt Forest-kort som
+Forest AI:ns hand, ett i taget. Resultat: **8 av 61 kort kraschade
+konsekvent** med `TypeError: Cannot read properties of null (reading
+'card')` i `getEnemyNeighbors`, anropat från `battleNeighbors`, anropat
+från `resolveFlips`s Combo-kedje-loop.
+
+Spårade exakt orsak med tillfällig instrumentering (monkey-patchade
+`destroyCard`/`battleNeighbors` för att logga varje anrop, sedan
+återställt): Astrael placerad i mitten Same/Plus-fångar BÅDE Leviathan
+och Nexzoth samtidigt. Combo-kedjan attackerar sedan vidare FRÅN Nexzoth
+(nu röd) mot Chocobo King — Nexzoth vinner, men hans egen passiva
+förmåga `onWinDestroyLoserAlways` ("destroyed outright instead of
+captured") FÖRSTÖR Chocobo King istället för att fånga honom
+(`destroyCard`). Den riktiga buggen: `battleNeighbors` räknade ändå
+ovillkorligt denna ruta som en fångst (`result.flips++;
+newlyFlipped.push(p.ni);`) EFTER att `checkOnWinBonuses` redan hade
+förstört den — så `resolveFlips`s Combo-kö fick in den nu null-satta
+rutan, och när kön senare skulle bearbeta den kraschade
+`getEnemyNeighbors` på `state.board[index].card` där `state.board[index]`
+var `null`. Kraschen avbröt hela `placeCard()`-anropet mitt i — exakt
+samma buggklass som Fas 20 fixade (state.turn fastnar, inget renderas
+vidare, spelet ser ut att frysa permanent), fast den här gången via en
+helt vanlig placering (inte ett Ultimate-cast).
+
+Fix: i `battleNeighbors`, efter `checkOnWinBonuses` körts, kolla om
+rutan FORTFARANDE är ockuperad innan den räknas som fångst/köas för
+combo-kedjan — om `checkOnWinBonuses` själv förstörde den (Nexzoths
+`onWinDestroyLoserAlways`, eller Deathblades `onWinDestroyIfLoserWeak`,
+eller vilken framtida "förstör-vid-vinst"-förmåga som helst), räknas den
+korrekt INTE som en fångst (och bidrar inte längre felaktigt till
+`state.wins`, som en bonus-korrigering — "förstörd" och "fångad" är inte
+samma sak, och kortets egen text säger uttryckligen "destroyed outright
+INSTEAD OF captured").
+
+Verifierat: samma 61-korts svep om — alla 61 gröna, inga fler krascher.
+Nytt permanent regressionstest som återskapar exakt det rapporterade
+scenariot (Astrael → Same/Plus-fångar Leviathan+Nexzoth → Nexzoth kedjar
+in mot Chocobo King → förstör honom istället för att fånga) och
+verifierar: inget kastas, Chocobo King är verkligen förstörd, Leviathan
+och Nexzoth är fångade, och `wins` räknas korrekt (exakt 2, inte 3 — den
+förstörda rutan räknas inte dubbelt). Hela testsviten grön: **159/159**
+(158 tidigare + 1 ny).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
