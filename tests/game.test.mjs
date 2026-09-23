@@ -8098,7 +8098,7 @@ test('Fas 8 (design review #2, VFX expansion): three new cards (Odin/Tiamat/Anci
     state.ultimateBanner = { phase:'impact', owner:'blue', name:'Conquests Witnessed', sourceIndex:4, targetIndex:null, enemyIndices:[0,8] };
     html = renderBattle();
     out.wyrmkingHasTwoHits = (html.match(/class="vfx-hit"/g) || []).length === 2;
-    out.wyrmkingHasTwinkles = (html.match(/vfx-twinkle-\\d/g) || []).length === 6;
+    out.wyrmkingHasTwinkles = (html.match(/class="vfx-particle[ "]/g) || []).length === 10;
 
     // No card active -- none of the three should render anything.
     state.board = Array(9).fill(null);
@@ -9075,15 +9075,19 @@ test('Fas 16 (better light effects, user-supplied textures): .vfx-ring/.vfx-twin
     const ringBefore = getComputedStyle(ring, '::before');
     out.ringHasLightBurstTexture = (ringBefore.webkitMaskImage || ringBefore.maskImage || '').includes('vfx-lightburst.png');
 
-    // Serpent's Wrath is single-target and has no .vfx-twinkle at all --
-    // switch to Wave of Loyalty (Pallis), one of the toolkit's twinkle-
-    // using AOE cards, to check the twinkle's own ::before.
+    // Serpent's Wrath is single-target and has no .vfx-twinkle/.vfx-particle
+    // at all -- switch to Wave of Loyalty (Pallis), one of the toolkit's
+    // particle-swarm-using AOE cards (see particleSwarmHtml, added after
+    // this test was first written -- Wave of Loyalty's fixed 6-point
+    // twinkle grid was replaced with a randomized swarm), to check the
+    // swarm's own spark texture, applied directly to .vfx-particle rather
+    // than via ::before.
     state.board[4] = { card: findCardById('pallis'), owner:'blue' };
     state.ultimateBanner = { phase:'impact', owner:'blue', name:'Wave of Loyalty', sourceIndex:4, targetIndex:null, enemyIndices:null, element:'earth' };
     render();
-    const twinkle = document.querySelector('.vfx-twinkle');
-    const twinkleBefore = twinkle ? getComputedStyle(twinkle, '::before') : null;
-    out.twinkleHasSparkTexture = !!twinkleBefore && (twinkleBefore.webkitMaskImage || twinkleBefore.maskImage || '').includes('vfx-spark.png');
+    const particle = document.querySelector('.vfx-particle');
+    const particleStyle = particle ? getComputedStyle(particle) : null;
+    out.twinkleHasSparkTexture = !!particleStyle && (particleStyle.webkitMaskImage || particleStyle.maskImage || '').includes('vfx-spark.png');
 
     // Magic-circle centering regression test: place it in a deliberately
     // non-square wrapper (matching .ultimate-vfx's real 5/7 aspect-ratio)
@@ -9264,7 +9268,7 @@ test('VFX expansion round 7: every remaining card without bespoke identity VFX (
       state.board[4] = { card: findCardById('astrael'), owner:'blue' };
       state.board[1] = { card: findCardById('ogre'), owner:'red' };
       state.ultimateBanner = { phase:'impact', owner:'blue', name:'Falling Stars', sourceIndex:4, targetIndex:1, enemyIndices:null };
-      return renderBattle().includes('vfx-twinkle');
+      return renderBattle().includes('vfx-particle');
     })();
 
     // Own-side "blessing" AOEs -- ring at the caster + a hit marker on
@@ -9339,7 +9343,7 @@ test('VFX expansion round 7: every remaining card without bespoke identity VFX (
     assert.equal(r.hasHit, true, `${r.id} must render a .vfx-hit`);
   });
   assert.equal(result.zaevirHasProjectile, true, "Eternal Arrow (a ranged marksman's shot) should get a falling .vfx-projectile like Skybreaker");
-  assert.equal(result.astraelHasTwinkle, true, 'Falling Stars should get a .vfx-twinkle for its cosmic/starry flavor');
+  assert.equal(result.astraelHasTwinkle, true, 'Falling Stars should get a .vfx-particle swarm for its cosmic/starry flavor');
   result.ownSideResults.forEach(r => {
     assert.equal(r.hasRing, true, `${r.id} must render a .vfx-ring`);
     assert.equal(r.hitCount, 2, `${r.id} must mark the caster + the one ally, never the enemy cell`);
@@ -9382,7 +9386,7 @@ test('VFX polish pass on the older single-target cards: shard/twinkle/clockhand/
     out.twinkleCards = ['vayra|Eclipse', 'aurelia|Dawn\\'s Reckoning', 'twistedgipsy|House of Shadows'].map(s => {
       const [id, name] = s.split('|');
       const html = cast(id, name);
-      const twinkleCount = (html.match(/vfx-twinkle vfx-twinkle-\\d/g) || []).length;
+      const twinkleCount = (html.match(/class="vfx-particle[ "]/g) || []).length;
       return { id, twinkleCount };
     });
 
@@ -9396,7 +9400,7 @@ test('VFX polish pass on the older single-target cards: shard/twinkle/clockhand/
     // Gate of Dominion is a deliberate "stay plain" case -- ring+hit only,
     // no extra flourish (see the SIMPLE_SINGLE_TARGET_VFX comment).
     const darumHtml = cast('darum', 'Gate of Dominion');
-    out.darumStaysPlain = darumHtml.includes('class="vfx-ring"') && !darumHtml.includes('class="vfx-shard"') && !darumHtml.includes('class="vfx-twinkle') && !darumHtml.includes('class="vfx-projectile"') && !darumHtml.includes('class="vfx-clockhand"');
+    out.darumStaysPlain = darumHtml.includes('class="vfx-ring"') && !darumHtml.includes('class="vfx-shard"') && !darumHtml.includes('class="vfx-twinkle') && !darumHtml.includes('class="vfx-particle') && !darumHtml.includes('class="vfx-projectile"') && !darumHtml.includes('class="vfx-clockhand"');
 
     // Deathblade's Shadow Assault swaps positions with its target instead
     // of capturing/destroying it -- must show a ring+hit at the ORIGINAL
@@ -9414,7 +9418,7 @@ test('VFX polish pass on the older single-target cards: shard/twinkle/clockhand/
     assert.equal(r.hasShard, true, `${r.id} should get a .vfx-shard fragment burst`);
   });
   result.twinkleCards.forEach(r => {
-    assert.equal(r.twinkleCount, 4, `${r.id} should get the richer 4-point multi-twinkle scatter, not a single dot`);
+    assert.equal(r.twinkleCount, 6, `${r.id} should get a randomized 6-particle swarm, not a single dot`);
   });
   assert.equal(result.ysaraHasClockhand, true, "Eternal Eclipse (Timeweaver) should get Vorathos's own .vfx-clockhand pair for its time flavor");
   assert.equal(result.sarahHasProjectile, true, "Aion's Last Light should get a falling .vfx-projectile like Skybreaker");
@@ -9646,6 +9650,67 @@ test('Bug fix (reported: AI turn freezes right after a Same/Plus capture): a car
   assert.equal(result.nexzothCaptured, true);
   assert.equal(result.leviathanCaptured, true);
   assert.equal(result.winsAfter, 3, 'red should gain exactly 2 wins (Leviathan + Nexzoth via Same/Plus) -- the destroyed Chocobo King must NOT also count as a flip/win');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Particle Swarm ("gör det bättre" follow-up): particleSwarmHtml() generates randomized instances instead of a fixed layout -- no two calls look the same, and a fraction curve via the .orbit variant', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+
+    // Exactly N particles, every time, regardless of randomization.
+    const htmlA = particleSwarmHtml(10);
+    const countA = (htmlA.match(/class="vfx-particle/g) || []).length;
+    out.countIsExactlyRequested = countA === 10;
+
+    // Every particle carries its own randomized custom properties -- a
+    // fixed-position system (the old .vfx-twinkle-0..5 grid) never needed
+    // inline per-instance styles at all, everything lived in the stylesheet.
+    out.everyParticleHasOwnVars = /--size:[\\d.]+px; --peak-opacity:[\\d.]+; --duration:[\\d.]+s; --delay:[\\d.]+s; --dx:-?[\\d.]+px; --dy:-?[\\d.]+px;/.test(htmlA);
+
+    // Two separate calls must not produce identical output -- proves real
+    // per-render randomization, not a static template being reused (the
+    // whole point: "inte gröna maskar" -- never the same static pattern
+    // twice).
+    const htmlB = particleSwarmHtml(10);
+    out.differsBetweenCalls = htmlA !== htmlB;
+
+    // Across enough particles, both plain drift AND the curved .orbit
+    // variant should show up (roughly 30% orbit per particleSwarmHtml) --
+    // generate a big batch to make a false negative astronomically
+    // unlikely rather than asserting on a tiny, flake-prone sample.
+    const bigBatch = particleSwarmHtml(200);
+    out.hasPlainParticles = /class="vfx-particle"/.test(bigBatch);
+    out.hasOrbitParticles = /class="vfx-particle orbit"/.test(bigBatch);
+    // Orbit instances additionally carry a curved midpoint offset that
+    // plain drifting particles don't.
+    const orbitCount = (bigBatch.match(/class="vfx-particle orbit"/g) || []).length;
+    const midCount = (bigBatch.match(/--mid-x:/g) || []).length;
+    out.orbitCountMatchesMidCount = orbitCount === midCount && orbitCount > 0;
+
+    // Wired into the real toolkit: Wave of Loyalty (a former fixed
+    // 6-point grid user) now renders a real particle swarm in its actual
+    // impact-phase markup, not just in isolation.
+    state.phase = 'battle';
+    state.board = Array(9).fill(null);
+    state.board[4] = { card: findCardById('pallis'), owner:'blue' };
+    state.board[1] = { card: findCardById('ogre'), owner:'red' };
+    state.ultimateBanner = { phase:'impact', owner:'blue', name:'Wave of Loyalty', sourceIndex:4, targetIndex:null, enemyIndices:null, element:'earth' };
+    const waveHtml = renderBattle();
+    out.waveOfLoyaltyUsesSwarm = (waveHtml.match(/class="vfx-particle[ "]/g) || []).length === 10;
+    out.waveOfLoyaltyHasNoOldFixedGrid = !waveHtml.includes('vfx-twinkle-0');
+
+    return out;
+  })()`);
+  assert.equal(result.countIsExactlyRequested, true);
+  assert.equal(result.everyParticleHasOwnVars, true, 'each particle instance must carry its own randomized inline custom properties');
+  assert.equal(result.differsBetweenCalls, true, 'two calls must never produce byte-identical markup -- proves real randomization, not a reused static template');
+  assert.equal(result.hasPlainParticles, true);
+  assert.equal(result.hasOrbitParticles, true, 'a large batch must include at least one .orbit (curved) particle');
+  assert.equal(result.orbitCountMatchesMidCount, true, 'every .orbit particle (and only those) must carry a --mid-x curve offset');
+  assert.equal(result.waveOfLoyaltyUsesSwarm, true, 'Wave of Loyalty must render the real 10-particle swarm in its actual impact markup');
+  assert.equal(result.waveOfLoyaltyHasNoOldFixedGrid, true, 'the old fixed .vfx-twinkle-0..5 grid must be gone from Wave of Loyalty');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
