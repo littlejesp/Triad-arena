@@ -4145,6 +4145,96 @@ tidigare + 1 ny). Verifierat även manuellt med samma repro-skript direkt
 mot `index.html` (inte bara testsviten) före och efter fixen — kraschade
 garanterat innan, fastnade aldrig efter.
 
+**Fas 21: VFX-utbyggnad runda 7 — de sista 29 korten utan egen VFX.**
+Användaren bad mig fortsätta bygga på fler VFX medan hen sov, "tills det är
+klart". Kartlade FÖRST exakt vilka av spelets 61 Ultimate-bärande kort
+(HEROES+FOREST_FOES) som fortfarande bara visade den vanliga namn-bannern
+utan någon ring/hit/beam/twinkle alls — 29 kort saknade helt egen VFX.
+
+Istället för att skriva 29 separata copy-paste-derivationer (samma mönster
+som tidigare rundor), delade jag in dem i fyra återanvändbara former,
+varje form en enda delad derivation+markup-kodblock i `renderBattle()`,
+nyckel på Ultimate-namn i en liten lookup-tabell istället för en egen
+`const xxxActive` per kort:
+
+- **Enkla single-target-fångster** (15 kort: Darien, Zaevir, Sarah, Vayra,
+  Ysara, Ragnar, Deathblade, Tahabata, Aurelia, Twisted Gipsy, Maximus,
+  Darum, Astrael, Yojimbo, Chocobo King) — samma ring+hit-form som
+  WorldCleaver/Nightfall redan använder, bara nyckel i
+  `SIMPLE_SINGLE_TARGET_VFX` istället för egen kod. Zaevirs Eternal Arrow
+  och Chocobo Kings Royal Choco Meteor fick även Skybreakers
+  `.vfx-projectile` (pil respektive meteor som faller in före träffen).
+  Astraels Falling Stars fick en `.vfx-twinkle` för stjärn-känslan.
+- **Egen-sida-välsignelser** (3 kort: Elara/Requiem of Light, Naline/Rise
+  Again, Zlaizer/Rebirth) — alla tre helar/återupplivar sin EGEN sida
+  istället för att attackera en fiende, så de återanvänder Wave of
+  Loyaltys "egen-sida"-form rakt av (ring vid kastaren + en hit-markör på
+  varje egen ruta). Naline/Zlaizers faktiska återupplivade rutor är inte
+  kända förrän handlern kör (efter impact-fasens render), så hela
+  sidan markeras som approximation — samma "platt effekt över hela
+  laget"-förenkling som Concords United Will redan gör.
+- **Hela-brädet-fiendeträffar** (9 kort: Torn/Lethal Volley, Sylvarion/
+  Herald's Gale, Ferea/The Frozen Crown, Leviathan/Abyssal Deluge — rena
+  debuffs, förstör aldrig — plus Morvath/The Endless Tide, Zalazar/
+  Apocalypse — hela-brädet-FÖRSTÖR, samt Kaeldryx/Dragonslayer, Umbrael/
+  End of All, Pallis & Pell/Hunter's Wrath) — alla nio lades till i den
+  redan existerande `aoeEnemyIndicesAtCast`-snapshotmekanismen i
+  `playUltimateSequence` (samma "vem var fiende INNAN förstörelsen"-cast-
+  tidsnapshot Diamond Storm/The Ending redan använder), så destroy-korten
+  aldrig visar träffeffekter på redan-tomma rutor (exakt samma buggklass
+  som Fas 20 fixade, förebyggd direkt här genom att återanvända samma
+  beprövade infrastruktur). Kaeldryx och Umbrael behövde två helt nya
+  snapshot-grenar eftersom deras mål inte är "alla fiender": Dragonslayer
+  förstör alla DRAKKORT oavsett ägare (filtrerar på `card.isDragon`, inte
+  ägare), och End of All förstör ALLA ANDRA kort — allierade som fiender
+  — förutom Umbrael själv. Morvath (som redan hade en riktig röstlinje
+  sedan Fas 18) fick flaggskepps-behandlingen: samma `.vfx-magic-circle`
+  som Apokalyps, en stor blå tidvattenvåg som sveper över hela brädet.
+- **Två helt egna former** som inte passade något av ovanstående:
+  Voidqueens Oblivion's Call (vissnar fiender INTILL målet, aldrig målet
+  självt — ring vid målet + hit-markörer bara på angränsande fiende-
+  rutor, live-deriverat eftersom effekten aldrig förstör något) och
+  Little Jesps Scales of Judgment (själv-buff + debuff på vilken sida som
+  än leder i Wins just nu — läses live från `state.wins`, säkert eftersom
+  det inte kan ändras innan handlern kör).
+
+Hittade och städade samtidigt bort en genuint död kodrest: SPECIAL_HANDLERS
+innehöll av misstag TVÅ separata `littlejesp`-nycklar (ett gammalt
+"Divine Arrow"-baserat single-target-anfall som en tidigare ombyggnad till
+"Scales of Judgment" aldrig tog bort). I ett JS-objektlitteral vinner
+alltid den SENARE nyckeln, så den gamla varianten kördes aldrig — men den
+matchade inte ens kortets faktiska `special.name` längre, ett tydligt
+tecken på att den var en kvarleva. Borttagen; ingen beteendeförändring
+(det var redan dött, oanvänt kod).
+
+Verifierat i flera lager: (1) hela 61-korts stress-testet från Fas 20
+(varje Ultimate castad isolerat, kollar att `state.ultimateBanner` alltid
+blir `null` igen utan krasch) kördes om — alla 61 gröna, inga nya krascher
+från de två nya snapshot-grenarna. (2) Ett separat täckningsscript
+bekräftade att samtliga 61 kort nu renderar NÅGON `.vfx-*`-klass vid sitt
+Ultimate (de 7 "avvikande" träffarna i första körningen var falska
+negativ — Ifrit/Bahamut/Shiva/Omega Weapon/Vaelira/Seraphine/Nyxara
+använder sina egna, äldre bespoke CSS-klassnamn från INNAN det delade
+toolkitet fanns, inte regexens `.vfx-*`-prefix). (3) Playwright-
+skärmdumpar av tre representativa kort: Morvaths The Endless Tide (stor
+blå tidvattenring + magisk cirkel som sprider sig över hela brädet, ser
+ut precis som tänkt), Voidqueens Oblivion's Call (lila ring vid målet,
+vissnande glöd bara på den angränsande fienden, inte den icke-angränsande),
+och Chocobo Kings Royal Choco Meteor (gyllene ring + fallande meteor-
+projektil). Alla tre bekräftar formerna fungerar visuellt som tänkt.
+
+Nytt permanent regressionstest tillagt som täcker alla 29 kort —
+kontrollerar `.vfx-ring`/`.vfx-hit`-närvaro för alla, plus riktade koll av
+de bespoke detaljerna (Zaevirs projektil, Astraels twinkle, Morvaths
+magiska cirkel, att egen-sida-korten aldrig markerar fiende-rutor, att
+Oblivion's Call bara vissnar den angränsande fienden och inte den
+icke-angränsande, att Scales of Judgment markerar rätt ledande sida och
+ingen alls vid oavgjort). Hela testsviten grön: **154/154** (153 tidigare
++ 1 ny).
+
+Med denna runda har SAMTLIGA 61 Ultimate-bärande kort i spelet nu egen
+identitets-VFX — ingen "tom namn-banner utan effekter"-kort återstår.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
