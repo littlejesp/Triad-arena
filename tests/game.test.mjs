@@ -5613,6 +5613,57 @@ test('Game feel phase 4: Ultimates get a windup beat + name banner before resolv
   await page.close();
 });
 
+test('Bug fix (reported: "numbers didn\'t go down, couldn\'t press end turn"): a queued single-target Ultimate whose chosen cell gets destroyed by an earlier queued AOE-destroy Ultimate must fizzle gracefully, not crash and wedge state.ultimateBanner forever', async () => {
+  const { page, pageErrors } = await newPage();
+
+  // Nexzoth's The Ending (whole-board AOE destroy) cast first, then Ifrit's
+  // Hellfire (single-target) cast on one of the same enemies WHILE Nexzoth
+  // is still mid-sequence -- Ifrit's job queues behind Nexzoth's. By the
+  // time the queued Hellfire job actually resolves, Nexzoth has already
+  // destroyed every enemy cell, including Hellfire's chosen target -- the
+  // real-world scenario the user hit that left End Turn permanently
+  // unresponsive (endPlayerTurn refuses to act while state.ultimateBanner
+  // is set, and it never got cleared because the old code threw a
+  // TypeError reading targetEntry.card on a now-null cell).
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('nexzoth'), 'blue');
+    state.board[3] = freshEntry(findCardById('ifrit'), 'blue');
+    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    state.wins = { blue: 10, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+
+    runSpecialResolution(4, null, {}); // Nexzoth's The Ending -- starts immediately
+    runSpecialResolution(3, 1, {}); // Ifrit's Hellfire on the same enemy -- must queue
+
+    out.queuedRightAfter = ultimateQueue.length === 1;
+
+    // Nexzoth's full lifecycle: windup + hitstop + shake/cleanup.
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 1300 + 100));
+    out.targetDestroyedByNexzoth = state.board[1] === null;
+    out.hellfireNowWindingUp = state.ultimateBanner && state.ultimateBanner.sourceIndex === 3 && state.ultimateBanner.phase === 'cast';
+
+    // Hellfire's own full lifecycle -- this is where the old code crashed
+    // partway through and left state.ultimateBanner stuck forever.
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 1300 + 100));
+    out.bannerClearedAfterQueuedFizzle = state.ultimateBanner === null;
+    out.logMentionsFizzle = typeof state.log === 'string' && state.log.length > 0;
+
+    return out;
+  })()`);
+  assert.equal(result.queuedRightAfter, true, "Ifrit's Hellfire must queue behind Nexzoth's still-active Ultimate");
+  assert.equal(result.targetDestroyedByNexzoth, true, "Nexzoth's The Ending must have destroyed the shared target cell first");
+  assert.equal(result.hellfireNowWindingUp, true, "the queued Hellfire cast must start its own windup once Nexzoth's cleanup finishes");
+  assert.equal(result.bannerClearedAfterQueuedFizzle, true, 'state.ultimateBanner must clear normally even when the queued target no longer exists -- this is the actual bug: it used to stay stuck forever, permanently blocking End Turn');
+  assert.equal(result.logMentionsFizzle, true, 'a fizzle message should still be logged instead of silently doing nothing');
+  assert.deepEqual(pageErrors, [], 'no uncaught exception (the old bug: Cannot read properties of null, reading "card") should occur');
+
+  await page.close();
+});
+
 test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon, Omega Weapon, Shiva, Odin, and Morvath\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 

@@ -10260,7 +10260,25 @@ function playUltimateSequence(job){
       // special's doing.
       const alreadyFlipped = new Set();
       state.board.forEach((e, i) => { if(e && e.justFlipped) alreadyFlipped.add(i); });
-      state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
+      // Bug fix: a single-target Ultimate queued behind another (see
+      // ultimateQueue above) reads its targetEntry LIVE from state.board,
+      // same as every phase here -- but if the FIRST Ultimate in the queue
+      // destroyed/emptied that exact cell (e.g. an AOE-destroy-all like
+      // Nexzoth's The Ending or Bahamut's Megaflare going off right before
+      // a queued single-target cast on one of the same enemies), targetEntry
+      // is now null by the time this queued job's own phase 3 runs. Every
+      // single-target handler unconditionally reads targetEntry.card/.owner,
+      // so calling handler() here threw (TypeError: Cannot read properties
+      // of null), which aborted this whole setTimeout callback partway
+      // through -- state.ultimateBanner never got cleared below, silently
+      // wedging the game (End Turn refuses to act while it's set -- see
+      // endPlayerTurn). Fizzle gracefully instead of calling the handler at
+      // all when the chosen target is already gone.
+      if(special.targets === 'single' && !targetEntry){
+        state.log = `${srcEntry.card.name}'s ${special.name} finds nothing left to strike!`;
+      } else {
+        state.log = handler({ srcEntry, sourceIndex, targetEntry, targetIndex, owner, ...extra });
+      }
       const capturedCount = state.board.filter((e, i) => e && e.owner === owner && e.justFlipped && !alreadyFlipped.has(i)).length;
       // Same magnitude-gated shake as phase 3's Same/Combo chains (see
       // placeCard) — a big Ultimate sweep feels like a big chain, reuses the
