@@ -11304,8 +11304,24 @@ function battleNeighbors(index, owner, result){
       checkOnWinBonuses(placedEntry, p.myEdge, target, p.ni, index, placedVal);
       checkTriuneTeamBoost(owner);
       checkElyrionSoulResonance(owner, p.myEdge);
-      result.flips++;
-      newlyFlipped.push(p.ni);
+      // Bug fix (reported: AI turn freezes/crashes right after a Same/Plus
+      // capture chain): checkOnWinBonuses can itself DESTROY this exact
+      // cell -- Nexzoth's onWinDestroyLoserAlways ("destroyed outright
+      // instead of captured") and onWinDestroyIfLoserWeak both call
+      // destroyCard(p.ni, ...) synchronously, right above. Without this
+      // guard, result.flips++/newlyFlipped.push(p.ni) ran unconditionally
+      // anyway, so resolveFlips' Combo-chain BFS (see below) queued this
+      // now-null cell for further chaining -- popping it later called
+      // battleNeighbors/getEnemyNeighbors on state.board[p.ni] === null,
+      // throwing "Cannot read properties of null (reading 'card')" and
+      // aborting the whole placeCard() call mid-way (silently wedging the
+      // game exactly like the Fas 20 bug: state.turn stuck, nothing
+      // rendering further). Only count/queue the capture if the cell is
+      // still actually occupied after checkOnWinBonuses ran.
+      if(state.board[p.ni]){
+        result.flips++;
+        newlyFlipped.push(p.ni);
+      }
     } else if(placed.id === 'threeheaddragon' && !(target.card.active && target.card.active.debuffImmune)){
       // Poison's Torment, attacker side: 3HD just lost this battle as the
       // ATTACKER (was just placed, lost to this particular neighbor) —
