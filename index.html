@@ -5851,28 +5851,58 @@ function renderBattle(){
   // Meteor) also get a falling .vfx-projectile like Skybreaker's, matching
   // their own "something flies in from outside" flavor (a marksman's arrow,
   // a literal meteor).
+  // VFX polish pass: round 7 shipped every one of these as a bare
+  // ring+hit (the cheapest possible treatment, just to get every card off
+  // "no VFX at all"). This pass adds ONE small extra flourish per card,
+  // matching its own name/flavor, reusing primitives the toolkit already
+  // has rather than inventing new ones -- `shard` (a small fragment burst,
+  // Shattered Crown/Daron's own shape) for anything "axe/breaker/crown"-
+  // themed, `twinkle` (now the richer multi-sparkle scatter Wave of
+  // Loyalty/Astrael use, not a single dot) for light/arcane/celestial
+  // themed cards, and `projectile` (Skybreaker's falling shot) for
+  // anything that's fired/thrown in from outside. A few (Gate of
+  // Dominion) are deliberately left as the plain ring+hit -- "Unbreakable
+  // Bulwark" reads fine as solid and minimal, not every card needs a flourish.
   const SIMPLE_SINGLE_TARGET_VFX = {
-    'Shadow Breaker':    { ring:'rgba(94,200,242,0.95)',  glow:'rgba(30,90,140,0.65)',  soft:'rgba(180,225,250,0.6)' },
+    'Shadow Breaker':    { ring:'rgba(94,200,242,0.95)',  glow:'rgba(30,90,140,0.65)',  soft:'rgba(180,225,250,0.6)', shard:true },
     'Eternal Arrow':     { ring:'rgba(180,140,242,0.95)', glow:'rgba(90,60,140,0.6)',   soft:'rgba(220,200,250,0.6)', projectile:true },
-    "Aion's Last Light": { ring:'rgba(110,168,242,0.95)', glow:'rgba(50,80,140,0.6)',   soft:'rgba(190,215,250,0.6)' },
-    'Eclipse':           { ring:'rgba(143,209,90,0.95)',  glow:'rgba(40,60,20,0.7)',    soft:'rgba(210,240,190,0.55)' },
-    'Eternal Eclipse':   { ring:'rgba(180,140,242,0.95)', glow:'rgba(90,60,140,0.6)',   soft:'rgba(220,200,250,0.6)' },
-    'Blood Fury':        { ring:'rgba(201,162,39,0.95)',  glow:'rgba(120,40,20,0.65)',  soft:'rgba(250,220,160,0.6)' },
-    'Shadow Assault':    { ring:'rgba(165,104,242,0.95)', glow:'rgba(50,20,80,0.7)',    soft:'rgba(210,180,250,0.6)' },
-    'Inferno Dominion':  { ring:'rgba(217,98,43,0.95)',   glow:'rgba(120,40,10,0.7)',   soft:'rgba(250,190,150,0.6)' },
-    "Dawn's Reckoning":  { ring:'rgba(242,214,117,0.95)', glow:'rgba(150,110,30,0.6)',  soft:'rgba(255,240,200,0.65)' },
-    'House of Shadows':  { ring:'rgba(212,175,55,0.95)',  glow:'rgba(90,60,110,0.65)',  soft:'rgba(230,200,255,0.6)' },
-    'Axe of Dominion':   { ring:'rgba(194,59,59,0.95)',   glow:'rgba(90,20,20,0.7)',    soft:'rgba(250,180,160,0.6)' },
+    "Aion's Last Light": { ring:'rgba(110,168,242,0.95)', glow:'rgba(50,80,140,0.6)',   soft:'rgba(190,215,250,0.6)', projectile:true },
+    'Eclipse':           { ring:'rgba(143,209,90,0.95)',  glow:'rgba(40,60,20,0.7)',    soft:'rgba(210,240,190,0.55)', twinkle:true },
+    'Eternal Eclipse':   { ring:'rgba(180,140,242,0.95)', glow:'rgba(90,60,140,0.6)',   soft:'rgba(220,200,250,0.6)', clockhand:true },
+    'Blood Fury':        { ring:'rgba(201,162,39,0.95)',  glow:'rgba(120,40,20,0.65)',  soft:'rgba(250,220,160,0.6)', shard:true },
+    'Inferno Dominion':  { ring:'rgba(217,98,43,0.95)',   glow:'rgba(120,40,10,0.7)',   soft:'rgba(250,190,150,0.6)', shard:true },
+    "Dawn's Reckoning":  { ring:'rgba(242,214,117,0.95)', glow:'rgba(150,110,30,0.6)',  soft:'rgba(255,240,200,0.65)', twinkle:true },
+    'House of Shadows':  { ring:'rgba(212,175,55,0.95)',  glow:'rgba(90,60,110,0.65)',  soft:'rgba(230,200,255,0.6)', twinkle:true },
+    'Axe of Dominion':   { ring:'rgba(194,59,59,0.95)',   glow:'rgba(90,20,20,0.7)',    soft:'rgba(250,180,160,0.6)', shard:true },
     'Gate of Dominion':  { ring:'rgba(79,209,197,0.95)',  glow:'rgba(20,80,75,0.65)',   soft:'rgba(190,245,240,0.6)' },
     'Falling Stars':     { ring:'rgba(184,160,242,0.95)', glow:'rgba(60,40,120,0.65)',  soft:'rgba(220,210,255,0.6)', twinkle:true },
-    'Zanmato':           { ring:'rgba(194,59,59,0.95)',   glow:'rgba(60,15,15,0.7)',    soft:'rgba(240,170,170,0.6)' },
+    'Zanmato':           { ring:'rgba(194,59,59,0.95)',   glow:'rgba(60,15,15,0.7)',    soft:'rgba(240,170,170,0.6)', shard:true },
     'Royal Choco Meteor':{ ring:'rgba(224,192,47,0.95)',  glow:'rgba(120,90,10,0.65)',  soft:'rgba(255,235,170,0.6)', projectile:true },
   };
+  const SIMPLE_TARGET_SHARDS = [
+    { sx:'-30px', sy:'-20px' }, { sx:'28px', sy:'-26px' }, { sx:'36px', sy:'8px' },
+    { sx:'16px', sy:'30px' }, { sx:'-22px', sy:'28px' }, { sx:'-36px', sy:'2px' },
+  ];
   let simpleSingleTargetVfx = null, simpleSingleTargetX = 50, simpleSingleTargetY = 50;
   if(state.ultimateBanner && SIMPLE_SINGLE_TARGET_VFX[state.ultimateBanner.name]){
     simpleSingleTargetVfx = SIMPLE_SINGLE_TARGET_VFX[state.ultimateBanner.name];
     const tIdx = state.ultimateBanner.targetIndex;
     if(tIdx != null) ({ x: simpleSingleTargetX, y: simpleSingleTargetY } = cellCenterPercent(tIdx));
+  }
+
+  // Deathblade's Shadow Assault is mechanically unique among every card in
+  // this table -- it doesn't capture or destroy its target, it physically
+  // SWAPS positions with it (see SPECIAL_HANDLERS.deathblade), so a plain
+  // ring+hit at just the target would miss half the effect. Gets its own
+  // small bespoke derivation instead: a matching twinkle/ring pair at BOTH
+  // the original target cell AND Deathblade's own origin cell, reading as
+  // "something vanished here and reappeared there" rather than a strike.
+  const shadowAssaultActive = state.ultimateBanner && state.ultimateBanner.name === 'Shadow Assault';
+  let shadowAssaultOriginX = 50, shadowAssaultOriginY = 50, shadowAssaultTargetX = 50, shadowAssaultTargetY = 50;
+  if(shadowAssaultActive){
+    ({ x: shadowAssaultOriginX, y: shadowAssaultOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    const tIdx = state.ultimateBanner.targetIndex;
+    if(tIdx != null) ({ x: shadowAssaultTargetX, y: shadowAssaultTargetY } = cellCenterPercent(tIdx));
   }
 
   // Own-side "blessing" AOEs -- Elara's Requiem of Light, Naline's Rise
@@ -6360,11 +6390,24 @@ function renderBattle(){
         </div>
       ` : ''}
       ${simpleSingleTargetVfx ? `
-        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${simpleSingleTargetX}%; --vfx-y:${simpleSingleTargetY}%; --vfx-twinkle-color:${simpleSingleTargetVfx.soft};">
           ${simpleSingleTargetVfx.projectile ? `<div class="vfx-projectile" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-projectile-color:${simpleSingleTargetVfx.ring}; --vfx-projectile-glow:${simpleSingleTargetVfx.glow};"></div>` : ''}
           <div class="vfx-ring" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-ring-color:${simpleSingleTargetVfx.ring}; --vfx-glow-color:${simpleSingleTargetVfx.glow}; --vfx-ring-soft:${simpleSingleTargetVfx.soft};"></div>
           <div class="vfx-hit" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-hit-color:${simpleSingleTargetVfx.soft}; --vfx-hit-color-mid:${simpleSingleTargetVfx.glow};"></div>
-          ${simpleSingleTargetVfx.twinkle ? `<div class="vfx-twinkle" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%;"></div>` : ''}
+          ${simpleSingleTargetVfx.twinkle ? [0,1,2,3].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('') : ''}
+          ${simpleSingleTargetVfx.shard ? SIMPLE_TARGET_SHARDS.map(s => `<div class="vfx-shard" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --sx:${s.sx}; --sy:${s.sy}; --vfx-shard-color:${simpleSingleTargetVfx.soft};"></div>`).join('') : ''}
+          ${simpleSingleTargetVfx.clockhand ? `
+            <div class="vfx-clockhand" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-clock-color:${simpleSingleTargetVfx.ring}; animation-delay:0s;"></div>
+            <div class="vfx-clockhand" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-clock-color:${simpleSingleTargetVfx.soft}; height:24px; margin-top:-24px; animation-delay:0.08s; animation-direction:reverse;"></div>
+          ` : ''}
+        </div>
+      ` : ''}
+      ${shadowAssaultActive ? `
+        <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true">
+          <div class="vfx-ring" style="left:${shadowAssaultTargetX}%; top:${shadowAssaultTargetY}%; --vfx-ring-color:rgba(165,104,242,0.95); --vfx-glow-color:rgba(50,20,80,0.7); --vfx-ring-soft:rgba(210,180,250,0.6);"></div>
+          <div class="vfx-hit" style="left:${shadowAssaultTargetX}%; top:${shadowAssaultTargetY}%; --vfx-hit-color:rgba(210,180,250,0.95); --vfx-hit-color-mid:rgba(50,20,80,0.7);"></div>
+          <div class="vfx-ring" style="left:${shadowAssaultOriginX}%; top:${shadowAssaultOriginY}%; --vfx-ring-color:rgba(120,80,190,0.8); --vfx-glow-color:rgba(40,15,65,0.6); --vfx-ring-soft:rgba(180,150,230,0.5); animation-delay:0.1s;"></div>
+          <div class="vfx-twinkle" style="left:${shadowAssaultOriginX}%; top:${shadowAssaultOriginY}%; --vfx-twinkle-color:rgba(180,150,230,0.9); animation-delay:0.15s;"></div>
         </div>
       ` : ''}
       ${ownSideBlessingVfx ? `

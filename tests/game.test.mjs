@@ -9357,3 +9357,71 @@ test('VFX expansion round 7: every remaining card without bespoke identity VFX (
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('VFX polish pass on the older single-target cards: shard/twinkle/clockhand/projectile flourishes, plus Deathblade\'s bespoke dual-location swap VFX', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.phase = 'battle';
+
+    function cast(id, name, extraSetup){
+      state.board = Array(9).fill(null);
+      state.board[4] = { card: findCardById(id), owner:'blue' };
+      state.board[1] = { card: findCardById('ogre'), owner:'red' };
+      if(extraSetup) extraSetup();
+      state.ultimateBanner = { phase:'impact', owner:'blue', name, sourceIndex:4, targetIndex:1, enemyIndices:null };
+      return renderBattle();
+    }
+
+    out.shardCards = ['darien|Shadow Breaker', 'ragnar|Blood Fury', 'tahabata|Inferno Dominion', 'maximus|Axe of Dominion', 'yojimbo|Zanmato'].map(s => {
+      const [id, name] = s.split('|');
+      const html = cast(id, name);
+      return { id, hasShard: html.includes('class="vfx-shard"'), hasRing: html.includes('class="vfx-ring"') };
+    });
+
+    out.twinkleCards = ['vayra|Eclipse', 'aurelia|Dawn\\'s Reckoning', 'twistedgipsy|House of Shadows'].map(s => {
+      const [id, name] = s.split('|');
+      const html = cast(id, name);
+      const twinkleCount = (html.match(/vfx-twinkle vfx-twinkle-\\d/g) || []).length;
+      return { id, twinkleCount };
+    });
+
+    out.ysaraHasClockhand = (() => {
+      const html = cast('ysara', 'Eternal Eclipse');
+      return (html.match(/class="vfx-clockhand"/g) || []).length === 2;
+    })();
+
+    out.sarahHasProjectile = cast('sarah', "Aion's Last Light").includes('vfx-projectile');
+
+    // Gate of Dominion is a deliberate "stay plain" case -- ring+hit only,
+    // no extra flourish (see the SIMPLE_SINGLE_TARGET_VFX comment).
+    const darumHtml = cast('darum', 'Gate of Dominion');
+    out.darumStaysPlain = darumHtml.includes('class="vfx-ring"') && !darumHtml.includes('class="vfx-shard"') && !darumHtml.includes('class="vfx-twinkle') && !darumHtml.includes('class="vfx-projectile"') && !darumHtml.includes('class="vfx-clockhand"');
+
+    // Deathblade's Shadow Assault swaps positions with its target instead
+    // of capturing/destroying it -- must show a ring+hit at the ORIGINAL
+    // target cell (idx 1) AND a second ring+twinkle at Deathblade's own
+    // origin cell (idx 4), never the plain single-target shape.
+    const swapHtml = cast('deathblade', 'Shadow Assault');
+    out.shadowAssaultRingCount = (swapHtml.match(/class="vfx-ring"/g) || []).length;
+    out.shadowAssaultHasTwinkle = swapHtml.includes('vfx-twinkle');
+    out.shadowAssaultNotInSimpleTable = !swapHtml.includes('class="vfx-projectile"') && !swapHtml.includes('class="vfx-shard"');
+
+    return out;
+  })()`);
+  result.shardCards.forEach(r => {
+    assert.equal(r.hasRing, true, `${r.id} must still render a .vfx-ring`);
+    assert.equal(r.hasShard, true, `${r.id} should get a .vfx-shard fragment burst`);
+  });
+  result.twinkleCards.forEach(r => {
+    assert.equal(r.twinkleCount, 4, `${r.id} should get the richer 4-point multi-twinkle scatter, not a single dot`);
+  });
+  assert.equal(result.ysaraHasClockhand, true, "Eternal Eclipse (Timeweaver) should get Vorathos's own .vfx-clockhand pair for its time flavor");
+  assert.equal(result.sarahHasProjectile, true, "Aion's Last Light should get a falling .vfx-projectile like Skybreaker");
+  assert.equal(result.darumStaysPlain, true, 'Gate of Dominion is a deliberate plain ring+hit card, no extra flourish');
+  assert.equal(result.shadowAssaultRingCount, 2, "Shadow Assault must show a ring at BOTH the target cell and Deathblade's own origin cell (the position swap)");
+  assert.equal(result.shadowAssaultHasTwinkle, true);
+  assert.equal(result.shadowAssaultNotInSimpleTable, true, 'Shadow Assault must use its own bespoke derivation, not the generic single-target table');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

@@ -4235,6 +4235,55 @@ ingen alls vid oavgjort). Hela testsviten grön: **154/154** (153 tidigare
 Med denna runda har SAMTLIGA 61 Ultimate-bärande kort i spelet nu egen
 identitets-VFX — ingen "tom namn-banner utan effekter"-kort återstår.
 
+**Fas 22: VFX-polish på de äldre, enkla korten.** Efter Fas 21 hade alla 61
+Ultimate-kort NÅGON VFX, men 12 av de 15 "enkla" single-target-korten från
+just den rundan (Darien, Sarah, Vayra, Ysara, Ragnar, Deathblade, Tahabata,
+Aurelia, Twisted Gipsy, Maximus, Darum, Yojimbo) hade bara den absolut
+billigaste behandlingen: en ring + en hit-markör, inget mer. Användaren bad
+mig fortsätta med just detta ("Kör på med VFX-polish på de äldre korten").
+
+Gav 11 av de 12 en liten, namn-matchad extra touch, återanvänder befintliga
+toolkit-primitiver istället för att uppfinna nya:
+
+- **`.vfx-shard`-fragmentspray** (Shattered Crowns egen form) på fem
+  "vapen/krossar"-kort: Darien (Shadow Breaker), Ragnar (Blood Fury),
+  Tahabata (Inferno Dominion), Maximus (Axe of Dominion), Yojimbo
+  (Zanmato) — passar "breaker"/"axe"/"cuts down"-temat.
+  Ny delad `SIMPLE_TARGET_SHARDS`-array (samma sexpunkts-spridning som
+  `SHATTERED_CROWN_SHARDS`).
+- **Rikare `.vfx-twinkle`-spridning** (fyra punkter istället för en enda
+  prick — samma mönster Wave of Loyalty/Astrael redan använder, nu även
+  här) på tre ljus/arkana-kort: Vayra (Eclipse), Aurelia (Dawn's
+  Reckoning), Twisted Gipsy (House of Shadows).
+- **`.vfx-clockhand`** (Vorathos Time Collapses eget par av motroterande
+  visare) på Ysara (Eternal Eclipse) — Timeweaver-temat matchar rakt av.
+- **`.vfx-projectile`** (Skybreakers fallande spjut/stjärna) på Sarah
+  (Aion's Last Light) — "något skjuts in utifrån"-känslan passar en
+  ranger.
+- Darum (Gate of Dominion) lämnades MEDVETET som ren ring+hit — "Unbreakable
+  Bulwark" läses lika bra som solid och stillsam, inte varje kort behöver
+  en extra krusning.
+
+**Deathblade (Shadow Assault) fick egen bespoke behandling**, inte bara en
+ny flagga i tabellen: till skillnad från alla andra single-target-kort
+FÅNGAR eller FÖRSTÖR han aldrig sitt mål — han BYTER FYSISK PLATS med det
+(se `SPECIAL_HANDLERS.deathblade`). En ren ring+hit bara vid målet hade
+missat halva effekten. Ny egen derivation (`shadowAssaultActive`) som
+visar en ring+hit vid den URSPRUNGLIGA målrutan OCH en andra, dämpad
+ring+twinkle vid Deathblades EGEN ursprungsruta — läses som "något
+försvann här och dök upp där" istället för ett vanligt anfall.
+
+Verifierat: `node --check` grönt. Nytt permanent regressionstest
+(shard-närvaro på alla fem, exakt 4-punkts twinkle-spridning på alla tre,
+båda clockhand-visarna på Ysara, projektil på Sarah, att Darum MEDVETET
+förblir ren, och att Deathblade visar exakt 2 ringar på 2 olika platser
+plus en twinkle — aldrig den generiska single-target-formen). Tre
+Playwright-skärmdumpar bekräftar visuellt: Maximus (röda fragment kring
+axhugget), Ysara (lila ring med en svag svepande visarlinje), Deathblade
+(två separata lila glöd-punkter — mål och ursprung — samtidigt lysande),
+Twisted Gipsy (gyllene ring med spridda arkana gnistor). Hela testsviten
+grön: **155/155** (154 tidigare + 1 ny). Ingen konsol/page-error.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
