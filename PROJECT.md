@@ -4084,6 +4084,67 @@ som tänkt. Nytt permanent regressionstest tillagt (alla fyra kortens
 träffar → ingen stråle). Hela testsviten grön: **152/152** (151 tidigare
 + 1 ny). Ingen konsol/page-error.
 
+**Fas 20: buggfix — fastnat spel, "numbers didn't go down, couldn't press
+end turn".** Användaren rapporterade att en match hade fastnat direkt
+efter ett Ultimate-cast: siffrorna (kortens värden) uppdaterades aldrig,
+och End Turn-knappen svarade inte längre. Ingen specifik kort-kombination
+mindes användaren, bara att det hände "right after an Ultimate cast".
+
+Byggde ett automatiserat stress-test (Playwright, körs utanför testsviten)
+som gick igenom alla 61 kort med ett Ultimate/special i HEROES+
+FOREST_FOES, castade var och en isolerat mot ett bräde omgivet av fyra
+fiender (plus dess ev. `requiresPartner`-allierad), och kontrollerade att
+`state.ultimateBanner` alltid blev `null` igen efter hela sekvensen utan
+någon page-error. Alla 61 klarade detta isolerade test — buggen satt
+alltså inte i någon enskild handlers logik.
+
+Nästa hypotes: `ultimateQueue`-mekanismen (om spelaren castar ett andra
+Ultimate medan det första fortfarande spelar upp sin ~2,7s långa
+windup/hitstop/impact-sekvens, köas det andra istället för att köra
+direkt — se `runSpecialResolution`). `playUltimateSequence` läser sitt
+`targetEntry` LIVE från `state.board[targetIndex]` i varje fas, inte en
+snapshot tagen vid castögonblicket. Om det FÖRSTA Ultimate i kön är en
+AOE-förstör-allt-typ (t.ex. Nexzoths "The Ending" eller Bahamuts
+"Megaflare") och det ANDRA, köade Ultimate är ett single-target-kort vars
+valda mål råkar vara en av de fiender som just förstördes av det första
+— är cellen `null` redan innan det köade kortets egen `handler()` någonsin
+körs. Varenda single-target-handler i `SPECIAL_HANDLERS` läser
+ovillkorligt `targetEntry.card`/`targetEntry.owner` utan null-koll, så
+anropet kastade en `TypeError: Cannot read properties of null (reading
+'card')`. Eftersom den kraschen sker MITT I `playUltimateSequence`s sista
+`setTimeout`-callback avbryts hela resten av den callbacken direkt —
+raden som nollställer `state.ultimateBanner` längre ner körs aldrig.
+`endPlayerTurn()` har en explicit vakt (`if(state.ultimateBanner) return;`)
+just för att inte kollidera med en pågående Ultimate-sekvens, så resultatet
+blev exakt det rapporterade: spelet såg ut att hänga permanent, korten
+uppdaterades aldrig (kraschen avbröt effekten innan den hann göra klart
+sitt jobb) och End Turn svarade inte alls.
+
+Reproducerad exakt med ett riktat repro-skript: Nexzoth castas (AOE-
+förstör-allt), och medan den sekvensen fortfarande spelar upp castas Ifrit
+(single-target Hellfire) mot en av samma fiender — Ifrits cast köas bakom
+Nexzoths. Efter Nexzoths fulla sekvens är fienden borta; när Ifrits köade
+cast sedan kör sin egen sekvens kraschar den precis som förutspått,
+`state.ultimateBanner` fastnar för alltid på `{phase:'impact', ...}`.
+
+Fix: i `playUltimateSequence`s tredje fas (där `handler()` annars alltid
+anropas), en ny vakt — om `special.targets === 'single'` och
+`targetEntry` visar sig vara `null` vid resolve-tillfället (målet
+existerar inte längre), hoppa över `handler()`-anropet helt och sätt
+istället en enkel "hittar inget att slå mot"-logg-rad. Resten av
+sekvensen (impact-punch, ev. chain-shake, cleanup, `maybeEndTurn`, och att
+plocka nästa jobb ur `ultimateQueue`) fortsätter helt normalt efter det —
+spelet "fizzlar" den bortfallna attacken snyggt istället för att krascha.
+
+Nytt permanent regressionstest tillagt som återskapar exakt detta
+scenario (Nexzoth följt av köad Ifrit mot samma fiende) och verifierar
+att `state.ultimateBanner` blir `null` igen som vanligt, att en
+fizzle-logg-rad sätts, och att ingen page-error kastas — det gamla felet
+skulle ha kraschat precis här. Hela testsviten grön: **153/153** (152
+tidigare + 1 ny). Verifierat även manuellt med samma repro-skript direkt
+mot `index.html` (inte bara testsviten) före och efter fixen — kraschade
+garanterat innan, fastnade aldrig efter.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
