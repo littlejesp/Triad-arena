@@ -4561,6 +4561,50 @@ härifrån behöver användaren själv göra en sista manuell koll live
 (skriva ett namn, spela en match, öppna topplistan) för att bekräfta att
 synken mot den riktiga databasen fungerar end-to-end.
 
+**Fas 27: Coinflip-kompassen — bytt från procedurell SVG till beställd
+konst i tre lager.** Användaren ville ändra utseendet på
+"Rolling for first move"-skärmens roterande visare, och tog fram ny konst
+med ChatGPT: en referensbild med tre motiv sida vid sida (en gyllene/lila
+kompass-rosett med ett runt hål i mitten, en dubbelspetsig nål/dolk med en
+egen liten juvel inbyggd, och en separat större orb med fyra diamant-
+spetsar). Planen (föreslagen av ChatGPT, bekräftad av användaren) var tre
+separata lager istället för en enda bild: en stillastående bas, en nål som
+snurrar, och en stillastående mitten-orb ovanpå — annars hade juvelen
+snurrat med nålen istället för att sitta fast som en pivot.
+
+Användaren påpekade träffande att jag redan brukar klippa ut tillgångar
+själv i det här projektet (se Pallis-omklippningen i Fas 55 nedan, med
+samma teknik) — så istället för att be om tre separata filer klipptes de
+ut direkt ur referensbilden användaren redan skickat. Bilden hade redan
+äkta alfa-transparens; ett litet Python/PIL-script (numpy för
+alfa-tröskling) hittade de tre motivens exakta pixel-bounding-boxar via
+kolumn-/rad-genomsökning av alfakanalen, beskar varje motiv tajt, och
+centrerade dem i var sin genomskinlig 512×512-kanvas med bevarat
+bildförhållande — `compass-base.png`, `turn-arrow.png`, `turn-center.png`,
+sparade i repo-roten (samma plats som de befintliga `vfx-*.png`-filerna).
+
+`renderCoinflip()` byttes från de gamla inline-SVG:erna
+(`.arena-rosette`/`.coin-arrow`, handritade polygoner) till tre
+`<img>`-lager staplade och centrerade ovanpå varandra i
+`.coinflip-frame`: basen fyller hela ramen och står still, nålen roterar
+(samma `spinArrow`-keyframe och samma `--final-rot`-vinkel-logik som
+tidigare — blue-vinst ger 90°, red-vinst -90°, plus tre extra varv för
+själva snurr-känslan), och mitten-orben ligger som översta lager exakt i
+kompass-basens hål, vilket medvetet döljer nålens egen inbyggda juvel
+istället för att de två skulle synas dubbelt. Enda knepiga CSS-biten:
+`translate(-50%,-50%) rotate(var(--final-rot))` i den ordningen — annars
+snurrar den absolutpositionerade nålen excentriskt istället för runt sin
+egen mittpunkt. Den generella `.arena-rosette`-klassen och dess helt
+separata användning som bakgrundsdekor bakom själva spelbrädet
+(`arena-frame`) rördes inte alls, bara coinflip-skärmens egen kopia.
+
+Verifierat med Playwright-skärmdumpar i båda utfallen (blue vinner/red
+vinner) — nålen landar synligt åt olika håll, mitten-orben täcker pivoten
+snyggt, och de tre bildernas `naturalWidth`/`complete`-status bekräftar
+att alla laddade korrekt. Inga befintliga test rörde de gamla SVG-
+klasserna, så inget behövde uppdateras. Hela testsviten grön: **162/162**
+(oförändrat antal — en ren visuell ombyggnad, ingen ny testbar logik).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

@@ -2484,13 +2484,30 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
     0 0 40px rgba(139,110,242,0.15);
   display:flex; align-items:center; justify-content:center;
 }
-.coinflip-frame .arena-rosette{ inset:8%; }
-.coin-arrow{
-  position:relative; z-index:1; width:64%; height:64%;
+/* Coinflip compass (custom art, replacing the old procedural SVG rosette+
+   arrow): three separately-generated layers stacked and centered on top of
+   each other inside .coinflip-frame -- compass-base.png (the outer ring,
+   stands still), turn-arrow.png (the needle, spins to point at whoever
+   won the roll), turn-center.png (the pivot orb, stands still on top,
+   deliberately covering the needle's own midpoint so it doesn't double up
+   with the needle's built-in center gem). */
+.coinflip-frame .compass-base-img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+}
+.coinflip-frame .coin-arrow-img{
+  position:absolute; top:50%; left:50%; width:86%; height:86%; object-fit:contain;
+  z-index:1;
   animation: spinArrow 1.9s cubic-bezier(.17,.67,.16,1) forwards;
   filter:drop-shadow(0 0 8px rgba(240,216,121,0.5));
 }
-@keyframes spinArrow{ 0%{ transform:rotate(0deg); } 100%{ transform:rotate(var(--final-rot)); } }
+.coinflip-frame .compass-center-img{
+  position:absolute; top:50%; left:50%; width:32%; height:32%; object-fit:contain;
+  z-index:2;
+}
+@keyframes spinArrow{
+  0%{ transform:translate(-50%,-50%) rotate(0deg); }
+  100%{ transform:translate(-50%,-50%) rotate(var(--final-rot)); }
+}
 .coinflip-label-stack{ position:relative; height:16px; margin-top:18px; width:220px; }
 .coinflip-label{
   position:absolute; inset:0; font-family:'Cinzel',serif; font-size:12px; letter-spacing:0.12em;
@@ -5401,18 +5418,9 @@ function renderCoinflip(){
     ${masthead(true)}
     <div class="coinflip-wrap">
       <div class="coinflip-frame">
-        <div class="arena-rosette" aria-hidden="true">
-          <svg viewBox="0 0 200 200" width="100%" height="100%">
-            <polygon points="100,8 118,84 192,100 118,116 100,192 82,116 8,100 82,84" fill="none" stroke="rgba(139,110,242,0.3)" stroke-width="2"/>
-            <polygon points="100,42 108,92 158,100 108,108 100,158 92,108 42,100 92,92" fill="none" stroke="rgba(201,162,39,0.32)" stroke-width="1.5"/>
-            <circle cx="100" cy="100" r="72" fill="none" stroke="rgba(201,162,39,0.16)" stroke-width="1"/>
-          </svg>
-        </div>
-        <svg class="coin-arrow" viewBox="0 0 100 100" style="--final-rot:${finalRot}deg">
-          <rect x="46" y="46" width="8" height="42" rx="2" fill="#c9a227"/>
-          <polygon points="50,6 64,38 36,38" fill="#f0d879"/>
-          <circle cx="50" cy="50" r="8" fill="#8b6ef2"/>
-        </svg>
+        <img class="compass-base-img" src="compass-base.png" alt="" aria-hidden="true">
+        <img class="coin-arrow-img" src="turn-arrow.png" alt="" aria-hidden="true" style="--final-rot:${finalRot}deg">
+        <img class="compass-center-img" src="turn-center.png" alt="" aria-hidden="true">
       </div>
       <div class="coinflip-label-stack">
         <div class="coinflip-label label-rolling">Rolling for first move&hellip;</div>
