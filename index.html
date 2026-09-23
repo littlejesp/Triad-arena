@@ -943,6 +943,45 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .graveyard-card span{ font-size:11.5px; color:var(--text-dim); }
 .graveyard-empty{ font-size:11.5px; color:var(--text-dim); opacity:0.6; font-style:italic; }
 
+/* Leaderboard (Fas 26) -- name entry + view button sit in the Match
+   Settings panel (renderDraft), same visual language as the rule toggles
+   right above it; the modal itself reuses .graveyard-modal's own
+   padding/heading style rather than redefining it. */
+.leaderboard-name-row{ display:flex; gap:8px; margin-bottom:6px; }
+.leaderboard-name-input{
+  flex:1; min-width:0; padding:7px 10px; border-radius:8px;
+  border:1px solid rgba(180,170,150,0.3); background:rgba(0,0,0,0.25);
+  color:var(--text); font-size:12.5px; font-family:inherit;
+}
+.leaderboard-name-input:focus{ outline:none; border-color:var(--gold); }
+/* button.ghost's own base rule sets width:100% at higher specificity
+   (tag+class) than a plain .leaderboard-view-btn class selector would --
+   without matching that specificity here too, the button tried to fill
+   the whole flex row and squeezed the name input down to almost nothing.
+   button.ghost.leaderboard-view-btn (tag+2 classes) beats it outright,
+   regardless of source order. */
+button.ghost.leaderboard-view-btn{ width:auto; flex:0 0 auto; margin-top:0; padding:7px 12px; font-size:12px; white-space:nowrap; }
+.leaderboard-name-hint{ font-size:11px; color:var(--text-dim); opacity:0.8; margin-bottom:2px; }
+/* .modal-poster.leaderboard-modal (tag-less but two classes, (0,2,0))
+   is needed here, not plain .leaderboard-modal ((0,1,0)): the card-info
+   modal's @media(min-width:700px) .modal-poster rule further down the
+   file sets max-width:780px and display:flex (for its side-by-side
+   art+skills layout) at equal specificity, and being later in source
+   order it would otherwise win at >=700px viewports, both blowing out
+   the width and squeezing the leaderboard rows into flex columns. */
+.modal-poster.leaderboard-modal{ max-width:480px; padding:22px 20px 20px; display:block; }
+.leaderboard-modal h3{ font-family:'Cinzel',serif; color:var(--gold-bright); margin:0 0 6px; }
+.leaderboard-status{ font-size:12px; color:var(--text-dim); text-align:center; padding:24px 8px; }
+.leaderboard-list{ display:flex; flex-direction:column; gap:4px; max-height:55vh; overflow-y:auto; }
+.leaderboard-row{
+  display:flex; align-items:center; gap:10px; padding:7px 9px; border-radius:8px;
+  background:rgba(255,255,255,0.03);
+}
+.leaderboard-row.leaderboard-you{ background:rgba(201,162,39,0.14); border:1px solid rgba(201,162,39,0.4); }
+.leaderboard-rank{ flex:0 0 22px; text-align:center; font-family:'Cinzel',serif; font-weight:700; color:var(--gold-bright); font-size:12.5px; }
+.leaderboard-player-name{ flex:1; min-width:0; font-size:12.5px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.leaderboard-record{ flex:0 0 auto; font-size:11px; color:var(--text-dim); }
+
 /* Stat numbers sit right on the edge of the card they belong to — top
    number at the top edge, right number at the right edge, etc. — instead
    of a central cluster, so you can read "which side is strong" at the
@@ -4679,6 +4718,9 @@ let state = {
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
   showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
+  showLeaderboard: false, // true while the 🏆 Leaderboard modal is open
+  leaderboardStatus: 'idle', // 'idle' | 'loading' | 'ready' | 'error' — see leaderboardFetchTop
+  leaderboardEntries: null,  // array of {id, name, wins, losses, draws, matchesPlayed} once loaded, or null before the first fetch
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   impactPunch: false,     // true briefly at the exact moment ANY Ultimate's effect lands (every card, not magnitude-gated like chainShake) — .board.impact-punch, see playUltimateSequence
@@ -4752,6 +4794,7 @@ function render(){
   html += renderModal();
   html += renderRulebookModal();
   html += renderGraveyardModal();
+  html += renderLeaderboardModal();
   html += renderChoicePicker();
   html += renderTutorialOverlay();
   app.innerHTML = html;
@@ -4843,6 +4886,46 @@ function renderGraveyardModal(){
           ${side('Forest', 'red', state.graveyard.red)}
           ${side('Your Banner', 'blue', state.graveyard.blue)}
         </div>
+      </div>
+    </div>`;
+}
+
+// Fas 26: shared cross-device leaderboard, backed by Firestore (see the
+// Firebase module script near the end of the file for leaderboardSyncScore/
+// leaderboardFetchTop). Same modal-overlay/modal-poster shape as
+// renderGraveyardModal above, opened via the "View Leaderboard" button in
+// renderDraft's Match Settings panel (see attachHandlers), which kicks off
+// an async fetch and sets state.leaderboardStatus -- this function only
+// ever renders whatever that status/data currently is, never fetches
+// itself (render() must stay a pure reflection of state, no side effects).
+function renderLeaderboardModal(){
+  if(!state.showLeaderboard) return '';
+  let body;
+  if(state.leaderboardStatus === 'loading'){
+    body = `<div class="leaderboard-status">Loading the leaderboard…</div>`;
+  } else if(state.leaderboardStatus === 'error'){
+    body = `<div class="leaderboard-status">Couldn't reach the leaderboard right now. Check your connection and try again later.</div>`;
+  } else if(!state.leaderboardEntries || state.leaderboardEntries.length === 0){
+    body = `<div class="leaderboard-status">No one has joined the leaderboard yet — be the first!</div>`;
+  } else {
+    body = `
+      <div class="leaderboard-list">
+        ${state.leaderboardEntries.map((entry, i) => `
+          <div class="leaderboard-row ${entry.id === playerId ? 'leaderboard-you' : ''}">
+            <span class="leaderboard-rank">${i + 1}</span>
+            <span class="leaderboard-player-name">${escapeHtml(entry.name || '???')}</span>
+            <span class="leaderboard-record">${entry.wins||0}W · ${entry.losses||0}L · ${entry.draws||0}D</span>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+  return `
+    <div class="modal-overlay" id="leaderboard-overlay">
+      <div class="modal-poster leaderboard-modal">
+        <button class="modal-close" id="leaderboard-close">✕</button>
+        <h3>🏆 Leaderboard</h3>
+        <p class="graveyard-hint">Top players across every device, ranked by total wins in Random Draft/Choose Your Five (Campaign progress isn't counted here).</p>
+        ${body}
       </div>
     </div>`;
 }
@@ -5200,6 +5283,13 @@ function renderDraft(){
         <button class="difficulty-btn ${state.aiDifficulty==='hard' ? 'active' : ''}" data-difficulty="hard">Hard</button>
       </div>
       <div class="difficulty-desc">${AI_DIFFICULTY_DESC[state.aiDifficulty]}</div>
+
+      <div class="settings-section-label">🏆 Leaderboard</div>
+      <div class="leaderboard-name-row">
+        <input type="text" id="leaderboard-name-input" class="leaderboard-name-input" placeholder="Choose a name to join" value="${escapeHtml(playerName)}" maxlength="24">
+        <button class="ghost leaderboard-view-btn" id="leaderboard-open-btn">View Leaderboard</button>
+      </div>
+      <div class="leaderboard-name-hint">${playerName ? `Playing as <b>${escapeHtml(playerName)}</b> — your results sync automatically.` : 'Enter a name and press Enter to appear on the shared leaderboard.'}</div>
 
       ${matchStats.matches > 0 ? `
       <div class="settings-section-label">Your record</div>
@@ -6702,6 +6792,52 @@ function attachHandlers(){
     render();
   });
 
+  // Leaderboard (Fas 26): the name input syncs immediately on change (not
+  // just on the next match) so choosing a name for the first time
+  // populates the shared leaderboard right away with whatever local
+  // matchStats already exist, rather than waiting for another match to
+  // finish. The open button kicks off the actual async Firestore fetch
+  // here (never inside render(), which must stay a pure reflection of
+  // state) and re-renders once it settles.
+  const leaderboardNameInput = document.getElementById('leaderboard-name-input');
+  if(leaderboardNameInput){
+    leaderboardNameInput.addEventListener('change', ()=>{
+      const val = leaderboardNameInput.value.trim().slice(0, 24);
+      playerName = val;
+      savePlayerName(val);
+      syncLeaderboardScore();
+      render();
+    });
+  }
+  const leaderboardOpenBtn = document.getElementById('leaderboard-open-btn');
+  if(leaderboardOpenBtn) leaderboardOpenBtn.addEventListener('click', ()=>{
+    state.showLeaderboard = true;
+    state.leaderboardStatus = 'loading';
+    state.leaderboardEntries = null;
+    render();
+    if(window.leaderboardFetchTop){
+      window.leaderboardFetchTop(20).then(rows => {
+        state.leaderboardEntries = rows;
+        state.leaderboardStatus = rows === null ? 'error' : 'ready';
+        render();
+      });
+    } else {
+      state.leaderboardStatus = 'error';
+      render();
+    }
+  });
+  const leaderboardOverlay = document.getElementById('leaderboard-overlay');
+  if(leaderboardOverlay){
+    leaderboardOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'leaderboard-overlay') { state.showLeaderboard = false; render(); }
+    });
+  }
+  const leaderboardClose = document.getElementById('leaderboard-close');
+  if(leaderboardClose) leaderboardClose.addEventListener('click', ()=>{
+    state.showLeaderboard = false;
+    render();
+  });
+
   const choicePickerOverlay = document.getElementById('choice-picker-overlay');
   if(choicePickerOverlay){
     choicePickerOverlay.addEventListener('click', (e)=>{
@@ -7797,6 +7933,71 @@ function saveMatchStats(){
 }
 let matchStats = loadMatchStats();
 
+// Leaderboard (Fas 26): a real cross-device leaderboard needs a stable
+// identity for "this browser" that survives across sessions without any
+// login system -- a random id, generated once and kept in localStorage
+// forever, doubles as the Firestore document id for this player's row
+// (see syncLeaderboardScore/leaderboardFetchTop in the Firebase module
+// script). Never shown to the player; playerName (below) is the only
+// thing anyone else ever sees.
+const PLAYER_ID_KEY = 'triadArenaPlayerId';
+function loadOrCreatePlayerId(){
+  try{
+    let id = localStorage.getItem(PLAYER_ID_KEY);
+    if(!id){
+      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('p-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+      localStorage.setItem(PLAYER_ID_KEY, id);
+    }
+    return id;
+  }catch(e){
+    // localStorage unavailable (private mode, etc.) -- a session-only
+    // fallback id still lets syncLeaderboardScore work for this visit,
+    // it just won't be remembered as the same player next time.
+    return 'p-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  }
+}
+const playerId = loadOrCreatePlayerId();
+
+const PLAYER_NAME_KEY = 'triadArenaPlayerName';
+function loadPlayerName(){
+  try{ return localStorage.getItem(PLAYER_NAME_KEY) || ''; }catch(e){ return ''; }
+}
+function savePlayerName(name){
+  try{ localStorage.setItem(PLAYER_NAME_KEY, name); }catch(e){ /* just won't persist */ }
+}
+let playerName = loadPlayerName();
+
+// The only piece of user-supplied free text in the whole game (every other
+// string is either static copy or a card name from our own data) -- a
+// leaderboard name is written by ANY player and read by EVERY player, so
+// it must be HTML-escaped before ever landing in a template string that
+// gets assigned via innerHTML (see renderLeaderboardModal/renderDraft's
+// name input), same as any other untrusted-content render path.
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// Best-effort sync to the shared Firestore leaderboard -- window.
+// leaderboardSyncScore is defined by the Firebase module script further
+// down the page (see its own comment); guarded here so a slow network, an
+// ad-blocker, or the module script simply not having loaded yet NEVER
+// throws or blocks real gameplay -- the local matchStats save above is
+// what actually matters for the player's own experience, this is purely
+// upload-and-forget on top of it. Skipped entirely until the player has
+// actually chosen a name (an anonymous row would be useless on a shared
+// leaderboard anyway).
+function syncLeaderboardScore(){
+  if(!playerName || !window.leaderboardSyncScore) return;
+  window.leaderboardSyncScore(playerId, {
+    name: playerName,
+    wins: matchStats.wins,
+    losses: matchStats.losses,
+    draws: matchStats.draws,
+    matchesPlayed: matchStats.matches,
+    updatedAt: Date.now(),
+  });
+}
+
 // Called from finishGame() for every Random Draft/Choose Your Five match.
 // "Favorite champion" is tracked as wins-with-that-card-in-your-five, not
 // wins-by-that-specific-card's-own-battles — simple, cheap (one counter per
@@ -7818,6 +8019,7 @@ function recordMatchResult(winner){
     matchStats.currentStreak = 0;
   }
   saveMatchStats();
+  syncLeaderboardScore();
 }
 function favoriteCardInfo(){
   let bestId = null, bestCount = 0;
@@ -11752,7 +11954,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
@@ -11767,6 +11969,69 @@ loadTesterCount();
 
 document.addEventListener('click', tryStartMusic, { once: true });
 document.addEventListener('touchstart', tryStartMusic, { once: true });
+</script>
+
+<!-- Fas 26: shared cross-device leaderboard, backed by Firebase Firestore.
+     A separate type="module" script because the Firebase SDK is only
+     distributed as ES modules -- the main game script above is a classic
+     (non-module) script and can't use `import` directly. Exposes exactly
+     two functions on window (leaderboardSyncScore/leaderboardFetchTop) for
+     the main script to call; everything else about Firestore stays
+     contained here. Every call is wrapped in try/catch and every exposed
+     function fails soft (silently no-ops or returns null) -- a network
+     hiccup, an ad-blocker, or this script simply not having loaded yet
+     must never throw into or block the main game script, since real
+     gameplay never depends on the leaderboard actually reaching Firestore.
+     apiKey/projectId etc. below are safe to ship client-side as-is --
+     Firestore's actual security boundary is the rules published on the
+     project (see PROJECT.md), not secrecy of these values. -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAUzJQ64_rdANts380L7ml05fdd5eVco3o",
+    authDomain: "triad-arena.firebaseapp.com",
+    projectId: "triad-arena",
+    storageBucket: "triad-arena.firebasestorage.app",
+    messagingSenderId: "451675454503",
+    appId: "1:451675454503:web:c36525a10b8f8bbcede202",
+  };
+
+  let db = null;
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+  } catch (e) { /* Firebase unreachable/blocked -- leaderboard just stays unavailable */ }
+
+  // Overwrites this player's own row (one doc per playerId, see
+  // loadOrCreatePlayerId in the main script) with their current aggregate
+  // stats -- not an increment, matchStats is already the authoritative
+  // running total locally, this just mirrors it.
+  window.leaderboardSyncScore = async function(playerId, data){
+    if(!db) return;
+    try{
+      await setDoc(doc(db, 'players', playerId), data);
+    }catch(e){ /* best-effort -- never surfaced to the player */ }
+  };
+
+  // Returns the top `count` rows by wins, each with its Firestore document
+  // id attached (so the main script can highlight "this is you"), or null
+  // specifically on failure -- distinct from a genuinely empty [], which
+  // renderLeaderboardModal treats as "no one has joined yet" rather than
+  // an error.
+  window.leaderboardFetchTop = async function(count){
+    if(!db) return null;
+    try{
+      const q = query(collection(db, 'players'), orderBy('wins', 'desc'), limit(count));
+      const snap = await getDocs(q);
+      const rows = [];
+      snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+      return rows;
+    }catch(e){
+      return null;
+    }
+  };
 </script>
 </body>
 </html>
