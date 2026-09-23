@@ -4100,7 +4100,7 @@ const HEROES = [
   { id:'gambler', name:'The Gambler', role:'Trickster Card — Herald of Chaos', top:10, right:10, bottom:10, left:10, element:'void', hue:'linear-gradient(160deg,#1a1030,#0d0b18 60%)', accent:'#8b6ef2', icon:'🎲', special:{ name:'Ultima', cost:4, once:true, targets:'aoe' }, skills:[
     {name:'Roll the Dice (Passive)', desc:"Every time The Gambler attacks, he rolls three dice first — real dice odds: about a 56% chance of no match (a single strike), 42% for two matching (a Double Attack), and 3% for all three matching (a Triple Attack). Purely a visual flourish: however many strikes land, the last one is what decides the battle, exactly like any other card."},
     {name:'Flare (Passive)', desc:'When The Gambler is placed, a burst of chaotic energy hits every adjacent enemy card for -1 Power on all sides this round.'},
-    {name:'Special Attack: Ultima', desc:'Costs 4 wins. Reality breaks across the whole board — every enemy card gets -2 Power on all sides this round. Usable once per match.'},
+    {name:'Special Attack: Ultima', desc:'Costs 4 wins. Reality breaks across the whole board — every enemy card is captured outright (shields still protect their own owner). Usable once per match.'},
   ]},
 ];
 
@@ -4538,7 +4538,7 @@ const FOREST_FOES = [
   { id:'gambler', name:'The Gambler', role:'Trickster Card — Herald of Chaos', top:10, right:10, bottom:10, left:10, element:'void', hue:'linear-gradient(160deg,#1a1030,#0d0b18 60%)', accent:'#8b6ef2', icon:'🎲', special:{ name:'Ultima', cost:4, once:true, targets:'aoe' }, skills:[
     {name:'Roll the Dice (Passive)', desc:"Every time The Gambler attacks, he rolls three dice first — real dice odds: about a 56% chance of no match (a single strike), 42% for two matching (a Double Attack), and 3% for all three matching (a Triple Attack). Purely a visual flourish: however many strikes land, the last one is what decides the battle, exactly like any other card."},
     {name:'Flare (Passive)', desc:'When The Gambler is placed, a burst of chaotic energy hits every adjacent enemy card for -1 Power on all sides this round.'},
-    {name:'Special Attack: Ultima', desc:'Costs 4 wins. Reality breaks across the whole board — every enemy card gets -2 Power on all sides this round. Usable once per match.'},
+    {name:'Special Attack: Ultima', desc:'Costs 4 wins. Reality breaks across the whole board — every enemy card is captured outright (shields still protect their own owner). Usable once per match.'},
   ]},
 ];
 
@@ -10603,23 +10603,34 @@ const SPECIAL_HANDLERS = {
       ? `${name}'s United Will surges through the ranks — every ally grows stronger!`
       : `${name}'s United Will steels itself, but too few allies stand together to share the surge!`;
   },
-  // The Gambler's Ultima: "reality breaks, a devastating strike from the
-  // void" -- a whole-board AOE, same debuffThisRound-every-enemy shape as
-  // Diamond Storm/Vorgrath's Crushing Weight, added to aoeEnemyIndicesAtCast
-  // above so it gets the same shared identity-VFX treatment (see
-  // ultimaActive/renderBattle).
+  // The Gambler's Ultima ("Alla fiender flippas om han får 4 wins" --
+  // rewritten per the user's explicit request from a whole-board debuff
+  // into a whole-board CAPTURE): every enemy card on the board flips to
+  // his owner outright, no stat comparison at all -- same unconditional
+  // flip primitive Graff's Whirlwind Assault uses on its single target
+  // (targetEntry.owner = owner + justFlipped + checkSisterFlip), just
+  // looped over the whole board instead of one card. Still respects
+  // shields via specialBlockedByShield, same as every other capture-style
+  // special -- the one balance valve left on an otherwise unconditional
+  // effect. Does NOT add to state.wins (captures via a Special Attack
+  // never do, board ownership and the wins-currency are tracked
+  // separately -- see placeCard's own flips>0 increment for the only
+  // place that resource actually grows).
   gambler({ srcEntry, owner }){
     const name = srcEntry.card.name;
     const enemyOwner = owner === 'blue' ? 'red' : 'blue';
-    let hit = 0;
-    state.board.forEach(e => {
+    let flipped = 0, shielded = 0;
+    state.board.forEach((e, i) => {
       if(!e || e.owner !== enemyOwner) return;
-      SpecialVerbs.debuffThisRound(e, 2);
-      hit++;
+      if(specialBlockedByShield(e, i)){ shielded++; return; }
+      e.owner = owner;
+      e.justFlipped = true;
+      checkSisterFlip(e);
+      flipped++;
     });
-    return hit > 0
-      ? `${name}'s Ultima tears reality apart — ${hit} enem${hit>1?'ies':'y'} weakened across the board!`
-      : `${name}'s Ultima finds no one left to strike!`;
+    if(flipped === 0 && shielded === 0) return `${name}'s Ultima finds no one left to strike!`;
+    if(flipped === 0) return `${name}'s Ultima shatters reality, but every shield holds firm!`;
+    return `${name}'s Ultima shatters reality — ${flipped} enem${flipped>1?'ies are':'y is'} claimed outright${shielded>0?`, ${shielded} shield${shielded>1?'s':''} held`:''}!`;
   },
 };
 
