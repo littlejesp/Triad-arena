@@ -4413,6 +4413,57 @@ och Nexzoth är fångade, och `wins` räknas korrekt (exakt 2, inte 3 — den
 förstörda rutan räknas inte dubbelt). Hela testsviten grön: **159/159**
 (158 tidigare + 1 ny).
 
+**Fas 25: Particle Swarm — riktiga slumpade energipartiklar istället för
+fasta twinkle-rutnät.** Användaren och ChatGPT diskuterade en ny VFX-idé:
+istället för en enda PNG med prickar på fasta positioner ("gröna maskar"),
+återanvänd den befintliga `vfx-spark.png`-spriten och skapa MÅNGA
+instanser med JS — varierad storlek, opacitet, hastighet, svag drift,
+glow, och att några ibland följer en böjd bana istället för en rak
+linje. Efter att ha bekräftat riktningen ("det är ju snyggt nu men gör
+det bättre") byggdes det som en ny delad toolkit-primitiv.
+
+Ny CSS-primitiv `.vfx-particle` — samma mask-image-teknik mot
+`vfx-spark.png` som `.vfx-twinkle::before` redan använder, men applicerad
+direkt på elementet (inte via `::before`) eftersom JS behöver sätta en
+egen `--size` per instans. Ny JS-funktion `particleSwarmHtml(count)`
+genererar `count` stycken `<div>`, var och en med SLUMPADE
+`--size`/`--peak-opacity`/`--duration`/`--delay`/`--dx`/`--dy` (riktning +
+avstånd beräknat via `Math.cos`/`Math.sin` på en slumpad vinkel) — ingen
+instans ser likadan ut två gånger. Cirka 30% av partiklarna får en
+`.orbit`-klass som byter ut den räta `vfxParticleDrift`-animationen mot
+`vfxParticleOrbit`, en enkel 3-punkts kurva (start/mittpunkt-förskjuten-i-
+sidled/slut) — medvetet INTE en riktig cirkulär `offset-path` (mycket
+bredare webbläsarstöd, och vid den här storleken/varaktigheten läser en
+mjuk sväng redan som "kurvig" utan att en perfekt cirkel behövs).
+
+Ersatte de gamla fasta twinkle-rutnäten (`[0,1,2,3,4,5].map(n =>
+.vfx-twinkle-${n})` respektive `[0,1,2,3].map(...)`) med
+`particleSwarmHtml()`-anrop på alla sex ställen de användes: Ancient
+Wyrmking (Conquests Witnessed), Medusa (Gorgon's Dominion), Triune Desire
+(Forbidden Harmony), Pallis (Wave of Loyalty), The Concord (United Will)
+— alla uppgraderade till 10 partiklar — samt Elara/Naline/Zlaizers
+delade egen-sida-välsignelse (7 partiklar) och de fyra enkla
+single-target-korten från VFX-polish-rundan som redan hade en
+`twinkle`-flagga (Astrael/Vayra/Aurelia/Twisted Gipsy, 6 partiklar
+vardera). Deathblades egen bespoke enstaka twinkle-prick (Shadow Assault,
+positionerad vid hans ursprungsruta) lämnades oförändrad — det är inte
+ett rutnät, bara en enda accentprick, inget problem att lösa där.
+
+Verifierat: `node --check` grönt. Uppdaterade tre befintliga test som
+räknade `.vfx-twinkle`-element specifikt (nu `.vfx-particle`) och
+justerade förväntat antal där det ändrats (4→6 för single-target-korten).
+Nytt permanent regressionstest för själva primitiven: exakt rätt antal
+partiklar oavsett slump, varje instans bär sina egna slumpade CSS-
+variabler, TVÅ separata anrop ger ALDRIG identisk output (bevisar riktig
+slumpning, inte en återanvänd statisk mall), en stor batch (200 st)
+innehåller garanterat både raka och `.orbit`-kurviga partiklar, och att
+Wave of Loyaltys riktiga impact-markup nu faktiskt renderar 10 riktiga
+partiklar med det gamla fasta rutnätet helt borta. Playwright-
+skärmdumpar bekräftar visuellt: en spridd ring av små ljusa
+gnist-punkter runt kortet, tydligt skild från den gamla symmetriska
+6-punkts-layouten. Hela testsviten grön: **160/160** (159 tidigare + 1
+ny).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

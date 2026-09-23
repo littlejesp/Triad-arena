@@ -2160,6 +2160,56 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .vfx-twinkle-4{ --tx:0px;   --ty:-70px; animation-delay:.6s;  }
 .vfx-twinkle-5{ --tx:-10px; --ty:70px;  animation-delay:.35s; }
 
+/* Particle Swarm ("gör det bättre" follow-up): a multi-twinkle effect
+   used to mean N divs at hand-picked fixed --tx/--ty offsets (.vfx-twinkle-0
+   through -5 above) -- identical layout on every single cast. This is the
+   randomized replacement: each instance gets its own JS-generated size/
+   opacity/drift/speed/timing (see particleSwarmHtml()), so a swarm never
+   looks the same way twice -- real drifting energy motes instead of a
+   fixed static pattern ("inte gröna maskar", per the user's own framing).
+   Same spark-sprite mask-image as .vfx-twinkle::before, just applied
+   directly to the element itself (not a ::before) since JS needs to set
+   a different --size per instance and mask-image doesn't scale with a
+   plain width/height the way a background-image would need extra care
+   for anyway -- simpler to size the element directly here. */
+.vfx-particle{
+  position:absolute; left:var(--vfx-x,50%); top:var(--vfx-y,50%);
+  width:var(--size,5px); height:var(--size,5px);
+  margin:calc(var(--size,5px) * -0.5) 0 0 calc(var(--size,5px) * -0.5);
+  background:var(--vfx-twinkle-color, #fff);
+  -webkit-mask-image:url('vfx-spark.png'); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+  mask-image:url('vfx-spark.png'); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
+  mix-blend-mode:screen;
+  opacity:0;
+  pointer-events:none;
+  filter:drop-shadow(0 0 3px var(--vfx-glow-color, var(--vfx-twinkle-color, rgba(255,255,255,0.8))));
+}
+.ultimate-vfx.phase-impact .vfx-particle{
+  animation: vfxParticleDrift var(--duration,1.2s) ease-out var(--delay,0s) both;
+}
+@keyframes vfxParticleDrift{
+  0%{ opacity:0; transform:translate(0,0) scale(0.4); }
+  15%{ opacity:var(--peak-opacity,0.85); }
+  100%{ opacity:0; transform:translate(var(--dx,0),var(--dy,0)) scale(1); }
+}
+/* Orbit variant -- a fraction of the swarm curves through a midpoint
+   offset to the side of its straight-line path instead of drifting
+   directly outward, the "sometimes follows an energy loop" feel the user
+   asked for. Deliberately a simple 3-point curve (start/mid/end) via
+   --mid-x/--mid-y rather than a true circular offset-path: much wider
+   browser support, and at this size/duration a gentle swoop already
+   reads as "curving", not a straight line -- a real circular orbit would
+   be lost in the noise of a 1-second fade anyway. */
+.vfx-particle.orbit{
+  animation-name: vfxParticleOrbit;
+}
+@keyframes vfxParticleOrbit{
+  0%{ opacity:0; transform:translate(0,0) scale(0.4); }
+  15%{ opacity:var(--peak-opacity,0.85); }
+  55%{ transform:translate(var(--mid-x,10px), var(--mid-y,-15px)) scale(0.85); }
+  100%{ opacity:0; transform:translate(var(--dx,0),var(--dy,0)) scale(1); }
+}
+
 /* Design review follow-up ("bättre ljuseffekter"): an ornate magic-circle
    glyph (user-supplied, see PROJECT.md), same recolor-via-mask technique
    as .vfx-ring/.vfx-twinkle's own ::before textures above, available as
@@ -5352,6 +5402,45 @@ function angleAndLengthPercent(originX, originY, targetX, targetY){
   return { angleDeg: Math.atan2(dyUnits, dxUnits) * (180/Math.PI), lengthPercent: Math.sqrt(dxUnits*dxUnits + dyUnits*dyUnits) * 100 };
 }
 
+// Particle Swarm: JS-generated randomized instances of .vfx-particle (see
+// its CSS above) instead of a handful of hand-picked fixed twinkle
+// positions -- replaces the old `[0,1,2,3,4,5].map(n => .vfx-twinkle-${n})`
+// pattern Wave of Loyalty/Elara/Naline/Zlaizer used to share, which looked
+// identical on every single cast. Positioned relative to the container's
+// own --vfx-x/--vfx-y (same convention .vfx-twinkle already used), so it
+// drops into any existing markup with no extra per-card setup. Roughly
+// 30% of particles get the .orbit class (a curved swoop instead of a
+// straight drift, see @keyframes vfxParticleOrbit) for the "sometimes
+// follows an energy loop" variety the user asked for.
+function particleSwarmHtml(count){
+  let html = '';
+  for(let i = 0; i < count; i++){
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 30 + Math.random() * 45;
+    const dx = (Math.cos(angle) * dist).toFixed(1) + 'px';
+    const dy = (Math.sin(angle) * dist).toFixed(1) + 'px';
+    const size = (3 + Math.random() * 4).toFixed(1) + 'px';
+    const peakOpacity = (0.5 + Math.random() * 0.4).toFixed(2);
+    const duration = (0.9 + Math.random() * 0.9).toFixed(2) + 's';
+    const delay = (Math.random() * 0.5).toFixed(2) + 's';
+    const orbit = Math.random() < 0.3;
+    let extra = '';
+    if(orbit){
+      // A midpoint offset roughly perpendicular to the straight dx/dy
+      // path, at random handedness (left/right of the line) and a
+      // randomized bend angle -- this is what reads as "curving" rather
+      // than a straight line once the drift animation passes through it.
+      const midAngle = angle + (Math.random() < 0.5 ? 1 : -1) * (Math.PI / 2 + Math.random() * 0.6);
+      const midDist = dist * (0.5 + Math.random() * 0.3);
+      const midX = (Math.cos(midAngle) * midDist).toFixed(1) + 'px';
+      const midY = (Math.sin(midAngle) * midDist).toFixed(1) + 'px';
+      extra = ` --mid-x:${midX}; --mid-y:${midY};`;
+    }
+    html += `<div class="vfx-particle${orbit ? ' orbit' : ''}" style="--size:${size}; --peak-opacity:${peakOpacity}; --duration:${duration}; --delay:${delay}; --dx:${dx}; --dy:${dy};${extra}"></div>`;
+  }
+  return html;
+}
+
 function renderBattle(){
   const blueCount = state.board.filter(c => c && c.owner === 'blue').length;
   const redCount = state.board.filter(c => c && c.owner === 'red').length;
@@ -6280,7 +6369,7 @@ function renderBattle(){
         <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${wyrmkingOriginX}%; --vfx-y:${wyrmkingOriginY}%; --vfx-ring-color:rgba(180,230,140,0.95); --vfx-glow-color:rgba(90,150,60,0.7); --vfx-ring-soft:rgba(220,245,200,0.6); --vfx-hit-color:rgba(220,245,200,0.95); --vfx-hit-color-mid:rgba(120,180,80,0.7); --vfx-twinkle-color:#d9c48a;">
           <div class="vfx-ring"></div>
           ${wyrmkingHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
-          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+          ${particleSwarmHtml(10)}
         </div>
         <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(143,209,90,0.5); --vfx-flash-delay:0.3s;"></div>
       ` : ''}
@@ -6288,7 +6377,7 @@ function renderBattle(){
         <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${gorgonOriginX}%; --vfx-y:${gorgonOriginY}%; --vfx-ring-color:rgba(160,190,150,0.9); --vfx-glow-color:rgba(80,110,70,0.65); --vfx-ring-soft:rgba(140,160,130,0.55); --vfx-hit-color:rgba(180,200,175,0.9); --vfx-hit-color-mid:rgba(90,110,85,0.7); --vfx-twinkle-color:#9fae95;">
           <div class="vfx-ring"></div>
           ${gorgonHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
-          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+          ${particleSwarmHtml(10)}
         </div>
         <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(140,160,130,0.4); --vfx-flash-delay:0.3s;"></div>
       ` : ''}
@@ -6336,7 +6425,7 @@ function renderBattle(){
         <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${forbiddenHarmonyOriginX}%; --vfx-y:${forbiddenHarmonyOriginY}%; --vfx-ring-color:rgba(194,59,206,0.95); --vfx-glow-color:rgba(139,60,180,0.6); --vfx-ring-soft:rgba(230,180,235,0.6);">
           <div class="vfx-ring"></div>
           ${forbiddenHarmonyHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s; --vfx-hit-color:${h.color.ring}; --vfx-hit-color-mid:${h.color.glow};"></div>`).join('')}
-          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+          ${particleSwarmHtml(10)}
         </div>
         <div class="vfx-flash phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-flash-color:rgba(194,59,206,0.4); --vfx-flash-delay:0.3s;"></div>
       ` : ''}
@@ -6352,7 +6441,7 @@ function renderBattle(){
         <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${waveOfLoyaltyOriginX}%; --vfx-y:${waveOfLoyaltyOriginY}%; --vfx-ring-color:rgba(255,215,120,0.9); --vfx-glow-color:rgba(201,162,39,0.55); --vfx-ring-soft:rgba(255,240,200,0.6); --vfx-hit-color:rgba(255,240,200,0.95); --vfx-hit-color-mid:rgba(201,162,39,0.7); --vfx-twinkle-color:#f2d98a;">
           <div class="vfx-ring"></div>
           ${waveOfLoyaltyHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
-          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+          ${particleSwarmHtml(10)}
         </div>
       ` : ''}
       ${yangResonanceActive ? `
@@ -6405,7 +6494,7 @@ function renderBattle(){
         <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${concordOriginX}%; --vfx-y:${concordOriginY}%; --vfx-ring-color:rgba(224,192,47,0.95); --vfx-glow-color:rgba(180,140,20,0.65); --vfx-ring-soft:rgba(255,240,180,0.6); --vfx-hit-color:rgba(255,240,180,0.95); --vfx-hit-color-mid:rgba(180,140,20,0.7); --vfx-twinkle-color:#f2d98a;">
           <div class="vfx-ring"></div>
           ${concordHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
-          ${[0,1,2,3,4,5].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+          ${particleSwarmHtml(10)}
         </div>
       ` : ''}
       ${apokalypsActive ? `
@@ -6441,7 +6530,7 @@ function renderBattle(){
           ${simpleSingleTargetVfx.projectile ? `<div class="vfx-projectile" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-projectile-color:${simpleSingleTargetVfx.ring}; --vfx-projectile-glow:${simpleSingleTargetVfx.glow};"></div>` : ''}
           <div class="vfx-ring" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-ring-color:${simpleSingleTargetVfx.ring}; --vfx-glow-color:${simpleSingleTargetVfx.glow}; --vfx-ring-soft:${simpleSingleTargetVfx.soft};"></div>
           <div class="vfx-hit" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-hit-color:${simpleSingleTargetVfx.soft}; --vfx-hit-color-mid:${simpleSingleTargetVfx.glow};"></div>
-          ${simpleSingleTargetVfx.twinkle ? [0,1,2,3].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('') : ''}
+          ${simpleSingleTargetVfx.twinkle ? particleSwarmHtml(6) : ''}
           ${simpleSingleTargetVfx.shard ? SIMPLE_TARGET_SHARDS.map(s => `<div class="vfx-shard" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --sx:${s.sx}; --sy:${s.sy}; --vfx-shard-color:${simpleSingleTargetVfx.soft};"></div>`).join('') : ''}
           ${simpleSingleTargetVfx.clockhand ? `
             <div class="vfx-clockhand" style="left:${simpleSingleTargetX}%; top:${simpleSingleTargetY}%; --vfx-clock-color:${simpleSingleTargetVfx.ring}; animation-delay:0s;"></div>
@@ -6461,7 +6550,7 @@ function renderBattle(){
         <div class="ultimate-vfx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--vfx-x:${ownSideBlessingOriginX}%; --vfx-y:${ownSideBlessingOriginY}%; --vfx-ring-color:${ownSideBlessingVfx.ring}; --vfx-glow-color:${ownSideBlessingVfx.glow}; --vfx-ring-soft:${ownSideBlessingVfx.soft}; --vfx-hit-color:${ownSideBlessingVfx.soft}; --vfx-hit-color-mid:${ownSideBlessingVfx.glow};">
           <div class="vfx-ring"></div>
           ${ownSideBlessingHitPositions.map(h => `<div class="vfx-hit" style="left:${h.x}%; top:${h.y}%; animation-delay:${h.delay}s;"></div>`).join('')}
-          ${[0,1,2,3].map(n => `<div class="vfx-twinkle vfx-twinkle-${n}"></div>`).join('')}
+          ${particleSwarmHtml(7)}
         </div>
       ` : ''}
       ${wholeBoardEnemyVfx ? `
