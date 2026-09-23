@@ -4235,6 +4235,128 @@ ingen alls vid oavgjort). Hela testsviten grön: **154/154** (153 tidigare
 Med denna runda har SAMTLIGA 61 Ultimate-bärande kort i spelet nu egen
 identitets-VFX — ingen "tom namn-banner utan effekter"-kort återstår.
 
+**Fas 22: VFX-polish på de äldre, enkla korten.** Efter Fas 21 hade alla 61
+Ultimate-kort NÅGON VFX, men 12 av de 15 "enkla" single-target-korten från
+just den rundan (Darien, Sarah, Vayra, Ysara, Ragnar, Deathblade, Tahabata,
+Aurelia, Twisted Gipsy, Maximus, Darum, Yojimbo) hade bara den absolut
+billigaste behandlingen: en ring + en hit-markör, inget mer. Användaren bad
+mig fortsätta med just detta ("Kör på med VFX-polish på de äldre korten").
+
+Gav 11 av de 12 en liten, namn-matchad extra touch, återanvänder befintliga
+toolkit-primitiver istället för att uppfinna nya:
+
+- **`.vfx-shard`-fragmentspray** (Shattered Crowns egen form) på fem
+  "vapen/krossar"-kort: Darien (Shadow Breaker), Ragnar (Blood Fury),
+  Tahabata (Inferno Dominion), Maximus (Axe of Dominion), Yojimbo
+  (Zanmato) — passar "breaker"/"axe"/"cuts down"-temat.
+  Ny delad `SIMPLE_TARGET_SHARDS`-array (samma sexpunkts-spridning som
+  `SHATTERED_CROWN_SHARDS`).
+- **Rikare `.vfx-twinkle`-spridning** (fyra punkter istället för en enda
+  prick — samma mönster Wave of Loyalty/Astrael redan använder, nu även
+  här) på tre ljus/arkana-kort: Vayra (Eclipse), Aurelia (Dawn's
+  Reckoning), Twisted Gipsy (House of Shadows).
+- **`.vfx-clockhand`** (Vorathos Time Collapses eget par av motroterande
+  visare) på Ysara (Eternal Eclipse) — Timeweaver-temat matchar rakt av.
+- **`.vfx-projectile`** (Skybreakers fallande spjut/stjärna) på Sarah
+  (Aion's Last Light) — "något skjuts in utifrån"-känslan passar en
+  ranger.
+- Darum (Gate of Dominion) lämnades MEDVETET som ren ring+hit — "Unbreakable
+  Bulwark" läses lika bra som solid och stillsam, inte varje kort behöver
+  en extra krusning.
+
+**Deathblade (Shadow Assault) fick egen bespoke behandling**, inte bara en
+ny flagga i tabellen: till skillnad från alla andra single-target-kort
+FÅNGAR eller FÖRSTÖR han aldrig sitt mål — han BYTER FYSISK PLATS med det
+(se `SPECIAL_HANDLERS.deathblade`). En ren ring+hit bara vid målet hade
+missat halva effekten. Ny egen derivation (`shadowAssaultActive`) som
+visar en ring+hit vid den URSPRUNGLIGA målrutan OCH en andra, dämpad
+ring+twinkle vid Deathblades EGEN ursprungsruta — läses som "något
+försvann här och dök upp där" istället för ett vanligt anfall.
+
+Verifierat: `node --check` grönt. Nytt permanent regressionstest
+(shard-närvaro på alla fem, exakt 4-punkts twinkle-spridning på alla tre,
+båda clockhand-visarna på Ysara, projektil på Sarah, att Darum MEDVETET
+förblir ren, och att Deathblade visar exakt 2 ringar på 2 olika platser
+plus en twinkle — aldrig den generiska single-target-formen). Tre
+Playwright-skärmdumpar bekräftar visuellt: Maximus (röda fragment kring
+axhugget), Ysara (lila ring med en svag svepande visarlinje), Deathblade
+(två separata lila glöd-punkter — mål och ursprung — samtidigt lysande),
+Twisted Gipsy (gyllene ring med spridda arkana gnistor). Hela testsviten
+grön: **155/155** (154 tidigare + 1 ny). Ingen konsol/page-error.
+
+**Fas 23: nya hjälpmedel för Easy/Normal — "var är smartast" + "galen
+combo"-glöd.** Användaren bad om två saker för lättare svårighetsgrader:
+en hint om var det är smartast att lägga sitt valda kort, och att rutan
+lyser i ett "slingrande ljus" när en placering skulle utlösa en galen
+Same/Plus/Combo-kedja.
+
+**Var är smartast att lägga sitt kort.** Istället för att uppfinna en ny,
+separat "hur bra är detta drag"-heuristik (som lätt kunde hamna i
+osämja med hur Forest AI:n faktiskt själv spelar), återanvänds AI:ns
+EGNA minimax-sökning (`searchBestPlacement`) rakt av: `hands.blue`
+begränsas till bara det valda kortet, så sökningen effektivt frågar
+"om detta vore mitt enda kort, var skulle jag själv spela det" — exakt
+samma motor som redan avgör Forest AI:ns drag, bara riktad mot spelarens
+eget kort. Fast sökdjup 2 (matchar `AI_DIFFICULTY_DEPTH.normal`,
+"tänker två drag framåt") oavsett vilken svårighetsgrad som faktiskt är
+vald — hintens skärpa ska inte bero på hur svår MOTSTÅNDAREN råkar
+spela just nu, bara om den visas alls.
+
+**"Galen combo"-glöd.** Varje tom, laglig ruta simuleras (icke-
+muterande, se nedan) med det valda kortet — om `sameOrPlus + combo >=
+BIG_COMBO_CHAIN_THRESHOLD` (samma tröskel, nu en delad namngiven
+konstant, som REDAN utlöser en riktig skärmskakning vid en verklig
+placering, se `placeCard`s `chainShake`) får den rutan ett spinnande,
+slingrande ljus runt kanten (`conic-gradient` + `mask-composite:exclude`,
+kontinuerligt roterande) — löftet infrias alltid, om hinten lyser och
+man spelar där SKA skärmen skaka.
+
+**Riktig bugg hittad och fixad under arbetet.** För att beräkna
+`sameOrPlus`/`combo` separat behövde `simulatePlacementOutcome` (AI-
+sökningens egna, redan existerande, icke-muterande simuleringsfunktion)
+ge en mer detaljerad uppdelning än bara den resulterande brädan. Vid
+den omskrivningen upptäcktes att dess EGEN Combo-kedje-BFS av misstag
+såddes från `flipped` (ALLA fångster hittills, inklusive vanliga
+strids-vinster utan någon Same/Plus alls) — den riktiga motorn
+(`resolveFlips`/`battleNeighbors`) kedjar bara vidare från en FAKTISK
+Same- eller Plus-fångst (`samePlusSeeds`), aldrig från en vanlig
+stridsvinst. Det innebar att AI:ns sökning ibland kunde krediterade en
+placering med kedjefångster som den riktiga motorn aldrig skulle ge —
+en existerande, tyst korrekthetsbugg i AI:ns egen värdering, oavsett
+denna nya hint-funktion. Fixad: BFS-kön såddes nu bara från de riktiga
+Same/Plus-träffarna, exakt som `resolveFlips` redan gör. Döpt om till
+`simulatePlacementDetailed` (returnerar `{board, sameOrPlus, combo}`);
+`simulatePlacementOutcome` lever kvar oförändrad som ett tunt omslag
+runt den (`.board`) så INGEN av de många befintliga anropsställena
+(sökmotorn + dess egna tester) behövde ändras.
+
+Ny delad namngiven konstant `BIG_COMBO_CHAIN_THRESHOLD = 4` ersätter det
+gamla inline-talet `4` i `placeCard`s `chainShake`-villkor, så de två
+aldrig kan glida isär av misstag.
+
+Nya overlay-element (inte pseudo-element eller box-shadow-lager, för att
+aldrig krocka med `.targetable`/`.would-capture`s egna `::before`/
+`::after`/box-shadow som redan kan vara aktiva SAMTIDIGT på samma ruta):
+`.suggested-ring`+`.suggested-badge` (💡, pulserande cyan) och
+`.combo-hint-ring` (den roterande gyllene kant-ringen). Båda helt
+avstängda på Hard (`aidsEnabled()`), och bara synliga när ett handkort
+faktiskt är valt — exakt samma gating som den redan existerande
+fångst-förhandsvisningen (`getPreviewCaptureTargets`).
+
+Verifierat: `node --check` grönt. Fyra nya permanenta regressionstest:
+(1) buggfixen specifikt — en ren stridsvinst utan Same/Plus får ALDRIG
+såga en vidare kedja; (2) en riktig Same-såddad tvåstegskedja räknas
+korrekt i `.combo`, inte bara `.sameOrPlus`; (3) hela hjälpmedels-floden
+— rätt ruta föreslås, en 4-vägs Same-fångst tänds korrekt, och BÅDA
+stängs av helt på Hard, även på exakt samma bräde som skulle tändas på
+Normal. Playwright-skärmdumpar bekräftar visuellt: 💡-märket syns på den
+föreslagna rutan, en gyllene ljusstrimma (den snurrande ringen, fångad
+mitt i sin rotation) syns kring combo-rutans kant på Normal, och båda
+försvinner helt på Hard (bara den redan existerande gröna "skulle
+fånga"-badgen kvar, opåverkad). Hela testsviten grön: **158/158** (155
+tidigare + 3 nya: buggfixen, kedje-cascade-testet, och hela
+hjälpmedels-integrationstestet).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
