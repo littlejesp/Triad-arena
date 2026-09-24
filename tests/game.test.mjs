@@ -7828,15 +7828,28 @@ test("Fas 7 (design review #2): Ifrit's Rage of the Beast wires in the last dead
   await page.close();
 });
 
-test('Fas 7 (design review #2): campaign stages 9-16 get a flat statBoost on top of AI difficulty, stacking additively with (not capped by) New Game+, surfaced on the campaign panel', async () => {
+test('Fas 7 (design review #2, revised Fas 33): campaign stages get a flat statBoost on top of AI difficulty, stacking additively with (not capped by) New Game+, except the two guaranteed-synergy-pair stages and the finale', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     const out = {};
-    // Stages 1-8 (index 0-7) and the finale (index 16) get no statBoost;
-    // stages 9-16 (index 8-15) escalate 1/1/1/2/2/2/3/3.
+    // Stages 1-8 (index 0-7) and the finale (index 16) get no statBoost.
+    // Stage 9 "Hunter's Pact" (index 8) and stage 11 "The Twin Storm"
+    // (index 10) also get none -- a Fas 33 balance pass removed it after
+    // simulation showed those two Normal-AI stages were already the
+    // hardest in the back half thanks to a guaranteed synergy pair
+    // (Aurelian+Vorlix / Evil Twist Yin+Yang) on their fixed roster, so
+    // stacking a flat boost on top only worsened an already-sharp spike.
+    // A second, follow-up user report -- stuck at stage 12 on NG+1 -- then
+    // surfaced that statBoost stacks additively with ngPlusBoostCard's own
+    // +2/cycle, so the intended within-playthrough ramp was hitting NG+
+    // players much harder than a first clear; the remaining boosted
+    // stages 10,12,13,14,15,16 (index 9,11,12,13,14,15) were halved from
+    // 1,2,2,2,3,3 to 1,1,1,1,2,2 to leave NG+ headroom to stack on top
+    // without tipping into unwinnable.
     out.earlyStagesUnboosted = CAMPAIGN_STAGES.slice(0, 8).every(s => !s.statBoost);
     out.finaleUnboosted = !CAMPAIGN_STAGES[16].statBoost;
-    out.lateStageBoosts = [8,9,10,11,12,13,14,15].map(i => CAMPAIGN_STAGES[i].statBoost).join(',') === '1,1,1,2,2,2,3,3';
+    out.pairStagesUnboosted = !CAMPAIGN_STAGES[8].statBoost && !CAMPAIGN_STAGES[10].statBoost;
+    out.lateStageBoosts = [9,11,12,13,14,15].map(i => CAMPAIGN_STAGES[i].statBoost).join(',') === '1,1,1,1,2,2';
 
     const card = { id:'boost-test', name:'BoostTest', top:5, right:5, bottom:5, left:5 };
     out.zeroBoostReturnsSameCard = campaignStatBoost(card, 0) === card;
@@ -7852,17 +7865,18 @@ test('Fas 7 (design review #2): campaign stages 9-16 get a flat statBoost on top
 
     // Wire-up: startBattle() must actually apply it for a real campaign stage.
     state.draftMode = 'campaign';
-    campaignProgress = { stageIndex: 8, unlocked: [], ngPlus: 0 }; // stage 9, statBoost 1
+    campaignProgress = { stageIndex: 9, unlocked: [], ngPlus: 0 }; // stage 10, statBoost 1
     state.selected = HEROES.slice(0, 5).map(h => h.id);
     startBattle();
-    const stage9Enemy = FOREST_FOES.find(f => f.id === CAMPAIGN_STAGES[8].enemyIds[0]);
-    const placedEnemy = state.enemyHand.find(c => c.id === stage9Enemy.id);
-    out.startBattleAppliesStatBoost = placedEnemy.top === stage9Enemy.top + 1;
+    const stage10Enemy = FOREST_FOES.find(f => f.id === CAMPAIGN_STAGES[9].enemyIds[0]);
+    const placedEnemy = state.enemyHand.find(c => c.id === stage10Enemy.id);
+    out.startBattleAppliesStatBoost = placedEnemy.top === stage10Enemy.top + 1;
 
     return out;
   })()`);
   assert.equal(result.earlyStagesUnboosted, true);
   assert.equal(result.finaleUnboosted, true, 'the Sisters finale stays a pure difficulty/thematic peak, not a bigger-numbers one');
+  assert.equal(result.pairStagesUnboosted, true, "Hunter's Pact and The Twin Storm must stay unboosted -- their guaranteed synergy pair is already the difficulty spike");
   assert.equal(result.lateStageBoosts, true);
   assert.equal(result.zeroBoostReturnsSameCard, true);
   assert.equal(result.boostAddsFlatAmount, true);

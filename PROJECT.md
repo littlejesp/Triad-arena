@@ -4837,6 +4837,49 @@ Med detta är alla tre huvudsteg i progression-systemet (grund/poäng,
 packs, Rivals) på plats — grunden användaren bad om, byggd stegvis
 precis enligt "steg i taget".
 
+**Fas 33. Campaign-balansering — två separata, bevisbaserade fixar
+efter användarens egen feedback ("nu är det jätte svårt jag har inte
+ens klarat hela campaign", senare "det går inte vinna på campaign nivå
+1+ på nivå 12"). Istället för att gissa byggdes en riktig Monte Carlo-
+simulering (Playwright, körde spelets egen `chooseAIPlacement`-sökning
+på BÅDA sidor, inte en förenklad heuristik) som spelade igenom flera
+sena Campaign-stages upprepade gånger med en stark, realistisk hand.
+
+Fynd 1: Svårigheten var INTE en jämn kurva där Hard AI + statBoost
+staplas mot slutet — "Hunter's Pact" (stage 9) och "The Twin Storm"
+(stage 11), båda Normal AI, hade LÄGRE vinstfrekvens (37,5% resp. 25%)
+än flera senare Hard AI-stages med högre statBoost (50-100%). Orsaken:
+båda fiende-rosterna garanterar ett kraftfullt synergipar på plan
+samtidigt (Aurelian+Vorlix staplar axisBonus+pairPresence till upp
+till +3 i sin favoritriktning; Evil Twist Yin+Yang kombinerar
+neutralizeAttackerBonus — som nollställer anfallarens bonusar i
+försvar — med mindsBalanceSwap, som byter värde och vinner rakt av mot
+ett högre kort). Den extra flata statBoost på dessa två stages
+förstärkte bara en redan skarp spik. Fix: statBoost borttagen helt
+från just dessa två (Hunter's Pact, The Twin Storm) — bekräftat med
+simulering: 37,5%→56%, 25%→62,5%.
+
+Fynd 2 (upptäckt när användaren rapporterade att stage 12 på New
+Game+1 var okörbar): stagets egen statBoost och `ngPlusBoostCard`s
+eget +2/cykel staplas additivt (avsiktligt, se `campaignStatBoost`),
+vilket gjorde att en stage med statBoost:2 på NG+1 i praktiken slogs
+mot +4 rakt Power på varje sida — en spik som aldrig testades under
+den ursprungliga balanseringen (som bara körde ngPlus:0). Fix: hela
+den återstående boostade sträckan (stage 10-16, statBoost 1,2,2,2,3,3)
+halverades till 1,1,1,1,2,2, vilket lämnar utrymme för NG+ att stapla
+ovanpå utan att bli okörbart. Verifierat med en större simulering
+(n=30 per scenario) att sänkningen inte skadar NG+0-balansen (~50%
+vinstfrekvens) och håller NG+1 rimligt spelbart (~65%) — och
+användaren klarade stage 12 direkt efter fixen landade i spelet.
+
+Två nya/uppdaterade permanenta regressionstest säkerställer att den
+nya statBoost-kurvan (ingen boost på Hunter's Pact/Twin Storm/finalen,
+1,1,1,1,2,2 på resten) faktiskt ligger i koden, att `campaignStatBoost`
+och `ngPlusBoostCard` fortsatt staplas additivt och aldrig muterar det
+delade FOREST_FOES-kortet, och att `startBattle()` faktiskt applicerar
+rätt stage-boost på en riktig fiendehand. Hela testsviten grön:
+**167/167**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
