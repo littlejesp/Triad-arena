@@ -4739,6 +4739,40 @@ redan-vid-taket-kort som aldrig går över 10 men fortfarande dyker upp
 flaggat i resultatet. Hela testsviten grön: **165/165** (164 tidigare +
 1 ny).
 
+**Fas 31: Packs — visuell flip-avslöjning istället för en statisk
+grid.** Direkt uppföljning på Fas 30, samma session. Användaren pekade
+på andra kortspels pack-öppningar som referens: korten ska ligga
+nedvända och flippa upp en efter en ("bredvid varandra", inte alla på
+en gång), och glöden vid avslöjandet ska matcha rariteten (Epic lila,
+osv). Byggt med ren CSS: varje avslöjat kort är en `perspective`-
+container (`.packs-reveal-card`) runt en `transform-style:preserve-3d`-
+inre `div` (`.packs-reveal-inner`) som roterar `rotateY(0→180deg)` via
+`@keyframes packsCardFlip`, med två `backface-visibility:hidden`-ytor
+(`.packs-reveal-back` — samma `CARD_BACK_IMAGE` som draghögen redan
+använder, `.packs-reveal-front` — det riktiga kortet). Staggring: varje
+korts `--flip-delay`-CSS-variabel sätts från dess index i
+`state.packOpenResult.drawn` (0.15s isär), så tio kort läses tydligt som
+en sekvens, inte en enda simultan smäll.
+
+Rarity-glöden (`--pack-glow`, en "r,g,b"-trippel så den kan komponeras
+med olika alpha i `packsGlowPop`-keyframen) färgas efter vilket PACK som
+öppnades (blå/lila/guld/röd för Rare/Epic/Legendary/Mystic) — inte per
+enskilt kort, eftersom ingen per-kort-rarity finns än (se Fas 30:s egen
+kommentar om att alla tiers delar samma pool). Förtydligat rakt ut till
+användaren innan bygget så tolkningen kunde rättas om den var fel.
+"NEW"/"MAX"-taggen tonas in efter att kortets egen flip landat
+(`animation-delay: calc(var(--flip-delay) + 0.55s)`), inte samtidigt som
+alla andra.
+
+Ren presentationsändring — ingen ändring i `buyPack()`s egen logik, så
+alla befintliga pack-test täcker fortfarande exakt samma beteende.
+Verifierat visuellt med Playwright-skärmdumpar mitt i sekvensen (ett
+kort helt flippat, ett kort i sidled mitt i vridningen, resten
+fortfarande nedvända) och efter att alla landat (alla tio med synlig
+lila glöd runt kanten för ett Epic-pack). Hela testsviten grön:
+**165/165** (oförändrat — ren visuell ombyggnad, ingen ny testbar
+logik).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

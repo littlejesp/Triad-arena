@@ -1011,11 +1011,47 @@ button.ghost.packs-open-btn{ width:auto; flex:0 0 auto; margin-top:0; padding:7p
 .packs-tier-info{ font-size:11px; color:var(--text-dim); margin-top:2px; }
 button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px 14px; font-size:12px; white-space:nowrap; }
 .packs-reveal-title{ font-family:'Cinzel',serif; color:var(--gold-bright); font-size:14px; margin-bottom:10px; }
-.packs-reveal-list{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; max-height:50vh; overflow-y:auto; }
-.packs-reveal-card{
-  position:relative; aspect-ratio:5/7; border-radius:7px; overflow:hidden;
-  background:linear-gradient(160deg,#2c2722,#16130f 72%); border:1px solid rgba(201,162,39,0.3);
+.packs-reveal-list{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; max-height:50vh; overflow-y:auto; padding:4px; }
+/* Each card sits face-down (the same card-back art the draw pile uses)
+   and flips over in place -- user's own request, modeled on how other
+   card games reveal a pack ("dom ska visuellt flippas... bredvid
+   varandra"). --flip-delay staggers them (set per-card in the markup
+   above from its index) so all 10 don't flip in one instant block, and
+   --pack-glow (an "r,g,b" triple, not a full color, so it composes with
+   different alpha values below) colors the reveal flash by which PACK
+   tier was opened -- see PACK_TIERS' own comment for why that's the
+   right granularity today (no per-card rarity exists yet). */
+.packs-reveal-card{ position:relative; aspect-ratio:5/7; perspective:500px; }
+.packs-reveal-inner{
+  position:relative; width:100%; height:100%; transform-style:preserve-3d;
+  animation: packsCardFlip 0.7s cubic-bezier(.3,.1,.3,1) both;
+  animation-delay: var(--flip-delay, 0s);
+}
+@keyframes packsCardFlip{
+  0%{ transform:rotateY(0deg); }
+  100%{ transform:rotateY(180deg); }
+}
+.packs-reveal-back, .packs-reveal-front{
+  position:absolute; inset:0; border-radius:7px; overflow:hidden;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+}
+.packs-reveal-back{
+  background-size:cover; background-position:center;
+  border:1px solid rgba(201,162,39,0.3);
+}
+.packs-reveal-front{
+  transform:rotateY(180deg);
+  background:linear-gradient(160deg,#2c2722,#16130f 72%);
+  border:1px solid rgba(201,162,39,0.3);
   display:flex; align-items:flex-end;
+  box-shadow:0 0 0 0 rgba(var(--pack-glow,201,162,39),0);
+  animation: packsGlowPop 0.5s ease both;
+  animation-delay: calc(var(--flip-delay, 0s) + 0.35s);
+}
+@keyframes packsGlowPop{
+  0%{ box-shadow:0 0 0 0 rgba(var(--pack-glow,201,162,39),0); }
+  40%{ box-shadow:0 0 16px 3px rgba(var(--pack-glow,201,162,39),0.85); }
+  100%{ box-shadow:0 0 8px 1px rgba(var(--pack-glow,201,162,39),0.5); }
 }
 .packs-reveal-art{ position:absolute; inset:0; background-size:cover; background-position:center 15%; }
 .packs-reveal-name{
@@ -1025,8 +1061,11 @@ button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px
 .packs-reveal-tag{
   position:absolute; top:3px; right:3px; z-index:1; font-size:7px; font-weight:700; padding:2px 4px;
   border-radius:4px; background:rgba(201,162,39,0.9); color:#1a1408;
+  opacity:0; animation: packsTagFade 0.3s ease both;
+  animation-delay: calc(var(--flip-delay, 0s) + 0.55s);
 }
 .packs-reveal-tag.packs-reveal-capped{ background:rgba(184,69,46,0.9); color:#fff; }
+@keyframes packsTagFade{ from{ opacity:0; } to{ opacity:1; } }
 
 /* Stat numbers sit right on the edge of the card they belong to — top
    number at the top edge, right number at the right edge, etc. — instead
@@ -5125,11 +5164,16 @@ function renderPacksModal(){
     body = `
       <div class="packs-reveal-title">${state.packOpenResult.tierName} opened!</div>
       <div class="packs-reveal-list">
-        ${state.packOpenResult.drawn.map(c => `
-          <div class="packs-reveal-card">
-            ${CARD_IMAGES[c.id] ? `<div class="packs-reveal-art" style="background-image:url('${CARD_IMAGES[c.id]}')"></div>` : ''}
-            <span class="packs-reveal-name">${c.name}</span>
-            ${c.wasNew ? '<span class="packs-reveal-tag packs-reveal-new">NEW</span>' : c.capped ? '<span class="packs-reveal-tag packs-reveal-capped">MAX (10)</span>' : ''}
+        ${state.packOpenResult.drawn.map((c, i) => `
+          <div class="packs-reveal-card" style="--pack-glow:${state.packOpenResult.glow}; --flip-delay:${(i * 0.15).toFixed(2)}s;">
+            <div class="packs-reveal-inner">
+              <div class="packs-reveal-back" style="background-image:url('${CARD_BACK_IMAGE}')"></div>
+              <div class="packs-reveal-front">
+                ${CARD_IMAGES[c.id] ? `<div class="packs-reveal-art" style="background-image:url('${CARD_IMAGES[c.id]}')"></div>` : ''}
+                <span class="packs-reveal-name">${c.name}</span>
+                ${c.wasNew ? '<span class="packs-reveal-tag packs-reveal-new">NEW</span>' : c.capped ? '<span class="packs-reveal-tag packs-reveal-capped">MAX (10)</span>' : ''}
+              </div>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -8317,11 +8361,16 @@ function awardPoints(amount){
 // roster) -- the four tiers differ only in cost/level-gate, not in what
 // they can contain. Real tier-exclusive Rare/Epic/Legendary/Mystic cards
 // are a natural follow-up once the user wants to design specific ones.
+// glow: the reveal-flip's rarity-coded color (user's own request, "bli
+// det en epic lyser det lila... blir det blått" osv) -- since every tier
+// currently draws from the same pool (see buyPack's own comment), this
+// colors by which PACK was opened, not a per-card rarity that doesn't
+// exist yet. Common TCG convention: blue/purple/gold/red climbing tiers.
 const PACK_TIERS = [
-  { id:'rare', name:'Rare Pack', cost:5000, minLevel:1, count:10 },
-  { id:'epic', name:'Epic Pack', cost:10000, minLevel:3, count:10 },
-  { id:'legendary', name:'Legendary Pack', cost:15000, minLevel:6, count:10 },
-  { id:'mystic', name:'Mystic Pack', cost:20000, minLevel:9, count:10 },
+  { id:'rare', name:'Rare Pack', cost:5000, minLevel:1, count:10, glow:'94,200,242' },
+  { id:'epic', name:'Epic Pack', cost:10000, minLevel:3, count:10, glow:'181,101,242' },
+  { id:'legendary', name:'Legendary Pack', cost:15000, minLevel:6, count:10, glow:'224,161,47' },
+  { id:'mystic', name:'Mystic Pack', cost:20000, minLevel:9, count:10, glow:'224,48,79' },
 ];
 const EARNED_CARD_CAP = 10; // user's own rule: max 10 copies of any one card in the bag
 function canBuyPack(tier){
@@ -8344,7 +8393,7 @@ function buyPack(tierId){
     drawn.push({ id: card.id, name: card.name, wasNew: current === 0, capped });
   }
   savePlayerProgress();
-  state.packOpenResult = { tierId: tier.id, tierName: tier.name, drawn };
+  state.packOpenResult = { tierId: tier.id, tierName: tier.name, glow: tier.glow, drawn };
 }
 
 // Leaderboard (Fas 26): a real cross-device leaderboard needs a stable
