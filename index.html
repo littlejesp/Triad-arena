@@ -8351,22 +8351,50 @@ const CAMPAIGN_STAGES = [
   // separate-from-NG+ per-stage escalation, so returning to an early
   // stage in NG+2 doesn't double-stack with a late stage's own boost in
   // some surprising multiplicative way -- both are flat and additive.
+  // Fas 33 (balance pass, evidence-based): Hunter's Pact and The Twin Storm
+  // both dropped their flat statBoost here after a Monte-Carlo simulation
+  // (chooseAIPlacement search on both sides, both stages sampled) showed
+  // they were the two HARDEST stages in the whole back half -- worse than
+  // several later Hard-AI, higher-statBoost stages -- despite themselves
+  // still being Normal-AI (campaignStageAIDifficulty only flips to Hard at
+  // stage 12/idx11). The real cause isn't AI sharpness or the boost curve:
+  // both rosters guarantee a synergy pair on the field together (Aurelian+
+  // Vorlix stack axisBonus+pairPresence for up to +3 in their favored
+  // direction; Evil Twist Yin+Yang combine neutralizeAttackerBonus, which
+  // strips the attacker's bonuses on defense, with mindsBalanceSwap, which
+  // swaps values to win outright when attacking a higher-value card) --
+  // already a much sharper spike than a flat +1 elsewhere in the curve.
+  // Stacking statBoost on top of that broke the intended smooth ramp, so
+  // it's removed from just these two; The Wild Hunt's Bond in between has
+  // no such guaranteed pair and simulated fine, so it keeps its statBoost.
   { name:"Hunter's Pact", enemyIds:['daron','aurelian','vorlix','tahabata','ifrit'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['sylvarion','torn'], statBoost:1 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['sylvarion','torn'] },
   { name:"The Wild Hunt's Bond", enemyIds:['bahamut','dragon','shadowking','voidqueen','fenrir'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['pallispell','pallis'], statBoost:1 },
   { name:'The Twin Storm', enemyIds:['eviltwistyang','eviltwistyin','ifrit','bahamut','tahabata'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['twinbrothers','twinsisters'], statBoost:1 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['twinbrothers','twinsisters'] },
+  // Fas 33 follow-up: a second, separate user report -- "det går inte
+  // vinna på campaign nivå 1+ på nivå 12" -- surfaced that statBoost and
+  // ngPlusBoostCard's own +2/cycle stack additively (by design, see
+  // campaignStatBoost's own comment above), so on NG+1 a stage with
+  // statBoost:2 was really fighting +4 flat Power on every enemy side, on
+  // top of an already-strong FOREST_FOES roster. A re-run of the same
+  // simulation at ngPlus:1 confirmed it: Yin and Yang Resonance dropped to
+  // ~42% win rate and Ashes and Frost to ~33%, both a real difficulty
+  // cliff on first replay, not just first clear. Halving this whole
+  // stretch's statBoost (2,2,2,3,3 -> 1,1,1,2,2) keeps the intended
+  // within-a-playthrough ramp while leaving enough headroom for NG+'s own
+  // escalation to stack on top without becoming unwinnable.
   { name:'Yin and Yang Resonance', enemyIds:['medusa','lyrith','aurelia','twistedgipsy','maximus'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['eviltwistyang','eviltwistyin'], statBoost:2 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['eviltwistyang','eviltwistyin'], statBoost:1 },
   { name:'The Forgotten Legion', enemyIds:['twinbrothers','twinsisters','ifrit','bahamut','tahabata'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['darum','daron','aurelian','vorlix'], statBoost:2 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['darum','daron','aurelian','vorlix'], statBoost:1 },
   { name:'Wardens of the Wild', enemyIds:['darum','daron','aurelian','vorlix','tahabata'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['medusa','lyrith','aurelia','twistedgipsy','maximus'], statBoost:2 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['medusa','lyrith','aurelia','twistedgipsy','maximus'], statBoost:1 },
   { name:'Ashes and Frost', enemyIds:['voidqueen','shadowking','dragon','fenrir','twinsisters'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['ferea','tilda','ifrit','bahamut','tahabata'], statBoost:3 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['ferea','tilda','ifrit','bahamut','tahabata'], statBoost:2 },
   { name:"The Ancient Wyrmking's Domain", enemyIds:['celestialjudgment','infiniteseraph','threeheaddragon','dragon','fenrir'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['dragon','shadowking','voidqueen','celestialjudgment','infiniteseraph','fenrir'], statBoost:3 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['dragon','shadowking','voidqueen','celestialjudgment','infiniteseraph','fenrir'], statBoost:2 },
   // Stage 17 — a dedicated boss stage for the Triple Triad Sisters trio.
   // They were originally FOREST_FOES-only (enemy-only, deliberately kept
   // out of HEROES/campaignPool per an explicit user confirmation) but were
