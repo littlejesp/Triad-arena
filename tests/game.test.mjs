@@ -9842,3 +9842,99 @@ test('Leaderboard (Fas 26): player names are HTML-escaped before rendering, both
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Progression (Fas 27, step 1): every match earns points, Campaign stage/full clears earn more, and level tracks lifetime points via LEVEL_THRESHOLDS', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const win = () => { state.board = Array(9).fill({ card: HEROES[0], owner: 'blue' }); };
+    const loss = () => { state.board = Array(9).fill({ card: HEROES[0], owner: 'red' }); state.board[0] = { card: HEROES[0], owner: 'blue' }; };
+
+    // A regular (non-Campaign) win/loss.
+    state.draftMode = 'random';
+    state.selected = ['darien'];
+    win();
+    finishGame();
+    out.afterRandomWin = playerProgress.points;
+
+    loss();
+    finishGame();
+    out.afterRandomLoss = playerProgress.points;
+
+    // A Campaign stage win, NOT the final stage -- stage bonus only, no
+    // full-clear bonus, campaignClearedOnce stays false.
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0 };
+    state.draftMode = 'campaign';
+    win();
+    finishGame();
+    out.afterCampaignStageWin = playerProgress.points;
+    out.campaignClearedOnceAfterOneStage = playerProgress.campaignClearedOnce;
+    out.stageIndexAfterOneStage = campaignProgress.stageIndex;
+
+    // Clearing the FINAL stage -- stage bonus + the one-time 2000 bonus.
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length - 1, unlocked: [], ngPlus: 0 };
+    win();
+    finishGame();
+    out.afterFullClear = playerProgress.points;
+    out.campaignClearedOnceAfterFullClear = playerProgress.campaignClearedOnce;
+
+    // A SECOND full clear (e.g. New Game+) must NOT re-award the one-time bonus.
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length - 1, unlocked: [], ngPlus: 1 };
+    win();
+    finishGame();
+    out.afterSecondFullClear = playerProgress.points;
+
+    // Level thresholds.
+    playerProgress.lifetimePoints = 0;
+    out.levelAtZero = playerLevel();
+    playerProgress.lifetimePoints = 499;
+    out.levelJustBelowThreshold = playerLevel();
+    playerProgress.lifetimePoints = 500;
+    out.levelAtThreshold = playerLevel();
+    playerProgress.lifetimePoints = 999999;
+    out.levelWayAboveMax = playerLevel();
+    out.pointsToNextAtMax = pointsToNextLevel();
+
+    return out;
+  });
+  assert.equal(result.afterRandomWin, 50, 'a Random/Choose Your Five win should award 50 points');
+  assert.equal(result.afterRandomLoss, 60, 'a loss should still award something (10), just less than a win');
+  assert.equal(result.afterCampaignStageWin, 160, 'a Campaign stage win awards 100, on top of the 60 already banked');
+  assert.equal(result.campaignClearedOnceAfterOneStage, false, 'clearing one Campaign stage must not flag the whole Campaign as cleared');
+  assert.equal(result.stageIndexAfterOneStage, 1, 'campaignProgress.stageIndex must still advance normally');
+  assert.equal(result.afterFullClear, 160 + 100 + 2000, 'clearing the FINAL stage awards the stage bonus AND the one-time 2000 full-clear bonus');
+  assert.equal(result.campaignClearedOnceAfterFullClear, true, 'campaignClearedOnce must flip true the first time the whole Campaign is cleared');
+  assert.equal(result.afterSecondFullClear, 160 + 100 + 2000 + 100, 'a second full clear (New Game+) earns the stage bonus again but NOT another 2000 -- it is a one-time flag');
+  assert.equal(result.levelAtZero, 1);
+  assert.equal(result.levelJustBelowThreshold, 1, '499 lifetime points must not yet reach Level 2 (threshold is exactly 500)');
+  assert.equal(result.levelAtThreshold, 2, 'exactly 500 lifetime points must reach Level 2');
+  assert.equal(result.levelWayAboveMax, 10, 'lifetime points far past the last threshold must cap at the max level (10), never overflow past it');
+  assert.equal(result.pointsToNextAtMax, null, 'pointsToNextLevel() must return null at max level, not a nonsensical/negative number');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Progression (Fas 27, step 1): playerProgress persists across a fresh load and survives resetGame(), same as matchStats/campaignProgress', async () => {
+  const { page, pageErrors } = await newPage();
+  await page.evaluate(() => {
+    awardPoints(750);
+    playerProgress.campaignClearedOnce = true;
+    savePlayerProgress();
+  });
+  await page.reload();
+  await page.waitForFunction(() => typeof state !== 'undefined');
+  const afterReload = await page.evaluate(() => ({ points: playerProgress.points, lifetimePoints: playerProgress.lifetimePoints, campaignClearedOnce: playerProgress.campaignClearedOnce, level: playerLevel() }));
+  assert.equal(afterReload.points, 750, 'points must survive a full page reload, same persistence guarantee as matchStats/campaignProgress');
+  assert.equal(afterReload.lifetimePoints, 750);
+  assert.equal(afterReload.campaignClearedOnce, true);
+  assert.equal(afterReload.level, 2);
+
+  const afterReset = await page.evaluate(() => {
+    resetGame();
+    return { points: playerProgress.points, campaignClearedOnce: playerProgress.campaignClearedOnce };
+  });
+  assert.equal(afterReset.points, 750, 'resetGame() (a per-match reset) must never touch lifetime player progress');
+  assert.equal(afterReset.campaignClearedOnce, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

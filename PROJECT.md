@@ -4605,6 +4605,95 @@ att alla laddade korrekt. Inga befintliga test rörde de gamla SVG-
 klasserna, så inget behövde uppdateras. Hela testsviten grön: **162/162**
 (oförändrat antal — en ren visuell ombyggnad, ingen ny testbar logik).
 
+**Fas 28: The Gambler — nytt kort, plus fem nya combo-fokuserade
+färdighänder.** Användaren skickade egen ChatGPT-genererad konst (ett
+porträtt, en pil/stöt-VFX, en helbräde-explosion) och bad mig skriva in
+passande förmågor. Resultat: **The Gambler** (10/10/10/10, Void-element
+🌌 — nytt elementtema, utanför element-cykeln) med tre förmågor:
+**Roll the Dice** (passiv) — varje vanlig attack slår tre riktiga
+tärningar (äkta 3d6-odds, inte handplockade procent) och visar 1/2/3
+träff-blixtar beroende på hur många som matchar, men rent visuellt —
+själva stridsresultatet påverkas aldrig, sista träffen avgör precis som
+alla andra kort; **Flare** (placerings-passiv) — angränsande fiender
+-1 Power denna runda, med en egen längre-varande `flareFlash`-glöd
+(2,4 sekunder, eget flöde skilt från det delade 1300ms-svepet) efter
+användarens egen begäran om att Flare skulle synas längre; **Special
+Attack: Ultima** — ombyggd två gånger under samtalet: från ett
+enmåls-anfall till en HELBRÄDE-attack (användarens egen begäran, "en
+attack som tar hela bordet") som flippar VARJE fiendekort rakt av (ingen
+strid, samma ovillkorliga flip-primitiv som Graffs Whirlwind Assault,
+sköldar respekterade), med en färgskiftande (hue-rotate) helbräde-VFX
+byggd från användarens egen konst istället för de vanliga procedurella
+ring/hit-primitiverna. Kostnad landade till slut på 2 wins (nedsatt
+från 4, efter att användaren rapporterat att 4 wins sällan gick att nå
+i praktiken).
+
+Samtidigt: fem nya färdighänder på "Choose Your Five", byggda kring
+RIKTIGA, redan kodade synergier (inte påhittade teman) — Sisters of Ruin
+(Vaelira/Seraphine/Nyxara, skalande `sisterAura`), Sky & Void
+(Aurelian/Vorlix, `pairPresence` +2/+2), Twin Blades (Twin Brothers/Twin
+Sisters, `pairPresence` +2/+2), Reunited Pack (Pallis/Pallis & Pell,
+`RIVALRY_PAIRS`-närhetsbonus +1/+1, kräver att de placeras BREDVID
+varandra) och Shadow Pact (Torn/Vayra, `pairPresence` +1/+1). Ingen ny
+UI/hanterings-kod behövdes — den befintliga `beginner-deck-btn`-klicklogiken
+och `.beginner-deck-row`s `flex-wrap`-layout var redan helt generiska över
+`BEGINNER_DECKS`.
+
+Även: en subtil overksam runa i tomma brädrutor (design-genomgång på
+användarens egen fråga "vad kan förbättras") — provades först med en
+redan befintlig, oanvänd tillgång (`vfx-magiccircle.png`) innan
+användaren beställde egen konst; bytt till den beställda bilden
+(`cell-rune.png`) när den var klar. Ren CSS-animation (ingen JS/render-
+kostnad), staggrad per-ruta fördröjning så alla inte pulserar i takt.
+SEO-metataggar (description/Open Graph/Twitter/keywords) lades också
+till efter att användaren rapporterat att spelet var svårt att hitta på
+Google.
+
+**Fas 29: Progression-systemet, steg 1 — grunden (poäng, nivåer,
+väska).** Användaren beskrev, i flera meddelanden som byggde på varandra
+under en lång konversation, en hel ny meta-lager inspirerad av FF8:s
+korthandel: en permanent "väska" per spelare, packs man köper för poäng
+(Rare 5000/Epic 10000/Legendary 15000/Mystic 20000, 10 kort per pack),
+10 nivåer man måste klättra för att FÅ KÖPA högre pack-rariteter (en
+spärr, inte bara en räknare), och fem AI-motståndare med FF8:s riktiga
+handelsregler (vissa "All" — hela den ILAGDA femman på spel, andra "One"
+— bara ett kort) som låses upp EFTER att hela Campaign klarats en gång.
+Kritiska förtydliganden under samtalet, alla direkt från användaren:
+bara de FEM VALDA matchkorten (inte hela väskan) någonsin i riskzonen;
+den befintliga kortrostern (t.ex. Campaign-startkorten) kan ALDRIG
+förloras; poäng ska komma från VARJE match (även förluster), med mycket
+större bonus för att klara Campaign; och — mycket viktigt, en egen
+flaggad UX-kravspecifikation — spelaren måste FÖRVARNAS tydligt innan en
+högrisk-AI-match, så ingen förlorar kort utan att förstå riskerna i
+förväg.
+
+Detta är enbart steg 1 (ren grund, "steg i taget" på användarens egen
+begäran) — inga packs, ingen väska-UI, inga riskmotståndare än. Byggt:
+`playerProgress` (poäng, `lifetimePoints`, `earnedCards` — tom tills
+vidare, `campaignClearedOnce`), sparat i `localStorage` med exakt samma
+mönster som `matchStats`/`campaignProgress` (aldrig rörd av
+`resetGame()`, eftersom det är livstids-spelardata, inte per-match-
+state). `LEVEL_THRESHOLDS` — tio steg, `playerLevel()` läser
+`lifetimePoints` (aldrig `points`, den spenderbara balansen, så ett
+framtida pack-köp aldrig kan sänka nivån). Poäng delas ut i
+`finishGame()`: 50/20/10 (vinst/oavgjort/förlust) för Random Draft/
+Choose Your Five, 100/20 för Campaign-steg, plus en engångsbonus på
+2000 exakt första gången sista Campaign-steget klaras (kollat mot
+`CAMPAIGN_STAGES.length`, `campaignClearedOnce` förhindrar att en New
+Game+-genomspelning ger bonusen igen). En liten men synlig
+"Progression"-sektion i Match Settings-panelen (nivå, poängsaldo, poäng
+kvar till nästa nivå) så att framsteget är synligt från dag ett, inte
+bara osynlig bokföring — annars hade poängen känts meningslösa fram
+till att packs faktiskt finns.
+
+Verifierat med två nya permanenta regressionstest: ett som täcker hela
+poäng-flödet (vanlig vinst/förlust, Campaign-stegvinst, full Campaign-
+klarning ger bonusen EN gång men inte igen vid en andra klarning, samt
+nivå-gränsvärden inklusive precis under/vid en tröskel och långt över
+max-nivån) och ett som bekräftar att `playerProgress` överlever en
+sidladdning och `resetGame()` precis som `matchStats`/`campaignProgress`
+redan gör. Hela testsviten grön: **164/164** (162 tidigare + 2 nya).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

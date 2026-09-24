@@ -5438,6 +5438,14 @@ function renderDraft(){
       </div>
       <div class="leaderboard-name-hint">${playerName ? `Playing as <b>${escapeHtml(playerName)}</b> — your results sync automatically.` : 'Enter a name and press Enter to appear on the shared leaderboard.'}</div>
 
+      <div class="settings-section-label">Progression</div>
+      <div class="match-stats-row">
+        <span class="match-stat">Level <b>${playerLevel()}</b></span>
+        <span class="match-stat"><b>${playerProgress.points.toLocaleString()}</b> points</span>
+        ${pointsToNextLevel() !== null ? `<span class="match-stat">${pointsToNextLevel().toLocaleString()} to next level</span>` : `<span class="match-stat">Max level</span>`}
+      </div>
+      <div class="leaderboard-name-hint">Every match earns points — Campaign clears earn a lot more. Packs and rare cards are coming soon.</div>
+
       ${matchStats.matches > 0 ? `
       <div class="settings-section-label">Your record</div>
       <div class="match-stats-row">
@@ -8101,6 +8109,72 @@ function saveMatchStats(){
   try{ localStorage.setItem(MATCH_STATS_SAVE_KEY, JSON.stringify(matchStats)); }catch(e){ /* storage unavailable — stats just won't persist */ }
 }
 let matchStats = loadMatchStats();
+
+// Progression meta-layer (user's own design, built from a long back-and-
+// forth): step 1 of "väska/packs/poäng/nivåer" -- the persistent player
+// data every later piece (packs, the 5 trading-rule opponents) will read
+// from. Deliberately foundation-only here: earning points and leveling up
+// is fully live, but nothing spends points yet (no pack UI, no risk
+// opponents) -- those are separate, later steps per the user's own
+// "steg i taget". Same localStorage save/load shape as matchStats/
+// campaignProgress above, and (like both of those) never touched by
+// resetGame() -- this is lifetime player progress, not per-match state.
+//
+// points: current SPENDABLE balance (will go down once packs exist).
+// lifetimePoints: total ever earned, never decreases -- this is what
+// playerLevel() reads, so spending points on a pack later can never
+// demote your level.
+// earnedCards: { cardId: count } for cards won from packs/opponents later
+// -- empty until that system exists. Capped at 10 per id (user's own
+// rule) whenever something eventually adds to it.
+// campaignClearedOnce: sat true the first time the full Campaign (every
+// stage) is beaten -- the gate for the whole packs/opponents system,
+// per the user's explicit "dom upplåses efter man klarat campain en gång".
+const PLAYER_PROGRESS_SAVE_KEY = 'triadArenaPlayerProgress';
+function loadPlayerProgress(){
+  try{
+    const raw = localStorage.getItem(PLAYER_PROGRESS_SAVE_KEY);
+    if(!raw) return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false };
+    const parsed = JSON.parse(raw);
+    return {
+      points: parsed.points||0,
+      lifetimePoints: parsed.lifetimePoints||0,
+      earnedCards: (parsed.earnedCards && typeof parsed.earnedCards === 'object') ? parsed.earnedCards : {},
+      campaignClearedOnce: !!parsed.campaignClearedOnce,
+    };
+  }catch(e){
+    return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false };
+  }
+}
+function savePlayerProgress(){
+  try{ localStorage.setItem(PLAYER_PROGRESS_SAVE_KEY, JSON.stringify(playerProgress)); }catch(e){ /* storage unavailable — progress just won't persist */ }
+}
+let playerProgress = loadPlayerProgress();
+
+// Lifetime points needed to REACH each level (index 0 = Level 1's floor,
+// i.e. everyone starts at Level 1). A gate, not a currency -- later, pack
+// tiers will each require a minimum level on top of their own point cost,
+// so a brand new player can't just save up match points and buy a Mystic
+// pack on day one (per the user's own "man måste gå 10 nivåer").
+const LEVEL_THRESHOLDS = [0, 500, 1200, 2200, 3500, 5200, 7200, 9700, 12700, 16500];
+function playerLevel(){
+  let level = 1;
+  for(let i = 1; i < LEVEL_THRESHOLDS.length; i++){
+    if(playerProgress.lifetimePoints >= LEVEL_THRESHOLDS[i]) level = i + 1;
+  }
+  return level;
+}
+function pointsToNextLevel(){
+  const level = playerLevel();
+  if(level >= LEVEL_THRESHOLDS.length) return null; // already max level
+  return LEVEL_THRESHOLDS[level] - playerProgress.lifetimePoints;
+}
+function awardPoints(amount){
+  if(!amount) return;
+  playerProgress.points += amount;
+  playerProgress.lifetimePoints += amount;
+  savePlayerProgress();
+}
 
 // Leaderboard (Fas 26): a real cross-device leaderboard needs a stable
 // identity for "this browser" that survives across sessions without any
@@ -12181,13 +12255,33 @@ function finishGame(){
   // progress. Unlocking + persisting happens right here (not deferred to
   // the result screen's button) so progress is saved the instant the
   // stage is won, before the player even clicks anything.
+  // Progression points -- user's own explicit request: EVERY match earns
+  // something (even a loss), Campaign stage clears earn more, and clearing
+  // the whole Campaign earns a lot more still. recordMatchResult() below
+  // is scoped to Random/Choose Your Five only (see its own guard), so
+  // Campaign needs its own award here rather than reusing that call.
+  if(state.draftMode === 'campaign'){
+    awardPoints(state.winner === 'blue' ? 100 : 20);
+  } else {
+    awardPoints(state.winner === 'blue' ? 50 : state.winner === 'draw' ? 20 : 10);
+  }
   if(state.draftMode === 'campaign' && state.winner === 'blue'){
     const stage = currentCampaignStage();
     if(stage){
       const newly = stage.unlockIds.filter(id => !campaignProgress.unlocked.includes(id));
-      campaignProgress = { stageIndex: campaignProgress.stageIndex + 1, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus };
+      const newStageIndex = campaignProgress.stageIndex + 1;
+      campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus };
       saveCampaignProgress();
       state.campaignUnlocked = newly;
+      // The big one-time bonus, and the gate for the packs/5-opponents
+      // system later -- only fires the FIRST time the whole Campaign is
+      // cleared (ngPlus replays don't re-trigger it, campaignClearedOnce
+      // is a permanent flag once set).
+      if(newStageIndex >= CAMPAIGN_STAGES.length && !playerProgress.campaignClearedOnce){
+        playerProgress.campaignClearedOnce = true;
+        savePlayerProgress();
+        awardPoints(2000);
+      }
     }
   }
   recordMatchResult(state.winner);
