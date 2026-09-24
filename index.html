@@ -4615,6 +4615,15 @@ function drawEnemyHand(){
 const BEGINNER_DECKS = [
   { id:'bonded', name:'Bonded Guardians', desc:"Darien and Elara boost each other just by both being on your board — a simple taste of card synergy.", cardIds:['darien','elara','sarah','zaevir','vayra'] },
   { id:'windswept', name:'Windswept Vanguard', desc:'Three Wind champions team up — turn on Elemental Clash to see them fight with an edge.', cardIds:['zaevir','sylvarion','aurelian','sarah','shadowking'] },
+  // Combo-focused decks (user request: "flera som väljer åt en som passar
+  // i combo syfte... vilka passar med varandra") -- each one is built
+  // around a REAL pairPresence/sisterAura synergy already in the card
+  // data (see RIVALRY_PAIRS/pairPresence/sisterAura), not an invented
+  // theme, so the deck's own description matches what actually happens
+  // on the board.
+  { id:'sisters', name:'Sisters of Ruin', desc:'Vaelira, Seraphine, and Nyxara together — each gets a big Power bonus for every OTHER sister on the board, scaling fast with all three present.', cardIds:['vaelira','seraphine','nyxara','tiamat','odin'] },
+  { id:'skyvoid', name:'Sky & Void', desc:'Aurelian and Vorlix both get +2 Power on all sides while the other is anywhere on your board.', cardIds:['aurelian','vorlix','bahamut','shiva','leviathan'] },
+  { id:'twinblades', name:'Twin Blades', desc:'Twin Brothers and Twin Sisters both get +2 Power on all sides while their sibling is on the board.', cardIds:['twinbrothers','twinsisters','omegaweapon','zaevir','sarah'] },
 ];
 
 // Guided "How to Play" walkthrough (user feedback: "man måste göra en bra
