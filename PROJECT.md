@@ -4605,6 +4605,238 @@ att alla laddade korrekt. Inga befintliga test rörde de gamla SVG-
 klasserna, så inget behövde uppdateras. Hela testsviten grön: **162/162**
 (oförändrat antal — en ren visuell ombyggnad, ingen ny testbar logik).
 
+**Fas 28: The Gambler — nytt kort, plus fem nya combo-fokuserade
+färdighänder.** Användaren skickade egen ChatGPT-genererad konst (ett
+porträtt, en pil/stöt-VFX, en helbräde-explosion) och bad mig skriva in
+passande förmågor. Resultat: **The Gambler** (10/10/10/10, Void-element
+🌌 — nytt elementtema, utanför element-cykeln) med tre förmågor:
+**Roll the Dice** (passiv) — varje vanlig attack slår tre riktiga
+tärningar (äkta 3d6-odds, inte handplockade procent) och visar 1/2/3
+träff-blixtar beroende på hur många som matchar, men rent visuellt —
+själva stridsresultatet påverkas aldrig, sista träffen avgör precis som
+alla andra kort; **Flare** (placerings-passiv) — angränsande fiender
+-1 Power denna runda, med en egen längre-varande `flareFlash`-glöd
+(2,4 sekunder, eget flöde skilt från det delade 1300ms-svepet) efter
+användarens egen begäran om att Flare skulle synas längre; **Special
+Attack: Ultima** — ombyggd två gånger under samtalet: från ett
+enmåls-anfall till en HELBRÄDE-attack (användarens egen begäran, "en
+attack som tar hela bordet") som flippar VARJE fiendekort rakt av (ingen
+strid, samma ovillkorliga flip-primitiv som Graffs Whirlwind Assault,
+sköldar respekterade), med en färgskiftande (hue-rotate) helbräde-VFX
+byggd från användarens egen konst istället för de vanliga procedurella
+ring/hit-primitiverna. Kostnad landade till slut på 2 wins (nedsatt
+från 4, efter att användaren rapporterat att 4 wins sällan gick att nå
+i praktiken).
+
+Samtidigt: fem nya färdighänder på "Choose Your Five", byggda kring
+RIKTIGA, redan kodade synergier (inte påhittade teman) — Sisters of Ruin
+(Vaelira/Seraphine/Nyxara, skalande `sisterAura`), Sky & Void
+(Aurelian/Vorlix, `pairPresence` +2/+2), Twin Blades (Twin Brothers/Twin
+Sisters, `pairPresence` +2/+2), Reunited Pack (Pallis/Pallis & Pell,
+`RIVALRY_PAIRS`-närhetsbonus +1/+1, kräver att de placeras BREDVID
+varandra) och Shadow Pact (Torn/Vayra, `pairPresence` +1/+1). Ingen ny
+UI/hanterings-kod behövdes — den befintliga `beginner-deck-btn`-klicklogiken
+och `.beginner-deck-row`s `flex-wrap`-layout var redan helt generiska över
+`BEGINNER_DECKS`.
+
+Även: en subtil overksam runa i tomma brädrutor (design-genomgång på
+användarens egen fråga "vad kan förbättras") — provades först med en
+redan befintlig, oanvänd tillgång (`vfx-magiccircle.png`) innan
+användaren beställde egen konst; bytt till den beställda bilden
+(`cell-rune.png`) när den var klar. Ren CSS-animation (ingen JS/render-
+kostnad), staggrad per-ruta fördröjning så alla inte pulserar i takt.
+SEO-metataggar (description/Open Graph/Twitter/keywords) lades också
+till efter att användaren rapporterat att spelet var svårt att hitta på
+Google.
+
+**Fas 29: Progression-systemet, steg 1 — grunden (poäng, nivåer,
+väska).** Användaren beskrev, i flera meddelanden som byggde på varandra
+under en lång konversation, en hel ny meta-lager inspirerad av FF8:s
+korthandel: en permanent "väska" per spelare, packs man köper för poäng
+(Rare 5000/Epic 10000/Legendary 15000/Mystic 20000, 10 kort per pack),
+10 nivåer man måste klättra för att FÅ KÖPA högre pack-rariteter (en
+spärr, inte bara en räknare), och fem AI-motståndare med FF8:s riktiga
+handelsregler (vissa "All" — hela den ILAGDA femman på spel, andra "One"
+— bara ett kort) som låses upp EFTER att hela Campaign klarats en gång.
+Kritiska förtydliganden under samtalet, alla direkt från användaren:
+bara de FEM VALDA matchkorten (inte hela väskan) någonsin i riskzonen;
+den befintliga kortrostern (t.ex. Campaign-startkorten) kan ALDRIG
+förloras; poäng ska komma från VARJE match (även förluster), med mycket
+större bonus för att klara Campaign; och — mycket viktigt, en egen
+flaggad UX-kravspecifikation — spelaren måste FÖRVARNAS tydligt innan en
+högrisk-AI-match, så ingen förlorar kort utan att förstå riskerna i
+förväg.
+
+Detta är enbart steg 1 (ren grund, "steg i taget" på användarens egen
+begäran) — inga packs, ingen väska-UI, inga riskmotståndare än. Byggt:
+`playerProgress` (poäng, `lifetimePoints`, `earnedCards` — tom tills
+vidare, `campaignClearedOnce`), sparat i `localStorage` med exakt samma
+mönster som `matchStats`/`campaignProgress` (aldrig rörd av
+`resetGame()`, eftersom det är livstids-spelardata, inte per-match-
+state). `LEVEL_THRESHOLDS` — tio steg, `playerLevel()` läser
+`lifetimePoints` (aldrig `points`, den spenderbara balansen, så ett
+framtida pack-köp aldrig kan sänka nivån). Poäng delas ut i
+`finishGame()`: 50/20/10 (vinst/oavgjort/förlust) för Random Draft/
+Choose Your Five, 100/20 för Campaign-steg, plus en engångsbonus på
+2000 exakt första gången sista Campaign-steget klaras (kollat mot
+`CAMPAIGN_STAGES.length`, `campaignClearedOnce` förhindrar att en New
+Game+-genomspelning ger bonusen igen). En liten men synlig
+"Progression"-sektion i Match Settings-panelen (nivå, poängsaldo, poäng
+kvar till nästa nivå) så att framsteget är synligt från dag ett, inte
+bara osynlig bokföring — annars hade poängen känts meningslösa fram
+till att packs faktiskt finns.
+
+Verifierat med två nya permanenta regressionstest: ett som täcker hela
+poäng-flödet (vanlig vinst/förlust, Campaign-stegvinst, full Campaign-
+klarning ger bonusen EN gång men inte igen vid en andra klarning, samt
+nivå-gränsvärden inklusive precis under/vid en tröskel och långt över
+max-nivån) och ett som bekräftar att `playerProgress` överlever en
+sidladdning och `resetGame()` precis som `matchStats`/`campaignProgress`
+redan gör. Hela testsviten grön: **164/164** (162 tidigare + 2 nya).
+
+**Fas 30: Progression-systemet, steg 2 — packs.** Direkt fortsättning på
+Fas 29, samma "steg i taget"-begäran. Byggt: `PACK_TIERS` (Rare
+5000p/Level 1, Epic 10000p/Level 3, Legendary 15000p/Level 6, Mystic
+20000p/Level 9 — exakt kostnaderna/nivåerna användaren angav),
+`canBuyPack()`/`buyPack()`, och en ny `renderPacksModal()` i samma
+modal-overlay/modal-poster-mönster som Graveyard/Leaderboard-modalerna,
+öppnad via en ny "🎁 Packs"-knapp i Progression-sektionen. Hela systemet
+förblir helt låst (ingen tier köpbar oavsett poäng/nivå) tills
+`playerProgress.campaignClearedOnce` är sant, exakt enligt användarens
+egen regel.
+
+En ärlig avvägning, uttalad rakt ut till användaren innan bygget: det
+finns inga PACK-EXKLUSIVA nya kort än — varje tidigare kort i spelet har
+kommit med användarens egen beställda konst, ett i taget, och att
+uppfinna dussintals nya balanserade kort tyst här hade varit precis den
+sortens oombedd scope-utvidgning som borde undvikas. Så för nu drar alla
+fyra rariteter från SAMMA pool (den befintliga HEROES-rostern) — bara
+kostnad/nivåspärr skiljer tiers åt, inte innehållet. Riktiga
+tier-exklusiva kort är ett naturligt uppföljningssteg när användaren vill
+designa specifika nya kort (med egen konst, som vanligt).
+
+Varje dragning respekterar taket på 10 kopior (`EARNED_CARD_CAP`) —
+ett kort som redan ligger på 10 visas ändå i resultatlistan (taggat
+"MAX") istället för att tyst försvinna, så spelaren ser vad som hände.
+Dubbletter INOM samma pack hanteras korrekt (läser/skriver
+`playerProgress.earnedCards` direkt i varje varv av dragnings-loopen,
+inte batchat i slutet), verifierat explicit i test.
+
+En riktig CSS-specificitetsbugg av exakt samma klass som tidigare i
+projektet (`button.ghost.leaderboard-view-btn`-mönstret) dök upp igen
+på köp-knapparna — `.packs-buy-btn` (klass-bara, specificitet (0,1,0))
+förlorade mot den generella `button.ghost{width:100%}` ((0,1,1)) och
+knapparna svämmade ut ur modalen. Fixat med `button.ghost.packs-buy-btn`
+(tagg+2 klasser), samma lösning som redan etablerad tidigare.
+
+Verifierat med ett nytt permanent regressionstest som täcker hela
+flödet: helt låst före Campaign-klaring oavsett poäng/nivå, per-tier-
+spärr på både poäng OCH nivå separat (kan ha råd men fel nivå, eller
+rätt nivå men för lite poäng), att `buyPack()` drar exakt rätt
+poängsumma och ger exakt `tier.count` kort, att ett nekat köp aldrig
+kastar fel eller drar poäng, och 30 upprepade pack-öppningar mot ett
+redan-vid-taket-kort som aldrig går över 10 men fortfarande dyker upp
+flaggat i resultatet. Hela testsviten grön: **165/165** (164 tidigare +
+1 ny).
+
+**Fas 31: Packs — visuell flip-avslöjning istället för en statisk
+grid.** Direkt uppföljning på Fas 30, samma session. Användaren pekade
+på andra kortspels pack-öppningar som referens: korten ska ligga
+nedvända och flippa upp en efter en ("bredvid varandra", inte alla på
+en gång), och glöden vid avslöjandet ska matcha rariteten (Epic lila,
+osv). Byggt med ren CSS: varje avslöjat kort är en `perspective`-
+container (`.packs-reveal-card`) runt en `transform-style:preserve-3d`-
+inre `div` (`.packs-reveal-inner`) som roterar `rotateY(0→180deg)` via
+`@keyframes packsCardFlip`, med två `backface-visibility:hidden`-ytor
+(`.packs-reveal-back` — samma `CARD_BACK_IMAGE` som draghögen redan
+använder, `.packs-reveal-front` — det riktiga kortet). Staggring: varje
+korts `--flip-delay`-CSS-variabel sätts från dess index i
+`state.packOpenResult.drawn` (0.15s isär), så tio kort läses tydligt som
+en sekvens, inte en enda simultan smäll.
+
+Rarity-glöden (`--pack-glow`, en "r,g,b"-trippel så den kan komponeras
+med olika alpha i `packsGlowPop`-keyframen) färgas efter vilket PACK som
+öppnades (blå/lila/guld/röd för Rare/Epic/Legendary/Mystic) — inte per
+enskilt kort, eftersom ingen per-kort-rarity finns än (se Fas 30:s egen
+kommentar om att alla tiers delar samma pool). Förtydligat rakt ut till
+användaren innan bygget så tolkningen kunde rättas om den var fel.
+"NEW"/"MAX"-taggen tonas in efter att kortets egen flip landat
+(`animation-delay: calc(var(--flip-delay) + 0.55s)`), inte samtidigt som
+alla andra.
+
+Ren presentationsändring — ingen ändring i `buyPack()`s egen logik, så
+alla befintliga pack-test täcker fortfarande exakt samma beteende.
+Verifierat visuellt med Playwright-skärmdumpar mitt i sekvensen (ett
+kort helt flippat, ett kort i sidled mitt i vridningen, resten
+fortfarande nedvända) och efter att alla landat (alla tio med synlig
+lila glöd runt kanten för ett Epic-pack). Hela testsviten grön:
+**165/165** (oförändrat — ren visuell ombyggnad, ingen ny testbar
+logik).
+
+**Fas 32: Progression-systemet, steg 3 — Rivals (de fem FF8-motståndarna).**
+Det tredje och sista huvudsteget i den ursprungliga visionen från Fas
+29-31: fem namngivna, fasta motståndare (`RISK_OPPONENTS`), varje med sin
+egen signatur-hand (återanvänder befintliga HEROES-porträtt/förmågor,
+samma "ingen ny konst än"-resonemang som packs) och sin egen FF8-regel —
+"one" (förlorar exakt ETT av de fem satsade korten vid förlust) eller
+"all" (förlorar ALLA fem). Precis de två reglerna användaren faktiskt
+bad om (inte de fulla FF8-reglerna Direct/Diff, som aldrig efterfrågades).
+
+Kritisk designinsikt från konversationen: eftersom standardrostern
+ALDRIG kan förloras (Fas 29-30:s egen regel), och det enda som någonsin
+riskeras är "de kort man väljer" till just den matchen, måste en
+risk-match satsa kort från den INTJÄNADE poolen specifikt — annars
+skulle "risken" vara tom (standardkort som aldrig kan försvinna). Så en
+risk-match har sin egen satsnings-plockare (`earnedCardIds()`, bara kort
+med `playerProgress.earnedCards[id] > 0`), skild från den vanliga
+Choose Your Five/Random Draft-rostern. Kräver minst 5 SKILDA intjänade
+kort-id:n (inte bara 5 kopior av samma kort — matchar hur en hand redan
+aldrig kan innehålla dubbletter) för att ens kunna utmana.
+
+Byggt: en ny `⚔️ Rivals`-modal (samma mönster som Packs/Leaderboard) med
+två vyer — motståndarlistan (visar regel + hur många av spelarens kort
+just den motståndaren för närvarande håller) och, efter "Challenge", en
+OBLIGATORISK varningsskärm som tydligt visar regeln och konsekvensen
+innan en satsnings-plockare (samma `cardFace()`-rutnät som draftskärmen)
+låter spelaren välja exakt 5 kort — precis den varningen användaren
+uttryckligen krävde ("man måste... få en varning innan man möter
+motståndaren"). `beginRiskMatch()` återanvänder `startBattle()` helt
+(samma coinflip-sekvens, brädsetup) — bara `state.riskMatch`-bokföringen
+och motståndarens fasta hand/svårighetsgrad är särfall, byggt på exakt
+samma sätt som Campaign redan särfallar sin egen `enemyHand` i samma
+funktion.
+
+`resolveRiskMatch()`, anropad från `finishGame()` efter den vanliga
+vinst/förlust-bokföringen: vid FÖRLUST flyttas 1 (regel "one", slumpat
+bland de fem) eller alla 5 (regel "all") satsade kort från spelarens
+`earnedCards` till just den motståndarens `opponentHeld`-pool
+(`playerProgress.opponentHeld[opponentId]`, ny per-motståndare-karta).
+Vid VINST, om motståndaren håller några av spelarens kort sedan
+tidigare, återfås exakt ETT slumpmässigt (flyttat tillbaka, respekterar
+`EARNED_CARD_CAP`). Ett OAVGJORT rör ingenting alls — varken vinst eller
+förlust, matchar att en oavgjord match aldrig beskrevs som en "förlust"
+i användarens egna regler. `state.aiDifficulty` sparas undan och
+återställs alltid efter matchen (vinst ELLER förlust), så en
+Rivals-utmaning aldrig läcker in i spelarens vanliga svårighetsgrads-
+inställning för nästa Random Draft-match. Resultatet ("⚔️ [Motståndare]
+claimed X!" eller "Reclaimed X from [Motståndare]!") visas på samma sätt
+som streak/favorit/achievement-raderna redan gör på resultatskärmen.
+
+Verifierat med två nya permanenta regressionstest: ett som täcker hela
+upplåsnings-/uppstarts-flödet (låst före Campaign-klaring oavsett
+intjänade kort, låst med för få SKILDA intjänade kort-id:n, och att
+`beginRiskMatch` korrekt sätter draftMode/selected/riskMatch OCH att
+motståndarens egen fasta hand faktiskt dyker upp i en riktig
+strid — inte ett slumpmässigt drag) och ett som täcker hela
+`resolveRiskMatch`-matrisen (ONE tar exakt 1, ALL tar alla 5, en vinst
+återtar exakt 1 hållet kort med rätt cap, en vinst utan något hållet
+skapar inget påhittat resultat, och ett oavgjort rör bokstavligen
+ingenting). Hela testsviten grön: **167/167** (165 tidigare + 2 nya).
+
+Med detta är alla tre huvudsteg i progression-systemet (grund/poäng,
+packs, Rivals) på plats — grunden användaren bad om, byggd stegvis
+precis enligt "steg i taget".
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

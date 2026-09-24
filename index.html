@@ -992,6 +992,93 @@ button.ghost.leaderboard-view-btn{ width:auto; flex:0 0 auto; margin-top:0; padd
 .leaderboard-player-name{ flex:1; min-width:0; font-size:12.5px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .leaderboard-record{ flex:0 0 auto; font-size:11px; color:var(--text-dim); }
 
+/* Progression step 2: packs. button.ghost.packs-open-btn needs the same
+   tag+2-classes specificity fix as button.ghost.leaderboard-view-btn
+   above (see that comment) — a plain .packs-open-btn class alone would
+   lose to the base button.ghost{width:100%} rule regardless of source
+   order and collapse the row next to it. */
+button.ghost.packs-open-btn{ width:auto; flex:0 0 auto; margin-top:0; padding:7px 12px; font-size:12px; white-space:nowrap; }
+.packs-modal{ max-width:480px; padding:22px 20px 20px; }
+.packs-modal h3{ font-family:'Cinzel',serif; color:var(--gold-bright); margin:0 0 6px; }
+.packs-tier-list{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.packs-tier{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.03);
+  border:1px solid rgba(201,162,39,0.25);
+}
+.packs-tier.packs-tier-locked{ opacity:0.5; }
+.packs-tier-name{ font-family:'Cinzel',serif; font-weight:700; color:var(--gold-bright); font-size:13px; }
+.packs-tier-info{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px 14px; font-size:12px; white-space:nowrap; }
+.packs-reveal-title{ font-family:'Cinzel',serif; color:var(--gold-bright); font-size:14px; margin-bottom:10px; }
+.packs-reveal-list{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; max-height:50vh; overflow-y:auto; padding:4px; }
+/* Each card sits face-down (the same card-back art the draw pile uses)
+   and flips over in place -- user's own request, modeled on how other
+   card games reveal a pack ("dom ska visuellt flippas... bredvid
+   varandra"). --flip-delay staggers them (set per-card in the markup
+   above from its index) so all 10 don't flip in one instant block, and
+   --pack-glow (an "r,g,b" triple, not a full color, so it composes with
+   different alpha values below) colors the reveal flash by which PACK
+   tier was opened -- see PACK_TIERS' own comment for why that's the
+   right granularity today (no per-card rarity exists yet). */
+.packs-reveal-card{ position:relative; aspect-ratio:5/7; perspective:500px; }
+.packs-reveal-inner{
+  position:relative; width:100%; height:100%; transform-style:preserve-3d;
+  animation: packsCardFlip 0.7s cubic-bezier(.3,.1,.3,1) both;
+  animation-delay: var(--flip-delay, 0s);
+}
+@keyframes packsCardFlip{
+  0%{ transform:rotateY(0deg); }
+  100%{ transform:rotateY(180deg); }
+}
+.packs-reveal-back, .packs-reveal-front{
+  position:absolute; inset:0; border-radius:7px; overflow:hidden;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+}
+.packs-reveal-back{
+  background-size:cover; background-position:center;
+  border:1px solid rgba(201,162,39,0.3);
+}
+.packs-reveal-front{
+  transform:rotateY(180deg);
+  background:linear-gradient(160deg,#2c2722,#16130f 72%);
+  border:1px solid rgba(201,162,39,0.3);
+  display:flex; align-items:flex-end;
+  box-shadow:0 0 0 0 rgba(var(--pack-glow,201,162,39),0);
+  animation: packsGlowPop 0.5s ease both;
+  animation-delay: calc(var(--flip-delay, 0s) + 0.35s);
+}
+@keyframes packsGlowPop{
+  0%{ box-shadow:0 0 0 0 rgba(var(--pack-glow,201,162,39),0); }
+  40%{ box-shadow:0 0 16px 3px rgba(var(--pack-glow,201,162,39),0.85); }
+  100%{ box-shadow:0 0 8px 1px rgba(var(--pack-glow,201,162,39),0.5); }
+}
+.packs-reveal-art{ position:absolute; inset:0; background-size:cover; background-position:center 15%; }
+.packs-reveal-name{
+  position:relative; z-index:1; width:100%; padding:3px 4px; font-size:8px; line-height:1.15;
+  text-align:center; color:#fff; background:linear-gradient(0deg, rgba(0,0,0,0.85), transparent);
+}
+.packs-reveal-tag{
+  position:absolute; top:3px; right:3px; z-index:1; font-size:7px; font-weight:700; padding:2px 4px;
+  border-radius:4px; background:rgba(201,162,39,0.9); color:#1a1408;
+  opacity:0; animation: packsTagFade 0.3s ease both;
+  animation-delay: calc(var(--flip-delay, 0s) + 0.55s);
+}
+.packs-reveal-tag.packs-reveal-capped{ background:rgba(184,69,46,0.9); color:#fff; }
+@keyframes packsTagFade{ from{ opacity:0; } to{ opacity:1; } }
+
+/* Progression step 3: Rivals. */
+.rivals-warning{
+  padding:10px 12px; margin-bottom:4px; border-radius:10px;
+  background:rgba(184,69,46,0.12); border:1px solid rgba(184,69,46,0.4);
+}
+.rivals-warning-title{ font-family:'Cinzel',serif; font-weight:700; color:#ffb8a0; font-size:13px; margin-bottom:4px; }
+.rivals-picker-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(85px,1fr));
+  gap:8px; margin:10px 0; max-height:40vh; overflow-y:auto;
+}
+.rivals-picker-grid .card{ cursor:pointer; }
+
 /* Stat numbers sit right on the edge of the card they belong to — top
    number at the top edge, right number at the right edge, etc. — instead
    of a central cluster, so you can read "which side is strong" at the
@@ -4861,6 +4948,13 @@ let state = {
   showLeaderboard: false, // true while the 🏆 Leaderboard modal is open
   leaderboardStatus: 'idle', // 'idle' | 'loading' | 'ready' | 'error' — see leaderboardFetchTop
   leaderboardEntries: null,  // array of {id, name, wins, losses, draws, matchesPlayed} once loaded, or null before the first fetch
+  showPacks: false,       // true while the 🎁 Packs modal is open
+  packOpenResult: null,   // { tierId, tierName, drawn:[{id,name,wasNew,capped}] } — the last-opened pack's reveal, or null when browsing tiers
+  showRivals: false,      // true while the ⚔️ Rivals modal is open
+  rivalView: null,        // opponent id currently shown in the warning/wager-picker sub-view, or null for the opponent list
+  rivalPicked: [],        // card ids currently picked in the wager picker (max 5), cleared when the modal closes
+  riskMatch: null,        // { opponentId, rule, previousAiDifficulty } while a risk match is actually being played, see beginRiskMatch/resolveRiskMatch
+  riskResult: null,       // { kind:'lost'|'reclaimed', opponentName, cardNames } — shown once on the result screen after a risk match, then cleared
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   impactPunch: false,     // true briefly at the exact moment ANY Ultimate's effect lands (every card, not magnitude-gated like chainShake) — .board.impact-punch, see playUltimateSequence
@@ -4936,6 +5030,8 @@ function render(){
   html += renderRulebookModal();
   html += renderGraveyardModal();
   html += renderLeaderboardModal();
+  html += renderPacksModal();
+  html += renderRivalsModal();
   html += renderChoicePicker();
   html += renderTutorialOverlay();
   app.innerHTML = html;
@@ -5066,6 +5162,123 @@ function renderLeaderboardModal(){
         <button class="modal-close" id="leaderboard-close">✕</button>
         <h3>🏆 Leaderboard</h3>
         <p class="graveyard-hint">Top players across every device, ranked by total wins in Random Draft/Choose Your Five (Campaign progress isn't counted here).</p>
+        ${body}
+      </div>
+    </div>`;
+}
+
+// Progression step 2: packs UI. Same modal-overlay/modal-poster shape as
+// renderGraveyardModal/renderLeaderboardModal above. Three states:
+// locked (Campaign not cleared yet), browsing tiers (buy buttons, each
+// gated live by canBuyPack), or showing the reveal of the pack just
+// opened (state.packOpenResult, cleared by the "Back to Packs" button).
+function renderPacksModal(){
+  if(!state.showPacks) return '';
+  const locked = !playerProgress.campaignClearedOnce;
+  let body;
+  if(locked){
+    body = `<div class="leaderboard-status">Packs unlock once you've cleared the whole Campaign for the first time. Every match still earns points toward it in the meantime.</div>`;
+  } else if(state.packOpenResult){
+    body = `
+      <div class="packs-reveal-title">${state.packOpenResult.tierName} opened!</div>
+      <div class="packs-reveal-list">
+        ${state.packOpenResult.drawn.map((c, i) => `
+          <div class="packs-reveal-card" style="--pack-glow:${state.packOpenResult.glow}; --flip-delay:${(i * 0.15).toFixed(2)}s;">
+            <div class="packs-reveal-inner">
+              <div class="packs-reveal-back" style="background-image:url('${CARD_BACK_IMAGE}')"></div>
+              <div class="packs-reveal-front">
+                ${CARD_IMAGES[c.id] ? `<div class="packs-reveal-art" style="background-image:url('${CARD_IMAGES[c.id]}')"></div>` : ''}
+                <span class="packs-reveal-name">${c.name}</span>
+                ${c.wasNew ? '<span class="packs-reveal-tag packs-reveal-new">NEW</span>' : c.capped ? '<span class="packs-reveal-tag packs-reveal-capped">MAX (10)</span>' : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="cta" id="packs-back-btn">Back to Packs</button>`;
+  } else {
+    body = `
+      <p class="graveyard-hint">Spend points on a pack of 10 cards. Higher tiers cost more and need a higher level.</p>
+      <div class="packs-tier-list">
+        ${PACK_TIERS.map(t => {
+          const affordable = canBuyPack(t);
+          const levelLocked = playerLevel() < t.minLevel;
+          return `
+          <div class="packs-tier ${affordable ? '' : 'packs-tier-locked'}">
+            <div class="packs-tier-name">${t.name}</div>
+            <div class="packs-tier-info">${t.cost.toLocaleString()} points${levelLocked ? ` · requires Level ${t.minLevel}` : ''}</div>
+            <button class="ghost packs-buy-btn" data-tier="${t.id}" ${affordable ? '' : 'disabled'}>Open</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+  return `
+    <div class="modal-overlay" id="packs-overlay">
+      <div class="modal-poster packs-modal">
+        <button class="modal-close" id="packs-close">✕</button>
+        <h3>🎁 Packs</h3>
+        ${body}
+      </div>
+    </div>`;
+}
+
+// Progression step 3: the Rivals modal. Same overlay/poster shape as
+// Packs above, with two sub-views: the opponent LIST (state.rivalView
+// null) and, once "Challenge" is tapped, a WARNING + wager-picker view
+// (state.rivalView = that opponent's id) -- the user's own explicit
+// requirement was that the player must clearly see the stakes and
+// confirm before the match actually starts, so nothing here launches a
+// battle without that screen in between.
+function renderRivalsModal(){
+  if(!state.showRivals) return '';
+  const locked = !playerProgress.campaignClearedOnce;
+  let body;
+  if(locked){
+    body = `<div class="leaderboard-status">Rivals unlock once you've cleared the whole Campaign for the first time. Every match still earns points toward it in the meantime.</div>`;
+  } else if(state.rivalView){
+    const opp = RISK_OPPONENTS.find(o => o.id === state.rivalView);
+    const ruleText = opp.rule === 'all'
+      ? 'If you LOSE, ALL 5 of the cards you wager below are gone — claimed by ' + opp.name + '.'
+      : 'If you LOSE, ONE of the 5 cards you wager below (picked at random) is gone — claimed by ' + opp.name + '.';
+    const picked = state.rivalPicked;
+    body = `
+      <div class="rivals-warning">
+        <div class="rivals-warning-title">⚠️ ${opp.name} — ${opp.rule === 'all' ? 'ALL' : 'ONE'} rule</div>
+        <p class="graveyard-hint">${ruleText} Winning costs you nothing, and if ${opp.name} is currently holding any of your cards, a win lets you reclaim one.</p>
+      </div>
+      <div class="settings-section-label">Wager 5 cards (${picked.length}/5)</div>
+      <div class="rivals-picker-grid">
+        ${earnedCardIds().map(id => {
+          const card = findCardById(id);
+          if(!card) return '';
+          return cardFace(card, { selected: picked.includes(id), clickable:true, dataAttr:`data-wager="${id}"` });
+        }).join('')}
+      </div>
+      <button class="cta" id="rivals-begin-btn" ${picked.length === 5 ? '' : 'disabled'}>Begin Duel</button>
+      <button class="ghost" id="rivals-back-btn">Back</button>`;
+  } else {
+    body = canChallengeRivals() ? `
+      <p class="graveyard-hint">Wager 5 earned cards against a named rival. Beat them to reclaim cards they're holding from you.</p>
+      <div class="packs-tier-list">
+        ${RISK_OPPONENTS.map(opp => {
+          const held = heldCountFor(opp.id);
+          return `
+          <div class="packs-tier">
+            <div>
+              <div class="packs-tier-name">${opp.name}</div>
+              <div class="packs-tier-info">${opp.rule === 'all' ? 'ALL 5 at risk' : 'ONE card at risk'}${held > 0 ? ` · holding ${held} of your card${held>1?'s':''}` : ''}</div>
+            </div>
+            <button class="ghost packs-buy-btn" data-rival="${opp.id}">Challenge</button>
+          </div>`;
+        }).join('')}
+      </div>
+    ` : `<div class="leaderboard-status">You need at least 5 different earned cards (from packs) to challenge a rival. Open some packs first — you have ${earnedCardIds().length}/5.</div>`;
+  }
+  return `
+    <div class="modal-overlay" id="rivals-overlay">
+      <div class="modal-poster packs-modal">
+        <button class="modal-close" id="rivals-close">✕</button>
+        <h3>⚔️ Rivals</h3>
         ${body}
       </div>
     </div>`;
@@ -5437,6 +5650,18 @@ function renderDraft(){
         <button class="ghost leaderboard-view-btn" id="leaderboard-open-btn">View Leaderboard</button>
       </div>
       <div class="leaderboard-name-hint">${playerName ? `Playing as <b>${escapeHtml(playerName)}</b> — your results sync automatically.` : 'Enter a name and press Enter to appear on the shared leaderboard.'}</div>
+
+      <div class="settings-section-label">Progression</div>
+      <div class="match-stats-row">
+        <span class="match-stat">Level <b>${playerLevel()}</b></span>
+        <span class="match-stat"><b>${playerProgress.points.toLocaleString()}</b> points</span>
+        ${pointsToNextLevel() !== null ? `<span class="match-stat">${pointsToNextLevel().toLocaleString()} to next level</span>` : `<span class="match-stat">Max level</span>`}
+      </div>
+      <div class="leaderboard-name-row">
+        <div class="leaderboard-name-hint" style="flex:1;">${playerProgress.campaignClearedOnce ? 'Every match earns points — spend them on packs, or wager earned cards against a Rival.' : 'Clear the whole Campaign once to unlock packs and Rivals. Every match still earns points toward it.'}</div>
+        <button class="ghost packs-open-btn" id="packs-open-btn">🎁 Packs</button>
+        <button class="ghost packs-open-btn" id="rivals-open-btn">⚔️ Rivals</button>
+      </div>
 
       ${matchStats.matches > 0 ? `
       <div class="settings-section-label">Your record</div>
@@ -6451,6 +6676,16 @@ function renderBattle(){
         const ach = ACHIEVEMENTS.find(a => a.id === id);
         if(ach) statsLines.push(`🏅 Achievement unlocked: ${ach.name}`);
       });
+      // Progression step 3: the result of a just-finished risk match (see
+      // resolveRiskMatch) -- lost wagered cards, or a reclaimed one --
+      // surfaced the same way every other post-match payoff line above is.
+      if(state.riskResult){
+        if(state.riskResult.kind === 'lost'){
+          statsLines.push(`⚔️ ${state.riskResult.opponentName} claimed ${state.riskResult.cardNames.join(', ')}!`);
+        } else if(state.riskResult.kind === 'reclaimed'){
+          statsLines.push(`⚔️ Reclaimed ${state.riskResult.cardNames.join(', ')} from ${state.riskResult.opponentName}!`);
+        }
+      }
       resultHtml = `
         <div class="result-banner">
           <h2>${title}</h2>
@@ -7007,6 +7242,90 @@ function attachHandlers(){
     render();
   });
 
+  // Progression step 2: packs modal -- same open/close/overlay-click
+  // wiring shape as the leaderboard block just above, plus buy-tier
+  // buttons (delegated per-button since PACK_TIERS renders a fixed, short
+  // list) and a "back to tiers" button that just clears the reveal.
+  const packsOpenBtn = document.getElementById('packs-open-btn');
+  if(packsOpenBtn) packsOpenBtn.addEventListener('click', ()=>{
+    state.showPacks = true;
+    state.packOpenResult = null;
+    render();
+  });
+  const packsOverlay = document.getElementById('packs-overlay');
+  if(packsOverlay){
+    packsOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'packs-overlay') { state.showPacks = false; render(); }
+    });
+  }
+  const packsClose = document.getElementById('packs-close');
+  if(packsClose) packsClose.addEventListener('click', ()=>{
+    state.showPacks = false;
+    render();
+  });
+  document.querySelectorAll('.packs-buy-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      buyPack(btn.dataset.tier);
+      render();
+    });
+  });
+  const packsBackBtn = document.getElementById('packs-back-btn');
+  if(packsBackBtn) packsBackBtn.addEventListener('click', ()=>{
+    state.packOpenResult = null;
+    render();
+  });
+
+  // Progression step 3: Rivals modal -- same open/close/overlay wiring
+  // shape as Packs above. "Challenge" opens the warning/wager-picker
+  // sub-view (rivalView); clicking a wager card toggles it in/out of
+  // rivalPicked (capped at 5, matching the draft grid's own selection
+  // shape elsewhere); "Begin Duel" hands off to beginRiskMatch, which
+  // closes the modal and starts the actual battle.
+  const rivalsOpenBtn = document.getElementById('rivals-open-btn');
+  if(rivalsOpenBtn) rivalsOpenBtn.addEventListener('click', ()=>{
+    state.showRivals = true;
+    state.rivalView = null;
+    state.rivalPicked = [];
+    render();
+  });
+  const rivalsOverlay = document.getElementById('rivals-overlay');
+  if(rivalsOverlay){
+    rivalsOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'rivals-overlay') { state.showRivals = false; render(); }
+    });
+  }
+  const rivalsClose = document.getElementById('rivals-close');
+  if(rivalsClose) rivalsClose.addEventListener('click', ()=>{
+    state.showRivals = false;
+    render();
+  });
+  document.querySelectorAll('[data-rival]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.rivalView = btn.dataset.rival;
+      state.rivalPicked = [];
+      render();
+    });
+  });
+  document.querySelectorAll('[data-wager]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.dataset.wager;
+      const idx = state.rivalPicked.indexOf(id);
+      if(idx >= 0) state.rivalPicked.splice(idx, 1);
+      else if(state.rivalPicked.length < 5) state.rivalPicked.push(id);
+      render();
+    });
+  });
+  const rivalsBeginBtn = document.getElementById('rivals-begin-btn');
+  if(rivalsBeginBtn) rivalsBeginBtn.addEventListener('click', ()=>{
+    if(state.rivalPicked.length === 5) beginRiskMatch(state.rivalView, state.rivalPicked);
+  });
+  const rivalsBackBtn = document.getElementById('rivals-back-btn');
+  if(rivalsBackBtn) rivalsBackBtn.addEventListener('click', ()=>{
+    state.rivalView = null;
+    state.rivalPicked = [];
+    render();
+  });
+
   const choicePickerOverlay = document.getElementById('choice-picker-overlay');
   if(choicePickerOverlay){
     choicePickerOverlay.addEventListener('click', (e)=>{
@@ -7221,8 +7540,11 @@ function startBattle(){
   const chosenHeroes = HEROES.filter(h => state.selected.includes(h.id));
   state.playerHand = shuffle(chosenHeroes.slice());
   const campaignStage = state.draftMode === 'campaign' ? currentCampaignStage() : null;
+  const riskOpponent = state.riskMatch ? RISK_OPPONENTS.find(o => o.id === state.riskMatch.opponentId) : null;
   state.enemyHand = campaignStage
     ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean).map(c => campaignStatBoost(ngPlusBoostCard(c, campaignProgress.ngPlus), campaignStage.statBoost))
+    : riskOpponent
+    ? riskOpponent.enemyIds.map(id => findCardById(id)).filter(Boolean)
     : drawEnemyHand();
   state.board = Array(9).fill(null);
   state.pendingCard = null;
@@ -8101,6 +8423,216 @@ function saveMatchStats(){
   try{ localStorage.setItem(MATCH_STATS_SAVE_KEY, JSON.stringify(matchStats)); }catch(e){ /* storage unavailable — stats just won't persist */ }
 }
 let matchStats = loadMatchStats();
+
+// Progression meta-layer (user's own design, built from a long back-and-
+// forth): step 1 of "väska/packs/poäng/nivåer" -- the persistent player
+// data every later piece (packs, the 5 trading-rule opponents) will read
+// from. Deliberately foundation-only here: earning points and leveling up
+// is fully live, but nothing spends points yet (no pack UI, no risk
+// opponents) -- those are separate, later steps per the user's own
+// "steg i taget". Same localStorage save/load shape as matchStats/
+// campaignProgress above, and (like both of those) never touched by
+// resetGame() -- this is lifetime player progress, not per-match state.
+//
+// points: current SPENDABLE balance (will go down once packs exist).
+// lifetimePoints: total ever earned, never decreases -- this is what
+// playerLevel() reads, so spending points on a pack later can never
+// demote your level.
+// earnedCards: { cardId: count } for cards won from packs/opponents later
+// -- empty until that system exists. Capped at 10 per id (user's own
+// rule) whenever something eventually adds to it.
+// campaignClearedOnce: sat true the first time the full Campaign (every
+// stage) is beaten -- the gate for the whole packs/opponents system,
+// per the user's explicit "dom upplåses efter man klarat campain en gång".
+const PLAYER_PROGRESS_SAVE_KEY = 'triadArenaPlayerProgress';
+function loadPlayerProgress(){
+  try{
+    const raw = localStorage.getItem(PLAYER_PROGRESS_SAVE_KEY);
+    if(!raw) return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false, opponentHeld:{} };
+    const parsed = JSON.parse(raw);
+    return {
+      points: parsed.points||0,
+      lifetimePoints: parsed.lifetimePoints||0,
+      earnedCards: (parsed.earnedCards && typeof parsed.earnedCards === 'object') ? parsed.earnedCards : {},
+      campaignClearedOnce: !!parsed.campaignClearedOnce,
+      // opponentHeld: { [RISK_OPPONENTS id]: { cardId: count } } -- cards
+      // that opponent currently holds, taken from the player on a loss.
+      // See RISK_OPPONENTS/beginRiskMatch/resolveRiskMatch.
+      opponentHeld: (parsed.opponentHeld && typeof parsed.opponentHeld === 'object') ? parsed.opponentHeld : {},
+    };
+  }catch(e){
+    return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false, opponentHeld:{} };
+  }
+}
+function savePlayerProgress(){
+  try{ localStorage.setItem(PLAYER_PROGRESS_SAVE_KEY, JSON.stringify(playerProgress)); }catch(e){ /* storage unavailable — progress just won't persist */ }
+}
+let playerProgress = loadPlayerProgress();
+
+// Lifetime points needed to REACH each level (index 0 = Level 1's floor,
+// i.e. everyone starts at Level 1). A gate, not a currency -- later, pack
+// tiers will each require a minimum level on top of their own point cost,
+// so a brand new player can't just save up match points and buy a Mystic
+// pack on day one (per the user's own "man måste gå 10 nivåer").
+const LEVEL_THRESHOLDS = [0, 500, 1200, 2200, 3500, 5200, 7200, 9700, 12700, 16500];
+function playerLevel(){
+  let level = 1;
+  for(let i = 1; i < LEVEL_THRESHOLDS.length; i++){
+    if(playerProgress.lifetimePoints >= LEVEL_THRESHOLDS[i]) level = i + 1;
+  }
+  return level;
+}
+function pointsToNextLevel(){
+  const level = playerLevel();
+  if(level >= LEVEL_THRESHOLDS.length) return null; // already max level
+  return LEVEL_THRESHOLDS[level] - playerProgress.lifetimePoints;
+}
+function awardPoints(amount){
+  if(!amount) return;
+  playerProgress.points += amount;
+  playerProgress.lifetimePoints += amount;
+  savePlayerProgress();
+}
+
+// Progression step 2: packs. Costs and level gates are exactly what the
+// user specified (Rare 5000/Epic 10000/Legendary 15000/Mystic 20000,
+// each also needing a minimum level so points alone can't skip straight
+// to Mystic). The whole system stays locked behind campaignClearedOnce
+// regardless of level/points, per the user's own "dom upplåses efter
+// man klarat campain en gång".
+//
+// Pool content (BALANCE NOTE, not a text-fidelity simplification): there
+// are no pack-EXCLUSIVE cards yet -- every past card addition to this
+// game came with the user's own commissioned art, one card at a time,
+// and inventing dozens of new balanced cards unprompted here would be
+// exactly the kind of silent scope expansion the user hasn't asked for.
+// So for now every tier draws from the SAME pool (the existing HEROES
+// roster) -- the four tiers differ only in cost/level-gate, not in what
+// they can contain. Real tier-exclusive Rare/Epic/Legendary/Mystic cards
+// are a natural follow-up once the user wants to design specific ones.
+// glow: the reveal-flip's rarity-coded color (user's own request, "bli
+// det en epic lyser det lila... blir det blått" osv) -- since every tier
+// currently draws from the same pool (see buyPack's own comment), this
+// colors by which PACK was opened, not a per-card rarity that doesn't
+// exist yet. Common TCG convention: blue/purple/gold/red climbing tiers.
+const PACK_TIERS = [
+  { id:'rare', name:'Rare Pack', cost:5000, minLevel:1, count:10, glow:'94,200,242' },
+  { id:'epic', name:'Epic Pack', cost:10000, minLevel:3, count:10, glow:'181,101,242' },
+  { id:'legendary', name:'Legendary Pack', cost:15000, minLevel:6, count:10, glow:'224,161,47' },
+  { id:'mystic', name:'Mystic Pack', cost:20000, minLevel:9, count:10, glow:'224,48,79' },
+];
+const EARNED_CARD_CAP = 10; // user's own rule: max 10 copies of any one card in the bag
+function canBuyPack(tier){
+  if(!tier) return false;
+  if(!playerProgress.campaignClearedOnce) return false;
+  if(playerLevel() < tier.minLevel) return false;
+  if(playerProgress.points < tier.cost) return false;
+  return true;
+}
+function buyPack(tierId){
+  const tier = PACK_TIERS.find(t => t.id === tierId);
+  if(!canBuyPack(tier)) return;
+  playerProgress.points -= tier.cost;
+  const drawn = [];
+  for(let i = 0; i < tier.count; i++){
+    const card = HEROES[Math.floor(Math.random() * HEROES.length)];
+    const current = playerProgress.earnedCards[card.id] || 0;
+    const capped = current >= EARNED_CARD_CAP;
+    if(!capped) playerProgress.earnedCards[card.id] = current + 1;
+    drawn.push({ id: card.id, name: card.name, wasNew: current === 0, capped });
+  }
+  savePlayerProgress();
+  state.packOpenResult = { tierId: tier.id, tierName: tier.name, glow: tier.glow, drawn };
+}
+
+// Progression step 3: the FF8-style trading-rule opponents. Locked behind
+// campaignClearedOnce, same gate as packs. Five fixed personas, each with
+// its own signature 5-card hand (reusing existing HEROES ids, same
+// "no new art needed" reasoning as packs' shared pool) and its own
+// risk RULE:
+//   'one' — lose exactly ONE of your five wagered cards on a loss.
+//   'all' — lose ALL FIVE on a loss.
+// (Real FF8 also has Direct/Diff rules; only One/All are what the user
+// actually asked for, so that's all that's implemented.)
+// Only cards the player has EARNED (playerProgress.earnedCards, i.e.
+// packs) can ever be wagered — the standard HEROES roster a player
+// already had is never at risk, per the user's own explicit rule, so a
+// risk match's five cards come entirely from the earned pool rather
+// than the normal Choose Your Five/Random Draft picker.
+const RISK_OPPONENTS = [
+  { id:'gambler-rival', name:'The Gambler', rule:'one', aiDifficulty:'normal', enemyIds:['gambler','vaelira','nyxara','seraphine','odin'] },
+  { id:'wyrmking-rival', name:'Ancient Wyrmking', rule:'one', aiDifficulty:'normal', enemyIds:['dragon','tahabata','ifrit','bahamut','shiva'] },
+  { id:'hollow-crown', name:'The Hollow Crown', rule:'one', aiDifficulty:'hard', enemyIds:['shadowking','deathblade','lyrith','graff','voidqueen'] },
+  { id:'tiamat-rival', name:'Tiamat', rule:'all', aiDifficulty:'hard', enemyIds:['tiamat','elyrion','celestialjudgment','infiniteseraph','fenrir'] },
+  { id:'omega-rival', name:'Omega Weapon', rule:'all', aiDifficulty:'hard', enemyIds:['omegaweapon','leviathan','yojimbo','chocoboking','concord'] },
+];
+function earnedCardIds(){
+  return Object.keys(playerProgress.earnedCards).filter(id => playerProgress.earnedCards[id] > 0);
+}
+function canChallengeRivals(){
+  return playerProgress.campaignClearedOnce && earnedCardIds().length >= 5;
+}
+function heldCountFor(opponentId){
+  const held = playerProgress.opponentHeld[opponentId];
+  if(!held) return 0;
+  return Object.values(held).reduce((a,b)=>a+b, 0);
+}
+// Starts an actual battle wagering `cardIds` (must be exactly 5 earned
+// card ids) against the named opponent. Reuses startBattle() itself for
+// everything else (coinflip sequence, board setup) -- only the enemy
+// hand/difficulty and the state.riskMatch bookkeeping are special-cased,
+// same shape as campaign's own special-casing in startBattle().
+function beginRiskMatch(opponentId, cardIds){
+  const opp = RISK_OPPONENTS.find(o => o.id === opponentId);
+  if(!opp || cardIds.length !== 5) return;
+  state.draftMode = 'risk';
+  state.selected = cardIds.slice();
+  state.riskMatch = { opponentId, rule: opp.rule, previousAiDifficulty: state.aiDifficulty };
+  state.aiDifficulty = opp.aiDifficulty;
+  state.showRivals = false;
+  state.rivalView = null;
+  startBattle();
+}
+// Called from finishGame() once the normal win/loss bookkeeping is done.
+// A loss removes 1 copy of either all 5 or 1 (per the opponent's rule)
+// of the wagered cards from the player's earned pool into that
+// opponent's held pool. A win lets the player reclaim exactly one card
+// that opponent is currently holding from them, if any. A draw changes
+// nothing (per the user's own "de kort man väljer" framing, a draw was
+// never described as a loss). Always clears state.riskMatch and
+// restores the difficulty the player had before challenging, win or
+// lose, so it never leaks into their next ordinary match.
+function resolveRiskMatch(winner){
+  const risk = state.riskMatch;
+  if(!risk) return;
+  const opp = RISK_OPPONENTS.find(o => o.id === risk.opponentId);
+  playerProgress.opponentHeld[risk.opponentId] = playerProgress.opponentHeld[risk.opponentId] || {};
+  const held = playerProgress.opponentHeld[risk.opponentId];
+  state.riskResult = null;
+
+  if(winner === 'red'){
+    const wagered = state.selected.slice();
+    const lostIds = risk.rule === 'all' ? wagered : [wagered[Math.floor(Math.random() * wagered.length)]];
+    lostIds.forEach(id => {
+      playerProgress.earnedCards[id] = Math.max(0, (playerProgress.earnedCards[id] || 0) - 1);
+      held[id] = (held[id] || 0) + 1;
+    });
+    const lostNames = lostIds.map(id => findCardById(id)?.name || id);
+    state.riskResult = { kind:'lost', opponentName: opp ? opp.name : '???', cardNames: lostNames };
+  } else if(winner === 'blue'){
+    const heldIds = Object.keys(held).filter(id => held[id] > 0);
+    if(heldIds.length > 0){
+      const reclaimId = heldIds[Math.floor(Math.random() * heldIds.length)];
+      held[reclaimId]--;
+      playerProgress.earnedCards[reclaimId] = Math.min(EARNED_CARD_CAP, (playerProgress.earnedCards[reclaimId] || 0) + 1);
+      state.riskResult = { kind:'reclaimed', opponentName: opp ? opp.name : '???', cardNames:[findCardById(reclaimId)?.name || reclaimId] };
+    }
+  }
+
+  state.aiDifficulty = risk.previousAiDifficulty;
+  state.riskMatch = null;
+  savePlayerProgress();
+}
 
 // Leaderboard (Fas 26): a real cross-device leaderboard needs a stable
 // identity for "this browser" that survives across sessions without any
@@ -12181,16 +12713,37 @@ function finishGame(){
   // progress. Unlocking + persisting happens right here (not deferred to
   // the result screen's button) so progress is saved the instant the
   // stage is won, before the player even clicks anything.
+  // Progression points -- user's own explicit request: EVERY match earns
+  // something (even a loss), Campaign stage clears earn more, and clearing
+  // the whole Campaign earns a lot more still. recordMatchResult() below
+  // is scoped to Random/Choose Your Five only (see its own guard), so
+  // Campaign needs its own award here rather than reusing that call.
+  if(state.draftMode === 'campaign'){
+    awardPoints(state.winner === 'blue' ? 100 : 20);
+  } else {
+    awardPoints(state.winner === 'blue' ? 50 : state.winner === 'draw' ? 20 : 10);
+  }
   if(state.draftMode === 'campaign' && state.winner === 'blue'){
     const stage = currentCampaignStage();
     if(stage){
       const newly = stage.unlockIds.filter(id => !campaignProgress.unlocked.includes(id));
-      campaignProgress = { stageIndex: campaignProgress.stageIndex + 1, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus };
+      const newStageIndex = campaignProgress.stageIndex + 1;
+      campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus };
       saveCampaignProgress();
       state.campaignUnlocked = newly;
+      // The big one-time bonus, and the gate for the packs/5-opponents
+      // system later -- only fires the FIRST time the whole Campaign is
+      // cleared (ngPlus replays don't re-trigger it, campaignClearedOnce
+      // is a permanent flag once set).
+      if(newStageIndex >= CAMPAIGN_STAGES.length && !playerProgress.campaignClearedOnce){
+        playerProgress.campaignClearedOnce = true;
+        savePlayerProgress();
+        awardPoints(2000);
+      }
     }
   }
   recordMatchResult(state.winner);
+  resolveRiskMatch(state.winner);
   state.newAchievements = checkAchievements(state.winner, blueCount);
   if(state.winner === 'blue') SFX.win();
   else if(state.winner === 'red') SFX.lose();
@@ -12200,7 +12753,11 @@ function finishGame(){
 
 function resetGame(){
   const keepRules = state.rules;
-  const keepMode = state.draftMode || 'random';
+  // A risk match (see beginRiskMatch) is a one-off wager, not a mode to
+  // cycle through like Random/Choose Your Five/Campaign -- renderDraft()
+  // has no 'risk' branch of its own, so falling back to 'random' here is
+  // what actually lands the player on a working draft screen afterward.
+  const keepMode = (state.draftMode && state.draftMode !== 'risk') ? state.draftMode : 'random';
   const keepAiDifficulty = state.aiDifficulty || 'normal';
   const keepFastMode = !!state.fastMode;
   // Campaign retry/next/retreat all funnel through here — keep whichever
@@ -12215,7 +12772,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,

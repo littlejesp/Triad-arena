@@ -9842,3 +9842,305 @@ test('Leaderboard (Fas 26): player names are HTML-escaped before rendering, both
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Progression (Fas 27, step 1): every match earns points, Campaign stage/full clears earn more, and level tracks lifetime points via LEVEL_THRESHOLDS', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const win = () => { state.board = Array(9).fill({ card: HEROES[0], owner: 'blue' }); };
+    const loss = () => { state.board = Array(9).fill({ card: HEROES[0], owner: 'red' }); state.board[0] = { card: HEROES[0], owner: 'blue' }; };
+
+    // A regular (non-Campaign) win/loss.
+    state.draftMode = 'random';
+    state.selected = ['darien'];
+    win();
+    finishGame();
+    out.afterRandomWin = playerProgress.points;
+
+    loss();
+    finishGame();
+    out.afterRandomLoss = playerProgress.points;
+
+    // A Campaign stage win, NOT the final stage -- stage bonus only, no
+    // full-clear bonus, campaignClearedOnce stays false.
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0 };
+    state.draftMode = 'campaign';
+    win();
+    finishGame();
+    out.afterCampaignStageWin = playerProgress.points;
+    out.campaignClearedOnceAfterOneStage = playerProgress.campaignClearedOnce;
+    out.stageIndexAfterOneStage = campaignProgress.stageIndex;
+
+    // Clearing the FINAL stage -- stage bonus + the one-time 2000 bonus.
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length - 1, unlocked: [], ngPlus: 0 };
+    win();
+    finishGame();
+    out.afterFullClear = playerProgress.points;
+    out.campaignClearedOnceAfterFullClear = playerProgress.campaignClearedOnce;
+
+    // A SECOND full clear (e.g. New Game+) must NOT re-award the one-time bonus.
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length - 1, unlocked: [], ngPlus: 1 };
+    win();
+    finishGame();
+    out.afterSecondFullClear = playerProgress.points;
+
+    // Level thresholds.
+    playerProgress.lifetimePoints = 0;
+    out.levelAtZero = playerLevel();
+    playerProgress.lifetimePoints = 499;
+    out.levelJustBelowThreshold = playerLevel();
+    playerProgress.lifetimePoints = 500;
+    out.levelAtThreshold = playerLevel();
+    playerProgress.lifetimePoints = 999999;
+    out.levelWayAboveMax = playerLevel();
+    out.pointsToNextAtMax = pointsToNextLevel();
+
+    return out;
+  });
+  assert.equal(result.afterRandomWin, 50, 'a Random/Choose Your Five win should award 50 points');
+  assert.equal(result.afterRandomLoss, 60, 'a loss should still award something (10), just less than a win');
+  assert.equal(result.afterCampaignStageWin, 160, 'a Campaign stage win awards 100, on top of the 60 already banked');
+  assert.equal(result.campaignClearedOnceAfterOneStage, false, 'clearing one Campaign stage must not flag the whole Campaign as cleared');
+  assert.equal(result.stageIndexAfterOneStage, 1, 'campaignProgress.stageIndex must still advance normally');
+  assert.equal(result.afterFullClear, 160 + 100 + 2000, 'clearing the FINAL stage awards the stage bonus AND the one-time 2000 full-clear bonus');
+  assert.equal(result.campaignClearedOnceAfterFullClear, true, 'campaignClearedOnce must flip true the first time the whole Campaign is cleared');
+  assert.equal(result.afterSecondFullClear, 160 + 100 + 2000 + 100, 'a second full clear (New Game+) earns the stage bonus again but NOT another 2000 -- it is a one-time flag');
+  assert.equal(result.levelAtZero, 1);
+  assert.equal(result.levelJustBelowThreshold, 1, '499 lifetime points must not yet reach Level 2 (threshold is exactly 500)');
+  assert.equal(result.levelAtThreshold, 2, 'exactly 500 lifetime points must reach Level 2');
+  assert.equal(result.levelWayAboveMax, 10, 'lifetime points far past the last threshold must cap at the max level (10), never overflow past it');
+  assert.equal(result.pointsToNextAtMax, null, 'pointsToNextLevel() must return null at max level, not a nonsensical/negative number');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Progression (Fas 27, step 1): playerProgress persists across a fresh load and survives resetGame(), same as matchStats/campaignProgress', async () => {
+  const { page, pageErrors } = await newPage();
+  await page.evaluate(() => {
+    awardPoints(750);
+    playerProgress.campaignClearedOnce = true;
+    savePlayerProgress();
+  });
+  await page.reload();
+  await page.waitForFunction(() => typeof state !== 'undefined');
+  const afterReload = await page.evaluate(() => ({ points: playerProgress.points, lifetimePoints: playerProgress.lifetimePoints, campaignClearedOnce: playerProgress.campaignClearedOnce, level: playerLevel() }));
+  assert.equal(afterReload.points, 750, 'points must survive a full page reload, same persistence guarantee as matchStats/campaignProgress');
+  assert.equal(afterReload.lifetimePoints, 750);
+  assert.equal(afterReload.campaignClearedOnce, true);
+  assert.equal(afterReload.level, 2);
+
+  const afterReset = await page.evaluate(() => {
+    resetGame();
+    return { points: playerProgress.points, campaignClearedOnce: playerProgress.campaignClearedOnce };
+  });
+  assert.equal(afterReset.points, 750, 'resetGame() (a per-match reset) must never touch lifetime player progress');
+  assert.equal(afterReset.campaignClearedOnce, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Progression (Fas 29, step 2): packs are locked until Campaign is cleared once, then gated per-tier by level and points, and respect the 10-copy cap', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const rare = PACK_TIERS.find(t => t.id === 'rare');
+    const epic = PACK_TIERS.find(t => t.id === 'epic');
+
+    // Locked entirely before Campaign is cleared, even with plenty of points/level.
+    playerProgress = { points: 999999, lifetimePoints: 999999, earnedCards: {}, campaignClearedOnce: false };
+    out.lockedDespiteMaxPointsAndLevel = canBuyPack(rare);
+
+    // Cleared, but not enough points yet.
+    playerProgress = { points: 100, lifetimePoints: 100, earnedCards: {}, campaignClearedOnce: true };
+    out.tooFewPoints = canBuyPack(rare);
+
+    // Enough points for Epic's cost, but level too low (Epic needs Level 3).
+    playerProgress = { points: 10000, lifetimePoints: 100, earnedCards: {}, campaignClearedOnce: true };
+    out.enoughPointsButLevelLocked = canBuyPack(epic);
+
+    // Both satisfied (1500 lifetime points = Level 3, the exact gate Epic needs).
+    playerProgress = { points: 10000, lifetimePoints: 1500, earnedCards: {}, campaignClearedOnce: true };
+    out.bothSatisfied = canBuyPack(epic);
+    out.levelForCheck = playerLevel();
+
+    // buyPack deducts the exact cost and yields exactly tier.count cards.
+    const before = playerProgress.points;
+    buyPack('epic');
+    out.pointsDeducted = before - playerProgress.points;
+    out.drawnCount = state.packOpenResult.drawn.length;
+    out.tierNameShown = state.packOpenResult.tierName;
+
+    // buyPack refuses silently (no throw, no deduction) if canBuyPack is false.
+    playerProgress = { points: 0, lifetimePoints: 0, earnedCards: {}, campaignClearedOnce: true };
+    const pointsBeforeRefusedBuy = playerProgress.points;
+    buyPack('mystic');
+    out.refusedBuyDidNotThrow = true;
+    out.refusedBuyDidNotDeduct = playerProgress.points === pointsBeforeRefusedBuy;
+    out.refusedBuyLeftNoResult = state.packOpenResult === null || state.packOpenResult.tierId !== 'mystic';
+
+    // The 10-copy cap: a card already at 10 must never exceed it, however
+    // many packs get opened, but it still shows up in `drawn` (capped:true)
+    // so the reveal UI can tell the player.
+    const cardId = HEROES[0].id;
+    playerProgress = { points: 1000000, lifetimePoints: 1000000, earnedCards: { [cardId]: 10 }, campaignClearedOnce: true };
+    let sawCappedDraw = false;
+    for(let i = 0; i < 30; i++){
+      buyPack('mystic');
+      if(state.packOpenResult.drawn.some(c => c.id === cardId && c.capped)) sawCappedDraw = true;
+    }
+    out.capNeverExceeded = playerProgress.earnedCards[cardId] === 10;
+    out.cappedDrawWasFlagged = sawCappedDraw;
+
+    return out;
+  });
+  assert.equal(result.lockedDespiteMaxPointsAndLevel, false, 'packs must stay locked until campaignClearedOnce is true, regardless of points/level');
+  assert.equal(result.tooFewPoints, false);
+  assert.equal(result.enoughPointsButLevelLocked, false, "Epic pack needs Level 3 even if the player can afford its point cost");
+  assert.equal(result.levelForCheck, 3);
+  assert.equal(result.bothSatisfied, true);
+  assert.equal(result.pointsDeducted, 10000, "buyPack must deduct exactly the tier's cost");
+  assert.equal(result.drawnCount, 10, 'a pack must draw exactly tier.count cards');
+  assert.equal(result.tierNameShown, 'Epic Pack');
+  assert.equal(result.refusedBuyDidNotThrow, true);
+  assert.equal(result.refusedBuyDidNotDeduct, true, 'buyPack must be a no-op (not throw, not deduct) when canBuyPack is false');
+  assert.equal(result.refusedBuyLeftNoResult, true);
+  assert.equal(result.capNeverExceeded, true, 'a card already at the 10-copy cap must never exceed it no matter how many more packs are opened');
+  assert.equal(result.cappedDrawWasFlagged, true, 'a draw of an already-capped card must still appear in the reveal, flagged as capped');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Progression (Fas 32, step 3): Rivals are locked until Campaign is cleared and until the player has 5 distinct earned cards, and beginRiskMatch wires a real battle correctly', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(async () => {
+    const out = {};
+
+    // Locked before Campaign cleared, even with plenty of earned cards.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: false, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    out.lockedBeforeCampaign = canChallengeRivals();
+
+    // Cleared, but fewer than 5 distinct earned cards.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:4 }, opponentHeld: {} };
+    out.lockedTooFewDistinct = canChallengeRivals();
+
+    // Cleared, 5 distinct earned cards -> unlocked.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    out.unlockedWithFive = canChallengeRivals();
+
+    // beginRiskMatch wires up draftMode/selected/riskMatch and the
+    // opponent's own fixed enemy hand once the coinflip settles.
+    const prevDifficulty = state.aiDifficulty;
+    beginRiskMatch('gambler-rival', ['gambler','vaelira','nyxara','seraphine','odin']);
+    out.draftModeAfterBegin = state.draftMode;
+    out.selectedAfterBegin = state.selected.slice().sort();
+    out.riskMatchAfterBegin = { ...state.riskMatch };
+    out.modalClosedAfterBegin = state.showRivals;
+
+    await new Promise(r => setTimeout(r, 3000)); // coinflip -> battle transition
+    out.phaseAfterCoinflip = state.phase;
+    out.enemyHandIds = state.enemyHand.map(c => c.id);
+    out.playerHandIdsSorted = state.playerHand.map(c => c.id).sort();
+
+    return out;
+  });
+  assert.equal(result.lockedBeforeCampaign, false, 'Rivals must stay locked until campaignClearedOnce, regardless of earned cards');
+  assert.equal(result.lockedTooFewDistinct, false, 'fewer than 5 DISTINCT earned card ids must not unlock Rivals, even with duplicates of one card');
+  assert.equal(result.unlockedWithFive, true);
+  assert.equal(result.draftModeAfterBegin, 'risk');
+  assert.deepEqual(result.selectedAfterBegin, ['gambler','nyxara','odin','seraphine','vaelira']);
+  assert.equal(result.riskMatchAfterBegin.opponentId, 'gambler-rival');
+  assert.equal(result.riskMatchAfterBegin.rule, 'one', 'The Gambler is a ONE-rule opponent');
+  assert.equal(result.modalClosedAfterBegin, false, 'beginRiskMatch must close the Rivals modal before starting the battle');
+  assert.equal(result.phaseAfterCoinflip, 'battle');
+  assert.deepEqual(result.enemyHandIds.slice().sort(), ['gambler','nyxara','odin','seraphine','vaelira'], "the opponent's hand must be their own fixed RISK_OPPONENTS.enemyIds, not a random draw");
+  assert.deepEqual(result.playerHandIdsSorted, ['gambler','nyxara','odin','seraphine','vaelira'], "the player's hand must be exactly the 5 wagered cards");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Progression (Fas 32, step 3): resolveRiskMatch applies the ONE/ALL rule correctly on a loss, lets a win reclaim exactly one held card, and a draw changes nothing', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const wageredFive = ['gambler','vaelira','nyxara','seraphine','odin'];
+    const winBoard = (winnerOwner) => new Array(9).fill(null).map((_, i) => ({ card: HEROES[0], owner: i < 6 ? winnerOwner : (winnerOwner === 'blue' ? 'red' : 'blue') }));
+
+    // ONE rule loss: exactly one of the five wagered cards is removed.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = winBoard('red');
+    finishGame();
+    const totalRemaining = Object.values(playerProgress.earnedCards).reduce((a,b)=>a+b, 0);
+    out.oneRuleRemainingCount = totalRemaining;
+    out.oneRuleResultKind = state.riskResult && state.riskResult.kind;
+    out.oneRuleHeldTotal = Object.values(playerProgress.opponentHeld['gambler-rival']).reduce((a,b)=>a+b, 0);
+    out.riskMatchClearedAfterOne = state.riskMatch;
+
+    // ALL rule loss: all five wagered cards are removed.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'tiamat-rival', rule: 'all', previousAiDifficulty: 'normal' };
+    state.board = winBoard('red');
+    finishGame();
+    out.allRuleRemainingCount = Object.values(playerProgress.earnedCards).reduce((a,b)=>a+b, 0);
+    out.allRuleHeldTotal = Object.values(playerProgress.opponentHeld['tiamat-rival']).reduce((a,b)=>a+b, 0);
+
+    // A win reclaims exactly one held card, capped at EARNED_CARD_CAP.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: { 'gambler-rival': { tiamat: 2 } } };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = winBoard('blue');
+    finishGame();
+    out.reclaimResultKind = state.riskResult && state.riskResult.kind;
+    out.reclaimedTiamatCount = playerProgress.earnedCards.tiamat;
+    out.heldTiamatAfterReclaim = playerProgress.opponentHeld['gambler-rival'].tiamat;
+
+    // A win with nothing held: no reclaim, riskResult stays null.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = winBoard('blue');
+    finishGame();
+    out.winNothingHeldResult = state.riskResult;
+
+    // A draw changes nothing at all.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = new Array(9).fill({ card: HEROES[0], owner: 'blue' }).map((c,i) => i < 5 ? c : null);
+    // Force an actual tie board (equal counts) rather than relying on the half-filled one above.
+    state.board = [
+      { card: HEROES[0], owner: 'blue' }, { card: HEROES[0], owner: 'blue' }, { card: HEROES[0], owner: 'blue' }, { card: HEROES[0], owner: 'blue' },
+      { card: HEROES[0], owner: 'red' }, { card: HEROES[0], owner: 'red' }, { card: HEROES[0], owner: 'red' }, { card: HEROES[0], owner: 'red' },
+      null,
+    ];
+    const earnedCardsBeforeDraw = JSON.stringify(playerProgress.earnedCards);
+    finishGame();
+    out.drawWinner = state.winner;
+    out.drawResult = state.riskResult;
+    out.drawEarnedCardsUnchanged = JSON.stringify(playerProgress.earnedCards) === earnedCardsBeforeDraw;
+
+    return out;
+  });
+  assert.equal(result.oneRuleRemainingCount, 4, 'ONE rule must remove exactly 1 of the 5 wagered cards on a loss');
+  assert.equal(result.oneRuleResultKind, 'lost');
+  assert.equal(result.oneRuleHeldTotal, 1, "the opponent's held pile must gain exactly the 1 card taken");
+  assert.equal(result.riskMatchClearedAfterOne, null, 'state.riskMatch must be cleared after resolution, win or lose');
+  assert.equal(result.allRuleRemainingCount, 0, 'ALL rule must remove every one of the 5 wagered cards on a loss');
+  assert.equal(result.allRuleHeldTotal, 5, "the opponent's held pile must gain all 5 taken cards");
+  assert.equal(result.reclaimResultKind, 'reclaimed');
+  assert.equal(result.reclaimedTiamatCount, 1, 'a reclaim must add exactly 1 copy back to earnedCards (tiamat was not owned at all before the win)');
+  assert.equal(result.heldTiamatAfterReclaim, 1, "the opponent's held count for the reclaimed card must drop by exactly 1");
+  assert.equal(result.winNothingHeldResult, null, 'a win with nothing held must not fabricate a reclaim result');
+  assert.equal(result.drawWinner, 'draw');
+  assert.equal(result.drawResult, null, 'a draw must never trigger a risk win or loss outcome');
+  assert.equal(result.drawEarnedCardsUnchanged, true, 'a draw must never touch earnedCards');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
