@@ -778,15 +778,18 @@ test('The Triple Triad Sisters are playable: in HEROES, and their mechanics work
     SPECIAL_HANDLERS.vaelira({ srcEntry: src, owner: 'blue' });
     out.blueVaeliraDestroyedEnemy = state.board[1] === null;
 
-    out.stage17UnlockIds = CAMPAIGN_STAGES[16].unlockIds.slice().sort();
+    // Fas 35 moved the Sisters stage from index 16 to index 18 (Campaign
+    // is now 20 stages, not 17) when Triune Desire was added as the new
+    // finale -- same stage, same unlockIds, new position.
+    out.sistersStageUnlockIds = CAMPAIGN_STAGES[18].unlockIds.slice().sort();
     return out;
   })()`);
   assert.equal(result.inHeroes, true);
-  assert.equal(result.stillInForestFoes, true, 'they should still work as Campaign stage 17\'s enemy hand too');
+  assert.equal(result.stillInForestFoes, true, 'they should still work as the Sisters stage\'s enemy hand too');
   assert.equal(result.sisterAuraBonusForBlue, 2, 'sisterAura should apply regardless of which side owns them');
   assert.equal(result.onPlaceBurnByBlue, -2);
   assert.equal(result.blueVaeliraDestroyedEnemy, true);
-  assert.deepEqual(result.stage17UnlockIds, ['nyxara', 'seraphine', 'vaelira']);
+  assert.deepEqual(result.sistersStageUnlockIds, ['nyxara', 'seraphine', 'vaelira']);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -7362,17 +7365,23 @@ test('Fas 4: cardFace marks a campaign-unlocked champion with the cosmetic champ
   await page.close();
 });
 
-test('Fas 4: campaign stages auto-assign AI difficulty (1-5 Easy, 6-11 Normal, 12-17 Hard); manual choice still applies outside Campaign', async () => {
+test('Fas 4: campaign stages auto-assign AI difficulty (1-5 Easy, 6-11 Normal, 12+ Hard); manual choice still applies outside Campaign', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     const out = {};
-    // 0-based stageIndex: stage 1 = index 0, stage 17 = index 16.
+    // 0-based stageIndex: stage 1 = index 0. campaignStageAIDifficulty is a
+    // pure function of the index (idx>=11 -> hard, uncapped), so Fas 35
+    // extending Campaign to 20 stages just means more indices land in the
+    // already-existing "hard" bucket -- checked at both the old boundary
+    // (index 16, once the finale, now "Sovereigns of the Deep") and the
+    // new last index (CAMPAIGN_STAGES.length-1, "The Forbidden Union").
     out.stage1IsEasy = campaignStageAIDifficulty(0) === 'easy';
     out.stage5IsEasy = campaignStageAIDifficulty(4) === 'easy';
     out.stage6IsNormal = campaignStageAIDifficulty(5) === 'normal';
     out.stage11IsNormal = campaignStageAIDifficulty(10) === 'normal';
     out.stage12IsHard = campaignStageAIDifficulty(11) === 'hard';
     out.stage17IsHard = campaignStageAIDifficulty(16) === 'hard';
+    out.finaleIsHard = campaignStageAIDifficulty(CAMPAIGN_STAGES.length - 1) === 'hard';
 
     state.draftMode = 'campaign';
     campaignProgress = { stageIndex: 11, unlocked: [], ngPlus: 0 }; // stage 12
@@ -7390,6 +7399,7 @@ test('Fas 4: campaign stages auto-assign AI difficulty (1-5 Easy, 6-11 Normal, 1
   assert.equal(result.stage11IsNormal, true);
   assert.equal(result.stage12IsHard, true);
   assert.equal(result.stage17IsHard, true);
+  assert.equal(result.finaleIsHard, true);
   assert.equal(result.campaignUsesStageDifficulty, true, "Campaign must use the stage's assigned difficulty, ignoring the player's manual Easy/Normal/Hard choice");
   assert.equal(result.nonCampaignUsesManualChoice, true, 'Random Draft/Choose Your Five must still fully respect the manual choice');
   assert.deepEqual(pageErrors, []);
@@ -7832,7 +7842,9 @@ test('Fas 7 (design review #2, revised Fas 33): campaign stages get a flat statB
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     const out = {};
-    // Stages 1-8 (index 0-7) and the finale (index 16) get no statBoost.
+    // Stages 1-8 (index 0-7) and the finale (last index, CAMPAIGN_STAGES.
+    // length-1 -- Fas 35 made this Triune Desire's "The Forbidden Union"
+    // at index 19, not the Sisters at index 16 any more) get no statBoost.
     // Stage 9 "Hunter's Pact" (index 8) and stage 11 "The Twin Storm"
     // (index 10) also get none -- a Fas 33 balance pass removed it after
     // simulation showed those two Normal-AI stages were already the
@@ -7845,11 +7857,14 @@ test('Fas 7 (design review #2, revised Fas 33): campaign stages get a flat statB
     // players much harder than a first clear; the remaining boosted
     // stages 10,12,13,14,15,16 (index 9,11,12,13,14,15) were halved from
     // 1,2,2,2,3,3 to 1,1,1,1,2,2 to leave NG+ headroom to stack on top
-    // without tipping into unwinnable.
+    // without tipping into unwinnable. Fas 35 then added two more boosted
+    // stages (index 16,17, "Sovereigns of the Deep"/"The Silent
+    // Reckoning") at statBoost:2, matching Ashes and Frost/Wyrmking's
+    // Domain right before them rather than escalating further.
     out.earlyStagesUnboosted = CAMPAIGN_STAGES.slice(0, 8).every(s => !s.statBoost);
-    out.finaleUnboosted = !CAMPAIGN_STAGES[16].statBoost;
+    out.finaleUnboosted = !CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1].statBoost;
     out.pairStagesUnboosted = !CAMPAIGN_STAGES[8].statBoost && !CAMPAIGN_STAGES[10].statBoost;
-    out.lateStageBoosts = [9,11,12,13,14,15].map(i => CAMPAIGN_STAGES[i].statBoost).join(',') === '1,1,1,1,2,2';
+    out.lateStageBoosts = [9,11,12,13,14,15,16,17].map(i => CAMPAIGN_STAGES[i].statBoost).join(',') === '1,1,1,1,2,2,2,2';
 
     const card = { id:'boost-test', name:'BoostTest', top:5, right:5, bottom:5, left:5 };
     out.zeroBoostReturnsSameCard = campaignStatBoost(card, 0) === card;
@@ -10245,6 +10260,71 @@ test('16-card audit items #15-16: Twin Brothers/Twin Sisters get onCaptureBuffSe
   assert.equal(result.solarTempestFailNoBuff, true, 'a failed Solar Tempest must not grant any buff');
   assert.equal(result.lunarEclipseFlipped, true);
   assert.equal(result.lunarEclipseSelfBuff, 1, "Lunar Eclipse's own +1 all sides this round on the caster");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 35: Campaign extended from 17 to 20 stages — two new stages before the Sisters, and Triune Desire wired in as the new true finale', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    out.totalStages = CAMPAIGN_STAGES.length;
+    out.stageNames = CAMPAIGN_STAGES.slice(16).map(s => s.name);
+
+    const finale = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1];
+    out.finaleName = finale.name;
+    out.finaleHasNoStatBoost = !finale.statBoost;
+    out.finaleRosterHasTriuneDesire = finale.enemyIds.includes('triunedesire');
+    // Deliberately only 2 of the 3 sisters, not all 3 -- see the stage's
+    // own comment for why (avoids stacking every sisterAura/Sister's Bond
+    // bonus AND all three board-wipe specials plus Triune Desire's own).
+    const sisterCount = ['vaelira','seraphine','nyxara'].filter(id => finale.enemyIds.includes(id)).length;
+    out.finaleHasExactlyTwoSisters = sisterCount === 2;
+    out.finaleUnlocksTriuneDesire = finale.unlockIds.includes('triunedesire');
+
+    // Triune Desire must actually be a real, fully-defined card on both
+    // sides (HEROES so she's playable once unlocked, FOREST_FOES so
+    // startBattle() can actually find her for the enemy hand).
+    out.triuneDesireInHeroes = HEROES.some(h => h.id === 'triunedesire');
+    out.triuneDesireInForestFoes = FOREST_FOES.some(f => f.id === 'triunedesire');
+
+    // Wire-up: startBattle() must actually build the finale's enemy hand
+    // with her included, not just have her sit in enemyIds unused.
+    state.draftMode = 'campaign';
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length - 1, unlocked: [], ngPlus: 0 };
+    state.selected = HEROES.slice(0, 5).map(h => h.id);
+    startBattle();
+    out.startBattleFieldsTriuneDesire = state.enemyHand.some(c => c.id === 'triunedesire');
+
+    // The two new pre-finale stages (index 16-17) must have neither
+    // pairPresence partner of a known bonded pair on the same roster --
+    // the exact Fas 33 lesson about guaranteed-synergy-pair spikes.
+    const KNOWN_PAIRS = [['darien','elara'],['sylvarion','zaevir'],['torn','vayra'],
+      ['littlejesp','pallispell'],['twinbrothers','twinsisters'],
+      ['eviltwistyang','eviltwistyin'],['aurelian','vorlix']];
+    out.newStagesAvoidGuaranteedPairs = [16, 17].every(i => {
+      const ids = CAMPAIGN_STAGES[i].enemyIds;
+      return KNOWN_PAIRS.every(([a,b]) => !(ids.includes(a) && ids.includes(b)));
+    });
+
+    return out;
+  })()`);
+  assert.equal(result.totalStages, 20, 'Campaign must now have 20 stages, not 17');
+  assert.deepEqual(result.stageNames, [
+    'Sovereigns of the Deep',
+    'The Silent Reckoning',
+    'The Triple Triad Sisters',
+    'The Forbidden Union',
+  ]);
+  assert.equal(result.finaleName, 'The Forbidden Union');
+  assert.equal(result.finaleHasNoStatBoost, true, 'the true finale stays a difficulty/thematic peak, not a bigger-numbers one, same reasoning as the old Sisters finale');
+  assert.equal(result.finaleRosterHasTriuneDesire, true);
+  assert.equal(result.finaleHasExactlyTwoSisters, true, 'only 2 of 3 sisters -- fielding all 3 alongside Triune Desire would stack every sisterAura bonus and four separate board-wipe specials at once');
+  assert.equal(result.finaleUnlocksTriuneDesire, true);
+  assert.equal(result.triuneDesireInHeroes, true);
+  assert.equal(result.triuneDesireInForestFoes, true);
+  assert.equal(result.startBattleFieldsTriuneDesire, true, 'a real startBattle() call for the finale must actually include Triune Desire in the enemy hand');
+  assert.equal(result.newStagesAvoidGuaranteedPairs, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

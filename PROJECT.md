@@ -4916,6 +4916,49 @@ INTE flippas och INTE ger någon buff, och att partnertvillingen (om
 den står på brädet) också får sin +1 vid vinst. Hela testsviten grön:
 **168/168**.
 
+**Fas 35. Campaign utökad från 17 till 20 etapper**, på användarens
+begäran ("Gör fler etapper upp till 20"). Två nya etapper (17-18,
+"Sovereigns of the Deep" och "The Silent Reckoning") infogade FÖRE
+Systrarna, med kort som ALDRIG tidigare figurerat som Campaign-fiender
+(shiva, leviathan, omegaweapon, yojimbo, chocoboking, odin, gambler,
+astrael, ysara, ferea) — färska hot istället för att bara blanda om
+samma handfull namn igen. Ingen av rostren innehåller ett känt
+pairPresence-par (se Fas 33s lärdom om varför det spelar roll), och
+båda ligger på statBoost:2 — samma nivå som Ashes and Frost/Wyrmking's
+Domain precis före, medvetet INTE eskalerat ytterligare givet vad Fas
+33s NG+-fynd redan visade om stapling.
+
+Systrarna flyttades till etapp 19 (oförändrad roster/banner/lore) för
+att göra plats åt en helt ny sann final-boss på etapp 20: **Triune
+Desire** ("The Forbidden Union — Boss, Triple Triad Sisters IV", de
+tre systrarna smälta till en) — ett kort som redan var helt färdigbyggt
+(10/10/10/10, brädtäckande +1/-1-aura, en förödande AOE-special som
+blir helt gratis så fort en syster finns på plan) men ALDRIG kopplats
+in i Campaign förrän nu. Fälld med bara 2 av de 3 systrarna
+(vaelira+nyxara, inte seraphine) — inte alla tre — eftersom varje
+systers egen `sisterAura`/"Sister's Bond"/"Sister's Command" redan
+staplar till +3..+5 Power VAR när alla systrar är närvarande, plus TRE
+separata bräd-rensande AOE-specialer ovanpå Triune Desires egen; att
+stapla alla fyra samtidigt hade återskapat exakt den typ av
+garanterad-synergi-spik hela Fas 33 gick ut på att fixa, fast värre.
+Ingen statBoost på finalen, samma resonemang som den gamla
+Systrar-finalen: kortets egen kraftnivå är redan höjdpunkten — en
+tematisk klimax, inte en sifferspik.
+
+Simulerat exakt som allt annat den här sessionen (Playwright,
+`chooseAIPlacement`-sökning på båda sidor) innan det skeppades: 43-88%
+vinstfrekvens på de två nya mellanetapperna (NG+0 och NG+1), 81-100% på
+den nya finalen — tillräckligt svårt för en final utan att vara
+omöjligt. Ett nytt permanent regressionstest täcker strukturen (20
+etapper totalt, rätt namn på 17-20, finalen har Triune Desire + exakt 2
+systrar + inget statBoost, att Triune Desire faktiskt är ett riktigt
+kort i både HEROES och FOREST_FOES och att `startBattle()` faktiskt
+fäller henne i en riktig fiendehand, samt att de två nya etapperna inte
+råkar innehålla något känt pairPresence-par). Två äldre test som
+hårdkodat index 16 som "Systrarnas/finalens plats" uppdaterades till
+`CAMPAIGN_STAGES.length - 1` respektive det nya indexet 18. Hela
+testsviten grön: **169/169**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

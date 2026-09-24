@@ -8395,15 +8395,47 @@ const CAMPAIGN_STAGES = [
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['ferea','tilda','ifrit','bahamut','tahabata'], statBoost:2 },
   { name:"The Ancient Wyrmking's Domain", enemyIds:['celestialjudgment','infiniteseraph','threeheaddragon','dragon','fenrir'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['dragon','shadowking','voidqueen','celestialjudgment','infiniteseraph','fenrir'], statBoost:2 },
-  // Stage 17 — a dedicated boss stage for the Triple Triad Sisters trio.
-  // They were originally FOREST_FOES-only (enemy-only, deliberately kept
-  // out of HEROES/campaignPool per an explicit user confirmation) but were
-  // made playable in a later session — now added to HEROES too (see the
-  // sister card comments there), and unlockIds hands out all three here:
-  // clearing the true final boss is what lets you play as them.
+  // Fas 35: extended the Campaign from 17 to 20 stages. These two new
+  // stages (17-18) draw on Mythic/Legendary-tier cards that had NEVER
+  // once appeared as a Campaign enemy roster (shiva, leviathan,
+  // omegaweapon, yojimbo, chocoboking, odin, gambler, astrael, ysara,
+  // ferea) -- fresh threats for the stretch right before the finale,
+  // rather than reshuffling the same handful of names again. Neither
+  // roster contains a pairPresence partner pair (see Fas 33's own
+  // comment on why that matters), and both stay at statBoost:2, the same
+  // level as Ashes and Frost/Wyrmking's Domain immediately before them --
+  // deliberately NOT escalating further given what Fas 33's NG+ finding
+  // already showed about compounding. Simulated same as every stage
+  // touched this session (see PROJECT.md).
+  { name:'Sovereigns of the Deep', enemyIds:['shiva','leviathan','omegaweapon','chocoboking','yojimbo'],
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['shiva','leviathan','omegaweapon'], statBoost:2 },
+  { name:'The Silent Reckoning', enemyIds:['odin','gambler','astrael','ysara','ferea'],
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['odin','gambler','yojimbo','chocoboking'], statBoost:2 },
+  // Stage 19 (was stage 17) — the dedicated boss stage for the Triple
+  // Triad Sisters trio. They were originally FOREST_FOES-only (enemy-only,
+  // deliberately kept out of HEROES/campaignPool per an explicit user
+  // confirmation) but were made playable in a later session — now added
+  // to HEROES too (see the sister card comments there), and unlockIds
+  // hands out all three here: clearing this is what lets you play as them.
   { name:'The Triple Triad Sisters', enemyIds:['vaelira','seraphine','nyxara','shadowking','voidqueen'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['vaelira','seraphine','nyxara'],
     banner:'sisters-of-fate-banner.jpg', lore:SISTER_LORE },
+  // Stage 20 — the new TRUE final boss: Triune Desire ("Boss, Triple Triad
+  // Sisters IV", the three sisters fused into one) was already fully built
+  // as a card (see her own definition/comment above) but never wired into
+  // Campaign at all until now. Fielded with two of her three sisters
+  // (not all three -- with sisterAura/Sister's Bond/Sister's Command all
+  // stacking to +3..+5 Power each when every sister is present, plus THREE
+  // separate board-wipe AOE specials on top of Triune Desire's own,
+  // deliberately not stacking all four at once) so "Sister's Will" (her
+  // Ultimate needs no Wins once any sister is on the board) is reliably
+  // active without recreating the exact stacked-synergy spike Fas 33 spent
+  // this whole session fixing elsewhere. No statBoost, same reasoning as
+  // the Sisters stage above: the card's own power level (10/10/10/10, a
+  // board-wide +1/-1 aura, and a free devastating AOE) is already the
+  // difficulty peak -- a thematic climax, not a bigger-numbers one.
+  { name:'The Forbidden Union', enemyIds:['triunedesire','vaelira','nyxara','shadowking','voidqueen'],
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['triunedesire'] },
 ];
 const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
 
