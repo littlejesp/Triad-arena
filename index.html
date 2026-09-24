@@ -2324,6 +2324,29 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   100%{ opacity:0; transform:translate(-50%,-50%) scale(1.15) rotate(75deg); }
 }
 
+/* Design review follow-up ("vad kan förbättras på brädet") -- the empty
+   cells were the flattest, most "dead" part of the board once every
+   occupied cell had real art/VFX: a small idle rune, reusing the SAME
+   vfx-magiccircle.png mask (already in the project, unused until now)
+   but at a fraction of .vfx-magic-circle's flagship-Ultimate scale/
+   opacity, so it reads as "this board is alive" without competing with
+   actual gameplay info. Deliberately not gated on state at all -- CSS
+   animation only, no JS/render() cost, so it can't ever affect gameplay
+   or performance. */
+.cell-rune{
+  position:absolute; left:50%; top:50%; width:56%; aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  background:var(--gold, #c9a227);
+  -webkit-mask-image:url('vfx-magiccircle.png'); -webkit-mask-size:contain; -webkit-mask-repeat:no-repeat; -webkit-mask-position:center;
+  mask-image:url('vfx-magiccircle.png'); mask-size:contain; mask-repeat:no-repeat; mask-position:center;
+  opacity:0; pointer-events:none;
+  animation: cellRuneBreathe 5.5s ease-in-out infinite;
+}
+@keyframes cellRuneBreathe{
+  0%, 100%{ opacity:0.05; transform:translate(-50%,-50%) scale(0.96); }
+  50%{ opacity:0.16; transform:translate(-50%,-50%) scale(1.02); }
+}
+
 /* Design review follow-up ("bättre ljuseffekter", round 2): a real
    directional beam texture (user-supplied, see PROJECT.md), same
    recolor-via-mask technique as the other Fas 16 textures above -- for
@@ -5565,7 +5588,7 @@ function boardCellHtml(cell, i, previewVulnerable, suggestedCell, comboHintCells
           petrified: cell.petrifiedUntilTurnCount > state.turnCount,
           captureBonus: cell.captureBonus, sideBonus: cell.sideBonus, cellIndex: i,
           specialInfo, specialActive: !!(state.specialMode && state.specialMode.sourceIndex === i)
-        }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : '')}
+        }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : `<div class="cell-rune" aria-hidden="true" style="animation-delay:${(i % 9) * -0.7}s;"></div>`)}
       ${capturePreview && capturePreview.captures > 0 ? `<div class="capture-badge">⚔ ${capturePreview.captures}</div>` : ''}
       ${cell && cell.justFlipped ? `<img class="conquered-badge-small" src="conquered-badge${cell.owner === 'red' ? '-red' : ''}.png" alt="Conquered" aria-hidden="true" style="animation-delay:${cell.fxDelay || 0}ms;">` : ''}
       ${isComboHint ? `<div class="combo-hint-ring" aria-hidden="true"></div>` : ''}
