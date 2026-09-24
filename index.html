@@ -3951,7 +3951,7 @@ const HEROES = [
     {name:"Wolf Paw's Grip", desc:"When Pallis is placed, a random side is chosen — the enemy card adjacent to Pallis on that side (if any) gets -2 on the side facing her this round. (Source text lets you choose the side; simplified to random, same as Fenrir/Zalazar's own on-place directional effects. No trigger word in the source text either — assumed to fire on placement, same reasoning as Protective Aura above.)"},
     {name:'Special Attack: Wave of Loyalty', desc:'Costs 2 wins. Choose an element — all your cards of that element get +2 on all sides this round and are protected from being lost until the end of your next round.'},
   ] },
-  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}, onCaptureBonus:1}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Fraternal Fury (Passive)', desc:'Each time Twin Brothers takes control of a card, he permanently gains +1 Power on all sides — the more reckless twin.'},
+  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}, onCaptureBonus:1, onCaptureBuffSelfThisRound:3}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Fraternal Fury (Passive)', desc:'Each time Twin Brothers takes control of a card, he permanently gains +1 Power on all sides — the more reckless twin.'},
     {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
     {name:'Brotherly Might', desc:'When Twin Brothers wins a battle, he gets +1 on all sides this round.'},
     {name:'Shared Resolve', desc:'The first time Twin Brothers would lose a battle, the loss is ignored.'},
@@ -3959,7 +3959,7 @@ const HEROES = [
     {name:'Unbreakable Link', desc:'If Twin Brothers and Twin Sisters are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Solar Tempest', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Brothers gets +3 Power on that side and the enemy's defensive skills can't activate. If he wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}, marginShieldThreshold:1}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Sisterly Ward (Passive)', desc:'If an enemy attacks Twin Sisters and wins by only 1 Power, the battle becomes a draw instead and the attacker gets -1 Power this round — the more careful twin.'},
+  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}, marginShieldThreshold:1, onCaptureBuffSelfThisRound:3}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Sisterly Ward (Passive)', desc:'If an enemy attacks Twin Sisters and wins by only 1 Power, the battle becomes a draw instead and the attacker gets -1 Power this round — the more careful twin.'},
     {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
     {name:'Synergy of Souls', desc:'When Twin Sisters wins a battle, she gets +1 on all sides this round.'},
     {name:'Protective Bond', desc:'The first time Twin Sisters would lose a battle, the loss is ignored.'},
@@ -4251,7 +4251,7 @@ const FOREST_FOES = [
     {name:"Mind's Balance", desc:"When Evil Twist attacks a card, swap strength with the opponent's card if theirs is higher."},
     {name:'Special Attack: Yin Resonance', desc:'Costs 3 wins. Unites with Yang — all opponent cards get -2 Power this round. Requires both Evil Twist cards on the board. Usable once per match.'},
   ] },
-  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}, onCaptureBonus:1}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Fraternal Fury (Passive)', desc:'Each time Twin Brothers takes control of a card, he permanently gains +1 Power on all sides — the more reckless twin.'},
+  { id:'twinbrothers', name:'Twin Brothers', role:'Legendary Card — Bound by Blood, Empowered Together', element:'fire', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#0f1830,#0d0b18 60%)', accent:'#e0a12f', active:{shield:true, pairPresence:{partner:'twinsisters', amount:2}, onCaptureBonus:1, onCaptureBuffSelfThisRound:3}, special:{ name:'Solar Tempest', cost:2, once:true, targets:'single' }, skills: [    {name:'Fraternal Fury (Passive)', desc:'Each time Twin Brothers takes control of a card, he permanently gains +1 Power on all sides — the more reckless twin.'},
     {name:'Bound in Harmony (Passive)', desc:'As long as Twin Brothers and Twin Sisters are both on the board, both cards get +2 Power on all sides.'},
     {name:'Brotherly Might', desc:'When Twin Brothers wins a battle, he gets +1 on all sides this round.'},
     {name:'Shared Resolve', desc:'The first time Twin Brothers would lose a battle, the loss is ignored.'},
@@ -4259,7 +4259,7 @@ const FOREST_FOES = [
     {name:'Unbreakable Link', desc:'If Twin Brothers and Twin Sisters are both on the board, both get +1 extra on all sides (folded into the Bound in Harmony bonus above).'},
     {name:'Special Attack: Solar Tempest', desc:"Costs 2 wins. Choose an adjacent enemy card — Twin Brothers gets +3 Power on that side and the enemy's defensive skills can't activate. If he wins, both twins get +1 on all sides this round. Usable once per match."},
   ] },
-  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}, marginShieldThreshold:1}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Sisterly Ward (Passive)', desc:'If an enemy attacks Twin Sisters and wins by only 1 Power, the battle becomes a draw instead and the attacker gets -1 Power this round — the more careful twin.'},
+  { id:'twinsisters', name:'Twin Sisters', role:'Legendary Card — Bound by Blood, Empowered Together', element:'water', top:7, right:8, bottom:7, left:8, hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', active:{shield:true, pairPresence:{partner:'twinbrothers', amount:2}, marginShieldThreshold:1, onCaptureBuffSelfThisRound:3}, special:{ name:'Lunar Eclipse', cost:2, once:true, targets:'single' }, skills: [    {name:'Sisterly Ward (Passive)', desc:'If an enemy attacks Twin Sisters and wins by only 1 Power, the battle becomes a draw instead and the attacker gets -1 Power this round — the more careful twin.'},
     {name:'Bound in Harmony (Passive)', desc:'As long as Twin Sisters and Twin Brothers are both on the board, both cards get +2 Power on all sides.'},
     {name:'Synergy of Souls', desc:'When Twin Sisters wins a battle, she gets +1 on all sides this round.'},
     {name:'Protective Bond', desc:'The first time Twin Sisters would lose a battle, the loss is ignored.'},
@@ -10269,6 +10269,42 @@ const SPECIAL_HANDLERS = {
     const enemies = state.board.filter(e => e && e.owner !== owner);
     enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
     return `${srcEntry.card.name} unites with Yang — Yin Resonance withers the enemy ranks!`;
+  },
+  // Solar Tempest/Lunar Eclipse: 16-card audit item -- these two had a
+  // `special` field with cost/targets metadata but no SPECIAL_HANDLERS
+  // entry at all, so runSpecialResolution's `if(!handler) return;` guard
+  // made selecting them a silent no-op in a real match. Same threshold
+  // shape as Aurelian's Skybreaker/Vorlix's WorldCleaver (the +3 from the
+  // card text is the combat check itself, not a reward granted after);
+  // "the enemy's defensive skills can't activate" skips specialBlockedByShield
+  // the same way Lyrith's Serpent's Wrath does. On a win, both twins (not
+  // just the caster) get SpecialVerbs.buffThisRound -- the "if he/she wins,
+  // both twins get +1 on all sides this round" clause from the card text.
+  twinbrothers({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Solar Tempest scorches the air but finds no purchase!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.buffThisRound(srcEntry, 1);
+    const sister = state.board.find(e => e && e.owner === owner && e.card.id === 'twinsisters');
+    if(sister) SpecialVerbs.buffThisRound(sister, 1);
+    return `${name}'s Solar Tempest flips ${targetEntry.card.name} — both twins surge with shared power!`;
+  },
+  twinsisters({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
+      return `${name}'s Lunar Eclipse fades without effect!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.buffThisRound(srcEntry, 1);
+    const brother = state.board.find(e => e && e.owner === owner && e.card.id === 'twinbrothers');
+    if(brother) SpecialVerbs.buffThisRound(brother, 1);
+    return `${name}'s Lunar Eclipse flips ${targetEntry.card.name} — both twins surge with shared power!`;
   },
   pallis({ srcEntry, owner, element }){
     const matches = state.board.filter(e => e && e.owner === owner && e.card.element === element);

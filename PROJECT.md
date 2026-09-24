@@ -78,8 +78,8 @@ saknar kod-backing), sämst kopplade först:
 12. **Ifrit** 2/6 — KLAR (punkt 52 nedan, inkl. Volcanic Armor).
 13. **Evil Twist Yang** 2/4 — KLAR (punkt 53 nedan, 4/4).
 14. **Evil Twist Yin** 2/4 — KLAR (punkt 53 nedan, mirrorar Yang).
-15. **Twin Brothers** 4/6
-16. **Twin Sisters** 4/6
+15. **Twin Brothers** 4/6 — KLAR (Fas 34 nedan, 6/6).
+16. **Twin Sisters** 4/6 — KLAR (Fas 34 nedan, mirrorar Brothers).
 
 Redan kontrollerade och bekräftat HELT rena (inga tysta luckor):
 Celestial Judgment, Infinite Seraph, Fenrir, Tiamat, Odin, Yojimbo,
@@ -4879,6 +4879,42 @@ och `ngPlusBoostCard` fortsatt staplas additivt och aldrig muterar det
 delade FOREST_FOES-kortet, och att `startBattle()` faktiskt applicerar
 rätt stage-boost på en riktig fiendehand. Hela testsviten grön:
 **167/167**.
+
+**Fas 34. Twin Brothers/Twin Sisters — de sista två kvarvarande korten
+på den ursprungliga 16-korts audit-listan (punkt 15-16), aldrig
+markerade KLAR till skillnad från de andra 14.** Solar Tempest/Lunar
+Eclipse hade en `special`-post med cost/targets, men ingen egen
+`SPECIAL_HANDLERS`-funktion alls — `runSpecialResolution`s egen
+`if(!handler) return;`-guard gjorde att de var en helt TYST no-op i en
+riktig match: kostade inget, gjorde inget, bara stängde special-läget.
+Byggde `SPECIAL_HANDLERS.twinbrothers`/`.twinsisters` i samma form som
+Aurelians Skybreaker/Vorlix WorldCleaver (kortets egna "+3 Power"
+räknas in i själva träffchecken, inte en belöning efteråt) och Lyriths
+Serpent's Wrath (ingen shield-check, matchar "enemy's defensive skills
+can't activate"). Vid vinst buffas BÅDA tvillingarna +1 alla sidor
+denna rond, inte bara den som castar — precis vad korttexten säger.
+
+Brotherly Might/Dual Strike (Brothers) och Synergy of Souls/Echoing
+Power (Sisters) beskriver båda samma triggerpunkt (vinner en
+strid/tar över ett kort) och samma "den här rondens" varaktighet — vek
+för samma "välj en riktning -> förenkla till alla sidor"-konvention
+som redan är etablerad i den här filen (se Tildas egen kommentar om
+detta), och vek dessutom in i ett REDAN implementerat fält
+(`onCaptureBuffSelfThisRound`, redan använt av Templaren/Naline) i
+stället för att uppfinna ett nytt. Lades till som `+3`
+(`onCaptureBuffSelfThisRound:3` = 1 från Brotherly Might + 2 från Dual
+Strike) på båda korten. Unbreakable Link/Graceful Unity var redan
+korttextens egen "folded into Bound in Harmony"-notering sedan
+tidigare, så den räknades aldrig som en egen lucka.
+
+Ett nytt permanent regressionstest täcker allt: att en riktig
+`placeCard`-erövring faktiskt ger +3 (plus Fraternal Furys redan
+existerande permanenta +1 för Brothers, så +4 totalt där), att Solar
+Tempest/Lunar Eclipse faktiskt flippar ett mål och kostar sina 2 wins
+(bevisar att no-op-buggen är fixad), att en för stark fiende korrekt
+INTE flippas och INTE ger någon buff, och att partnertvillingen (om
+den står på brädet) också får sin +1 vid vinst. Hela testsviten grön:
+**168/168**.
 
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
