@@ -1067,6 +1067,18 @@ button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px
 .packs-reveal-tag.packs-reveal-capped{ background:rgba(184,69,46,0.9); color:#fff; }
 @keyframes packsTagFade{ from{ opacity:0; } to{ opacity:1; } }
 
+/* Progression step 3: Rivals. */
+.rivals-warning{
+  padding:10px 12px; margin-bottom:4px; border-radius:10px;
+  background:rgba(184,69,46,0.12); border:1px solid rgba(184,69,46,0.4);
+}
+.rivals-warning-title{ font-family:'Cinzel',serif; font-weight:700; color:#ffb8a0; font-size:13px; margin-bottom:4px; }
+.rivals-picker-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(85px,1fr));
+  gap:8px; margin:10px 0; max-height:40vh; overflow-y:auto;
+}
+.rivals-picker-grid .card{ cursor:pointer; }
+
 /* Stat numbers sit right on the edge of the card they belong to — top
    number at the top edge, right number at the right edge, etc. — instead
    of a central cluster, so you can read "which side is strong" at the
@@ -4938,6 +4950,11 @@ let state = {
   leaderboardEntries: null,  // array of {id, name, wins, losses, draws, matchesPlayed} once loaded, or null before the first fetch
   showPacks: false,       // true while the 🎁 Packs modal is open
   packOpenResult: null,   // { tierId, tierName, drawn:[{id,name,wasNew,capped}] } — the last-opened pack's reveal, or null when browsing tiers
+  showRivals: false,      // true while the ⚔️ Rivals modal is open
+  rivalView: null,        // opponent id currently shown in the warning/wager-picker sub-view, or null for the opponent list
+  rivalPicked: [],        // card ids currently picked in the wager picker (max 5), cleared when the modal closes
+  riskMatch: null,        // { opponentId, rule, previousAiDifficulty } while a risk match is actually being played, see beginRiskMatch/resolveRiskMatch
+  riskResult: null,       // { kind:'lost'|'reclaimed', opponentName, cardNames } — shown once on the result screen after a risk match, then cleared
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   impactPunch: false,     // true briefly at the exact moment ANY Ultimate's effect lands (every card, not magnitude-gated like chainShake) — .board.impact-punch, see playUltimateSequence
@@ -5014,6 +5031,7 @@ function render(){
   html += renderGraveyardModal();
   html += renderLeaderboardModal();
   html += renderPacksModal();
+  html += renderRivalsModal();
   html += renderChoicePicker();
   html += renderTutorialOverlay();
   app.innerHTML = html;
@@ -5199,6 +5217,68 @@ function renderPacksModal(){
       <div class="modal-poster packs-modal">
         <button class="modal-close" id="packs-close">✕</button>
         <h3>🎁 Packs</h3>
+        ${body}
+      </div>
+    </div>`;
+}
+
+// Progression step 3: the Rivals modal. Same overlay/poster shape as
+// Packs above, with two sub-views: the opponent LIST (state.rivalView
+// null) and, once "Challenge" is tapped, a WARNING + wager-picker view
+// (state.rivalView = that opponent's id) -- the user's own explicit
+// requirement was that the player must clearly see the stakes and
+// confirm before the match actually starts, so nothing here launches a
+// battle without that screen in between.
+function renderRivalsModal(){
+  if(!state.showRivals) return '';
+  const locked = !playerProgress.campaignClearedOnce;
+  let body;
+  if(locked){
+    body = `<div class="leaderboard-status">Rivals unlock once you've cleared the whole Campaign for the first time. Every match still earns points toward it in the meantime.</div>`;
+  } else if(state.rivalView){
+    const opp = RISK_OPPONENTS.find(o => o.id === state.rivalView);
+    const ruleText = opp.rule === 'all'
+      ? 'If you LOSE, ALL 5 of the cards you wager below are gone — claimed by ' + opp.name + '.'
+      : 'If you LOSE, ONE of the 5 cards you wager below (picked at random) is gone — claimed by ' + opp.name + '.';
+    const picked = state.rivalPicked;
+    body = `
+      <div class="rivals-warning">
+        <div class="rivals-warning-title">⚠️ ${opp.name} — ${opp.rule === 'all' ? 'ALL' : 'ONE'} rule</div>
+        <p class="graveyard-hint">${ruleText} Winning costs you nothing, and if ${opp.name} is currently holding any of your cards, a win lets you reclaim one.</p>
+      </div>
+      <div class="settings-section-label">Wager 5 cards (${picked.length}/5)</div>
+      <div class="rivals-picker-grid">
+        ${earnedCardIds().map(id => {
+          const card = findCardById(id);
+          if(!card) return '';
+          return cardFace(card, { selected: picked.includes(id), clickable:true, dataAttr:`data-wager="${id}"` });
+        }).join('')}
+      </div>
+      <button class="cta" id="rivals-begin-btn" ${picked.length === 5 ? '' : 'disabled'}>Begin Duel</button>
+      <button class="ghost" id="rivals-back-btn">Back</button>`;
+  } else {
+    body = canChallengeRivals() ? `
+      <p class="graveyard-hint">Wager 5 earned cards against a named rival. Beat them to reclaim cards they're holding from you.</p>
+      <div class="packs-tier-list">
+        ${RISK_OPPONENTS.map(opp => {
+          const held = heldCountFor(opp.id);
+          return `
+          <div class="packs-tier">
+            <div>
+              <div class="packs-tier-name">${opp.name}</div>
+              <div class="packs-tier-info">${opp.rule === 'all' ? 'ALL 5 at risk' : 'ONE card at risk'}${held > 0 ? ` · holding ${held} of your card${held>1?'s':''}` : ''}</div>
+            </div>
+            <button class="ghost packs-buy-btn" data-rival="${opp.id}">Challenge</button>
+          </div>`;
+        }).join('')}
+      </div>
+    ` : `<div class="leaderboard-status">You need at least 5 different earned cards (from packs) to challenge a rival. Open some packs first — you have ${earnedCardIds().length}/5.</div>`;
+  }
+  return `
+    <div class="modal-overlay" id="rivals-overlay">
+      <div class="modal-poster packs-modal">
+        <button class="modal-close" id="rivals-close">✕</button>
+        <h3>⚔️ Rivals</h3>
         ${body}
       </div>
     </div>`;
@@ -5578,8 +5658,9 @@ function renderDraft(){
         ${pointsToNextLevel() !== null ? `<span class="match-stat">${pointsToNextLevel().toLocaleString()} to next level</span>` : `<span class="match-stat">Max level</span>`}
       </div>
       <div class="leaderboard-name-row">
-        <div class="leaderboard-name-hint" style="flex:1;">${playerProgress.campaignClearedOnce ? 'Every match earns points — spend them on packs below.' : 'Clear the whole Campaign once to unlock packs. Every match still earns points toward it.'}</div>
+        <div class="leaderboard-name-hint" style="flex:1;">${playerProgress.campaignClearedOnce ? 'Every match earns points — spend them on packs, or wager earned cards against a Rival.' : 'Clear the whole Campaign once to unlock packs and Rivals. Every match still earns points toward it.'}</div>
         <button class="ghost packs-open-btn" id="packs-open-btn">🎁 Packs</button>
+        <button class="ghost packs-open-btn" id="rivals-open-btn">⚔️ Rivals</button>
       </div>
 
       ${matchStats.matches > 0 ? `
@@ -6595,6 +6676,16 @@ function renderBattle(){
         const ach = ACHIEVEMENTS.find(a => a.id === id);
         if(ach) statsLines.push(`🏅 Achievement unlocked: ${ach.name}`);
       });
+      // Progression step 3: the result of a just-finished risk match (see
+      // resolveRiskMatch) -- lost wagered cards, or a reclaimed one --
+      // surfaced the same way every other post-match payoff line above is.
+      if(state.riskResult){
+        if(state.riskResult.kind === 'lost'){
+          statsLines.push(`⚔️ ${state.riskResult.opponentName} claimed ${state.riskResult.cardNames.join(', ')}!`);
+        } else if(state.riskResult.kind === 'reclaimed'){
+          statsLines.push(`⚔️ Reclaimed ${state.riskResult.cardNames.join(', ')} from ${state.riskResult.opponentName}!`);
+        }
+      }
       resultHtml = `
         <div class="result-banner">
           <h2>${title}</h2>
@@ -7184,6 +7275,57 @@ function attachHandlers(){
     render();
   });
 
+  // Progression step 3: Rivals modal -- same open/close/overlay wiring
+  // shape as Packs above. "Challenge" opens the warning/wager-picker
+  // sub-view (rivalView); clicking a wager card toggles it in/out of
+  // rivalPicked (capped at 5, matching the draft grid's own selection
+  // shape elsewhere); "Begin Duel" hands off to beginRiskMatch, which
+  // closes the modal and starts the actual battle.
+  const rivalsOpenBtn = document.getElementById('rivals-open-btn');
+  if(rivalsOpenBtn) rivalsOpenBtn.addEventListener('click', ()=>{
+    state.showRivals = true;
+    state.rivalView = null;
+    state.rivalPicked = [];
+    render();
+  });
+  const rivalsOverlay = document.getElementById('rivals-overlay');
+  if(rivalsOverlay){
+    rivalsOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'rivals-overlay') { state.showRivals = false; render(); }
+    });
+  }
+  const rivalsClose = document.getElementById('rivals-close');
+  if(rivalsClose) rivalsClose.addEventListener('click', ()=>{
+    state.showRivals = false;
+    render();
+  });
+  document.querySelectorAll('[data-rival]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      state.rivalView = btn.dataset.rival;
+      state.rivalPicked = [];
+      render();
+    });
+  });
+  document.querySelectorAll('[data-wager]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const id = el.dataset.wager;
+      const idx = state.rivalPicked.indexOf(id);
+      if(idx >= 0) state.rivalPicked.splice(idx, 1);
+      else if(state.rivalPicked.length < 5) state.rivalPicked.push(id);
+      render();
+    });
+  });
+  const rivalsBeginBtn = document.getElementById('rivals-begin-btn');
+  if(rivalsBeginBtn) rivalsBeginBtn.addEventListener('click', ()=>{
+    if(state.rivalPicked.length === 5) beginRiskMatch(state.rivalView, state.rivalPicked);
+  });
+  const rivalsBackBtn = document.getElementById('rivals-back-btn');
+  if(rivalsBackBtn) rivalsBackBtn.addEventListener('click', ()=>{
+    state.rivalView = null;
+    state.rivalPicked = [];
+    render();
+  });
+
   const choicePickerOverlay = document.getElementById('choice-picker-overlay');
   if(choicePickerOverlay){
     choicePickerOverlay.addEventListener('click', (e)=>{
@@ -7398,8 +7540,11 @@ function startBattle(){
   const chosenHeroes = HEROES.filter(h => state.selected.includes(h.id));
   state.playerHand = shuffle(chosenHeroes.slice());
   const campaignStage = state.draftMode === 'campaign' ? currentCampaignStage() : null;
+  const riskOpponent = state.riskMatch ? RISK_OPPONENTS.find(o => o.id === state.riskMatch.opponentId) : null;
   state.enemyHand = campaignStage
     ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean).map(c => campaignStatBoost(ngPlusBoostCard(c, campaignProgress.ngPlus), campaignStage.statBoost))
+    : riskOpponent
+    ? riskOpponent.enemyIds.map(id => findCardById(id)).filter(Boolean)
     : drawEnemyHand();
   state.board = Array(9).fill(null);
   state.pendingCard = null;
@@ -8303,16 +8448,20 @@ const PLAYER_PROGRESS_SAVE_KEY = 'triadArenaPlayerProgress';
 function loadPlayerProgress(){
   try{
     const raw = localStorage.getItem(PLAYER_PROGRESS_SAVE_KEY);
-    if(!raw) return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false };
+    if(!raw) return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false, opponentHeld:{} };
     const parsed = JSON.parse(raw);
     return {
       points: parsed.points||0,
       lifetimePoints: parsed.lifetimePoints||0,
       earnedCards: (parsed.earnedCards && typeof parsed.earnedCards === 'object') ? parsed.earnedCards : {},
       campaignClearedOnce: !!parsed.campaignClearedOnce,
+      // opponentHeld: { [RISK_OPPONENTS id]: { cardId: count } } -- cards
+      // that opponent currently holds, taken from the player on a loss.
+      // See RISK_OPPONENTS/beginRiskMatch/resolveRiskMatch.
+      opponentHeld: (parsed.opponentHeld && typeof parsed.opponentHeld === 'object') ? parsed.opponentHeld : {},
     };
   }catch(e){
-    return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false };
+    return { points:0, lifetimePoints:0, earnedCards:{}, campaignClearedOnce:false, opponentHeld:{} };
   }
 }
 function savePlayerProgress(){
@@ -8394,6 +8543,95 @@ function buyPack(tierId){
   }
   savePlayerProgress();
   state.packOpenResult = { tierId: tier.id, tierName: tier.name, glow: tier.glow, drawn };
+}
+
+// Progression step 3: the FF8-style trading-rule opponents. Locked behind
+// campaignClearedOnce, same gate as packs. Five fixed personas, each with
+// its own signature 5-card hand (reusing existing HEROES ids, same
+// "no new art needed" reasoning as packs' shared pool) and its own
+// risk RULE:
+//   'one' — lose exactly ONE of your five wagered cards on a loss.
+//   'all' — lose ALL FIVE on a loss.
+// (Real FF8 also has Direct/Diff rules; only One/All are what the user
+// actually asked for, so that's all that's implemented.)
+// Only cards the player has EARNED (playerProgress.earnedCards, i.e.
+// packs) can ever be wagered — the standard HEROES roster a player
+// already had is never at risk, per the user's own explicit rule, so a
+// risk match's five cards come entirely from the earned pool rather
+// than the normal Choose Your Five/Random Draft picker.
+const RISK_OPPONENTS = [
+  { id:'gambler-rival', name:'The Gambler', rule:'one', aiDifficulty:'normal', enemyIds:['gambler','vaelira','nyxara','seraphine','odin'] },
+  { id:'wyrmking-rival', name:'Ancient Wyrmking', rule:'one', aiDifficulty:'normal', enemyIds:['dragon','tahabata','ifrit','bahamut','shiva'] },
+  { id:'hollow-crown', name:'The Hollow Crown', rule:'one', aiDifficulty:'hard', enemyIds:['shadowking','deathblade','lyrith','graff','voidqueen'] },
+  { id:'tiamat-rival', name:'Tiamat', rule:'all', aiDifficulty:'hard', enemyIds:['tiamat','elyrion','celestialjudgment','infiniteseraph','fenrir'] },
+  { id:'omega-rival', name:'Omega Weapon', rule:'all', aiDifficulty:'hard', enemyIds:['omegaweapon','leviathan','yojimbo','chocoboking','concord'] },
+];
+function earnedCardIds(){
+  return Object.keys(playerProgress.earnedCards).filter(id => playerProgress.earnedCards[id] > 0);
+}
+function canChallengeRivals(){
+  return playerProgress.campaignClearedOnce && earnedCardIds().length >= 5;
+}
+function heldCountFor(opponentId){
+  const held = playerProgress.opponentHeld[opponentId];
+  if(!held) return 0;
+  return Object.values(held).reduce((a,b)=>a+b, 0);
+}
+// Starts an actual battle wagering `cardIds` (must be exactly 5 earned
+// card ids) against the named opponent. Reuses startBattle() itself for
+// everything else (coinflip sequence, board setup) -- only the enemy
+// hand/difficulty and the state.riskMatch bookkeeping are special-cased,
+// same shape as campaign's own special-casing in startBattle().
+function beginRiskMatch(opponentId, cardIds){
+  const opp = RISK_OPPONENTS.find(o => o.id === opponentId);
+  if(!opp || cardIds.length !== 5) return;
+  state.draftMode = 'risk';
+  state.selected = cardIds.slice();
+  state.riskMatch = { opponentId, rule: opp.rule, previousAiDifficulty: state.aiDifficulty };
+  state.aiDifficulty = opp.aiDifficulty;
+  state.showRivals = false;
+  state.rivalView = null;
+  startBattle();
+}
+// Called from finishGame() once the normal win/loss bookkeeping is done.
+// A loss removes 1 copy of either all 5 or 1 (per the opponent's rule)
+// of the wagered cards from the player's earned pool into that
+// opponent's held pool. A win lets the player reclaim exactly one card
+// that opponent is currently holding from them, if any. A draw changes
+// nothing (per the user's own "de kort man väljer" framing, a draw was
+// never described as a loss). Always clears state.riskMatch and
+// restores the difficulty the player had before challenging, win or
+// lose, so it never leaks into their next ordinary match.
+function resolveRiskMatch(winner){
+  const risk = state.riskMatch;
+  if(!risk) return;
+  const opp = RISK_OPPONENTS.find(o => o.id === risk.opponentId);
+  playerProgress.opponentHeld[risk.opponentId] = playerProgress.opponentHeld[risk.opponentId] || {};
+  const held = playerProgress.opponentHeld[risk.opponentId];
+  state.riskResult = null;
+
+  if(winner === 'red'){
+    const wagered = state.selected.slice();
+    const lostIds = risk.rule === 'all' ? wagered : [wagered[Math.floor(Math.random() * wagered.length)]];
+    lostIds.forEach(id => {
+      playerProgress.earnedCards[id] = Math.max(0, (playerProgress.earnedCards[id] || 0) - 1);
+      held[id] = (held[id] || 0) + 1;
+    });
+    const lostNames = lostIds.map(id => findCardById(id)?.name || id);
+    state.riskResult = { kind:'lost', opponentName: opp ? opp.name : '???', cardNames: lostNames };
+  } else if(winner === 'blue'){
+    const heldIds = Object.keys(held).filter(id => held[id] > 0);
+    if(heldIds.length > 0){
+      const reclaimId = heldIds[Math.floor(Math.random() * heldIds.length)];
+      held[reclaimId]--;
+      playerProgress.earnedCards[reclaimId] = Math.min(EARNED_CARD_CAP, (playerProgress.earnedCards[reclaimId] || 0) + 1);
+      state.riskResult = { kind:'reclaimed', opponentName: opp ? opp.name : '???', cardNames:[findCardById(reclaimId)?.name || reclaimId] };
+    }
+  }
+
+  state.aiDifficulty = risk.previousAiDifficulty;
+  state.riskMatch = null;
+  savePlayerProgress();
 }
 
 // Leaderboard (Fas 26): a real cross-device leaderboard needs a stable
@@ -12505,6 +12743,7 @@ function finishGame(){
     }
   }
   recordMatchResult(state.winner);
+  resolveRiskMatch(state.winner);
   state.newAchievements = checkAchievements(state.winner, blueCount);
   if(state.winner === 'blue') SFX.win();
   else if(state.winner === 'red') SFX.lose();
@@ -12514,7 +12753,11 @@ function finishGame(){
 
 function resetGame(){
   const keepRules = state.rules;
-  const keepMode = state.draftMode || 'random';
+  // A risk match (see beginRiskMatch) is a one-off wager, not a mode to
+  // cycle through like Random/Choose Your Five/Campaign -- renderDraft()
+  // has no 'risk' branch of its own, so falling back to 'random' here is
+  // what actually lands the player on a working draft screen afterward.
+  const keepMode = (state.draftMode && state.draftMode !== 'risk') ? state.draftMode : 'random';
   const keepAiDifficulty = state.aiDifficulty || 'normal';
   const keepFastMode = !!state.fastMode;
   // Campaign retry/next/retreat all funnel through here — keep whichever
@@ -12529,7 +12772,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,

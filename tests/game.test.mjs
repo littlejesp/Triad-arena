@@ -10009,3 +10009,138 @@ test('Progression (Fas 29, step 2): packs are locked until Campaign is cleared o
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Progression (Fas 32, step 3): Rivals are locked until Campaign is cleared and until the player has 5 distinct earned cards, and beginRiskMatch wires a real battle correctly', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(async () => {
+    const out = {};
+
+    // Locked before Campaign cleared, even with plenty of earned cards.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: false, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    out.lockedBeforeCampaign = canChallengeRivals();
+
+    // Cleared, but fewer than 5 distinct earned cards.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:4 }, opponentHeld: {} };
+    out.lockedTooFewDistinct = canChallengeRivals();
+
+    // Cleared, 5 distinct earned cards -> unlocked.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    out.unlockedWithFive = canChallengeRivals();
+
+    // beginRiskMatch wires up draftMode/selected/riskMatch and the
+    // opponent's own fixed enemy hand once the coinflip settles.
+    const prevDifficulty = state.aiDifficulty;
+    beginRiskMatch('gambler-rival', ['gambler','vaelira','nyxara','seraphine','odin']);
+    out.draftModeAfterBegin = state.draftMode;
+    out.selectedAfterBegin = state.selected.slice().sort();
+    out.riskMatchAfterBegin = { ...state.riskMatch };
+    out.modalClosedAfterBegin = state.showRivals;
+
+    await new Promise(r => setTimeout(r, 3000)); // coinflip -> battle transition
+    out.phaseAfterCoinflip = state.phase;
+    out.enemyHandIds = state.enemyHand.map(c => c.id);
+    out.playerHandIdsSorted = state.playerHand.map(c => c.id).sort();
+
+    return out;
+  });
+  assert.equal(result.lockedBeforeCampaign, false, 'Rivals must stay locked until campaignClearedOnce, regardless of earned cards');
+  assert.equal(result.lockedTooFewDistinct, false, 'fewer than 5 DISTINCT earned card ids must not unlock Rivals, even with duplicates of one card');
+  assert.equal(result.unlockedWithFive, true);
+  assert.equal(result.draftModeAfterBegin, 'risk');
+  assert.deepEqual(result.selectedAfterBegin, ['gambler','nyxara','odin','seraphine','vaelira']);
+  assert.equal(result.riskMatchAfterBegin.opponentId, 'gambler-rival');
+  assert.equal(result.riskMatchAfterBegin.rule, 'one', 'The Gambler is a ONE-rule opponent');
+  assert.equal(result.modalClosedAfterBegin, false, 'beginRiskMatch must close the Rivals modal before starting the battle');
+  assert.equal(result.phaseAfterCoinflip, 'battle');
+  assert.deepEqual(result.enemyHandIds.slice().sort(), ['gambler','nyxara','odin','seraphine','vaelira'], "the opponent's hand must be their own fixed RISK_OPPONENTS.enemyIds, not a random draw");
+  assert.deepEqual(result.playerHandIdsSorted, ['gambler','nyxara','odin','seraphine','vaelira'], "the player's hand must be exactly the 5 wagered cards");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Progression (Fas 32, step 3): resolveRiskMatch applies the ONE/ALL rule correctly on a loss, lets a win reclaim exactly one held card, and a draw changes nothing', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const wageredFive = ['gambler','vaelira','nyxara','seraphine','odin'];
+    const winBoard = (winnerOwner) => new Array(9).fill(null).map((_, i) => ({ card: HEROES[0], owner: i < 6 ? winnerOwner : (winnerOwner === 'blue' ? 'red' : 'blue') }));
+
+    // ONE rule loss: exactly one of the five wagered cards is removed.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = winBoard('red');
+    finishGame();
+    const totalRemaining = Object.values(playerProgress.earnedCards).reduce((a,b)=>a+b, 0);
+    out.oneRuleRemainingCount = totalRemaining;
+    out.oneRuleResultKind = state.riskResult && state.riskResult.kind;
+    out.oneRuleHeldTotal = Object.values(playerProgress.opponentHeld['gambler-rival']).reduce((a,b)=>a+b, 0);
+    out.riskMatchClearedAfterOne = state.riskMatch;
+
+    // ALL rule loss: all five wagered cards are removed.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'tiamat-rival', rule: 'all', previousAiDifficulty: 'normal' };
+    state.board = winBoard('red');
+    finishGame();
+    out.allRuleRemainingCount = Object.values(playerProgress.earnedCards).reduce((a,b)=>a+b, 0);
+    out.allRuleHeldTotal = Object.values(playerProgress.opponentHeld['tiamat-rival']).reduce((a,b)=>a+b, 0);
+
+    // A win reclaims exactly one held card, capped at EARNED_CARD_CAP.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: { 'gambler-rival': { tiamat: 2 } } };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = winBoard('blue');
+    finishGame();
+    out.reclaimResultKind = state.riskResult && state.riskResult.kind;
+    out.reclaimedTiamatCount = playerProgress.earnedCards.tiamat;
+    out.heldTiamatAfterReclaim = playerProgress.opponentHeld['gambler-rival'].tiamat;
+
+    // A win with nothing held: no reclaim, riskResult stays null.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = winBoard('blue');
+    finishGame();
+    out.winNothingHeldResult = state.riskResult;
+
+    // A draw changes nothing at all.
+    playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
+    state.draftMode = 'risk';
+    state.selected = wageredFive.slice();
+    state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.board = new Array(9).fill({ card: HEROES[0], owner: 'blue' }).map((c,i) => i < 5 ? c : null);
+    // Force an actual tie board (equal counts) rather than relying on the half-filled one above.
+    state.board = [
+      { card: HEROES[0], owner: 'blue' }, { card: HEROES[0], owner: 'blue' }, { card: HEROES[0], owner: 'blue' }, { card: HEROES[0], owner: 'blue' },
+      { card: HEROES[0], owner: 'red' }, { card: HEROES[0], owner: 'red' }, { card: HEROES[0], owner: 'red' }, { card: HEROES[0], owner: 'red' },
+      null,
+    ];
+    const earnedCardsBeforeDraw = JSON.stringify(playerProgress.earnedCards);
+    finishGame();
+    out.drawWinner = state.winner;
+    out.drawResult = state.riskResult;
+    out.drawEarnedCardsUnchanged = JSON.stringify(playerProgress.earnedCards) === earnedCardsBeforeDraw;
+
+    return out;
+  });
+  assert.equal(result.oneRuleRemainingCount, 4, 'ONE rule must remove exactly 1 of the 5 wagered cards on a loss');
+  assert.equal(result.oneRuleResultKind, 'lost');
+  assert.equal(result.oneRuleHeldTotal, 1, "the opponent's held pile must gain exactly the 1 card taken");
+  assert.equal(result.riskMatchClearedAfterOne, null, 'state.riskMatch must be cleared after resolution, win or lose');
+  assert.equal(result.allRuleRemainingCount, 0, 'ALL rule must remove every one of the 5 wagered cards on a loss');
+  assert.equal(result.allRuleHeldTotal, 5, "the opponent's held pile must gain all 5 taken cards");
+  assert.equal(result.reclaimResultKind, 'reclaimed');
+  assert.equal(result.reclaimedTiamatCount, 1, 'a reclaim must add exactly 1 copy back to earnedCards (tiamat was not owned at all before the win)');
+  assert.equal(result.heldTiamatAfterReclaim, 1, "the opponent's held count for the reclaimed card must drop by exactly 1");
+  assert.equal(result.winNothingHeldResult, null, 'a win with nothing held must not fabricate a reclaim result');
+  assert.equal(result.drawWinner, 'draw');
+  assert.equal(result.drawResult, null, 'a draw must never trigger a risk win or loss outcome');
+  assert.equal(result.drawEarnedCardsUnchanged, true, 'a draw must never touch earnedCards');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

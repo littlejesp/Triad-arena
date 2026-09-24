@@ -4773,6 +4773,70 @@ lila glöd runt kanten för ett Epic-pack). Hela testsviten grön:
 **165/165** (oförändrat — ren visuell ombyggnad, ingen ny testbar
 logik).
 
+**Fas 32: Progression-systemet, steg 3 — Rivals (de fem FF8-motståndarna).**
+Det tredje och sista huvudsteget i den ursprungliga visionen från Fas
+29-31: fem namngivna, fasta motståndare (`RISK_OPPONENTS`), varje med sin
+egen signatur-hand (återanvänder befintliga HEROES-porträtt/förmågor,
+samma "ingen ny konst än"-resonemang som packs) och sin egen FF8-regel —
+"one" (förlorar exakt ETT av de fem satsade korten vid förlust) eller
+"all" (förlorar ALLA fem). Precis de två reglerna användaren faktiskt
+bad om (inte de fulla FF8-reglerna Direct/Diff, som aldrig efterfrågades).
+
+Kritisk designinsikt från konversationen: eftersom standardrostern
+ALDRIG kan förloras (Fas 29-30:s egen regel), och det enda som någonsin
+riskeras är "de kort man väljer" till just den matchen, måste en
+risk-match satsa kort från den INTJÄNADE poolen specifikt — annars
+skulle "risken" vara tom (standardkort som aldrig kan försvinna). Så en
+risk-match har sin egen satsnings-plockare (`earnedCardIds()`, bara kort
+med `playerProgress.earnedCards[id] > 0`), skild från den vanliga
+Choose Your Five/Random Draft-rostern. Kräver minst 5 SKILDA intjänade
+kort-id:n (inte bara 5 kopior av samma kort — matchar hur en hand redan
+aldrig kan innehålla dubbletter) för att ens kunna utmana.
+
+Byggt: en ny `⚔️ Rivals`-modal (samma mönster som Packs/Leaderboard) med
+två vyer — motståndarlistan (visar regel + hur många av spelarens kort
+just den motståndaren för närvarande håller) och, efter "Challenge", en
+OBLIGATORISK varningsskärm som tydligt visar regeln och konsekvensen
+innan en satsnings-plockare (samma `cardFace()`-rutnät som draftskärmen)
+låter spelaren välja exakt 5 kort — precis den varningen användaren
+uttryckligen krävde ("man måste... få en varning innan man möter
+motståndaren"). `beginRiskMatch()` återanvänder `startBattle()` helt
+(samma coinflip-sekvens, brädsetup) — bara `state.riskMatch`-bokföringen
+och motståndarens fasta hand/svårighetsgrad är särfall, byggt på exakt
+samma sätt som Campaign redan särfallar sin egen `enemyHand` i samma
+funktion.
+
+`resolveRiskMatch()`, anropad från `finishGame()` efter den vanliga
+vinst/förlust-bokföringen: vid FÖRLUST flyttas 1 (regel "one", slumpat
+bland de fem) eller alla 5 (regel "all") satsade kort från spelarens
+`earnedCards` till just den motståndarens `opponentHeld`-pool
+(`playerProgress.opponentHeld[opponentId]`, ny per-motståndare-karta).
+Vid VINST, om motståndaren håller några av spelarens kort sedan
+tidigare, återfås exakt ETT slumpmässigt (flyttat tillbaka, respekterar
+`EARNED_CARD_CAP`). Ett OAVGJORT rör ingenting alls — varken vinst eller
+förlust, matchar att en oavgjord match aldrig beskrevs som en "förlust"
+i användarens egna regler. `state.aiDifficulty` sparas undan och
+återställs alltid efter matchen (vinst ELLER förlust), så en
+Rivals-utmaning aldrig läcker in i spelarens vanliga svårighetsgrads-
+inställning för nästa Random Draft-match. Resultatet ("⚔️ [Motståndare]
+claimed X!" eller "Reclaimed X from [Motståndare]!") visas på samma sätt
+som streak/favorit/achievement-raderna redan gör på resultatskärmen.
+
+Verifierat med två nya permanenta regressionstest: ett som täcker hela
+upplåsnings-/uppstarts-flödet (låst före Campaign-klaring oavsett
+intjänade kort, låst med för få SKILDA intjänade kort-id:n, och att
+`beginRiskMatch` korrekt sätter draftMode/selected/riskMatch OCH att
+motståndarens egen fasta hand faktiskt dyker upp i en riktig
+strid — inte ett slumpmässigt drag) och ett som täcker hela
+`resolveRiskMatch`-matrisen (ONE tar exakt 1, ALL tar alla 5, en vinst
+återtar exakt 1 hållet kort med rätt cap, en vinst utan något hållet
+skapar inget påhittat resultat, och ett oavgjort rör bokstavligen
+ingenting). Hela testsviten grön: **167/167** (165 tidigare + 2 nya).
+
+Med detta är alla tre huvudsteg i progression-systemet (grund/poäng,
+packs, Rivals) på plats — grunden användaren bad om, byggd stegvis
+precis enligt "steg i taget".
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
