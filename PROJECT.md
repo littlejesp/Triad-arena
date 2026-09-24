@@ -4694,6 +4694,51 @@ max-nivån) och ett som bekräftar att `playerProgress` överlever en
 sidladdning och `resetGame()` precis som `matchStats`/`campaignProgress`
 redan gör. Hela testsviten grön: **164/164** (162 tidigare + 2 nya).
 
+**Fas 30: Progression-systemet, steg 2 — packs.** Direkt fortsättning på
+Fas 29, samma "steg i taget"-begäran. Byggt: `PACK_TIERS` (Rare
+5000p/Level 1, Epic 10000p/Level 3, Legendary 15000p/Level 6, Mystic
+20000p/Level 9 — exakt kostnaderna/nivåerna användaren angav),
+`canBuyPack()`/`buyPack()`, och en ny `renderPacksModal()` i samma
+modal-overlay/modal-poster-mönster som Graveyard/Leaderboard-modalerna,
+öppnad via en ny "🎁 Packs"-knapp i Progression-sektionen. Hela systemet
+förblir helt låst (ingen tier köpbar oavsett poäng/nivå) tills
+`playerProgress.campaignClearedOnce` är sant, exakt enligt användarens
+egen regel.
+
+En ärlig avvägning, uttalad rakt ut till användaren innan bygget: det
+finns inga PACK-EXKLUSIVA nya kort än — varje tidigare kort i spelet har
+kommit med användarens egen beställda konst, ett i taget, och att
+uppfinna dussintals nya balanserade kort tyst här hade varit precis den
+sortens oombedd scope-utvidgning som borde undvikas. Så för nu drar alla
+fyra rariteter från SAMMA pool (den befintliga HEROES-rostern) — bara
+kostnad/nivåspärr skiljer tiers åt, inte innehållet. Riktiga
+tier-exklusiva kort är ett naturligt uppföljningssteg när användaren vill
+designa specifika nya kort (med egen konst, som vanligt).
+
+Varje dragning respekterar taket på 10 kopior (`EARNED_CARD_CAP`) —
+ett kort som redan ligger på 10 visas ändå i resultatlistan (taggat
+"MAX") istället för att tyst försvinna, så spelaren ser vad som hände.
+Dubbletter INOM samma pack hanteras korrekt (läser/skriver
+`playerProgress.earnedCards` direkt i varje varv av dragnings-loopen,
+inte batchat i slutet), verifierat explicit i test.
+
+En riktig CSS-specificitetsbugg av exakt samma klass som tidigare i
+projektet (`button.ghost.leaderboard-view-btn`-mönstret) dök upp igen
+på köp-knapparna — `.packs-buy-btn` (klass-bara, specificitet (0,1,0))
+förlorade mot den generella `button.ghost{width:100%}` ((0,1,1)) och
+knapparna svämmade ut ur modalen. Fixat med `button.ghost.packs-buy-btn`
+(tagg+2 klasser), samma lösning som redan etablerad tidigare.
+
+Verifierat med ett nytt permanent regressionstest som täcker hela
+flödet: helt låst före Campaign-klaring oavsett poäng/nivå, per-tier-
+spärr på både poäng OCH nivå separat (kan ha råd men fel nivå, eller
+rätt nivå men för lite poäng), att `buyPack()` drar exakt rätt
+poängsumma och ger exakt `tier.count` kort, att ett nekat köp aldrig
+kastar fel eller drar poäng, och 30 upprepade pack-öppningar mot ett
+redan-vid-taket-kort som aldrig går över 10 men fortfarande dyker upp
+flaggat i resultatet. Hela testsviten grön: **165/165** (164 tidigare +
+1 ny).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

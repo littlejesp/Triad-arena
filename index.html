@@ -992,6 +992,42 @@ button.ghost.leaderboard-view-btn{ width:auto; flex:0 0 auto; margin-top:0; padd
 .leaderboard-player-name{ flex:1; min-width:0; font-size:12.5px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .leaderboard-record{ flex:0 0 auto; font-size:11px; color:var(--text-dim); }
 
+/* Progression step 2: packs. button.ghost.packs-open-btn needs the same
+   tag+2-classes specificity fix as button.ghost.leaderboard-view-btn
+   above (see that comment) — a plain .packs-open-btn class alone would
+   lose to the base button.ghost{width:100%} rule regardless of source
+   order and collapse the row next to it. */
+button.ghost.packs-open-btn{ width:auto; flex:0 0 auto; margin-top:0; padding:7px 12px; font-size:12px; white-space:nowrap; }
+.packs-modal{ max-width:480px; padding:22px 20px 20px; }
+.packs-modal h3{ font-family:'Cinzel',serif; color:var(--gold-bright); margin:0 0 6px; }
+.packs-tier-list{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.packs-tier{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.03);
+  border:1px solid rgba(201,162,39,0.25);
+}
+.packs-tier.packs-tier-locked{ opacity:0.5; }
+.packs-tier-name{ font-family:'Cinzel',serif; font-weight:700; color:var(--gold-bright); font-size:13px; }
+.packs-tier-info{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px 14px; font-size:12px; white-space:nowrap; }
+.packs-reveal-title{ font-family:'Cinzel',serif; color:var(--gold-bright); font-size:14px; margin-bottom:10px; }
+.packs-reveal-list{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; max-height:50vh; overflow-y:auto; }
+.packs-reveal-card{
+  position:relative; aspect-ratio:5/7; border-radius:7px; overflow:hidden;
+  background:linear-gradient(160deg,#2c2722,#16130f 72%); border:1px solid rgba(201,162,39,0.3);
+  display:flex; align-items:flex-end;
+}
+.packs-reveal-art{ position:absolute; inset:0; background-size:cover; background-position:center 15%; }
+.packs-reveal-name{
+  position:relative; z-index:1; width:100%; padding:3px 4px; font-size:8px; line-height:1.15;
+  text-align:center; color:#fff; background:linear-gradient(0deg, rgba(0,0,0,0.85), transparent);
+}
+.packs-reveal-tag{
+  position:absolute; top:3px; right:3px; z-index:1; font-size:7px; font-weight:700; padding:2px 4px;
+  border-radius:4px; background:rgba(201,162,39,0.9); color:#1a1408;
+}
+.packs-reveal-tag.packs-reveal-capped{ background:rgba(184,69,46,0.9); color:#fff; }
+
 /* Stat numbers sit right on the edge of the card they belong to — top
    number at the top edge, right number at the right edge, etc. — instead
    of a central cluster, so you can read "which side is strong" at the
@@ -4861,6 +4897,8 @@ let state = {
   showLeaderboard: false, // true while the 🏆 Leaderboard modal is open
   leaderboardStatus: 'idle', // 'idle' | 'loading' | 'ready' | 'error' — see leaderboardFetchTop
   leaderboardEntries: null,  // array of {id, name, wins, losses, draws, matchesPlayed} once loaded, or null before the first fetch
+  showPacks: false,       // true while the 🎁 Packs modal is open
+  packOpenResult: null,   // { tierId, tierName, drawn:[{id,name,wasNew,capped}] } — the last-opened pack's reveal, or null when browsing tiers
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   impactPunch: false,     // true briefly at the exact moment ANY Ultimate's effect lands (every card, not magnitude-gated like chainShake) — .board.impact-punch, see playUltimateSequence
@@ -4936,6 +4974,7 @@ function render(){
   html += renderRulebookModal();
   html += renderGraveyardModal();
   html += renderLeaderboardModal();
+  html += renderPacksModal();
   html += renderChoicePicker();
   html += renderTutorialOverlay();
   app.innerHTML = html;
@@ -5066,6 +5105,56 @@ function renderLeaderboardModal(){
         <button class="modal-close" id="leaderboard-close">✕</button>
         <h3>🏆 Leaderboard</h3>
         <p class="graveyard-hint">Top players across every device, ranked by total wins in Random Draft/Choose Your Five (Campaign progress isn't counted here).</p>
+        ${body}
+      </div>
+    </div>`;
+}
+
+// Progression step 2: packs UI. Same modal-overlay/modal-poster shape as
+// renderGraveyardModal/renderLeaderboardModal above. Three states:
+// locked (Campaign not cleared yet), browsing tiers (buy buttons, each
+// gated live by canBuyPack), or showing the reveal of the pack just
+// opened (state.packOpenResult, cleared by the "Back to Packs" button).
+function renderPacksModal(){
+  if(!state.showPacks) return '';
+  const locked = !playerProgress.campaignClearedOnce;
+  let body;
+  if(locked){
+    body = `<div class="leaderboard-status">Packs unlock once you've cleared the whole Campaign for the first time. Every match still earns points toward it in the meantime.</div>`;
+  } else if(state.packOpenResult){
+    body = `
+      <div class="packs-reveal-title">${state.packOpenResult.tierName} opened!</div>
+      <div class="packs-reveal-list">
+        ${state.packOpenResult.drawn.map(c => `
+          <div class="packs-reveal-card">
+            ${CARD_IMAGES[c.id] ? `<div class="packs-reveal-art" style="background-image:url('${CARD_IMAGES[c.id]}')"></div>` : ''}
+            <span class="packs-reveal-name">${c.name}</span>
+            ${c.wasNew ? '<span class="packs-reveal-tag packs-reveal-new">NEW</span>' : c.capped ? '<span class="packs-reveal-tag packs-reveal-capped">MAX (10)</span>' : ''}
+          </div>
+        `).join('')}
+      </div>
+      <button class="cta" id="packs-back-btn">Back to Packs</button>`;
+  } else {
+    body = `
+      <p class="graveyard-hint">Spend points on a pack of 10 cards. Higher tiers cost more and need a higher level.</p>
+      <div class="packs-tier-list">
+        ${PACK_TIERS.map(t => {
+          const affordable = canBuyPack(t);
+          const levelLocked = playerLevel() < t.minLevel;
+          return `
+          <div class="packs-tier ${affordable ? '' : 'packs-tier-locked'}">
+            <div class="packs-tier-name">${t.name}</div>
+            <div class="packs-tier-info">${t.cost.toLocaleString()} points${levelLocked ? ` · requires Level ${t.minLevel}` : ''}</div>
+            <button class="ghost packs-buy-btn" data-tier="${t.id}" ${affordable ? '' : 'disabled'}>Open</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+  return `
+    <div class="modal-overlay" id="packs-overlay">
+      <div class="modal-poster packs-modal">
+        <button class="modal-close" id="packs-close">✕</button>
+        <h3>🎁 Packs</h3>
         ${body}
       </div>
     </div>`;
@@ -5444,7 +5533,10 @@ function renderDraft(){
         <span class="match-stat"><b>${playerProgress.points.toLocaleString()}</b> points</span>
         ${pointsToNextLevel() !== null ? `<span class="match-stat">${pointsToNextLevel().toLocaleString()} to next level</span>` : `<span class="match-stat">Max level</span>`}
       </div>
-      <div class="leaderboard-name-hint">Every match earns points — Campaign clears earn a lot more. Packs and rare cards are coming soon.</div>
+      <div class="leaderboard-name-row">
+        <div class="leaderboard-name-hint" style="flex:1;">${playerProgress.campaignClearedOnce ? 'Every match earns points — spend them on packs below.' : 'Clear the whole Campaign once to unlock packs. Every match still earns points toward it.'}</div>
+        <button class="ghost packs-open-btn" id="packs-open-btn">🎁 Packs</button>
+      </div>
 
       ${matchStats.matches > 0 ? `
       <div class="settings-section-label">Your record</div>
@@ -7015,6 +7107,39 @@ function attachHandlers(){
     render();
   });
 
+  // Progression step 2: packs modal -- same open/close/overlay-click
+  // wiring shape as the leaderboard block just above, plus buy-tier
+  // buttons (delegated per-button since PACK_TIERS renders a fixed, short
+  // list) and a "back to tiers" button that just clears the reveal.
+  const packsOpenBtn = document.getElementById('packs-open-btn');
+  if(packsOpenBtn) packsOpenBtn.addEventListener('click', ()=>{
+    state.showPacks = true;
+    state.packOpenResult = null;
+    render();
+  });
+  const packsOverlay = document.getElementById('packs-overlay');
+  if(packsOverlay){
+    packsOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'packs-overlay') { state.showPacks = false; render(); }
+    });
+  }
+  const packsClose = document.getElementById('packs-close');
+  if(packsClose) packsClose.addEventListener('click', ()=>{
+    state.showPacks = false;
+    render();
+  });
+  document.querySelectorAll('.packs-buy-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      buyPack(btn.dataset.tier);
+      render();
+    });
+  });
+  const packsBackBtn = document.getElementById('packs-back-btn');
+  if(packsBackBtn) packsBackBtn.addEventListener('click', ()=>{
+    state.packOpenResult = null;
+    render();
+  });
+
   const choicePickerOverlay = document.getElementById('choice-picker-overlay');
   if(choicePickerOverlay){
     choicePickerOverlay.addEventListener('click', (e)=>{
@@ -8174,6 +8299,52 @@ function awardPoints(amount){
   playerProgress.points += amount;
   playerProgress.lifetimePoints += amount;
   savePlayerProgress();
+}
+
+// Progression step 2: packs. Costs and level gates are exactly what the
+// user specified (Rare 5000/Epic 10000/Legendary 15000/Mystic 20000,
+// each also needing a minimum level so points alone can't skip straight
+// to Mystic). The whole system stays locked behind campaignClearedOnce
+// regardless of level/points, per the user's own "dom upplåses efter
+// man klarat campain en gång".
+//
+// Pool content (BALANCE NOTE, not a text-fidelity simplification): there
+// are no pack-EXCLUSIVE cards yet -- every past card addition to this
+// game came with the user's own commissioned art, one card at a time,
+// and inventing dozens of new balanced cards unprompted here would be
+// exactly the kind of silent scope expansion the user hasn't asked for.
+// So for now every tier draws from the SAME pool (the existing HEROES
+// roster) -- the four tiers differ only in cost/level-gate, not in what
+// they can contain. Real tier-exclusive Rare/Epic/Legendary/Mystic cards
+// are a natural follow-up once the user wants to design specific ones.
+const PACK_TIERS = [
+  { id:'rare', name:'Rare Pack', cost:5000, minLevel:1, count:10 },
+  { id:'epic', name:'Epic Pack', cost:10000, minLevel:3, count:10 },
+  { id:'legendary', name:'Legendary Pack', cost:15000, minLevel:6, count:10 },
+  { id:'mystic', name:'Mystic Pack', cost:20000, minLevel:9, count:10 },
+];
+const EARNED_CARD_CAP = 10; // user's own rule: max 10 copies of any one card in the bag
+function canBuyPack(tier){
+  if(!tier) return false;
+  if(!playerProgress.campaignClearedOnce) return false;
+  if(playerLevel() < tier.minLevel) return false;
+  if(playerProgress.points < tier.cost) return false;
+  return true;
+}
+function buyPack(tierId){
+  const tier = PACK_TIERS.find(t => t.id === tierId);
+  if(!canBuyPack(tier)) return;
+  playerProgress.points -= tier.cost;
+  const drawn = [];
+  for(let i = 0; i < tier.count; i++){
+    const card = HEROES[Math.floor(Math.random() * HEROES.length)];
+    const current = playerProgress.earnedCards[card.id] || 0;
+    const capped = current >= EARNED_CARD_CAP;
+    if(!capped) playerProgress.earnedCards[card.id] = current + 1;
+    drawn.push({ id: card.id, name: card.name, wasNew: current === 0, capped });
+  }
+  savePlayerProgress();
+  state.packOpenResult = { tierId: tier.id, tierName: tier.name, drawn };
 }
 
 // Leaderboard (Fas 26): a real cross-device leaderboard needs a stable
@@ -12309,7 +12480,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,

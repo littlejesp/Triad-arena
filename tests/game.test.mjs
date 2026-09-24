@@ -9938,3 +9938,74 @@ test('Progression (Fas 27, step 1): playerProgress persists across a fresh load 
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Progression (Fas 29, step 2): packs are locked until Campaign is cleared once, then gated per-tier by level and points, and respect the 10-copy cap', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const rare = PACK_TIERS.find(t => t.id === 'rare');
+    const epic = PACK_TIERS.find(t => t.id === 'epic');
+
+    // Locked entirely before Campaign is cleared, even with plenty of points/level.
+    playerProgress = { points: 999999, lifetimePoints: 999999, earnedCards: {}, campaignClearedOnce: false };
+    out.lockedDespiteMaxPointsAndLevel = canBuyPack(rare);
+
+    // Cleared, but not enough points yet.
+    playerProgress = { points: 100, lifetimePoints: 100, earnedCards: {}, campaignClearedOnce: true };
+    out.tooFewPoints = canBuyPack(rare);
+
+    // Enough points for Epic's cost, but level too low (Epic needs Level 3).
+    playerProgress = { points: 10000, lifetimePoints: 100, earnedCards: {}, campaignClearedOnce: true };
+    out.enoughPointsButLevelLocked = canBuyPack(epic);
+
+    // Both satisfied (1500 lifetime points = Level 3, the exact gate Epic needs).
+    playerProgress = { points: 10000, lifetimePoints: 1500, earnedCards: {}, campaignClearedOnce: true };
+    out.bothSatisfied = canBuyPack(epic);
+    out.levelForCheck = playerLevel();
+
+    // buyPack deducts the exact cost and yields exactly tier.count cards.
+    const before = playerProgress.points;
+    buyPack('epic');
+    out.pointsDeducted = before - playerProgress.points;
+    out.drawnCount = state.packOpenResult.drawn.length;
+    out.tierNameShown = state.packOpenResult.tierName;
+
+    // buyPack refuses silently (no throw, no deduction) if canBuyPack is false.
+    playerProgress = { points: 0, lifetimePoints: 0, earnedCards: {}, campaignClearedOnce: true };
+    const pointsBeforeRefusedBuy = playerProgress.points;
+    buyPack('mystic');
+    out.refusedBuyDidNotThrow = true;
+    out.refusedBuyDidNotDeduct = playerProgress.points === pointsBeforeRefusedBuy;
+    out.refusedBuyLeftNoResult = state.packOpenResult === null || state.packOpenResult.tierId !== 'mystic';
+
+    // The 10-copy cap: a card already at 10 must never exceed it, however
+    // many packs get opened, but it still shows up in `drawn` (capped:true)
+    // so the reveal UI can tell the player.
+    const cardId = HEROES[0].id;
+    playerProgress = { points: 1000000, lifetimePoints: 1000000, earnedCards: { [cardId]: 10 }, campaignClearedOnce: true };
+    let sawCappedDraw = false;
+    for(let i = 0; i < 30; i++){
+      buyPack('mystic');
+      if(state.packOpenResult.drawn.some(c => c.id === cardId && c.capped)) sawCappedDraw = true;
+    }
+    out.capNeverExceeded = playerProgress.earnedCards[cardId] === 10;
+    out.cappedDrawWasFlagged = sawCappedDraw;
+
+    return out;
+  });
+  assert.equal(result.lockedDespiteMaxPointsAndLevel, false, 'packs must stay locked until campaignClearedOnce is true, regardless of points/level');
+  assert.equal(result.tooFewPoints, false);
+  assert.equal(result.enoughPointsButLevelLocked, false, "Epic pack needs Level 3 even if the player can afford its point cost");
+  assert.equal(result.levelForCheck, 3);
+  assert.equal(result.bothSatisfied, true);
+  assert.equal(result.pointsDeducted, 10000, "buyPack must deduct exactly the tier's cost");
+  assert.equal(result.drawnCount, 10, 'a pack must draw exactly tier.count cards');
+  assert.equal(result.tierNameShown, 'Epic Pack');
+  assert.equal(result.refusedBuyDidNotThrow, true);
+  assert.equal(result.refusedBuyDidNotDeduct, true, 'buyPack must be a no-op (not throw, not deduct) when canBuyPack is false');
+  assert.equal(result.refusedBuyLeftNoResult, true);
+  assert.equal(result.capNeverExceeded, true, 'a card already at the 10-copy cap must never exceed it no matter how many more packs are opened');
+  assert.equal(result.cappedDrawWasFlagged, true, 'a draw of an already-capped card must still appear in the reveal, flagged as capped');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
