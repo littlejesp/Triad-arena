@@ -10158,3 +10158,93 @@ test('Progression (Fas 32, step 3): resolveRiskMatch applies the ONE/ALL rule co
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('16-card audit items #15-16: Twin Brothers/Twin Sisters get onCaptureBuffSelfThisRound (folds Brotherly Might/Dual Strike and Synergy of Souls/Echoing Power into the one already-implemented mechanic) and a working Solar Tempest/Lunar Eclipse special (previously undefined in SPECIAL_HANDLERS, a silent no-op)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // onCaptureBuffSelfThisRound:3 must actually fire on a real capture via
+    // placeCard -- not just be present on the card data. Cell 5 is the EAST
+    // neighbor of center cell 4, so Twin Brothers/Sisters' right side (8)
+    // faces Ogre's left side (4) -- a clean directional win (their own top
+    // (7) vs Ogre's bottom (8) would actually lose, so the neighbor cell
+    // matters here, unlike the special's totalPower-based threshold below).
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.specialUsed = {};
+    const weak = findCardById('ogre'); // 8/5/8/4
+    state.board[5] = freshEntry(weak, 'red');
+    state.playerHand = [findCardById('twinbrothers')];
+    placeCard(4, 'twinbrothers', 'blue');
+    out.brothersCaptured = state.board[5].owner === 'blue';
+    out.brothersSelfBuff = state.board[4].captureBonus;
+
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.specialUsed = {};
+    state.board[5] = freshEntry(weak, 'red');
+    state.playerHand = [findCardById('twinsisters')];
+    placeCard(4, 'twinsisters', 'blue');
+    out.sistersCaptured = state.board[5].owner === 'blue';
+    out.sistersSelfBuff = state.board[4].captureBonus;
+
+    // Solar Tempest: was a total no-op before this fix (no SPECIAL_HANDLERS
+    // entry at all -- runSpecialResolution's "if(!handler) return;" guard
+    // meant selecting it did literally nothing). Success case: Twin
+    // Brothers (total 30) +3 vs a weak target beats it outright.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('twinbrothers'), 'blue');
+    state.board[7] = freshEntry(findCardById('twinsisters'), 'blue'); // on board -> should also get the team buff
+    state.board[1] = freshEntry(weak, 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    runSpecialResolution(4, 1, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.solarTempestFlipped = state.board[1].owner === 'blue';
+    out.solarTempestSelfBuff = state.board[4].captureBonus;
+    out.solarTempestPartnerBuff = state.board[7].captureBonus;
+    out.solarTempestCostDeducted = state.wins.blue === 3;
+
+    // Failure case: a target with total power high enough that +3 isn't
+    // enough (Bahamut, total 38) must NOT flip and must NOT grant any buff.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(findCardById('twinbrothers'), 'blue');
+    state.board[4] = src2;
+    state.board[1] = freshEntry(findCardById('bahamut'), 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    runSpecialResolution(4, 1, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.solarTempestFailNotFlipped = state.board[1].owner === 'red';
+    out.solarTempestFailNoBuff = src2.captureBonus === 0;
+
+    // Lunar Eclipse (Twin Sisters' own special) mirrors the same success path.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(findCardById('twinsisters'), 'blue');
+    state.board[1] = freshEntry(weak, 'red');
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    runSpecialResolution(4, 1, {});
+    await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
+    out.lunarEclipseFlipped = state.board[1].owner === 'blue';
+    out.lunarEclipseSelfBuff = state.board[4].captureBonus;
+
+    return out;
+  })()`);
+  assert.equal(result.brothersCaptured, true);
+  assert.equal(result.brothersSelfBuff, 4, "onCaptureBuffSelfThisRound:3 (Brotherly Might's +1 folded with Dual Strike's +2) plus the pre-existing onCaptureBonus:1 (Fraternal Fury) must both fire on the same capture");
+  assert.equal(result.sistersCaptured, true);
+  assert.equal(result.sistersSelfBuff, 3, "same folded mechanic for Synergy of Souls + Echoing Power");
+  assert.equal(result.solarTempestFlipped, true);
+  assert.equal(result.solarTempestSelfBuff, 1, "Solar Tempest's own +1 all sides this round on the caster");
+  assert.equal(result.solarTempestPartnerBuff, 1, "Solar Tempest also buffs Twin Sisters when she's on the board, per the card text");
+  assert.equal(result.solarTempestCostDeducted, true);
+  assert.equal(result.solarTempestFailNotFlipped, true, 'a target strong enough must not be flipped by Solar Tempest');
+  assert.equal(result.solarTempestFailNoBuff, true, 'a failed Solar Tempest must not grant any buff');
+  assert.equal(result.lunarEclipseFlipped, true);
+  assert.equal(result.lunarEclipseSelfBuff, 1, "Lunar Eclipse's own +1 all sides this round on the caster");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
