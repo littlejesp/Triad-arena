@@ -4959,6 +4959,32 @@ hårdkodat index 16 som "Systrarnas/finalens plats" uppdaterades till
 `CAMPAIGN_STAGES.length - 1` respektive det nya indexet 18. Hela
 testsviten grön: **169/169**.
 
+**Fas 36. My Bag — en ny läs-läge-vy för `playerProgress.earnedCards`**,
+på användarens fråga ("vart hittar man sin bag med kort?"). Svaret var
+att det inte gick — `earnedCards` fanns bara som data, ytan var
+Rivals' egen wager-picker (en VAL-vy, hårt begränsad till 5 kort, inte
+en full genombläddring av vad man äger). Ny knapp "🎒 My Bag" bredvid
+Packs/Rivals i Match Settings-panelen, samma modal-poster/overlay-form
+som Packs/Rivals, tre tillstånd (låst innan Campaign klarad, tom bag,
+full bag). Full-vyn visar varje ägt kort sorterat efter antal (flest
+först), med en ny `cardFace()`-option (`opts.countBadge`) som ritar en
+guld ×N-badge i nedre vänstra hörnet.
+
+Uppföljande begäran samma stund: "i väskan man ska man se sina
+credits ... som guldmynt typ" — en ny `.bag-wallet`-pill direkt under
+rubriken visar poängsaldot som ett guldmynts-märke (🪙, guldram/glöd,
+samma `--gold-bright`-färg som resten av UI:t), synlig oavsett om
+väskan är tom eller låst — så man alltid ser hur nära man är nästa
+pack utan att stänga modalen.
+
+Verifierat med skärmdumpar vid tre bredder (390/768/1280px) innan det
+skeppades, samma disciplin som Packs-knapparnas tidigare
+specificitetsbugg — ingen overflow den här gången. Ett nytt permanent
+regressionstest täcker alla tre tillstånd, sorteringen, att ett kort
+med 0 kvar (allt förlorat till en Rival) inte visas, och att
+guldmynts-plånboken faktiskt visar rätt poängsumma. Hela testsviten
+grön: **170/170**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
