@@ -3089,7 +3089,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   background-size:cover; background-position:center 12%;
   border-radius:16px 16px 0 0; overflow:visible;
 }
-.poster-art-full{ width:100%; border-radius:16px 16px 0 0; overflow:hidden; line-height:0; }
+.poster-art-full{ position:relative; width:100%; border-radius:16px 16px 0 0; overflow:hidden; line-height:0; }
+/* The detail modal's full-art box is a different (taller, ~9:16) shape
+   than the small in-hand card's 5:7 slot the frame asset was made for,
+   so stretching it here (object-fit:fill, the small-card default) would
+   visibly warp the corner medallions into ovals. object-fit:contain
+   keeps the frame undistorted, letterboxed within the taller box --
+   most of the portrait's vertical center (where the subject actually
+   is) still ends up framed. */
+.poster-exclusive-frame{ object-fit:contain; }
 .poster-art-full img{ width:100%; display:block; }
 .poster-name-plain{ font-family:'Cinzel',serif; font-weight:700; font-size:22px; color:var(--gold-bright); }
 .poster-role-plain{ font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-top:2px; }
@@ -5462,7 +5470,7 @@ function renderModal(){
   const fullArt = FULL_CARD_IMAGES[c.id];
 
   const artBlock = fullArt
-    ? `<div class="poster-art-full"><img src="${fullArt}" alt="${c.name}"></div>`
+    ? `<div class="poster-art-full"><img src="${fullArt}" alt="${c.name}">${c.exclusiveFrame ? `<img class="exclusive-frame-overlay poster-exclusive-frame" src="exclusive-card-frame.png" alt="">` : ''}</div>`
     : `
         <div class="poster-art" style="${CARD_IMAGES[c.id] ? `background-image:url('${CARD_IMAGES[c.id]}')` : `background:${c.hue}`}">
           <div class="poster-fade"></div>

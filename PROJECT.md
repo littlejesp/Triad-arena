@@ -5112,6 +5112,21 @@ om man äger honom men ALDRIG om man inte gör det, och hela
 Dragonfall Charge-specialens shield-ignorering + villkorad bonus. Hela
 testsviten grön: **172/172**.
 
+**Fas 38 (uppföljning). Ramen saknades i detaljvyn.** Användaren märkte
+att ramen bara syntes på de små kortvyerna (hand/bräde/My Bag), inte i
+den stora detaljvyn där man faktiskt läser skills. Orsak: detaljvyn
+(`renderModal()`) är en helt separat renderingsväg från `cardFace()`
+(direkt `<img>` mot `FULL_CARD_IMAGES`, inte samma mall), så
+frame-overlayen som lades till i `cardFace()` nådde aldrig dit. Lade
+till samma overlay i `renderModal()`s `artBlock`, men med
+`object-fit:contain` istället för `fill` -- detaljvyns bildruta är en
+annan (smalare/högre, ~9:16) proportion än den 5:7-ram-tillgången är
+gjord för, så att sträcka ut den (som på de små korten) hade synligt
+snedvridit hörnmedaljongerna till ovaler. `contain` håller ramen
+odistorderad, "brevlådad" i den högre rutan -- huvuddelen av
+porträttets vertikala mitt (där motivet faktiskt är) hamnar ändå
+innanför ramen. Hela testsviten grön: **172/172**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
