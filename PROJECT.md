@@ -5019,6 +5019,37 @@ lore-innehållet verkligen överstiger 420px (annars skulle testet klara
 sig även med buggen kvar) och att panelen faktiskt renderas nära sin
 avsedda höjd. Hela testsviten grön: **171/171**.
 
+**Fas 37 (steg 1 av 2). Campaign-klarningsbonusen skalar nu med NG+**,
+på användarens begäran ("man får ännu mer poäng när man kör campaign
+1+ och ännu mer om man klarar +2 osv"). Tidigare gav bara den ALLRA
+FÖRSTA fullständiga klarningen 2000 poäng (`!playerProgress.
+campaignClearedOnce`-grinden) — varje NG+-klarning därefter gav
+ingenting extra alls utöver den vanliga etapp-bonusen. `campaignCleared
+Once` stannar kvar som en engångs-flagga (den låser fortfarande upp
+Packs/Rivals bara en gång), men själva poängbonusen körs nu vid VARJE
+fullständig klarning och skalar: `2000 + campaignProgress.ngPlus *
+1000` — 2000 första gången, 3000 för NG+1, 4000 för NG+2, och så vidare
+utan tak. Uppdaterade det befintliga testet till att täcka både NG+1-
+och NG+2-klarning. Hela testsviten grön: **171/171** (samma antal,
+befintligt test byggdes ut snarare än ett nytt lades till).
+
+**Fas 37 (steg 2 av 2, påbörjad). Fem nya "pack-exklusiva" kort** —
+användarens nästa stora begäran: fem helt nya kort, en nivå starkare
+än standardrostret, som ENDAST går att få genom Packs (aldrig
+draftbara i Campaign/Random Draft/Choose Your Five) och som sedan ska
+ha en CHANS att dyka upp när man drar sina fem kort i vanliga matcher
+("man har en chans att dra i när man drar kort under nya systemet").
+Detta kräver en riktig arkitekturändring: idag används `earnedCards`
+ENDAST till Rivals-insatser — Random Draft/Choose Your Five/Campaign
+drar alla sina kort direkt ur `HEROES`, så ett intjänat kort går aldrig
+att faktiskt SPELA med i en vanlig match just nu. Väntar på användarens
+egna 5 kortkoncept (namn/tema, de bygger dem, jag skriver stats/skills/
+attacksiffror) innan implementationen kan börja på riktigt — två
+bildbriefer redan skickade under tiden: en för kortet "Dragon" (en
+lansriddare, INTE en bokstavlig drake) och en för en ny, extra
+utsmyckad kortram exklusiv för dessa fem kort, uttryckligen refererad
+mot spelets egen kortbaksida/kompass-stil.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
