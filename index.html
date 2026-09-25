@@ -3670,6 +3670,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 /* ---------------- Character portraits ---------------- */
 const CARD_IMAGES = {
   dragonlancer: 'cards/card-dragonlancer.jpg',
+  reaperseraph: 'cards/card-reaperseraph.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3747,6 +3748,7 @@ const CARD_IMAGES = {
 
 const FULL_CARD_IMAGES = {
   dragonlancer: 'card-dragonlancer-full.jpg',
+  reaperseraph: 'card-reaperseraph-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -4793,6 +4795,30 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Onyx Momentum (Passive)', desc:'When Dragon attacks a Shielded card, he gains +2 Power in that battle — armor only slows a lesser weapon.'},
       {name:'Growing Legend (Passive)', desc:'Each time Dragon takes control of a card, he permanently gains +1 Power on all sides.'},
       {name:'Special Attack: Dragonfall Charge', desc:"Costs 2 wins. Choose an adjacent enemy card — the lance pierces clean through, ignoring any Shield or defensive skill. If the target was Shielded, Dragon permanently gains +2 Power on all sides. Usable once per match."},
+    ] },
+  // Second pack-exclusive card, user's own framing: Dragon's "brother" --
+  // a contrasting theme (winged, celestial, a huge reaping blade,
+  // ascending through clouds toward a spiked halo) rather than a mirrored
+  // reskin. Where Dragon is a grounded single-target shield-buster, Reaper
+  // leans into his weapon's actual shape -- a wide, sweeping AOE/comeback
+  // kit instead of Dragon's precision-piercing one. Assigned to Epic (one
+  // tier above Dragon's Rare) on my own judgment, per the user's "kör nu
+  // kompis" -- stats (36 total) sit a notch above Dragon's 35 to match.
+  // Reising Vengeance reuses the EXISTING boardUnderdogAttackBonus field
+  // (already proven on Sylvarion) rather than a new "count the Graveyard"
+  // mechanic I drafted and discarded -- state.graveyard only records
+  // outright DESTROYS, not ordinary captures, and only when the optional
+  // Graveyard rule is on, so it would have read 0 in most real matches.
+  { id:'reaperseraph', name:'Reaper', role:'The Fallen Seraph — Pack Exclusive (Epic)', element:'wind',
+    top:9, right:9, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🪽',
+    packTier:'epic', exclusiveFrame:true,
+    active:{ onWinAreaDebuffThisRound:1, boardUnderdogAttackBonus:2 },
+    special:{ name:'Judgment Descent', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:"Reaper's Toll (Passive)", desc:'Each time Reaper wins a battle, every enemy card orthogonally adjacent to the captured square loses 1 Power on all sides this round.'},
+      {name:'Rising Vengeance (Passive)', desc:'While you control fewer cards on the board than your opponent, Reaper gains +2 Power when attacking — he grows more dangerous the more desperate the battle.'},
+      {name:'Special Attack: Judgment Descent', desc:'Costs 3 wins. Every enemy card on the board loses 2 Power on all sides this round. Usable once per match.'},
     ] },
 ];
 
@@ -8147,6 +8173,18 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
       if(n && n.owner !== winnerEntry.owner) SpecialVerbs.debuff(n, a.onWinAreaDebuff);
     });
   }
+  // Reaper's Toll: the "this round" sibling of onWinAreaDebuff above --
+  // identical shape, just debuffThisRound instead of a permanent debuff.
+  if(a.onWinAreaDebuffThisRound && loserIndex != null){
+    const row = Math.floor(loserIndex/3), col = loserIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== winnerEntry.owner) SpecialVerbs.debuffThisRound(n, a.onWinAreaDebuffThisRound);
+    });
+  }
   // Kaeldryx's Execution: "wins a round with 10+ Power, destroy that enemy
   // card outright" — no "once per match" cap in the source text either, so
   // this can trigger on every qualifying win, same as onWinAreaDebuff above.
@@ -10519,6 +10557,14 @@ const SPECIAL_HANDLERS = {
     const enemies = state.board.filter(e => e && e.owner !== owner);
     enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
     return `${srcEntry.card.name} unites with Yang — Yin Resonance withers the enemy ranks!`;
+  },
+  // Reaper's Judgment Descent: same board-wide "this round" debuff shape
+  // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
+  // (special.targets:'aoe'), just hit every enemy on the board.
+  reaperseraph({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
+    return `${srcEntry.card.name}'s Judgment Descent falls upon the enemy ranks!`;
   },
   // Solar Tempest/Lunar Eclipse: 16-card audit item -- these two had a
   // `special` field with cost/targets metadata but no SPECIAL_HANDLERS

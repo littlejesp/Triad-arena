@@ -5127,6 +5127,37 @@ odistorderad, "brevlådad" i den högre rutan -- huvuddelen av
 porträttets vertikala mitt (där motivet faktiskt är) hamnar ändå
 innanför ramen. Hela testsviten grön: **172/172**.
 
+**Fas 39. Andra pack-exklusiva kortet: Reaper, The Fallen Seraph
+(Epic).** Användarens egen framing: "Dragons bror" -- men medvetet
+KONTRASTERANDE tema snarare än en omskinnad kopia (vingad, himmelsk, en
+stor lie/skära, stiger genom moln mot en taggig halo, ljust guld/vitt
+istället för Dragons mörka/jordbundna stil). Tilldelad Epic-tier (ett
+steg över Dragons Rare) på egen bedömning eftersom motivet kändes mer
+påkostat, stats (36 totalt) en notch över Dragons 35 för att matcha.
+
+Mekaniskt en bred AOE/comeback-kontrast till Dragons precisa
+punktera-en-fiende-stil: Reaper's Toll (ny `onWinAreaDebuffThisRound`-
+krok, en "denna rond"-syskon till Three Head Dragons redan
+existerande permanenta `onWinAreaDebuff`) mjukar upp ALLA fiender
+runt den erövrade rutan varje gång han vinner. Rising Vengeance
+återanvänder det REDAN BEFINTLIGA `boardUnderdogAttackBonus`-fältet
+(redan beprövat på Sylvarion) istället för en ny "räkna
+kyrkogården"-mekanik jag först skissade och sedan skrotade --
+`state.graveyard` registrerar bara riktiga FÖRSTÖRDA kort (inte
+vanliga erövringar) och bara när den valfria Graveyard-regeln är på,
+så den hade lästs som 0 i nästan varje riktig match. Special Attack:
+Judgment Descent mjukar upp hela brädet -2 denna rond, samma
+bräd-täckande mönster som Evil Twist Yin/Yangs Resonance redan
+använder.
+
+Samma porträtt+ram-visuella behandling som Dragon (941×1672-porträtt,
+delad ramöverlägg, guld/lila-glöd). Ett nytt permanent regressionstest
+täcker Reaper's Toll, Rising Vengeance (både med och utan
+bräd-underläge, isolerat från den orelaterade `lastStandBonus`-
+mekaniken), Judgment Descent, och att kortet bara någonsin dyker upp i
+Epic-packet (aldrig Rare, där Dragon bor, eller någon annan nivå,
+150 öppnade packet av varje). Hela testsviten grön: **173/173**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

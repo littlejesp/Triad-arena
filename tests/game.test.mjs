@@ -10514,3 +10514,80 @@ test('Fas 38: pack-exclusive cards -- Dragon (dragonlancer) is a real, findable 
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 39: second pack-exclusive card -- Reaper (reaperseraph), an Epic-tier AOE/comeback contrast to Dragon\'s single-target piercing kit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const reaper = findCardById('reaperseraph');
+    out.findable = reaper !== null && reaper.name === 'Reaper';
+    out.notInHeroes = !HEROES.some(h => h.id === 'reaperseraph');
+    out.notInCampaignPool = !campaignPool().includes('reaperseraph');
+
+    // Reaper's Toll: winning a battle debuffs every enemy orthogonally
+    // adjacent to the CAPTURED cell, this round only.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.board[4] = freshEntry(reaper, 'blue');
+    state.board[1] = freshEntry({ id:'weak1', name:'Weak1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[0] = freshEntry({ id:'weak2', name:'Weak2', top:5,right:5,bottom:5,left:5 }, 'red');
+    const battleResult = { flipSeq:0, flips:0, shielded:0, bonusTriggered:false };
+    battleNeighbors(4, 'blue', battleResult);
+    out.capturedAndDebuffedNeighbor = state.board[1].owner === 'blue' && state.board[0].captureBonus === -1;
+
+    // Rising Vengeance: +2 attack ONLY while behind on board count --
+    // hands populated (non-empty) so the unrelated lastStandBonus (which
+    // also reads fullEffectiveValue) doesn't confound this isolated check.
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(reaper, 'blue');
+    out.noBonusWhenEven = fullEffectiveValue(reaper, 'top', null, 4, 'blue', 'attack') - reaper.top === 0;
+    state.board[0] = freshEntry({ id:'r1', name:'R1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[2] = freshEntry({ id:'r2', name:'R2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[6] = freshEntry({ id:'r3', name:'R3', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.bonusWhenUnderdog = fullEffectiveValue(reaper, 'top', null, 4, 'blue', 'attack') - reaper.top === 2;
+
+    // Special Attack: Judgment Descent -- board-wide -2 this round, no
+    // single target needed (special.targets:'aoe').
+    state.board = Array(9).fill(null);
+    const src = freshEntry(reaper, 'blue');
+    state.board[4] = src;
+    const e1 = freshEntry({ id:'e1', name:'E1', top:5,right:5,bottom:5,left:5 }, 'red');
+    const e2 = freshEntry({ id:'e2', name:'E2', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[0] = e1; state.board[8] = e2;
+    state.wins = { blue: 5, red: 5 }; state.specialUsed = {};
+    SPECIAL_HANDLERS.reaperseraph({ srcEntry: src, owner: 'blue' });
+    out.judgmentHitAllEnemies = e1.captureBonus === -2 && e2.captureBonus === -2;
+
+    // buyPack: reaperseraph only ever comes from the Epic tier, never Rare
+    // (where Dragon lives) or any other tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInEpic = false, sawInRare = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.reaperseraph) sawInEpic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('rare');
+      if(playerProgress.earnedCards.reaperseraph) sawInRare = true;
+    }
+    out.drawableFromEpicPack = sawInEpic;
+    out.neverFromRarePack = !sawInRare;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true, 'Reaper must never be draftable in Campaign/Random Draft/Choose Your Five');
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.capturedAndDebuffedNeighbor, true, "Reaper's Toll must debuff an adjacent enemy the moment he captures a card");
+  assert.equal(result.noBonusWhenEven, true, 'Rising Vengeance must grant nothing when board counts are even');
+  assert.equal(result.bonusWhenUnderdog, true, 'Rising Vengeance must grant +2 attack specifically while behind on board count');
+  assert.equal(result.judgmentHitAllEnemies, true);
+  assert.equal(result.drawableFromEpicPack, true);
+  assert.equal(result.neverFromRarePack, true, "Reaper must only ever come from the Epic tier, never Rare (Dragon's tier) or any other");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
