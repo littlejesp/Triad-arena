@@ -287,6 +287,12 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 /* Fas 36: My Bag's credits display -- "som guldmynt typ" (like gold
    coins), a small pill badge rather than plain match-stat text, so the
    points balance reads as currency at a glance while browsing the bag. */
+.bag-icon-inline{
+  width:1.15em; height:1.15em; object-fit:contain;
+  vertical-align:-0.22em; margin-right:2px;
+  filter:drop-shadow(0 0 3px rgba(201,162,39,0.5));
+}
+
 .bag-wallet{
   display:inline-flex; align-items:center; gap:6px;
   margin:2px 0 10px; padding:5px 12px;
@@ -5346,7 +5352,7 @@ function renderBagModal(){
     <div class="modal-overlay" id="bag-overlay">
       <div class="modal-poster packs-modal">
         <button class="modal-close" id="bag-close">✕</button>
-        <h3>🎒 My Bag</h3>
+        <h3><img src="bag-icon.png" class="bag-icon-inline" alt=""> My Bag</h3>
         <div class="bag-wallet"><span class="bag-coin">🪙</span> <b>${playerProgress.points.toLocaleString()}</b> points</div>
         ${body}
       </div>
@@ -5731,7 +5737,7 @@ function renderDraft(){
         <div class="leaderboard-name-hint" style="flex:1;">${playerProgress.campaignClearedOnce ? 'Every match earns points — spend them on packs, or wager earned cards against a Rival.' : 'Clear the whole Campaign once to unlock packs and Rivals. Every match still earns points toward it.'}</div>
         <button class="ghost packs-open-btn" id="packs-open-btn">🎁 Packs</button>
         <button class="ghost packs-open-btn" id="rivals-open-btn">⚔️ Rivals</button>
-        <button class="ghost packs-open-btn" id="bag-open-btn">🎒 My Bag</button>
+        <button class="ghost packs-open-btn" id="bag-open-btn"><img src="bag-icon.png" class="bag-icon-inline" alt=""> My Bag</button>
       </div>
 
       ${matchStats.matches > 0 ? `
