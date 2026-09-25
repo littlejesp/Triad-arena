@@ -4996,6 +4996,29 @@ enligt briefen som skickades) — äkta alfa-transparens verifierad
 (1.15em, vertikalt centrerad mot texten). Verifierat med skärmdumpar
 igen innan det skeppades. Hela testsviten grön: **170/170**.
 
+**Buggfix: Systrarnas lore-text gick inte att läsa** — rapporterad av
+användaren med en skärmdump från Stage 19 ("Hittade ett bugg man kan
+inte läsa deras story"). Reproducerat direkt (inte gissat från bilden):
+`.lore-panel` hade `max-height:420px; overflow-y:auto` men renderades
+bara **34px** hög, trots att det faktiska innehållet var 1519px —
+bara första rubriken syntes, ingen brödtext alls. Grundorsak: en känd
+CSS-flexbox-fälla — ett flex-item med `overflow` skilt från `visible`
+får en automatisk min-storlek på 0 istället för sitt eget
+min-content-mått, så när sidans totala innehåll (banner + knapp +
+lore + hela 30-korts-rostret) blev högre än viewporten (`.wrap` är en
+höjdbegränsad flex-kolumn) klämde `flex-shrink` ihop just den här
+panelen till nästan ingenting, trots dess egen `max-height`. Fixat med
+`flex-shrink:0` på `.lore-panel` — bekräftat i headless Chromium: höjd
+34px → 420px, samma fix verifierad med en riktig skärmdump av hela
+berättelsen. Kollade alla andra scrollbara paneler i filen
+(`.graveyard-cards`, `.leaderboard-list`, `.packs-reveal-list`,
+`.rivals-picker-grid`) — alla ligger inne i `position:fixed`-modaler
+och är därför inte påverkade av samma bugg; bara `.lore-panel` renderas
+direkt i sidflödet. Ett nytt permanent regressionstest mäter både att
+lore-innehållet verkligen överstiger 420px (annars skulle testet klara
+sig även med buggen kvar) och att panelen faktiskt renderas nära sin
+avsedda höjd. Hela testsviten grön: **171/171**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
