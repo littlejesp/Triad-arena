@@ -10413,3 +10413,104 @@ test('Bug fix: the Sisters stage lore panel must not be crushed by flexbox when 
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 38: pack-exclusive cards -- Dragon (dragonlancer) is a real, findable card that is NEVER draftable normally, only drawable via a Rare pack or a lucky Random Draft pull, with a working Piercing Lance/Onyx Momentum/Dragonfall Charge kit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+
+    // Never draftable normally.
+    out.notInHeroes = !HEROES.some(h => h.id === 'dragonlancer');
+    out.notInCampaignPool = !campaignPool().includes('dragonlancer');
+    out.findableAnyway = findCardById('dragonlancer') !== null && findCardById('dragonlancer').name === 'Dragon';
+
+    // Piercing Lance: ignores an active Shield on a NORMAL attack, and
+    // Onyx Momentum grants +2 specifically because the target was
+    // Shielded -- proven by a matchup that would otherwise LOSE without
+    // the bonus (Dragon's right(9) vs Bahamut's left(10)).
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const dragon = findCardById('dragonlancer');
+    state.board[4] = freshEntry(dragon, 'blue');
+    state.board[5] = freshEntry(findCardById('bahamut'), 'red');
+    const battleResult = { flipSeq:0, flips:0, shielded:0, bonusTriggered:false };
+    battleNeighbors(4, 'blue', battleResult);
+    out.ignoredShieldAndWon = state.board[5].owner === 'blue';
+    out.notLoggedAsShieldedBlock = battleResult.shielded === 0;
+
+    // buyPack: dragonlancer only ever appears in the 'rare' tier pool.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInRare = false, sawInEpic = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('rare');
+      if(playerProgress.earnedCards.dragonlancer) sawInRare = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.dragonlancer) sawInEpic = true;
+    }
+    out.drawableFromRarePack = sawInRare;
+    out.neverFromOtherTiers = !sawInEpic;
+
+    // drawRandomFive: a player who owns it has a real chance to draw it.
+    playerProgress.earnedCards = { dragonlancer: 5 };
+    let sawInRandomDraw = false;
+    for(let i = 0; i < 300; i++){
+      drawRandomFive();
+      if(state.selected.includes('dragonlancer')){ sawInRandomDraw = true; break; }
+    }
+    out.drawableInRandomDraft = sawInRandomDraw;
+
+    // A player who does NOT own it can never draw it randomly either.
+    playerProgress.earnedCards = {};
+    let everSawWithoutOwning = false;
+    for(let i = 0; i < 200; i++){
+      drawRandomFive();
+      if(state.selected.includes('dragonlancer')) everSawWithoutOwning = true;
+    }
+    out.neverDrawnWithoutOwning = !everSawWithoutOwning;
+
+    // Special Attack: Dragonfall Charge ignores Shield entirely, and only
+    // rewards the permanent +2 when the target actually WAS Shielded.
+    const weakShielded = { id:'test-shield', name:'TestShield', top:5,right:5,bottom:5,left:5, active:{shield:true} };
+    const weakUnshielded = { id:'test-noshield', name:'TestNoShield', top:5,right:5,bottom:5,left:5 };
+
+    state.board = Array(9).fill(null);
+    const src1 = freshEntry(dragon, 'blue');
+    state.board[4] = src1;
+    state.board[1] = freshEntry(weakShielded, 'red');
+    state.wins = { blue: 5, red: 5 }; state.specialUsed = {};
+    SPECIAL_HANDLERS.dragonlancer({ srcEntry: src1, targetEntry: state.board[1], targetIndex: 1, owner: 'blue' });
+    out.specialFlipsShielded = state.board[1].owner === 'blue';
+    out.specialRewardsBonusVsShielded = src1.captureBonus === 2;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(dragon, 'blue');
+    state.board[4] = src2;
+    state.board[1] = freshEntry(weakUnshielded, 'red');
+    state.wins = { blue: 5, red: 5 }; state.specialUsed = {};
+    SPECIAL_HANDLERS.dragonlancer({ srcEntry: src2, targetEntry: state.board[1], targetIndex: 1, owner: 'blue' });
+    out.specialFlipsUnshielded = state.board[1].owner === 'blue';
+    out.specialNoBonusVsUnshielded = src2.captureBonus === 0;
+
+    return out;
+  })()`);
+  assert.equal(result.notInHeroes, true, 'Dragon must never be draftable in Campaign/Random Draft/Choose Your Five');
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.findableAnyway, true, 'findCardById must still resolve him for My Bag/Rivals/a real match');
+  assert.equal(result.ignoredShieldAndWon, true, "Piercing Lance must let a normal attack ignore the target's Shield");
+  assert.equal(result.notLoggedAsShieldedBlock, true);
+  assert.equal(result.drawableFromRarePack, true);
+  assert.equal(result.neverFromOtherTiers, true, 'Dragon must only ever come from the Rare tier, never Epic/Legendary/Mystic');
+  assert.equal(result.drawableInRandomDraft, true, "an owned exclusive card must have a real chance to appear in a Random Draft hand");
+  assert.equal(result.neverDrawnWithoutOwning, true, "a player who hasn't earned Dragon must never draw him randomly");
+  assert.equal(result.specialFlipsShielded, true);
+  assert.equal(result.specialRewardsBonusVsShielded, true);
+  assert.equal(result.specialFlipsUnshielded, true);
+  assert.equal(result.specialNoBonusVsUnshielded, true, 'the +2 reward must be conditional on the target having actually been Shielded');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
