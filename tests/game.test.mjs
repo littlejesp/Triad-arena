@@ -10328,3 +10328,50 @@ test('Fas 35: Campaign extended from 17 to 20 stages — two new stages before t
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 36: My Bag — a read-only browsable view of playerProgress.earnedCards, since Rivals\' wager-picker only ever showed a capped 5-card SELECTION, never the full collection', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+
+    // Locked before the Campaign is cleared, same gating as Packs/Rivals.
+    playerProgress.campaignClearedOnce = false;
+    playerProgress.earnedCards = {};
+    state.showBag = true;
+    const lockedHtml = renderBagModal();
+    out.lockedShowsGate = lockedHtml.includes('cleared the whole Campaign');
+
+    // Empty (cleared, but nothing earned yet) shows a distinct empty state.
+    playerProgress.campaignClearedOnce = true;
+    const emptyHtml = renderBagModal();
+    out.emptyShowsHint = emptyHtml.includes('bag is empty');
+
+    // With cards earned: every id with count > 0 appears, sorted by count
+    // descending, each with its own count badge; a stale 0-count entry
+    // (e.g. every copy already lost to a Rival) must NOT appear.
+    playerProgress.earnedCards = { ifrit: 10, bahamut: 3, sarah: 1, ysara: 0 };
+    playerProgress.points = 4250;
+    const html = renderBagModal();
+    out.showsAllPositiveCounts = ['ifrit','bahamut','sarah'].every(id => html.includes(\`data-cardid="\${id}"\`));
+    out.hidesZeroCount = !html.includes('data-cardid="ysara"');
+    out.showsCountBadges = html.includes('>×10<') && html.includes('>×3<') && html.includes('>×1<');
+    // Sorted by count descending: Ifrit (10) must appear before Bahamut (3) before Sarah (1).
+    out.sortedByCountDesc = html.indexOf('data-cardid="ifrit"') < html.indexOf('data-cardid="bahamut"')
+      && html.indexOf('data-cardid="bahamut"') < html.indexOf('data-cardid="sarah"');
+    // "i väskan ska man se sina credits ... som guldmynt typ" -- points
+    // balance shown as a gold-coin pill (.bag-wallet), always visible
+    // whenever the bag is open, not gated behind having any cards.
+    out.showsWallet = html.includes('bag-wallet') && html.includes('4,250') && html.includes('🪙');
+
+    return out;
+  })()`);
+  assert.equal(result.lockedShowsGate, true);
+  assert.equal(result.emptyShowsHint, true);
+  assert.equal(result.showsAllPositiveCounts, true);
+  assert.equal(result.hidesZeroCount, true, 'a card with 0 copies left (e.g. all lost to a Rival) must not show up in the bag');
+  assert.equal(result.showsCountBadges, true);
+  assert.equal(result.sortedByCountDesc, true);
+  assert.equal(result.showsWallet, true, "the bag must show the player's points balance as a gold-coin badge");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

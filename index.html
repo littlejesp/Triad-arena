@@ -284,6 +284,19 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .match-stat{ font-size:12px; color:var(--text-dim); }
 .match-stat b{ color:var(--gold-bright); }
 
+/* Fas 36: My Bag's credits display -- "som guldmynt typ" (like gold
+   coins), a small pill badge rather than plain match-stat text, so the
+   points balance reads as currency at a glance while browsing the bag. */
+.bag-wallet{
+  display:inline-flex; align-items:center; gap:6px;
+  margin:2px 0 10px; padding:5px 12px;
+  border-radius:20px; background:linear-gradient(160deg,#241c08,#1a1408);
+  border:1px solid #c9a227; box-shadow:0 0 10px rgba(201,162,39,0.35), inset 0 0 6px rgba(201,162,39,0.15);
+  font-family:'Cinzel',serif; font-size:13px; color:var(--gold-bright);
+}
+.bag-wallet b{ color:#fff; }
+.bag-coin{ font-size:15px; filter:drop-shadow(0 0 3px rgba(201,162,39,0.8)); }
+
 /* Fas 7 (design review #2, "meta layer" tier) -- see ACHIEVEMENTS. */
 .achievement-list{ display:flex; flex-wrap:wrap; gap:8px; }
 .achievement-badge{
@@ -479,6 +492,14 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   display:flex; align-items:center; justify-content:center;
   font-size:clamp(8px,11cqw,12px); line-height:1;
   box-shadow:0 0 6px rgba(165,104,242,0.5);
+}
+
+.count-badge{
+  position:absolute; bottom:4px; left:4px; z-index:6;
+  padding:1px 6px; border-radius:9px; background:rgba(4,3,9,0.78); border:1px solid #c9a227;
+  color:#f2d675; font-family:'Cinzel',serif; font-weight:700;
+  font-size:clamp(9px,12cqw,12px); line-height:1.6;
+  box-shadow:0 0 6px rgba(201,162,39,0.45);
 }
 
 .info-btn{
@@ -4955,6 +4976,7 @@ let state = {
   rivalPicked: [],        // card ids currently picked in the wager picker (max 5), cleared when the modal closes
   riskMatch: null,        // { opponentId, rule, previousAiDifficulty } while a risk match is actually being played, see beginRiskMatch/resolveRiskMatch
   riskResult: null,       // { kind:'lost'|'reclaimed', opponentName, cardNames } — shown once on the result screen after a risk match, then cleared
+  showBag: false,         // true while the 🎒 My Bag modal (read-only browse of playerProgress.earnedCards) is open
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
   impactPunch: false,     // true briefly at the exact moment ANY Ultimate's effect lands (every card, not magnitude-gated like chainShake) — .board.impact-punch, see playUltimateSequence
@@ -5032,6 +5054,7 @@ function render(){
   html += renderLeaderboardModal();
   html += renderPacksModal();
   html += renderRivalsModal();
+  html += renderBagModal();
   html += renderChoicePicker();
   html += renderTutorialOverlay();
   app.innerHTML = html;
@@ -5284,6 +5307,52 @@ function renderRivalsModal(){
     </div>`;
 }
 
+// "vart hittar man sin bag med kort?" -- earnedCards (from Packs/Rivals)
+// had no dedicated browsing screen at all, only indirect surfacing via
+// the Rivals wager-picker (a SELECTION view, capped at 5, not a full
+// browse of what you own). Same locked/overlay/poster shape as Packs and
+// Rivals; read-only, no selection/click behavior, just cardFace() with a
+// new count-badge option (see cardFace's own opts.countBadge) so you can
+// actually see how many of each you hold, including copies held hostage
+// by a rival (still counted in earnedCards until reclaimed or lost).
+function renderBagModal(){
+  if(!state.showBag) return '';
+  const locked = !playerProgress.campaignClearedOnce;
+  let body;
+  if(locked){
+    body = `<div class="leaderboard-status">Your bag fills up once you've cleared the whole Campaign for the first time and start opening Packs.</div>`;
+  } else {
+    const ids = Object.keys(playerProgress.earnedCards).filter(id => playerProgress.earnedCards[id] > 0);
+    if(ids.length === 0){
+      body = `<div class="leaderboard-status">Your bag is empty. Open a Pack to start earning cards.</div>`;
+    } else {
+      ids.sort((a, b) => {
+        const diff = playerProgress.earnedCards[b] - playerProgress.earnedCards[a];
+        if(diff !== 0) return diff;
+        return (findCardById(a)?.name || a).localeCompare(findCardById(b)?.name || b);
+      });
+      body = `
+        <p class="graveyard-hint">${ids.length} card${ids.length===1?'':'s'} earned from Packs and Rivals.</p>
+        <div class="rivals-picker-grid">
+          ${ids.map(id => {
+            const card = findCardById(id);
+            if(!card) return '';
+            return cardFace(card, { noInfo:false, countBadge: playerProgress.earnedCards[id] });
+          }).join('')}
+        </div>`;
+    }
+  }
+  return `
+    <div class="modal-overlay" id="bag-overlay">
+      <div class="modal-poster packs-modal">
+        <button class="modal-close" id="bag-close">✕</button>
+        <h3>🎒 My Bag</h3>
+        <div class="bag-wallet"><span class="bag-coin">🪙</span> <b>${playerProgress.points.toLocaleString()}</b> points</div>
+        ${body}
+      </div>
+    </div>`;
+}
+
 function renderModal(){
   if(!state.viewingCard) return '';
   const c = state.viewingCard;
@@ -5519,6 +5588,7 @@ function cardFace(card, opts={}){
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
       ${card.element ? `<div class="element-badge" title="${card.element}${ELEMENT_BEATS[card.element] ? '' : ' (outside the Elemental Clash cycle)'}">${ELEMENT_ICONS[card.element]}</div>` : ''}
       ${opts.petrified ? `<div class="petrified-badge" title="Petrified — can't use its Special Attack">🗿</div>` : ''}
+      ${opts.countBadge ? `<div class="count-badge" title="You own ${opts.countBadge} of this card">×${opts.countBadge}</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
       ${opts.specialInfo ? `<div class="special-diamond ${opts.specialInfo.ready ? 'ready' : 'locked'}" title="${opts.specialInfo.title}${opts.specialInfo.ready ? ' — tap to unleash' : ' (not enough wins yet)'}"></div>` : ''}
       ${opts.shieldFlash ? `<div class="skill-pop shield">🛡 Shield!</div>` : ''}
@@ -5661,6 +5731,7 @@ function renderDraft(){
         <div class="leaderboard-name-hint" style="flex:1;">${playerProgress.campaignClearedOnce ? 'Every match earns points — spend them on packs, or wager earned cards against a Rival.' : 'Clear the whole Campaign once to unlock packs and Rivals. Every match still earns points toward it.'}</div>
         <button class="ghost packs-open-btn" id="packs-open-btn">🎁 Packs</button>
         <button class="ghost packs-open-btn" id="rivals-open-btn">⚔️ Rivals</button>
+        <button class="ghost packs-open-btn" id="bag-open-btn">🎒 My Bag</button>
       </div>
 
       ${matchStats.matches > 0 ? `
@@ -7323,6 +7394,25 @@ function attachHandlers(){
   if(rivalsBackBtn) rivalsBackBtn.addEventListener('click', ()=>{
     state.rivalView = null;
     state.rivalPicked = [];
+    render();
+  });
+
+  // My Bag: same open/close/overlay wiring shape as Packs/Rivals above,
+  // but read-only -- no buy/wager buttons, just a browsable grid.
+  const bagOpenBtn = document.getElementById('bag-open-btn');
+  if(bagOpenBtn) bagOpenBtn.addEventListener('click', ()=>{
+    state.showBag = true;
+    render();
+  });
+  const bagOverlay = document.getElementById('bag-overlay');
+  if(bagOverlay){
+    bagOverlay.addEventListener('click', (e)=>{
+      if(e.target.id === 'bag-overlay') { state.showBag = false; render(); }
+    });
+  }
+  const bagClose = document.getElementById('bag-close');
+  if(bagClose) bagClose.addEventListener('click', ()=>{
+    state.showBag = false;
     render();
   });
 
@@ -12868,7 +12958,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
