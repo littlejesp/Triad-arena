@@ -5231,6 +5231,125 @@ av — en kärlekstriangel), väntar på sitt porträtt. Nya permanenta
 regressionstest för Freya och Zidane täcker alla nya mekaniker och
 tier-gatingen. Hela testsviten grön: **175/175**.
 
+**Fas 42. Femte pack-exklusiva kortet: Ruby, The Astral Summoner
+(Mystic).** Slutet på kärlekskvadraten: en summoner som kan tillkalla
+gudar, och det är hon — inte Freya — som Zidane faktiskt är kär i, per
+användarens egna ord. Ett vakt-/beskyddar-kit: Astral Ward (samma
+`shield`-primitiv som resten av rostret), Divine Favor
+(`vsStrongerTotalPowerBoost`, +3 mot ett starkare mål), och en helt ny
+mekanik på användarens direkta specifikation ("om någon gud exempelvis
+shiva eller bahamut... är på brädet blir hon superfarlig för dom är
+hennes bästa vänner") — Godly Kinship (`allyGodBoost:{amount,max}`):
++2 Kraft för varje EGEN "gud" på brädet (rostrets egna `role`-taggar
+"Mythic Card"/"Mystic Card", återanvända direkt via regex istället för
+att hårdkoda en id-lista, så alla FRAMTIDA gudomliga kort automatiskt
+räknas som hennes vänner också), upp till +6.
+
+**Självfångad bugg innan leverans**: satte först `max:6` och trodde det
+begränsade SLUTSUMMAN till +6 — men det här kodbasens etablerade
+`{amount,max}`-mönster (bekräftat mot `auraPerPetrifiedEnemy`) begränsar
+i själva verket ANTALET kvalificerande föremål, inte slutsumman. Med 4
+gudar på brädet gav `max:6` faktiskt +8 (min(4,6)×2), inte +6. Fixat
+till `max:3` (3 gudar × 2 = +6, matchar korttextens "upp till +6").
+Special Attack: Godsfall är en GARANTERAD fångst (ingen
+stat-jämförelse alls, till skillnad från varje annat
+enmåls-Special i filen) — bara en Shield stoppar den, samma
+"skölden skyddar ändå sin ägare"-regel som Gamblers Ultima. Nytt
+permanent regressionstest låser fast både mekaniken och maxtaks-fixen.
+Hela testsviten grön: **176/176**.
+
+**Fas 43. Sjätte och sjunde pack-exklusiva korten: Kade (Epic) och
+Selene (Legendary) — ett helt nytt kärlekspar, separat från
+Freya/Zidane/Ruby-kvadraten.** Användarens egen beskrivning: "ghetto
+killen som krigar för en ljus framtid" — en gatuprofet med en
+spådomsboll (visar en framtida stad, ett kramande par) och en trogen
+hund vid sin sida. Den andra bilden, bara textad "The couple", är den
+enda konst vi har av Selene — ingen separat solo-bild ännu, så hennes
+full-/thumbnail-konst är beskuren från den delade kramar-bilden (mitt
+eget beslut, lätt att byta ut om en solo-bild dyker upp senare).
+Bekräftat via `AskUserQuestion`: de två går in som 6:e/7:e
+pack-exklusiva kort (inte Rival-exklusiva kort, som fortfarande är en
+separat, opåbörjad idé), döpta Kade och Selene efter användarens eget
+val mellan förslag.
+
+Bindningsmekaniken återanvänder `pairPresence` rakt av (samma fält som
+Darien/Elara, Twin Brothers/Twin Sisters) — "får bonus medan den andra
+är någonstans på brädet" ÄR redan spelets egen "par"-mekanik, inget
+nytt motorstöd behövdes. Kade (Epic) lutar mot "underdog som slåss för
+en bättre morgondag" (återanvänder `boardUnderdogAttackBonus`) plus en
+egen Special, Glimpse of Dawn — unik i filen genom att den lyckas på
+OAVGJORT (`>=`) istället för att kräva strikt högre Kraft, eftersom
+"han redan såg exakt detta ögonblick komma". Selene (Legendary) är den
+lugna/skyddande kontrasten: `onWinCleanseAlly` (återanvänt från Elara)
+och en Special som ger hela sidan en Shield istället för en
+statbuff (Freya äger redan "buffa alla"-formen). Tiers delade isär med
+flit (precis som Zidane/Ruby delar Mystic) så att dra det ena aldrig
+garanterar det andra.
+
+**Bugg hittad och fixad under eget testskrivande**: `onWinCleanseAlly`
+väljer en SLUMPMÄSSIG allierad, och vid den tidpunkten har det nyss
+erövrade kortet REDAN flippats till segrarens sida (se
+`checkOnWinBonuses`s egen kommentar om detta) — så det finns alltid
+minst två kandidater, och vilken som väljs är ett myntkast. Ett första
+testförsök antog fel att bara Selene själv kunde väljas och floppade
+slumpmässigt; fixat genom att verifiera BÅDA möjliga utfallen istället
+för att gissa vilket som händer. Hela testsviten grön: **177/177**.
+
+**Fas 44. Åttonde pack-exklusiva kortet: Vaseir, The Vaultbound
+Devourer (Mystic).** Användarens egna ord: en orm som vaktar en skatt
+som också heter Vaseir, och "alla som har försökt ta skatten har blivit
+mat" — läst rakt av som kortets hela kit. Högsta stat-summan hittills
+(40). Tre återanvända fält: `onWinDestroyLoserAlways` (redan beprövat
+på Nexzoth — "blir mat" är en DESTROY, inte en vanlig fångst, rutan blir
+tom istället för att flippa), `shield:true` (han lämnar aldrig sin
+skatt — till skillnad från Nexzoth, som saknar Shield helt), och
+`buffOnEnemyDestroyed` (Morvaths eget fält). Special Attack: Swallowed
+Whole är en garanterad DESTROY (inte fångst) på ett valt mål, samma
+skydds-kedja (`specialBlockedByShield`/`isDestroyImmune`/
+`protectedByInfiniteSeraph`) som Rubys Godsfall och Shivas Void-kraft
+redan använder.
+
+**En riktig, tidigare dold motor-bugg hittades och fixades under
+byggandet**: `onCaptureBonus` (mitt första val för tredje passiven)
+tickade aldrig, eftersom det fältet bara appliceras via
+flipp-vägen (kollar om rutan fortfarande tillhör segraren EFTER
+striden) — men `destroyCard()` nollställer ju rutan, så kontrollen
+misslyckas alltid för ett destroy-baserat kit. Bytte till
+`buffOnEnemyDestroyed` istället, som är inbyggt direkt i
+`destroyCard()` — men DEN hade i sin tur en egen, subtilare bugg:
+`destroyCard`s gissning om vem som ska belönas (`beneficiaryOwner`)
+baserades på den förstörda rutans `entry.owner`, men vid tiden
+`checkOnWinBonuses` anropar den för `onWinDestroyLoserAlways` har den
+rutan REDAN flippats till segrarens sida (se `battleNeighbors`) —
+gissningen pekade alltså bakvänt, och bonusen gick aldrig till rätt
+spelare. Detta har suttit dolt i Nexzoths REDAN LEVERERADE kort ända
+sedan Fas 7 (samma kombination av `onWinDestroyLoserAlways` +
+`buffOnEnemyDestroyed`), utan att något tidigare test fångade det
+eftersom testerna alltid anropat `destroyCard()` direkt istället för
+via en riktig vinst-flipp. Fixat genom att låta `destroyCard` acceptera
+ett explicit `opts.beneficiaryOwner`, och `onWinDestroyLoserAlways`s
+anropsplats skickar nu `winnerEntry.owner` rakt av istället för att
+gissa. Nytt regressionstest på Nexzoth-testet (via den riktiga
+`resolveFlips`-vägen, inte en bar `destroyCard()`-anrop) låser fast
+fixen retroaktivt. Hela testsviten grön: **179/179**.
+
+**Fas 45. Nionde pack-exklusiva kortet: Balalajka, The Coinsong
+Trickster (Legendary) — Vaseirs "konstiga bror".** Samma
+krönta-orm-på-en-skatthög-silhuett, men han spelar balalajka istället
+för att sluka inkräktare — den avsiktligt komiska/charmiga motpolen
+till sin brors rena förintelse. Delad isär från Vaseirs Mystic-nivå ner
+till Legendary (samma "dra-det-ena-garanterar-inte-det-andra"-princip
+som Kade/Selene), på min egen bedömning efter användarens uttryckliga
+"Dessa kort finns inte bara i rare. Du bestämmer standaren." Kit:
+`pairPresence` mot Vaseir (samma syskon-bindning som Kade/Selene, fast
+för ett mycket annorlunda "par"), `onWinDebuffLoserPermanent` (Torns
+eget fält — det erövrade kortets vilja bryts permanent av hans hånfulla
+sång), och Special Attack: Thieving Serenade — samma
+tröskel-+`SpecialVerbs.stealPower`-form som Twisted Gipsys House of
+Shadows/Darons Shattered Crown redan använder. Nio pack-exklusiva kort
+totalt nu, tre tydliga syskon-/kärlekspar (Freya↔Zidane↔Ruby-triangeln,
+Kade↔Selene, Vaseir↔Balalajka). Hela testsviten grön: **179/179**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

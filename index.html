@@ -3677,6 +3677,11 @@ const CARD_IMAGES = {
   reaperseraph: 'cards/card-reaperseraph.jpg',
   freya: 'cards/card-freya.jpg',
   zidane: 'cards/card-zidane.jpg',
+  ruby: 'cards/card-ruby.jpg',
+  kade: 'cards/card-kade.jpg',
+  selene: 'cards/card-selene.jpg',
+  vaseir: 'cards/card-vaseir.jpg',
+  balalajka: 'cards/card-balalajka.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3757,6 +3762,11 @@ const FULL_CARD_IMAGES = {
   reaperseraph: 'card-reaperseraph-full.jpg',
   freya: 'card-freya-full.jpg',
   zidane: 'card-zidane-full.jpg',
+  ruby: 'card-ruby-full.jpg',
+  kade: 'card-kade-full.jpg',
+  selene: 'card-selene-full.jpg',
+  vaseir: 'card-vaseir-full.jpg',
+  balalajka: 'card-balalajka-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -4876,6 +4886,165 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Twin Blade Fury (Passive)', desc:'Each time Zidane wins a battle, he gains +1 Power on all sides, up to 3 times per match.'},
       {name:"Hero's Charisma (Passive)", desc:'While at least 2 of your other cards are adjacent to Zidane, he gains +1 Power on all sides — everyone wants to fight beside him, whatever he himself is still trying to figure out.'},
       {name:'Special Attack: Trance', desc:'Costs 3 wins. Zidane\'s true power awakens — he permanently gains +4 Power on all sides. Usable once per match.'},
+    ] },
+  // Fifth pack-exclusive card, closing the love-square the user built
+  // across these four cards: Ruby, a summoner who can call forth gods
+  // themselves -- and per the user's own words, she's who Zidane
+  // actually likes, not Freya (who's still quietly in love with him).
+  // Shares Mystic tier with Zidane -- there's no fifth pack tier above
+  // it, and "summons gods" earns the top bracket on its own merits.
+  // Stats (38) match Zidane's own tier level. Kit: a guardian/protective
+  // theme (shield, plus a divine-intervention comeback bonus reusing the
+  // already-established vsStrongerTotalPowerBoost field) for the two
+  // passives, then an Ultimate that breaks from every other exclusive
+  // card's threshold-check shape entirely -- Godsfall is a GUARANTEED
+  // capture (still respects a Shield, same as Gambler's own board-wide
+  // Ultima), representing an actual god's intervention rather than a
+  // contest of stats.
+  { id:'ruby', name:'Ruby', role:'The Astral Summoner — Pack Exclusive (Mystic)', element:'fire',
+    top:10, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#2a0f10,#0d0b18 60%)', accent:'#e0304a', icon:'🔮',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ shield:true, vsStrongerTotalPowerBoost:{amount:3}, allyGodBoost:{amount:2, max:3} },
+    special:{ name:'Godsfall', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Astral Ward (Passive)', desc:'The first time Ruby would lose a battle, a summoned guardian intercepts it — the loss is ignored and she keeps her position.'},
+      {name:'Divine Favor (Passive)', desc:'When Ruby attacks a card with a higher total Power than her own, the gods lend her their strength — she gains +3 Power in that battle.'},
+      {name:'Godly Kinship (Passive)', desc:'For every true god on your side of the board (a Mythic or Mystic Card — Shiva, Bahamut, and others like them), Ruby gains +2 Power on all sides, up to +6 — they are her oldest and dearest friends.'},
+      {name:'Special Attack: Godsfall', desc:"Costs 3 wins. Choose an enemy card — a god's wrath descends and claims it outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Sixth and seventh pack-exclusive cards: a new couple, separate from
+  // the Freya/Zidane/Ruby love-square -- per the user's own framing,
+  // "ghetto killen som krigar för en ljus framtid" (a street kid fighting
+  // for a brighter future), a seer whose scrying orb shows a possible
+  // future (a besieged city, a couple embracing), with a loyal dog at
+  // his side. The second image, captioned simply "The couple", is the
+  // only art we have of Selene -- there's no separate solo portrait of
+  // her yet, so her full/thumbnail art is cropped from that shared
+  // embrace image (my own judgment call; easy to swap later if a solo
+  // piece arrives). User confirmed via AskUserQuestion: these two join
+  // PACK_EXCLUSIVE_CARDS as a 6th/7th card (not Rival-exclusive cards,
+  // which are still a separate, not-yet-started idea), named Kade and
+  // Selene.
+  //
+  // Bond mechanic: reuses the EXISTING pairPresence field (already
+  // proven on Darien/Elara, Twin Brothers/Twin Sisters, etc.) rather
+  // than inventing a new "couple" mechanic -- "each gets +Power while
+  // the other is anywhere on the board" already IS the couple mechanic
+  // this engine has, so no new engine surface needed for what the user
+  // showed. Tiers: Kade Epic (alongside Reaper), Selene Legendary
+  // (alongside Freya) -- split rather than sharing one tier, so pulling
+  // one doesn't guarantee the other; stats (36/37) match their tier
+  // peers exactly.
+  //
+  // Kade leans into "underdog fighting for a better tomorrow" (reused
+  // boardUnderdogAttackBonus, already proven on Reaper/Sylvarion/Torn)
+  // plus his own vision-flavored Special: unlike every other single-
+  // target Special in this file (which require the attacker's total
+  // Power to be STRICTLY greater), Glimpse of Dawn succeeds on a TIE
+  // too (>=) -- "he already saw this exact moment coming."
+  //
+  // Selene is the contrasting calm/protective half: onWinCleanseAlly
+  // (reused from Elara) for "she steadies him", and a Special that
+  // grants her whole side a Shield (SpecialVerbs.grantShield, reused
+  // from Pallis's Wave of Loyalty) rather than a stat buff -- Freya
+  // already owns the "buff everyone" AOE shape, so Selene's is a
+  // distinct protector archetype instead of a reskin.
+  { id:'kade', name:'Kade', role:'The Streetborn Seer — Pack Exclusive (Epic)', element:'shadow',
+    top:8, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c1420,#0d0b18 60%)', accent:'#a568f2', icon:'👁️',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'selene', amount:2}, boardUnderdogAttackBonus:2 },
+    special:{ name:'Glimpse of Dawn', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Bound by Fate (Passive)', desc:'While Selene is anywhere on the board, Kade gains +2 Power on all sides — whatever else is falling apart around him, she\'s the one steady thing.'},
+      {name:'Streetwise (Passive)', desc:'While you control fewer cards on the board than your opponent, Kade gains +2 Power when attacking — he\'s used to fighting for a future no one thinks he\'ll get.'},
+      {name:'Special Attack: Glimpse of Dawn', desc:"Costs 2 wins. Choose an adjacent enemy card — if Kade's total Power is equal to or greater than the target's, he already saw this moment coming and claims it, permanently gaining +1 Power on all sides. Usable once per match."},
+    ] },
+  { id:'selene', name:'Selene', role:'The Steadfast Light — Pack Exclusive (Legendary)', element:'light',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#241c14,#0d0b18 60%)', accent:'#f2d675', icon:'🌙',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'kade', amount:2}, onWinCleanseAlly:true },
+    special:{ name:"Selene's Embrace", cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Bound by Fate (Passive)', desc:'While Kade is anywhere on the board, Selene gains +2 Power on all sides — she\'d follow him into any alley in the world.'},
+      {name:'Steady Light (Passive)', desc:'Each time Selene wins a battle, she cleanses the negative effects from one ally — she keeps everyone around her standing.'},
+      {name:"Special Attack: Selene's Embrace", desc:'Costs 2 wins. Every card on your side of the board gains a protective Shield, if it doesn\'t already have one. Usable once per match.'},
+    ] },
+  // Eighth pack-exclusive card, per the user's own words: a serpent
+  // guarding a treasure that's ALSO named Vaseir, and "everyone who's
+  // tried to take the treasure has become food" -- read literally as the
+  // card's whole kit. Mystic tier (joining Zidane/Ruby) and the highest
+  // stat total yet (40) -- the art alone (a titan of a coiled, crowned
+  // serpent atop a mountain of skulls and gold) earns the ceiling on its
+  // own merits, same judgment call as Ruby's own Mystic placement.
+  //
+  // Kit is three EXISTING fields, no new engine surface needed:
+  // - onWinDestroyLoserAlways (already proven on Nexzoth): "becomes
+  //   food" is a DESTROY, not an ordinary capture -- the loser's cell
+  //   goes empty via destroyCard() rather than flipping to Vaseir's side.
+  // - shield:true: he never leaves his hoard -- a stationary, well-
+  //   defended guardian, unlike Nexzoth (who has no Shield at all),
+  //   which is the deliberate point of difference from that precedent.
+  // - buffOnEnemyDestroyed:true (Morvath's own field, generic hook baked
+  //   directly into destroyCard() itself): every soul he devours swells
+  //   the hoard, and him with it. NOT onCaptureBonus -- tried that first,
+  //   but onCaptureBonus is only ever applied via the FLIP path (checked
+  //   against result.flips / the cell still belonging to the winner), so
+  //   it silently never fires once destroyCard() has already nulled the
+  //   cell (caught live: a verification run showed captureBonus staying
+  //   at 0 after a destroy-win). buffOnEnemyDestroyed is wired straight
+  //   into destroyCard() itself regardless of what caused the destroy,
+  //   so it actually works with this kit.
+  // Special ("Swallowed Whole") is a single-target GUARANTEED destroy
+  // (not capture) -- same specialBlockedByShield/isDestroyImmune/
+  // protectedByInfiniteSeraph guard chain Shiva's Void power and Ruby's
+  // Godsfall already use for their own destroy/guaranteed-capture paths,
+  // just calling destroyCard() at the end instead of a flip.
+  { id:'vaseir', name:'Vaseir', role:'The Vaultbound Devourer — Pack Exclusive (Mystic)', element:'earth',
+    top:10, right:10, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#c9a227', icon:'🐍',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ onWinDestroyLoserAlways:true, shield:true, buffOnEnemyDestroyed:true },
+    special:{ name:'Swallowed Whole', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:"The Vault's Curse (Passive)", desc:'Each time Vaseir wins a battle, the defeated card is destroyed outright instead of captured — no one who challenges him keeps their place on the board.'},
+      {name:'Coiled Guardian (Passive)', desc:'The first time Vaseir would lose a battle, his coils absorb the blow — the loss is ignored and he keeps his position.'},
+      {name:'Growing Hoard (Passive)', desc:'Each time any enemy card is destroyed by any means, Vaseir permanently gains +1 Power on all sides — the hoard, and its keeper, only grow.'},
+      {name:'Special Attack: Swallowed Whole', desc:"Costs 3 wins. Choose an enemy card — Vaseir swallows it whole, destroying it outright regardless of stats (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Ninth pack-exclusive card: Vaseir's "weird brother", per the user's
+  // own words -- same crowned-serpent-on-a-hoard silhouette, but playing
+  // a balalaika instead of devouring intruders. Deliberately the comedic/
+  // charming counterpart rather than a reskinned threat: where Vaseir
+  // destroys outright, Balalajka just picks his victims' pockets and
+  // leaves their will to fight a little more broken. User confirmed via
+  // "Dessa kort finns inte bara i rare. Du bestämmer standaren" (these
+  // don't all belong in Rare, tier placement is my own call) -- Legendary
+  // here, one step below his brother's Mystic, splitting the two apart
+  // the same way Kade/Selene were split (pulling one never guarantees
+  // the other). Stats (37) match Freya/Selene's own Legendary level.
+  //
+  // Kit, three EXISTING fields again:
+  // - pairPresence:{partner:'vaseir', amount:2} -- the same sibling-bond
+  //   shape as Kade/Selene, reused for a very different kind of "pair".
+  // - onWinDebuffLoserPermanent:1 (Torn's own field): the captured card
+  //   is left permanently weaker, its resolve broken by his mocking song
+  //   -- not just claimed, undermined.
+  // - Special "Thieving Serenade" reuses the exact single-target
+  //   threshold+SpecialVerbs.stealPower shape Twisted Gipsy/Daron already
+  //   use for their own "steal power on capture" kit.
+  { id:'balalajka', name:'Balalajka', role:'The Coinsong Trickster — Pack Exclusive (Legendary)', element:'wind',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#c9a227', icon:'🪕',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'vaseir', amount:2}, onWinDebuffLoserPermanent:1 },
+    special:{ name:'Thieving Serenade', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Brothers in Hoard (Passive)', desc:'While Vaseir is anywhere on the board, Balalajka gains +2 Power on all sides — every hoard needs a soundtrack.'},
+      {name:'Dirge of Surrender (Passive)', desc:"Each time Balalajka captures a card, its resolve is broken by his mocking song — it permanently loses 1 Power on all sides."},
+      {name:'Special Attack: Thieving Serenade', desc:"Costs 2 wins. Choose an adjacent enemy card — if Balalajka's total Power is greater, his song lulls it as he lightens its coin purse, stealing 2 Power permanently and claiming the card. Usable once per match."},
     ] },
 ];
 
@@ -8004,7 +8173,18 @@ function destroyCard(index, opts){
   // path itself rather than duplicating the check into every handler that
   // calls destroyCard, so it fires no matter which effect (his own Abyssal
   // Grasp/Ultimate included) did the destroying.
-  const beneficiaryOwner = entry.owner === 'blue' ? 'red' : 'blue';
+  // opts.beneficiaryOwner lets a caller state the attacker's side directly
+  // instead of inferring it from entry.owner -- needed for
+  // onWinDestroyLoserAlways specifically, whose loserEntry.owner has
+  // ALREADY been flipped to the WINNER's own side by the time
+  // checkOnWinBonuses calls destroyCard (see battleNeighbors), which would
+  // otherwise make the entry.owner-based guess resolve to the loser's
+  // original side instead of the winner's — silently handing this bonus to
+  // the wrong player (caught live: Vaseir's own Growing Hoard never fired
+  // off his own onWinDestroyLoserAlways kills until this was added; the
+  // same silent miss already existed for Nexzoth, who's had this exact
+  // onWinDestroyLoserAlways + buffOnEnemyDestroyed combo since Fas 7).
+  const beneficiaryOwner = (opts && opts.beneficiaryOwner) || (entry.owner === 'blue' ? 'red' : 'blue');
   const morvath = state.board.find(e => e && e.owner === beneficiaryOwner && e.card.active && e.card.active.buffOnEnemyDestroyed);
   if(morvath) SpecialVerbs.attackBoost(morvath, 1);
   // Omega Weapon's Destroyer Protocol: the same "+1 per enemy destroyed this
@@ -8313,7 +8493,7 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   // target instead of capturing it, uncapped, and skips the Graveyard
   // (noRevive) per the art's explicit "cannot be revived".
   if(a.onWinDestroyLoserAlways && loserIndex != null && !isDestroyImmune(loserEntry)){
-    destroyCard(loserIndex, { noRevive: true });
+    destroyCard(loserIndex, { noRevive: true, beneficiaryOwner: winnerEntry.owner });
   }
   // Vorgrath's Crushing Weight: "-1 Power to all opponent's cards next
   // round" — approximated as an immediate one-round debuff to every enemy
@@ -9251,6 +9431,21 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   {
     const auraGiver = state.board.find((e, i) => i !== cellIndex && e && e.owner === owner && e.card.active && e.card.active.allyAuraFlat);
     if(auraGiver) v += auraGiver.card.active.allyAuraFlat;
+  }
+  // Ruby's Godly Kinship: "if a god -- Shiva, Bahamut, or some -- is on
+  // the board, she becomes super dangerous, because they're her best
+  // friends" (the user's own words). This roster's own flavor text
+  // marks its actual deity-tier cards with "Mythic Card" or "Mystic
+  // Card" in their role string (Shiva/Odin/Omega Weapon/Leviathan/
+  // Morvath/Nexzoth are "Mythic"; Bahamut/Ancient Wyrmking/Fenrir/Three
+  // Head Dragon are "Mystic") -- reused directly as the "is this a god"
+  // check rather than hand-listing ids, so any FUTURE Mythic/Mystic
+  // card automatically counts as one of Ruby's friends too. Capped at
+  // 3 gods (+6) so a deliberately stacked god-heavy hand doesn't spiral.
+  if(card.active && card.active.allyGodBoost){
+    const cfg = card.active.allyGodBoost;
+    const godAllies = state.board.filter((e, i) => i !== cellIndex && e && e.owner === owner && /M(yth|yst)ic Card/.test(e.card.role||'')).length;
+    v += Math.min(godAllies, cfg.max) * cfg.amount;
   }
   // The Concord's Synchronized Souls / United Presence -- same two live
   // headcount reads as staticLiveBonusFor's own copy above, kept in sync
@@ -10649,6 +10844,80 @@ const SPECIAL_HANDLERS = {
   zidane({ srcEntry, owner }){
     SpecialVerbs.attackBoost(srcEntry, 4);
     return `${srcEntry.card.name} enters Trance — his true power awakens!`;
+  },
+  // Ruby's Godsfall: a GUARANTEED capture, no totalPower comparison at
+  // all -- every other single-target special in this file checks a
+  // threshold first. Only a Shield can stop it (specialBlockedByShield,
+  // same check Gambler's board-wide Ultima already uses for the same
+  // "shields still protect their own owner" wording).
+  ruby({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Godsfall!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name} calls down Godsfall — ${targetEntry.card.name} is claimed outright!`;
+  },
+  // Kade's Glimpse of Dawn: the only single-target threshold Special in
+  // this file that succeeds on a TIE (>=) rather than requiring strictly
+  // greater Power -- "he already saw this exact moment coming", not a
+  // contest he has to win outright. No specialBlockedByShield check,
+  // same as Twin Brothers/Twin Sisters/Dragon's own threshold Specials.
+  kade({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) < totalPower(targetEntry)){
+      return `${name}'s Glimpse of Dawn shows a future that doesn't come to pass!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 1);
+    return `${name}'s Glimpse of Dawn comes true — ${targetEntry.card.name} falls into place!`;
+  },
+  // Selene's Embrace: grants a Shield to her whole side (SpecialVerbs.
+  // grantShield, reused from Pallis's Wave of Loyalty) instead of a
+  // stat buff -- Freya's Sanctuary's Blessing already owns the "buff
+  // everyone" AOE shape, so Selene gets the protector archetype instead.
+  selene({ srcEntry, owner }){
+    const allies = state.board.filter(e => e && e.owner === owner);
+    allies.forEach(e => SpecialVerbs.grantShield(e));
+    return `${srcEntry.card.name}'s Embrace wraps your whole side in a steadying Shield!`;
+  },
+  // Vaseir's Swallowed Whole: a GUARANTEED destroy, not a capture --
+  // same shield/immunity guard chain as Ruby's Godsfall and Shiva's Void
+  // power (specialBlockedByShield, isDestroyImmune, protectedByInfiniteSeraph),
+  // but ends in destroyCard() instead of a flip, matching his own passive
+  // ("becomes food", not "changes sides").
+  vaseir({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds -- ${name} cannot swallow it whole!`;
+    }
+    if(isDestroyImmune(targetEntry) || protectedByInfiniteSeraph(targetEntry.owner)){
+      return `${targetEntry.card.name} resists ${name}'s hunger!`;
+    }
+    const victimName = targetEntry.card.name;
+    destroyCard(targetIndex);
+    return `${name} swallows ${victimName} whole — another soul joins the hoard!`;
+  },
+  // Balalajka's Thieving Serenade: same single-target threshold +
+  // SpecialVerbs.stealPower shape as Twisted Gipsy's House of Shadows /
+  // Daron's Shattered Crown.
+  balalajka({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Thieving Serenade falls on deaf ears!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Thieving Serenade!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
+    return `${name}'s Thieving Serenade lulls ${targetEntry.card.name} — its coin purse is a little lighter now!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all

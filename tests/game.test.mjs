@@ -1780,6 +1780,22 @@ test('Nexzoth: Reality Consume adjacency aura, Endless Void round-start drain, w
     destroyCard(1);
     out.devourerGainedPower = devSrc.captureBonus === 1;
 
+    // Bug fix (found while building Vaseir, applies retroactively to
+    // Nexzoth): Devourer must ALSO fire off Nexzoth's own World Shatter
+    // kills, going through the REAL win path (resolveFlips), not just a
+    // bare destroyCard() call. destroyCard's beneficiaryOwner used to be
+    // guessed from the destroyed entry's OWNER, but by the time
+    // checkOnWinBonuses calls it for onWinDestroyLoserAlways, that
+    // entry.owner has ALREADY been flipped to the winner's own side --
+    // silently making the guess resolve backwards and Devourer never
+    // trigger from Nexzoth's own kills at all.
+    state.board = Array(9).fill(null);
+    const devSrc2 = freshEntry(nexzoth, 'blue');
+    state.board[4] = devSrc2;
+    state.board[1] = freshEntry({ id:'dev-target2', name:'DevTarget2', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.devourerFiresFromOwnWorldShatterKill = devSrc2.captureBonus === 1;
+
     // The Ending, simplified per the approved art: enemy-only now (spares
     // allies, unlike before), still respects destroyImmune, skips the
     // Graveyard entirely.
@@ -1812,6 +1828,7 @@ test('Nexzoth: Reality Consume adjacency aura, Endless Void round-start drain, w
   assert.equal(result.worldShatterSkippedGraveyard, true, "World Shatter's destroy cannot be revived, even with the Graveyard rule on");
   assert.equal(result.worldShatterRepeatsEveryWin, true, 'World Shatter is uncapped now (no once-per-match flag, unlike Morvath\'s line-AOE)');
   assert.equal(result.devourerGainedPower, true);
+  assert.equal(result.devourerFiresFromOwnWorldShatterKill, true, 'Devourer must fire from a real World Shatter win, not just a bare destroyCard() call');
   assert.equal(result.endingKeepsSelf, true);
   assert.equal(result.endingSparesOwnSide, true, 'The Ending now spares allies, matching the approved art');
   assert.equal(result.endingDestroysEnemySide, true);
@@ -10721,6 +10738,390 @@ test('Fas 41: fourth pack-exclusive card -- Zidane (Mystic), a momentum/combo ki
   assert.equal(result.tranceBuff, true);
   assert.equal(result.drawableFromMysticPack, true);
   assert.equal(result.neverFromLegendaryPack, true, "Zidane must only ever come from the Mystic tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 42: fifth pack-exclusive card -- Ruby (Mystic), a guardian/summoner kit; also locks in the allyGodBoost max-caps-the-COUNT-not-the-total fix', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const ruby = findCardById('ruby');
+    out.findable = ruby !== null && ruby.name === 'Ruby';
+    out.notInHeroes = !HEROES.some(h => h.id === 'ruby');
+    out.notInCampaignPool = !campaignPool().includes('ruby');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Astral Ward: the FIRST loss is ignored, a second loss is not (proven
+    // via the same shieldUsed/shield primitive every other Shield card uses).
+    state.board = Array(9).fill(null);
+    const rubyEntry = freshEntry(ruby, 'blue');
+    state.board[4] = rubyEntry;
+    out.hasShield = ruby.active.shield === true;
+
+    // Divine Favor: +3 when attacking a card with higher total Power.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(ruby, 'blue');
+    const strongerFoe = { id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 };
+    state.board[1] = freshEntry(strongerFoe, 'red');
+    out.divineFavorBonus = fullEffectiveValue(ruby, 'top', strongerFoe, 4, 'blue', 'attack') - ruby.top === 3;
+    const weakerFoe = { id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 };
+    state.board[1] = freshEntry(weakerFoe, 'red');
+    out.noDivineFavorVsWeaker = fullEffectiveValue(ruby, 'top', weakerFoe, 4, 'blue', 'attack') - ruby.top === 0;
+
+    // Godly Kinship: +2 per allied Mythic/Mystic-flavored god, capped at 3
+    // gods (+6 max) -- NOT capped-count-times-amount overshoot (the bug
+    // this session caught: max used to be 6, which meant up to 4 present
+    // gods gave +8, not the intended +6 ceiling).
+    const gods = ['shiva','bahamut','odin','leviathan'].map(id => findCardById(id));
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(ruby, 'blue');
+    out.noBonusAlone = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 0;
+    state.board[0] = freshEntry(gods[0], 'blue');
+    out.bonusWithOneGod = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 2;
+    state.board[1] = freshEntry(gods[1], 'blue');
+    out.bonusWithTwoGods = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 4;
+    state.board[2] = freshEntry(gods[2], 'red'); // enemy god must not count
+    out.enemyGodDoesNotCount = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 4;
+    state.board[2] = freshEntry(gods[2], 'blue');
+    state.board[3] = freshEntry(gods[3], 'blue'); // 4th allied god present
+    out.cappedAtSix = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 6;
+
+    // Special Attack: Godsfall -- a GUARANTEED capture regardless of stats,
+    // but a Shield still protects its owner.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(ruby, 'blue');
+    const strongUnshielded = { id:'strongunshielded', name:'StrongUnshielded', top:30,right:30,bottom:30,left:30 };
+    const strongUnshieldedEntry = freshEntry(strongUnshielded, 'red');
+    state.board[4] = src; state.board[5] = strongUnshieldedEntry;
+    SPECIAL_HANDLERS.ruby({ srcEntry: src, targetEntry: strongUnshieldedEntry, targetIndex: 5, owner: 'blue' });
+    out.capturedStrongUnshielded = strongUnshieldedEntry.owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(ruby, 'blue');
+    const shieldedTarget = freshEntry({ id:'shielded', name:'Shielded', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedTarget.grantedShield = true;
+    state.board[4] = src2; state.board[6] = shieldedTarget;
+    SPECIAL_HANDLERS.ruby({ srcEntry: src2, targetEntry: shieldedTarget, targetIndex: 6, owner: 'blue' });
+    out.shieldStillBlocksGodsfall = shieldedTarget.owner === 'red';
+
+    // buyPack: ruby only from the Mystic tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInMystic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.ruby) sawInMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.ruby) sawInLegendary = true;
+    }
+    out.drawableFromMysticPack = sawInMystic;
+    out.neverFromLegendaryPack = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.hasShield, true, 'Astral Ward is backed by the standard active.shield primitive');
+  assert.equal(result.divineFavorBonus, true, 'Divine Favor must grant +3 when attacking a stronger card');
+  assert.equal(result.noDivineFavorVsWeaker, true, 'Divine Favor must not trigger against a weaker card');
+  assert.equal(result.noBonusAlone, true);
+  assert.equal(result.bonusWithOneGod, true);
+  assert.equal(result.bonusWithTwoGods, true);
+  assert.equal(result.enemyGodDoesNotCount, true, "an enemy god must not count toward Ruby's Godly Kinship");
+  assert.equal(result.cappedAtSix, true, 'Godly Kinship must cap at +6 total (3 gods x +2), not scale past it with a 4th god present');
+  assert.equal(result.capturedStrongUnshielded, true, 'Godsfall must guarantee a capture regardless of stat comparison');
+  assert.equal(result.shieldStillBlocksGodsfall, true, "a Shield must still protect its owner against Godsfall");
+  assert.equal(result.drawableFromMysticPack, true);
+  assert.equal(result.neverFromLegendaryPack, true, "Ruby must only ever come from the Mystic tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 43: sixth and seventh pack-exclusive cards -- Kade (Epic) and Selene (Legendary), a couple sharing the existing pairPresence bond mechanic', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const kade = findCardById('kade');
+    const selene = findCardById('selene');
+    out.kadeFindable = kade !== null && kade.name === 'Kade';
+    out.seleneFindable = selene !== null && selene.name === 'Selene';
+    out.notInHeroes = !HEROES.some(h => h.id === 'kade') && !HEROES.some(h => h.id === 'selene');
+    out.notInCampaignPool = !campaignPool().includes('kade') && !campaignPool().includes('selene');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Bound by Fate: mutual pairPresence, +2 while the other is anywhere
+    // on the board, same shape as Darien/Elara.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(kade, 'blue');
+    out.kadeNoBonusAlone = fullEffectiveValue(kade, 'top', null, 4, 'blue', 'defense') - kade.top === 0;
+    state.board[0] = freshEntry(selene, 'blue');
+    out.kadeBonusWithSelene = fullEffectiveValue(kade, 'top', null, 4, 'blue', 'defense') - kade.top === 2;
+    out.seleneBonusWithKade = fullEffectiveValue(selene, 'top', null, 0, 'blue', 'defense') - selene.top === 2;
+
+    // Streetwise: +2 attacking while behind on board count.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(kade, 'blue');
+    state.board[0] = freshEntry({ id:'f1', name:'F1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'f2', name:'F2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.underdogAttackBonus = fullEffectiveValue(kade, 'top', null, 4, 'blue', 'attack') - kade.top === 2;
+    out.noUnderdogOnDefense = fullEffectiveValue(kade, 'top', null, 4, 'blue', 'defense') - kade.top === 0;
+
+    // Special Attack: Glimpse of Dawn succeeds on a TIE (>=), unlike every
+    // other single-target threshold Special in the file (which need strictly
+    // greater Power).
+    state.board = Array(9).fill(null);
+    const src = freshEntry(kade, 'blue');
+    const tiedTarget = freshEntry({ id:'tied', name:'Tied', top:9,right:9,bottom:9,left:9 }, 'red'); // total 36, same as Kade
+    state.board[4] = src; state.board[5] = tiedTarget;
+    SPECIAL_HANDLERS.kade({ srcEntry: src, targetEntry: tiedTarget, targetIndex: 5, owner: 'blue' });
+    out.tieCaptures = tiedTarget.owner === 'blue' && src.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(kade, 'blue');
+    const strongerTarget = freshEntry({ id:'stronger', name:'Stronger', top:20,right:20,bottom:20,left:20 }, 'red');
+    state.board[4] = src2; state.board[5] = strongerTarget;
+    SPECIAL_HANDLERS.kade({ srcEntry: src2, targetEntry: strongerTarget, targetIndex: 5, owner: 'blue' });
+    out.failsWhenStrictlyWeaker = strongerTarget.owner === 'red';
+
+    // Steady Light: on win, Selene cleanses a negative captureBonus among
+    // her side (existing onWinCleanseAlly hook, already proven on Elara).
+    // onWinCleanseAlly picks a RANDOM ally, and by the time it runs the
+    // just-captured enemy has ALREADY been flipped to Selene's side (see
+    // checkOnWinBonuses's own comment on loserEntry.owner), so there are
+    // TWO eligible allies here and which one gets picked is a coin flip --
+    // caught live via a failing run of this exact test before this comment
+    // was written. Made deterministic by checking BOTH possible outcomes:
+    // whichever of the two is picked ends at captureBonus 1 (cleanse-then-
+    // +1, or just +1 if it wasn't negative), the other is untouched.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const seleneEntry = freshEntry(selene, 'blue');
+    seleneEntry.captureBonus = -2;
+    state.board[4] = seleneEntry;
+    const weakEntry = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = weakEntry;
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.cleansedAlly = (seleneEntry.captureBonus === 1 && weakEntry.captureBonus === 0)
+      || (seleneEntry.captureBonus === -2 && weakEntry.captureBonus === 1);
+
+    // Special Attack: Selene's Embrace -- grants a Shield to her whole side.
+    state.board = Array(9).fill(null);
+    const s1 = freshEntry(selene, 'blue');
+    const ally1 = freshEntry({ id:'a1', name:'A1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = s1; state.board[0] = ally1;
+    SPECIAL_HANDLERS.selene({ srcEntry: s1, owner: 'blue' });
+    out.embraceShieldedBoth = s1.grantedShield === true && ally1.grantedShield === true;
+
+    // buyPack: Kade only from Epic, Selene only from Legendary -- pulling
+    // one never guarantees the other.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawKadeInEpic = false, sawKadeInLegendary = false, sawSeleneInLegendary = false, sawSeleneInEpic = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.kade) sawKadeInEpic = true;
+      if(playerProgress.earnedCards.selene) sawSeleneInEpic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.kade) sawKadeInLegendary = true;
+      if(playerProgress.earnedCards.selene) sawSeleneInLegendary = true;
+    }
+    out.kadeDrawableFromEpic = sawKadeInEpic;
+    out.kadeNeverFromLegendary = !sawKadeInLegendary;
+    out.seleneDrawableFromLegendary = sawSeleneInLegendary;
+    out.seleneNeverFromEpic = !sawSeleneInEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.kadeFindable, true);
+  assert.equal(result.seleneFindable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.kadeNoBonusAlone, true);
+  assert.equal(result.kadeBonusWithSelene, true, "Bound by Fate must give Kade +2 while Selene is on the board");
+  assert.equal(result.seleneBonusWithKade, true, "Bound by Fate must give Selene +2 while Kade is on the board");
+  assert.equal(result.underdogAttackBonus, true);
+  assert.equal(result.noUnderdogOnDefense, true, 'Streetwise must be attack-only, same gating as boardUnderdogAttackBonus everywhere else');
+  assert.equal(result.tieCaptures, true, "Glimpse of Dawn must succeed on a tie, unlike every other threshold Special");
+  assert.equal(result.failsWhenStrictlyWeaker, true);
+  assert.equal(result.cleansedAlly, true, "Steady Light must cleanse an ally's negative captureBonus on win");
+  assert.equal(result.embraceShieldedBoth, true, "Selene's Embrace must Shield her whole side, including herself");
+  assert.equal(result.kadeDrawableFromEpic, true);
+  assert.equal(result.kadeNeverFromLegendary, true, "Kade must only ever come from the Epic tier");
+  assert.equal(result.seleneDrawableFromLegendary, true);
+  assert.equal(result.seleneNeverFromEpic, true, "Selene must only ever come from the Legendary tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 44: eighth pack-exclusive card -- Vaseir (Mystic), a destroy-on-win guardian; also fixes destroyCard\'s beneficiaryOwner guess for onWinDestroyLoserAlways', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const vaseir = findCardById('vaseir');
+    out.findable = vaseir !== null && vaseir.name === 'Vaseir';
+    out.notInHeroes = !HEROES.some(h => h.id === 'vaseir');
+    out.notInCampaignPool = !campaignPool().includes('vaseir');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // The Vault's Curse + Growing Hoard: a normal battle win DESTROYS the
+    // loser outright (cell goes empty, never flips to Vaseir's side), and
+    // Vaseir still gains +1 Power from it -- the destroyCard() beneficiary
+    // fix this session added (see the Nexzoth test for the isolated bug).
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src = freshEntry(vaseir, 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'weak1', name:'Weak1', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.targetDestroyedNotCaptured = state.board[1] === null;
+    out.growingHoardGained = src.captureBonus === 1;
+
+    // A second kill stacks it further -- uncapped.
+    state.board[1] = freshEntry({ id:'weak2', name:'Weak2', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.growingHoardStacks = src.captureBonus === 2;
+
+    // Coiled Guardian: backed by the standard active.shield primitive.
+    out.hasShield = vaseir.active.shield === true;
+
+    // Special Attack: Swallowed Whole -- a GUARANTEED destroy regardless
+    // of stats, but a Shield still protects its owner.
+    state.board = Array(9).fill(null);
+    const s2 = freshEntry(vaseir, 'blue');
+    const strongUnshielded = freshEntry({ id:'strong', name:'Strong', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = s2; state.board[5] = strongUnshielded;
+    SPECIAL_HANDLERS.vaseir({ srcEntry: s2, targetEntry: strongUnshielded, targetIndex: 5, owner: 'blue' });
+    out.swallowedStrongUnshielded = state.board[5] === null;
+
+    state.board = Array(9).fill(null);
+    const s3 = freshEntry(vaseir, 'blue');
+    const shielded = freshEntry({ id:'shielded', name:'Shielded', top:1,right:1,bottom:1,left:1 }, 'red');
+    shielded.grantedShield = true;
+    state.board[4] = s3; state.board[6] = shielded;
+    SPECIAL_HANDLERS.vaseir({ srcEntry: s3, targetEntry: shielded, targetIndex: 6, owner: 'blue' });
+    out.shieldBlocksSwallow = state.board[6] !== null && state.board[6].owner === 'red';
+
+    // buyPack: vaseir only from the Mystic tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInMystic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.vaseir) sawInMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.vaseir) sawInLegendary = true;
+    }
+    out.drawableFromMystic = sawInMystic;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.targetDestroyedNotCaptured, true, "The Vault's Curse must DESTROY the loser (empty cell), not capture it");
+  assert.equal(result.growingHoardGained, true, 'Growing Hoard must fire off a destroy caused by his own onWinDestroyLoserAlways win');
+  assert.equal(result.growingHoardStacks, true);
+  assert.equal(result.hasShield, true);
+  assert.equal(result.swallowedStrongUnshielded, true, 'Swallowed Whole must guarantee a destroy regardless of stat comparison');
+  assert.equal(result.shieldBlocksSwallow, true, 'a Shield must still protect its owner against Swallowed Whole');
+  assert.equal(result.drawableFromMystic, true);
+  assert.equal(result.neverFromLegendary, true, 'Vaseir must only ever come from the Mystic tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 45: ninth pack-exclusive card -- Balalajka (Legendary), Vaseir\'s bard brother, a steal-on-capture kit', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const balalajka = findCardById('balalajka');
+    const vaseir = findCardById('vaseir');
+    out.findable = balalajka !== null && balalajka.name === 'Balalajka';
+    out.notInHeroes = !HEROES.some(h => h.id === 'balalajka');
+    out.notInCampaignPool = !campaignPool().includes('balalajka');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Brothers in Hoard: pairPresence with Vaseir, same shape as Kade/Selene.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(balalajka, 'blue');
+    out.noBonusAlone = fullEffectiveValue(balalajka, 'top', null, 4, 'blue', 'defense') - balalajka.top === 0;
+    state.board[0] = freshEntry(vaseir, 'blue');
+    out.bonusWithVaseir = fullEffectiveValue(balalajka, 'top', null, 4, 'blue', 'defense') - balalajka.top === 2;
+
+    // Dirge of Surrender: the just-captured card permanently loses 1 Power.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.board[4] = freshEntry(balalajka, 'blue');
+    state.board[1] = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.capturedAndDebuffed = state.board[1].owner === 'blue' && state.board[1].captureBonus === -1;
+
+    // Special Attack: Thieving Serenade -- threshold capture that also
+    // steals 2 Power from the target permanently.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(balalajka, 'blue');
+    const weakTarget = freshEntry({ id:'weak2', name:'Weak2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = src; state.board[5] = weakTarget;
+    SPECIAL_HANDLERS.balalajka({ srcEntry: src, targetEntry: weakTarget, targetIndex: 5, owner: 'blue' });
+    out.stolenAndCaptured = weakTarget.owner === 'blue' && weakTarget.captureBonus === -2 && src.captureBonus === 2;
+
+    // Fails against an equal-or-stronger target (strict > required, unlike
+    // Kade's own tie-succeeds Special).
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(balalajka, 'blue');
+    const equalTarget = freshEntry({ id:'equal', name:'Equal', top:9,right:9,bottom:10,left:9 }, 'red');
+    state.board[4] = src2; state.board[5] = equalTarget;
+    SPECIAL_HANDLERS.balalajka({ srcEntry: src2, targetEntry: equalTarget, targetIndex: 5, owner: 'blue' });
+    out.failsOnTie = equalTarget.owner === 'red';
+
+    // buyPack: Balalajka only from Legendary, never from Vaseir's Mystic tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInLegendary = false, sawInMystic = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.balalajka) sawInLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.balalajka) sawInMystic = true;
+    }
+    out.drawableFromLegendary = sawInLegendary;
+    out.neverFromMystic = !sawInMystic;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.noBonusAlone, true);
+  assert.equal(result.bonusWithVaseir, true, 'Brothers in Hoard must give +2 while Vaseir is on the board');
+  assert.equal(result.capturedAndDebuffed, true, 'Dirge of Surrender must permanently debuff the just-captured card');
+  assert.equal(result.stolenAndCaptured, true, 'Thieving Serenade must steal 2 Power on top of capturing the target');
+  assert.equal(result.failsOnTie, true, 'Thieving Serenade requires strictly greater Power, unlike Glimpse of Dawn');
+  assert.equal(result.drawableFromLegendary, true);
+  assert.equal(result.neverFromMystic, true, "Balalajka must only ever come from the Legendary tier, never his brother's Mystic tier");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
