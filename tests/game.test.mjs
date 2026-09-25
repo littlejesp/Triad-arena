@@ -10591,3 +10591,136 @@ test('Fas 39: second pack-exclusive card -- Reaper (reaperseraph), an Epic-tier 
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 40: third pack-exclusive card -- Freya (Legendary), a pure support kit contrasting Dragon/Reaper\'s offensive kits', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const freya = findCardById('freya');
+    out.findable = freya !== null && freya.name === 'Freya';
+    out.notInHeroes = !HEROES.some(h => h.id === 'freya');
+    out.notInCampaignPool = !campaignPool().includes('freya');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Blooming Touch: the just-captured card (now allied) permanently +1.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.board[4] = freshEntry(freya, 'blue');
+    state.board[1] = freshEntry({ id:'weak1', name:'Weak1', top:1,right:1,bottom:1,left:1 }, 'red');
+    const battleResult = { flipSeq:0, flips:0, shielded:0, bonusTriggered:false };
+    battleNeighbors(4, 'blue', battleResult);
+    out.capturedAndBloomed = state.board[1].owner === 'blue' && state.board[1].captureBonus === 1;
+
+    // Grace of the Sanctuary: OTHER allies get +1, Freya herself does not,
+    // and no aura at all when she isn't on the board.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(freya, 'blue');
+    const ally = { id:'ally1', name:'Ally1', top:5,right:5,bottom:5,left:5 };
+    state.board[0] = freshEntry(ally, 'blue');
+    out.allyGetsBonus = fullEffectiveValue(ally, 'top', null, 0, 'blue', 'attack') - ally.top === 1;
+    out.freyaGetsNoSelfBonus = fullEffectiveValue(freya, 'top', null, 4, 'blue', 'attack') - freya.top === 0;
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(ally, 'blue');
+    out.noAuraWithoutFreya = fullEffectiveValue(ally, 'top', null, 0, 'blue', 'attack') - ally.top === 0;
+
+    // Special Attack: Sanctuary's Blessing buffs the whole side this round.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(freya, 'blue');
+    const a1 = freshEntry({ id:'a1', name:'A1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = src; state.board[0] = a1;
+    state.wins = { blue: 5, red: 5 };
+    SPECIAL_HANDLERS.freya({ srcEntry: src, owner: 'blue' });
+    out.blessingBuffedBoth = src.captureBonus === 2 && a1.captureBonus === 2;
+
+    // buyPack: freya only from the Legendary tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInLegendary = false, sawInEpic = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.freya) sawInLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.freya) sawInEpic = true;
+    }
+    out.drawableFromLegendaryPack = sawInLegendary;
+    out.neverFromEpicPack = !sawInEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.capturedAndBloomed, true, "Blooming Touch must permanently buff the just-captured card, not Freya herself");
+  assert.equal(result.allyGetsBonus, true, "Grace of the Sanctuary must buff other allied cards");
+  assert.equal(result.freyaGetsNoSelfBonus, true, "Freya's own aura must not buff herself");
+  assert.equal(result.noAuraWithoutFreya, true, 'the aura must require Freya actually being on the board');
+  assert.equal(result.blessingBuffedBoth, true);
+  assert.equal(result.drawableFromLegendaryPack, true);
+  assert.equal(result.neverFromEpicPack, true, "Freya must only ever come from the Legendary tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 41: fourth pack-exclusive card -- Zidane (Mystic), a momentum/combo kit reusing existing onWinCappedBoost/adjacentAlliesBoost fields', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const zidane = findCardById('zidane');
+    out.findable = zidane !== null && zidane.name === 'Zidane';
+    out.notInHeroes = !HEROES.some(h => h.id === 'zidane');
+    out.notInCampaignPool = !campaignPool().includes('zidane');
+
+    // Twin Blade Fury: +1 per win, capped at 3 -- proven by winning 4
+    // separate battles and confirming the 4th grants no further stacking.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src = freshEntry(zidane, 'blue');
+    state.board[4] = src;
+    for(let i = 0; i < 4; i++){
+      state.board[1] = freshEntry({ id:'w'+i, name:'W', top:1,right:1,bottom:1,left:1 }, 'red');
+      battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    }
+    out.cappedAtThree = src.captureBonus === 3;
+
+    // Special Attack: Trance -- a pure +4 permanent self-buff, no target.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(zidane, 'blue');
+    state.board[4] = src2;
+    state.wins = { blue: 5, red: 5 };
+    SPECIAL_HANDLERS.zidane({ srcEntry: src2, owner: 'blue' });
+    out.tranceBuff = src2.captureBonus === 4;
+
+    // buyPack: mystic tier only.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInMystic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.zidane) sawInMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.zidane) sawInLegendary = true;
+    }
+    out.drawableFromMysticPack = sawInMystic;
+    out.neverFromLegendaryPack = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.cappedAtThree, true, "Twin Blade Fury must cap at +3, same stacking-cap shape as Vaelira's Crimson Surge");
+  assert.equal(result.tranceBuff, true);
+  assert.equal(result.drawableFromMysticPack, true);
+  assert.equal(result.neverFromLegendaryPack, true, "Zidane must only ever come from the Mystic tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
