@@ -4985,6 +4985,17 @@ med 0 kvar (allt förlorat till en Rival) inte visas, och att
 guldmynts-plånboken faktiskt visar rätt poängsumma. Hela testsviten
 grön: **170/170**.
 
+**Fas 36 (uppföljning). Riktig ChatGPT-genererad ikon för My Bag.**
+Användaren skickade den genererade bilden direkt (en sliten
+guld/lila-läderpung med mynt och ett korthörn som tittar fram, exakt
+enligt briefen som skickades) — äkta alfa-transparens verifierad
+(RGBA, hörnpixlar (0,0,0,0)), beskuren/nedskalad från 1254×1254 till
+512×512 (samma konvention som `cell-rune.png`/`vfx-magiccircle.png`,
+~387KB). Sparad som `bag-icon.png`, ersätter 🎒-emojin både i
+"My Bag"-knappen och modal-rubriken via en ny `.bag-icon-inline`-klass
+(1.15em, vertikalt centrerad mot texten). Verifierat med skärmdumpar
+igen innan det skeppades. Hela testsviten grön: **170/170**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
