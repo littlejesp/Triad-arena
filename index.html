@@ -438,6 +438,37 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   opacity:0;
   animation:selectedGlow 1.3s ease-in-out infinite;
 }
+/* Fas 38: pack-exclusive cards' permanent glow + frame overlay. Same
+   compositor-only opacity-animation pattern as .card.selected::after
+   just above (a static box-shadow value on its own layer, only opacity
+   animates) -- this glow runs constantly for every exclusive card shown
+   anywhere (hand, board, My Bag), not just while selected, so animating
+   the shadow value itself every frame would be the exact perf mistake
+   that fix was written to avoid. Deliberately ::before, not ::after --
+   .card.selected already owns ::after, and a card can be BOTH selected
+   AND exclusive at once (e.g. sitting in hand), so they must live on
+   separate pseudo-elements or one state's glow would silently replace
+   the other's instead of both showing. */
+.card.exclusive-card::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 2px rgba(224,192,47,0.6), 0 0 22px rgba(165,104,242,0.65);
+  opacity:0.7;
+  animation:exclusiveGlow 2.4s ease-in-out infinite;
+  z-index:1;
+}
+@keyframes exclusiveGlow{
+  0%,100%{ opacity:0.55; }
+  50%{ opacity:1; }
+}
+.exclusive-frame-overlay{
+  /* z-index:2 -- above the plain card-art/card-glow background (no
+     explicit z-index, so it stacks at 0 in DOM order) but BELOW
+     level-stars/stat-cluster (4) and every badge/button (6), so the
+     ornate border sits around the art without ever covering a stat
+     number, the info button, or the element/count badges. */
+  position:absolute; inset:0; width:100%; height:100%; z-index:2;
+  pointer-events:none; object-fit:fill;
+}
 @keyframes selectedGlow{
   0%,100%{ opacity:0.55; }
   50%{ opacity:1; }
@@ -464,7 +495,7 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   content:''; position:absolute; inset:0;
   background:linear-gradient(180deg, rgba(6,5,12,0.75) 0%, rgba(6,5,12,0.05) 30%, rgba(6,5,12,0.05) 55%, rgba(6,5,12,0.85) 100%);
 }
-.card-inner{ position:absolute; inset:0; display:flex; flex-direction:column; }
+.card-inner{ position:absolute; inset:0; display:flex; flex-direction:column; z-index:3; }
 .card-top{ flex:1; display:flex; align-items:flex-start; padding:clamp(24px,32cqw,38px) 7px 3px; }
 .card-name{ font-family:'Cinzel',serif; font-weight:700; font-size:clamp(9px,13cqw,12px); line-height:1.2; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7); }
 .card-role{ font-size:clamp(7px,9cqw,8.5px); color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; margin-top:1px; text-shadow:0 1px 3px rgba(0,0,0,0.9); }
@@ -3058,7 +3089,15 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   background-size:cover; background-position:center 12%;
   border-radius:16px 16px 0 0; overflow:visible;
 }
-.poster-art-full{ width:100%; border-radius:16px 16px 0 0; overflow:hidden; line-height:0; }
+.poster-art-full{ position:relative; width:100%; border-radius:16px 16px 0 0; overflow:hidden; line-height:0; }
+/* The detail modal's full-art box is a different (taller, ~9:16) shape
+   than the small in-hand card's 5:7 slot the frame asset was made for,
+   so stretching it here (object-fit:fill, the small-card default) would
+   visibly warp the corner medallions into ovals. object-fit:contain
+   keeps the frame undistorted, letterboxed within the taller box --
+   most of the portrait's vertical center (where the subject actually
+   is) still ends up framed. */
+.poster-exclusive-frame{ object-fit:contain; }
 .poster-art-full img{ width:100%; display:block; }
 .poster-name-plain{ font-family:'Cinzel',serif; font-weight:700; font-size:22px; color:var(--gold-bright); }
 .poster-role-plain{ font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-top:2px; }
@@ -3630,6 +3669,8 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 <script>
 /* ---------------- Character portraits ---------------- */
 const CARD_IMAGES = {
+  dragonlancer: 'cards/card-dragonlancer.jpg',
+  reaperseraph: 'cards/card-reaperseraph.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3706,6 +3747,8 @@ const CARD_IMAGES = {
 };
 
 const FULL_CARD_IMAGES = {
+  dragonlancer: 'card-dragonlancer-full.jpg',
+  reaperseraph: 'card-reaperseraph-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -4711,6 +4754,74 @@ const FOREST_FOES = [
   ]},
 ];
 
+// Fas 38: pack-exclusive cards. A whole new third roster, deliberately
+// separate from HEROES/FOREST_FOES -- these must NEVER be draftable in
+// Campaign/Random Draft/Choose Your Five (campaignPool() and every draft
+// picker read HEROES only, so simply not adding them there is enough),
+// only obtainable via Packs (buyPack(), gated by each card's own
+// packTier matching the tier opened) or a Rival's own signature reward
+// (a later step). findCardById() is extended to also search this array
+// so every other system (My Bag, Rivals wager picker, a real match once
+// one is actually drawn) can still look them up normally.
+//
+// User's own explicit direction for this first card: a lancer knight
+// nicknamed "Dragon" (NOT a literal dragon -- dragon motifs are only
+// engraved into his armor, per his own commissioned portrait), assigned
+// to the Rare tier, with a niche that's genuinely useful in specific
+// situations rather than just flatly the best card in the game ("bättre
+// än alla kort på sitt egna sätt... men användbart i vissa situationer
+// inte bara konstnärligt"). His whole kit leans into the one thing a
+// lance is actually FOR -- punching through armor: Piercing Lance makes
+// him ignore Shield/defensive skills on every attack (a passive version
+// of the "no shield check" pattern Lyrith's Serpent's Wrath already
+// uses for specials, here applied to ordinary battles too -- see its
+// two call sites in battleNeighbors), and Onyx Momentum rewards him
+// specifically for attacking a Shielded target, making him a genuine
+// counter-pick against shield-heavy hands (Tahabata, Bahamut, Aurelia,
+// Twin Brothers/Sisters, Darum, ...) rather than a universal upgrade.
+// Stats (35 total) sit deliberately below the very top Legendary/Mystic
+// cards (most sit at 37-40) -- Rare is the CHEAPEST/most accessible
+// pack tier, so a flat stat-stick here would undercut the whole
+// tier ladder; his edge is entirely in the mechanic, not raw numbers.
+const PACK_EXCLUSIVE_CARDS = [
+  { id:'dragonlancer', name:'Dragon', role:'The Onyx Lancer — Pack Exclusive (Rare)', element:'fire',
+    top:9, right:9, bottom:8, left:9,
+    hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#e0c02f', icon:'🐉',
+    packTier:'rare', exclusiveFrame:true,
+    active:{ onCaptureBonus:1, ignoresShieldOnAttack:true, vsShieldedBonus:2 },
+    special:{ name:'Dragonfall Charge', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Piercing Lance (Passive)', desc:"When Dragon attacks, his lance pierces clean through — the enemy's Shield and defensive skills can't block him."},
+      {name:'Onyx Momentum (Passive)', desc:'When Dragon attacks a Shielded card, he gains +2 Power in that battle — armor only slows a lesser weapon.'},
+      {name:'Growing Legend (Passive)', desc:'Each time Dragon takes control of a card, he permanently gains +1 Power on all sides.'},
+      {name:'Special Attack: Dragonfall Charge', desc:"Costs 2 wins. Choose an adjacent enemy card — the lance pierces clean through, ignoring any Shield or defensive skill. If the target was Shielded, Dragon permanently gains +2 Power on all sides. Usable once per match."},
+    ] },
+  // Second pack-exclusive card, user's own framing: Dragon's "brother" --
+  // a contrasting theme (winged, celestial, a huge reaping blade,
+  // ascending through clouds toward a spiked halo) rather than a mirrored
+  // reskin. Where Dragon is a grounded single-target shield-buster, Reaper
+  // leans into his weapon's actual shape -- a wide, sweeping AOE/comeback
+  // kit instead of Dragon's precision-piercing one. Assigned to Epic (one
+  // tier above Dragon's Rare) on my own judgment, per the user's "kör nu
+  // kompis" -- stats (36 total) sit a notch above Dragon's 35 to match.
+  // Reising Vengeance reuses the EXISTING boardUnderdogAttackBonus field
+  // (already proven on Sylvarion) rather than a new "count the Graveyard"
+  // mechanic I drafted and discarded -- state.graveyard only records
+  // outright DESTROYS, not ordinary captures, and only when the optional
+  // Graveyard rule is on, so it would have read 0 in most real matches.
+  { id:'reaperseraph', name:'Reaper', role:'The Fallen Seraph — Pack Exclusive (Epic)', element:'wind',
+    top:9, right:9, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🪽',
+    packTier:'epic', exclusiveFrame:true,
+    active:{ onWinAreaDebuffThisRound:1, boardUnderdogAttackBonus:2 },
+    special:{ name:'Judgment Descent', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:"Reaper's Toll (Passive)", desc:'Each time Reaper wins a battle, every enemy card orthogonally adjacent to the captured square loses 1 Power on all sides this round.'},
+      {name:'Rising Vengeance (Passive)', desc:'While you control fewer cards on the board than your opponent, Reaper gains +2 Power when attacking — he grows more dangerous the more desperate the battle.'},
+      {name:'Special Attack: Judgment Descent', desc:'Costs 3 wins. Every enemy card on the board loses 2 Power on all sides this round. Usable once per match.'},
+    ] },
+];
+
 function drawEnemyHand(){
   return shuffle(FOREST_FOES.slice()).slice(0, 5);
 }
@@ -5027,7 +5138,7 @@ let state = {
 function uid(card, owner){ return owner + ':' + card.id; }
 
 function findCardById(id){
-  return HEROES.find(h => h.id === id) || FOREST_FOES.find(f => f.id === id) || null;
+  return HEROES.find(h => h.id === id) || FOREST_FOES.find(f => f.id === id) || PACK_EXCLUSIVE_CARDS.find(c => c.id === id) || null;
 }
 
 function openCardModal(id){
@@ -5385,7 +5496,7 @@ function renderModal(){
   const fullArt = FULL_CARD_IMAGES[c.id];
 
   const artBlock = fullArt
-    ? `<div class="poster-art-full"><img src="${fullArt}" alt="${c.name}"></div>`
+    ? `<div class="poster-art-full"><img src="${fullArt}" alt="${c.name}">${c.exclusiveFrame ? `<img class="exclusive-frame-overlay poster-exclusive-frame" src="exclusive-card-frame.png" alt="">` : ''}</div>`
     : `
         <div class="poster-art" style="${CARD_IMAGES[c.id] ? `background-image:url('${CARD_IMAGES[c.id]}')` : `background:${c.hue}`}">
           <div class="poster-fade"></div>
@@ -5594,8 +5705,15 @@ function cardFace(card, opts={}){
   if(opts.fxDelay) fxStyleParts.push(`--fx-delay:${opts.fxDelay}ms`);
   if(opts.fxStep) fxStyleParts.push(`--fx-step:${Math.min(opts.fxStep, 6)}`);
   const fxDelayStyle = fxStyleParts.length ? ` style="${fxStyleParts.join(';')}"` : '';
+  // Fas 38: pack-exclusive cards get a permanent glow + a dedicated
+  // ornamented frame overlay (exclusive-card-frame.png, user's own
+  // ChatGPT-generated asset, real alpha-transparent center verified
+  // pixel-by-pixel) layered on top of everything else -- last child in
+  // the DOM so it renders above the art/stats/badges, same z-stacking
+  // idea as the existing skill-pop/slash-fx overlays.
+  const exclusiveClass = card.exclusiveFrame ? 'exclusive-card' : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${flareClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${unlockedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${flareClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${unlockedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass} ${exclusiveClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -5624,6 +5742,7 @@ function cardFace(card, opts={}){
         ${statNumHtml(card, 'right', opts)}
         ${statNumHtml(card, 'bottom', opts)}
       </div>
+      ${card.exclusiveFrame ? `<img class="exclusive-frame-overlay" src="exclusive-card-frame.png" alt="">` : ''}
     </div>`;
 }
 
@@ -7599,10 +7718,24 @@ function attachHandlers(){
   }
 }
 
+// Fas 38: pack-exclusive cards the user earned aren't in HEROES, so a
+// plain shuffle-and-slice of HEROES would never draw them -- per the
+// user's own words ("man har en chans att dra i när man drar kort under
+// nya systemet"), a Random Draft draw now gets a flat chance to swap ONE
+// of its five slots for an owned exclusive instead. Deliberately scoped
+// to Random Draft only (the "luck of the draw" mode) -- Choose Your
+// Five stays a fully deliberate pick from the standard roster.
+const PACK_EXCLUSIVE_DRAW_CHANCE = 0.15;
 function drawRandomFive(){
   if(HEROES.length === 0) return;
   const pool = shuffle(HEROES.slice());
-  state.selected = pool.slice(0, Math.min(5, pool.length)).map(h => h.id);
+  const ids = pool.slice(0, Math.min(5, pool.length)).map(h => h.id);
+  const ownedExclusives = PACK_EXCLUSIVE_CARDS.filter(c => (playerProgress.earnedCards[c.id]||0) > 0);
+  if(ownedExclusives.length > 0 && ids.length > 0 && Math.random() < PACK_EXCLUSIVE_DRAW_CHANCE){
+    const pick = ownedExclusives[Math.floor(Math.random() * ownedExclusives.length)];
+    ids[Math.floor(Math.random() * ids.length)] = pick.id;
+  }
+  state.selected = ids;
   startBattle();
 }
 
@@ -8038,6 +8171,18 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
       if(r<0||r>2||c<0||c>2) return;
       const n = state.board[r*3+c];
       if(n && n.owner !== winnerEntry.owner) SpecialVerbs.debuff(n, a.onWinAreaDebuff);
+    });
+  }
+  // Reaper's Toll: the "this round" sibling of onWinAreaDebuff above --
+  // identical shape, just debuffThisRound instead of a permanent debuff.
+  if(a.onWinAreaDebuffThisRound && loserIndex != null){
+    const row = Math.floor(loserIndex/3), col = loserIndex%3;
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    dirs.forEach(([dr,dc])=>{
+      const r = row+dr, c = col+dc;
+      if(r<0||r>2||c<0||c>2) return;
+      const n = state.board[r*3+c];
+      if(n && n.owner !== winnerEntry.owner) SpecialVerbs.debuffThisRound(n, a.onWinAreaDebuffThisRound);
     });
   }
   // Kaeldryx's Execution: "wins a round with 10+ Power, destroy that enemy
@@ -8698,9 +8843,15 @@ function buyPack(tierId){
   const tier = PACK_TIERS.find(t => t.id === tierId);
   if(!canBuyPack(tier)) return;
   playerProgress.points -= tier.cost;
+  // Fas 38: the pool is now HEROES plus whichever PACK_EXCLUSIVE_CARDS
+  // belong to THIS tier (packTier) -- rarity falls out naturally from
+  // pool size (one exclusive card among ~58 HEROES already gives roughly
+  // a coin-flip's worth of odds across a whole 10-card pack) rather than
+  // needing an extra hand-tuned weight.
+  const pool = HEROES.concat(PACK_EXCLUSIVE_CARDS.filter(c => c.packTier === tier.id));
   const drawn = [];
   for(let i = 0; i < tier.count; i++){
-    const card = HEROES[Math.floor(Math.random() * HEROES.length)];
+    const card = pool[Math.floor(Math.random() * pool.length)];
     const current = playerProgress.earnedCards[card.id] || 0;
     const capped = current >= EARNED_CARD_CAP;
     if(!capped) playerProgress.earnedCards[card.id] = current + 1;
@@ -10407,6 +10558,14 @@ const SPECIAL_HANDLERS = {
     enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
     return `${srcEntry.card.name} unites with Yang — Yin Resonance withers the enemy ranks!`;
   },
+  // Reaper's Judgment Descent: same board-wide "this round" debuff shape
+  // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
+  // (special.targets:'aoe'), just hit every enemy on the board.
+  reaperseraph({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
+    return `${srcEntry.card.name}'s Judgment Descent falls upon the enemy ranks!`;
+  },
   // Solar Tempest/Lunar Eclipse: 16-card audit item -- these two had a
   // `special` field with cost/targets metadata but no SPECIAL_HANDLERS
   // entry at all, so runSpecialResolution's `if(!handler) return;` guard
@@ -10442,6 +10601,27 @@ const SPECIAL_HANDLERS = {
     const brother = state.board.find(e => e && e.owner === owner && e.card.id === 'twinbrothers');
     if(brother) SpecialVerbs.buffThisRound(brother, 1);
     return `${name}'s Lunar Eclipse flips ${targetEntry.card.name} — both twins surge with shared power!`;
+  },
+  // Dragon's Dragonfall Charge: plain totalPower comparison, no self-bonus
+  // folded into the check (unlike Aurelian/Vorlix's own specials) --
+  // no specialBlockedByShield call at all, same "ignores defenses"
+  // shape as Lyrith's Serpent's Wrath, since his whole kit (Piercing
+  // Lance/Onyx Momentum, see their own active-field comments) is built
+  // around punching through Shields. The permanent +2 reward is
+  // conditional on the target actually HAVING been Shielded -- checked
+  // BEFORE the flip (isShielded reads live per-entry state that a flip
+  // would otherwise change the ownership context of).
+  dragonlancer({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Dragonfall Charge fails to break through!`;
+    }
+    const wasShielded = isShielded(targetEntry, targetIndex);
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    if(wasShielded) SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${name}'s Dragonfall Charge pierces clean through ${targetEntry.card.name}${wasShielded ? ", shattering its defenses!" : "!"}`;
   },
   pallis({ srcEntry, owner, element }){
     const matches = state.board.filter(e => e && e.owner === owner && e.card.element === element);
@@ -12462,6 +12642,15 @@ function battleNeighbors(index, owner, result){
     if(placed.active && placed.active.oncePerMatchAttackBoost && !placedEntry.oncePerMatchAttackBoostUsed){
       placedEntry.oncePerMatchAttackBoostUsed = true;
     }
+    // Dragon's Onyx Momentum: "+2 Power when attacking a Shielded card" --
+    // needs the TARGET's live shield state (grantedShield/active.shield
+    // and shieldUsed), which fullEffectiveValue never has access to (see
+    // Seraphine's Celestial Mark comment above for why), so it's checked
+    // here directly with isShielded() instead, same as every other
+    // live-entry-dependent bonus in this function.
+    if(placed.active && placed.active.vsShieldedBonus && isShielded(target, p.ni)){
+      placedVal += placed.active.vsShieldedBonus;
+    }
     // Ifrit's Volcanic Armor: "the FIRST TIME Ifrit would lose a battle,
     // the opponent's strength is reduced by -1 in that battle" — the
     // mirror image of Three Head Dragon's Ice's Breath (freezeDefenderPenalty,
@@ -12516,7 +12705,11 @@ function battleNeighbors(index, owner, result){
     }
 
     if(effOutcome){
-      const shielded = isShielded(target, p.ni);
+      // Dragon's Piercing Lance: "the enemy's Shield and defensive skills
+      // can't block him" -- overridden to false ONLY for his own attacks,
+      // isShielded() itself stays untouched so every other card/system
+      // (the AI's own evaluation, other specials) keeps working normally.
+      const shielded = (placed.active && placed.active.ignoresShieldOnAttack) ? false : isShielded(target, p.ni);
       const targetActive = target.card.active;
       // Medusa's Curse of the Gorgon: "if an enemy attacks Medusa and wins
       // by 2 Power or less, the battle becomes a draw and the attacker

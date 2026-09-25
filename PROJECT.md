@@ -5050,6 +5050,114 @@ lansriddare, INTE en bokstavlig drake) och en för en ny, extra
 utsmyckad kortram exklusiv för dessa fem kort, uttryckligen refererad
 mot spelets egen kortbaksida/kompass-stil.
 
+**Fas 38 (klar). Det första pack-exklusiva kortet: Dragon, The Onyx
+Lancer.** Hela den nya arkitekturen byggd och kortet färdigt, från
+ChatGPT-genererad konst till spelbar mekanik. En helt ny, tredje roster
+`PACK_EXCLUSIVE_CARDS`, medvetet SKILD från `HEROES`/`FOREST_FOES` --
+`campaignPool()` och alla draft-pickers läser bara `HEROES`, så att
+bara UTELÄMNA korten därifrån räcker för att göra dem odraftbara i
+Campaign/Random Draft/Choose Your Five. `findCardById()` utökad att
+även söka den nya arrayen så My Bag/Rivals/en riktig match ändå hittar
+kortet när det väl dyks upp.
+
+Två sätt att få tag på det, båda byggda:
+- `buyPack()`: poolen är nu `HEROES` plus de `PACK_EXCLUSIVE_CARDS` vars
+  `packTier` matchar det öppnade packet -- sällsyntheten kommer helt
+  naturligt av poolstorleken (1 av ~59 kort), inget separat vikt-system
+  behövdes. Dragon är taggad `packTier:'rare'`, användarens eget val
+  ("jag tycker detta kort ska hamna i rare").
+- `drawRandomFive()`: en ny `PACK_EXCLUSIVE_DRAW_CHANCE` (15%) ger en
+  chans att byta ut en av de fem slumpade platserna mot ett ägt
+  exklusivt kort, per användarens egna ord ("man har en chans att dra i
+  när man drar kort"). Medvetet begränsat till Random Draft -- Choose
+  Your Five förblir ett helt medvetet val ur standardrostret.
+
+Mekaniskt: en lansriddare vars hela kit bygger på det en lans faktiskt
+är till för -- att punktera rustning. Piercing Lance (passiv) gör att
+alla hans VANLIGA attacker ignorerar mål-kortets Shield/försvarsförmåga
+(samma "no shield check"-mönster Lyriths Serpent's Wrath redan
+använder för specialer, här applicerat på vanliga strider också -- se
+kommentarerna vid battleNeighbors båda anropsställen). Onyx Momentum
+ger honom +2 Power specifikt när han anfaller ett Shielded kort --
+alltså en genuin kontring mot sköld-tunga händer (Tahabata, Bahamut,
+Aurelia, Twin Brothers/Sisters, Darum...) snarare än en universell
+uppgradering, precis vad användaren bad om ("bättre... men användbart i
+vissa situationer inte bara konstnärligt"). Special Attack: Dragonfall
+Charge ignorerar Shield helt och ger en permanent +2 bonus bara om målet
+faktiskt var Shielded. Stats (35 totalt) ligger medvetet under de
+absolut starkaste Legendary/Mystic-korten (de flesta ligger 37-40) --
+Rare är det billigaste/mest lättillgängliga packet, så ett rent
+sifferövertag hade underminerat hela tier-stegen; hans fördel ligger
+helt i mekaniken.
+
+Visuellt: kortporträttet (941×1672, matchar exakt samma konvention som
+Shiva/Leviathan/Omega Weapons egna "full art") och en ny, permanent
+ornamenterad ramöverlägg (`exclusive-card-frame.png`, äkta
+alfa-transparent mittenhål verifierat pixel-för-pixel) plus en
+pulserande guld/lila-glöd (`opts.exclusiveFrame`/`.exclusive-card`) --
+ny CSS-klass `.card-inner{z-index:3}` lades till så namntexten alltid
+syns TYDLIGT ovanpå ramens hörnornament (var delvis skymd innan den
+fixen). Glöden ligger medvetet på `::before` snarare än `::after` --
+`.card.selected` äger redan `::after`, och ett kort kan vara BÅDE valt
+och exklusivt samtidigt (t.ex. i handen), så de måste ligga på skilda
+pseudo-element eller hade den ena statusens glöd tyst ersatt den andra.
+
+Ett nytt permanent regressionstest täcker allt: att Dragon aldrig går
+att drafta normalt men ändå går att hitta via `findCardById`, att
+Piercing Lance/Onyx Momentum faktiskt fungerar i en riktig strid (bevisat
+med en matchup som annars hade FÖRLORAT utan bonusen), att han bara
+någonsin dyker upp i Rare-packet (aldrig Epic/Legendary/Mystic, 150
+öppnade packet av varje), att `drawRandomFive()` faktiskt kan dra honom
+om man äger honom men ALDRIG om man inte gör det, och hela
+Dragonfall Charge-specialens shield-ignorering + villkorad bonus. Hela
+testsviten grön: **172/172**.
+
+**Fas 38 (uppföljning). Ramen saknades i detaljvyn.** Användaren märkte
+att ramen bara syntes på de små kortvyerna (hand/bräde/My Bag), inte i
+den stora detaljvyn där man faktiskt läser skills. Orsak: detaljvyn
+(`renderModal()`) är en helt separat renderingsväg från `cardFace()`
+(direkt `<img>` mot `FULL_CARD_IMAGES`, inte samma mall), så
+frame-overlayen som lades till i `cardFace()` nådde aldrig dit. Lade
+till samma overlay i `renderModal()`s `artBlock`, men med
+`object-fit:contain` istället för `fill` -- detaljvyns bildruta är en
+annan (smalare/högre, ~9:16) proportion än den 5:7-ram-tillgången är
+gjord för, så att sträcka ut den (som på de små korten) hade synligt
+snedvridit hörnmedaljongerna till ovaler. `contain` håller ramen
+odistorderad, "brevlådad" i den högre rutan -- huvuddelen av
+porträttets vertikala mitt (där motivet faktiskt är) hamnar ändå
+innanför ramen. Hela testsviten grön: **172/172**.
+
+**Fas 39. Andra pack-exklusiva kortet: Reaper, The Fallen Seraph
+(Epic).** Användarens egen framing: "Dragons bror" -- men medvetet
+KONTRASTERANDE tema snarare än en omskinnad kopia (vingad, himmelsk, en
+stor lie/skära, stiger genom moln mot en taggig halo, ljust guld/vitt
+istället för Dragons mörka/jordbundna stil). Tilldelad Epic-tier (ett
+steg över Dragons Rare) på egen bedömning eftersom motivet kändes mer
+påkostat, stats (36 totalt) en notch över Dragons 35 för att matcha.
+
+Mekaniskt en bred AOE/comeback-kontrast till Dragons precisa
+punktera-en-fiende-stil: Reaper's Toll (ny `onWinAreaDebuffThisRound`-
+krok, en "denna rond"-syskon till Three Head Dragons redan
+existerande permanenta `onWinAreaDebuff`) mjukar upp ALLA fiender
+runt den erövrade rutan varje gång han vinner. Rising Vengeance
+återanvänder det REDAN BEFINTLIGA `boardUnderdogAttackBonus`-fältet
+(redan beprövat på Sylvarion) istället för en ny "räkna
+kyrkogården"-mekanik jag först skissade och sedan skrotade --
+`state.graveyard` registrerar bara riktiga FÖRSTÖRDA kort (inte
+vanliga erövringar) och bara när den valfria Graveyard-regeln är på,
+så den hade lästs som 0 i nästan varje riktig match. Special Attack:
+Judgment Descent mjukar upp hela brädet -2 denna rond, samma
+bräd-täckande mönster som Evil Twist Yin/Yangs Resonance redan
+använder.
+
+Samma porträtt+ram-visuella behandling som Dragon (941×1672-porträtt,
+delad ramöverlägg, guld/lila-glöd). Ett nytt permanent regressionstest
+täcker Reaper's Toll, Rising Vengeance (både med och utan
+bräd-underläge, isolerat från den orelaterade `lastStandBonus`-
+mekaniken), Judgment Descent, och att kortet bara någonsin dyker upp i
+Epic-packet (aldrig Rare, där Dragon bor, eller någon annan nivå,
+150 öppnade packet av varje). Hela testsviten grön: **173/173**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
