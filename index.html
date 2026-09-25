@@ -3675,6 +3675,8 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 const CARD_IMAGES = {
   dragonlancer: 'cards/card-dragonlancer.jpg',
   reaperseraph: 'cards/card-reaperseraph.jpg',
+  freya: 'cards/card-freya.jpg',
+  zidane: 'cards/card-zidane.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3753,6 +3755,8 @@ const CARD_IMAGES = {
 const FULL_CARD_IMAGES = {
   dragonlancer: 'card-dragonlancer-full.jpg',
   reaperseraph: 'card-reaperseraph-full.jpg',
+  freya: 'card-freya-full.jpg',
+  zidane: 'card-zidane-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -4791,7 +4795,7 @@ const PACK_EXCLUSIVE_CARDS = [
   { id:'dragonlancer', name:'Dragon', role:'The Onyx Lancer — Pack Exclusive (Rare)', element:'fire',
     top:9, right:9, bottom:8, left:9,
     hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#e0c02f', icon:'🐉',
-    packTier:'rare', exclusiveFrame:true,
+    packTier:'rare', exclusiveGlow:true,
     active:{ onCaptureBonus:1, ignoresShieldOnAttack:true, vsShieldedBonus:2 },
     special:{ name:'Dragonfall Charge', cost:2, once:true, targets:'single' },
     skills: [
@@ -4816,13 +4820,62 @@ const PACK_EXCLUSIVE_CARDS = [
   { id:'reaperseraph', name:'Reaper', role:'The Fallen Seraph — Pack Exclusive (Epic)', element:'wind',
     top:9, right:9, bottom:9, left:9,
     hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🪽',
-    packTier:'epic', exclusiveFrame:true,
+    packTier:'epic', exclusiveGlow:true,
     active:{ onWinAreaDebuffThisRound:1, boardUnderdogAttackBonus:2 },
     special:{ name:'Judgment Descent', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:"Reaper's Toll (Passive)", desc:'Each time Reaper wins a battle, every enemy card orthogonally adjacent to the captured square loses 1 Power on all sides this round.'},
       {name:'Rising Vengeance (Passive)', desc:'While you control fewer cards on the board than your opponent, Reaper gains +2 Power when attacking — he grows more dangerous the more desperate the battle.'},
       {name:'Special Attack: Judgment Descent', desc:'Costs 3 wins. Every enemy card on the board loses 2 Power on all sides this round. Usable once per match.'},
+    ] },
+  // Third pack-exclusive card. User's own lore, verbatim in spirit: she
+  // helps everyone and makes things bloom the moment she touches
+  // something earthly, a beauty without equal, tending a chapel where
+  // she's quietly fallen for a visitor she's met there now and then.
+  // Assigned Legendary (one tier above Reaper's Epic) on my own
+  // judgment given how elaborate the art/lore is; stats (37) a notch
+  // above Reaper's 36 to match. A pure support kit -- the third distinct
+  // archetype alongside Dragon's precision-piercing and Reaper's AOE/
+  // comeback, all three now sharing the same glow but each with their
+  // own baked-in frame art rather than the composited overlay (see Fas
+  // 40's own comment on cardFace/renderModal for why: ChatGPT started
+  // delivering the frame already fitted to the full canvas, sidestepping
+  // every aspect-ratio mismatch the separate overlay asset ran into).
+  { id:'freya', name:'Freya', role:'The Blooming Grace — Pack Exclusive (Legendary)', element:'earth',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#241f10,#0d0b18 60%)', accent:'#f2d675', icon:'🌸',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ onWinBuffLoserPermanent:1, allyAuraFlat:1 },
+    special:{ name:"Sanctuary's Blessing", cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Blooming Touch (Passive)', desc:'Each time Freya takes control of a card, it blooms under her touch — that card permanently gains +1 Power on all sides.'},
+      {name:'Grace of the Sanctuary (Passive)', desc:'While Freya is on the board, all your other cards gain +1 Power on all sides — she helps everyone she can, the same way she tends the small chapel that\'s come to feel like home.'},
+      {name:"Special Attack: Sanctuary's Blessing", desc:'Costs 2 wins. Every card on your side of the board gains +2 Power on all sides this round. Usable once per match.'},
+    ] },
+  // Fourth pack-exclusive card: Freya's own crush, per the user's lore --
+  // "han vet inte vad han vill för hans focus är ju att rädda världen,
+  // men han är ju populär" (he doesn't know what he wants because his
+  // focus is saving the world, but he's popular). Dual curved blades in
+  // the art -- an explicit nod to Final Fantasy IX's Zidane (matching
+  // this roster's existing FF-referencing cards: Omega Weapon, Chocobo
+  // King, Yojimbo), so his Ultimate is literally named after Zidane
+  // Tribal's own signature ability, Trance. Assigned Mystic (the top
+  // tier, above Freya's Legendary) as the fourth card in the ladder;
+  // stats (38) the highest of the four so far to match. Momentum/combo
+  // kit reusing two ALREADY EXISTING fields (onWinCappedBoost -- Vaelira's
+  // Crimson Surge; adjacentAlliesBoost -- Bahamut's own) rather than
+  // inventing new engine surface for a "popular, fights well alongside
+  // others, gets stronger as the battle goes on" theme.
+  { id:'zidane', name:'Zidane', role:'The Free-Spirited Blade — Pack Exclusive (Mystic)', element:'wind',
+    top:10, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c1f30,#0d0b18 60%)', accent:'#c9a227', icon:'⚔️',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ onWinCappedBoost:{amount:1, max:3}, adjacentAlliesBoost:{minCount:2, amount:1} },
+    special:{ name:'Trance', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Twin Blade Fury (Passive)', desc:'Each time Zidane wins a battle, he gains +1 Power on all sides, up to 3 times per match.'},
+      {name:"Hero's Charisma (Passive)", desc:'While at least 2 of your other cards are adjacent to Zidane, he gains +1 Power on all sides — everyone wants to fight beside him, whatever he himself is still trying to figure out.'},
+      {name:'Special Attack: Trance', desc:'Costs 3 wins. Zidane\'s true power awakens — he permanently gains +4 Power on all sides. Usable once per match.'},
     ] },
 ];
 
@@ -5500,7 +5553,7 @@ function renderModal(){
   const fullArt = FULL_CARD_IMAGES[c.id];
 
   const artBlock = fullArt
-    ? `<div class="poster-art-full ${c.exclusiveFrame ? 'exclusive-card' : ''}"><img src="${fullArt}" alt="${c.name}">${c.exclusiveFrame ? `<img class="exclusive-frame-overlay poster-exclusive-frame" src="exclusive-card-frame.png" alt="">` : ''}</div>`
+    ? `<div class="poster-art-full ${(c.exclusiveFrame || c.exclusiveGlow) ? 'exclusive-card' : ''}"><img src="${fullArt}" alt="${c.name}">${c.exclusiveFrame ? `<img class="exclusive-frame-overlay poster-exclusive-frame" src="exclusive-card-frame.png" alt="">` : ''}</div>`
     : `
         <div class="poster-art" style="${CARD_IMAGES[c.id] ? `background-image:url('${CARD_IMAGES[c.id]}')` : `background:${c.hue}`}">
           <div class="poster-fade"></div>
@@ -5715,7 +5768,11 @@ function cardFace(card, opts={}){
   // pixel-by-pixel) layered on top of everything else -- last child in
   // the DOM so it renders above the art/stats/badges, same z-stacking
   // idea as the existing skill-pop/slash-fx overlays.
-  const exclusiveClass = card.exclusiveFrame ? 'exclusive-card' : '';
+  // Fas 40: some exclusive cards (Freya) come back from ChatGPT with the
+  // ornamental frame already baked into the art itself -- for those,
+  // exclusiveGlow:true gets the same glow WITHOUT the separate frame
+  // <img>, which would otherwise double up two frames on one card.
+  const exclusiveClass = (card.exclusiveFrame || card.exclusiveGlow) ? 'exclusive-card' : '';
   return `
     <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${flareClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${unlockedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass} ${exclusiveClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
@@ -8339,6 +8396,12 @@ function checkOnWinBonuses(winnerEntry, myEdge, loserEntry, loserIndex, winnerIn
   if(a.onWinDebuffLoserPermanent && loserIndex != null){
     SpecialVerbs.debuff(loserEntry, a.onWinDebuffLoserPermanent);
   }
+  // Freya's Blooming Touch: the positive mirror of onWinDebuffLoserPermanent
+  // above -- "makes things bloom the moment she touches something" applies
+  // to the just-captured card itself (now under her banner), not to Freya.
+  if(a.onWinBuffLoserPermanent && loserIndex != null){
+    SpecialVerbs.attackBoost(loserEntry, a.onWinBuffLoserPermanent);
+  }
   // Vaelira's Crimson Surge: "+1 Power all sides per win, capped at 3
   // stacks" -- same capped-stacking idea as Omega Weapon's
   // buffOnEnemyDestroyedCapped, but keyed off ordinary wins instead of
@@ -9179,6 +9242,15 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     // same live "no state needed" read, one more branch.
     const meetsThreshold = bl.tieOnly ? mine === theirs : (bl.orEqual ? mine >= theirs : mine > theirs);
     if(meetsThreshold) v += bl.amount;
+  }
+  // Freya's Grace of the Sanctuary: a flat, unconditional aura for every
+  // OTHER allied card while she's on the board -- no threshold, no cap,
+  // distinct from every conditional/capped aura elsewhere in the file.
+  // Excludes the card's OWN cell (i !== cellIndex) so Freya doesn't buff
+  // herself, matching her own card text ("your OTHER cards").
+  {
+    const auraGiver = state.board.find((e, i) => i !== cellIndex && e && e.owner === owner && e.card.active && e.card.active.allyAuraFlat);
+    if(auraGiver) v += auraGiver.card.active.allyAuraFlat;
   }
   // The Concord's Synchronized Souls / United Presence -- same two live
   // headcount reads as staticLiveBonusFor's own copy above, kept in sync
@@ -10561,6 +10633,22 @@ const SPECIAL_HANDLERS = {
     const enemies = state.board.filter(e => e && e.owner !== owner);
     enemies.forEach(e => SpecialVerbs.debuffThisRound(e, 2));
     return `${srcEntry.card.name} unites with Yang — Yin Resonance withers the enemy ranks!`;
+  },
+  // Freya's Sanctuary's Blessing: same unconditional whole-side "this
+  // round" buff shape as The Concord's United Will, minus the ally-count
+  // threshold -- "she helps everyone", no minimum required.
+  freya({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    state.board.forEach(e => { if(e && e.owner === owner) SpecialVerbs.buffThisRound(e, 2); });
+    return `${name}'s Sanctuary's Blessing washes over your side — every ally blooms with strength!`;
+  },
+  // Zidane's Trance: a pure permanent self-buff, no target to pick and no
+  // effect on anyone else -- special.targets:'aoe' just means "no target
+  // selection UI", same convention as Freya's/Reaper's own AOE specials
+  // above, even though this one only ever touches the caster himself.
+  zidane({ srcEntry, owner }){
+    SpecialVerbs.attackBoost(srcEntry, 4);
+    return `${srcEntry.card.name} enters Trance — his true power awakens!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all

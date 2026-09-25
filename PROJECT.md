@@ -5186,6 +5186,51 @@ Båda bekräftade med nya skärmdumpar (ramen sluter nu tätt runt hela
 bilden, glöden syns runt hela postern). Hela testsviten grön:
 **173/173**.
 
+**Fas 40. Tredje pack-exklusiva kortet: Freya, The Blooming Grace
+(Legendary).** Användarens lore, verbatim i andemening: hon hjälper
+alla, får saker att blomstra så fort hon rör vid något jordligt, en
+skönhet utan dess like, och tar hand om en liten kyrka där hon träffat
+en kille hon fallit för. En ren support-arketyp — den tredje distinkta
+stilen bredvid Dragons precisionsstick och Reapers AOE/comeback.
+Blooming Touch buffar det just erövrade kortet permanent (en ny
+`onWinBuffLoserPermanent`-krok, den positiva spegelbilden av redan
+existerande `onWinDebuffLoserPermanent`), Grace of the Sanctuary är en
+helt ny, ovillkorad `allyAuraFlat`-aura för alla ANDRA allierade kort
+(ingen tröskel/tak, till skillnad från varje annan aura i filen — "hon
+hjälper alla" utan undantag). Special Attack: Sanctuary's Blessing
+buffar hela din sida +2 denna rond.
+
+**Samtidigt: en viktig arkitekturändring.** ChatGPT började leverera
+ramen redan monterad på HELA canvasen (inte separat), vilket löser
+alla tidigare problem med fel proportion på ett slag. `exclusiveFrame`
+och `exclusive-card`-glödet delades upp i två oberoende flaggor:
+`exclusiveFrame:true` (separat overlay-bild ovanpå, det gamla sättet)
+och `exclusiveGlow:true` (bara glöden, inget extra lager — för kort där
+ramen redan sitter i konsten). Dragon och Reaper fick BÅDA sina
+porträtt ersatta med nya, korrekt monterade versioner och bytte till
+`exclusiveGlow`; deras thumbnails beskars om ("bred beskärning" istället
+för djup inzoomning) så att ramens sidokanter syns även i den lilla
+kortvyn.
+
+**Fas 41. Fjärde pack-exklusiva kortet: Zidane, The Free-Spirited Blade
+(Mystic).** Freyas egen kärlek, per användarens lore ("han vet inte vad
+han vill för hans focus är ju att rädda världen, men han är ju
+populär"). Dubbla svärd i konsten — en tydlig referens till Final
+Fantasy IX:s Zidane (matchar rostrets redan existerande FF-referenser:
+Omega Weapon, Chocobo King, Yojimbo), så hans Ultimate heter bokstavligen
+Trance efter Zidane Tribals egen signaturförmåga. Ett momentum/combo-kit
+som återanvänder TVÅ redan existerande fält (`onWinCappedBoost` --
+Vaelira; `adjacentAlliesBoost` -- Bahamut) istället för att uppfinna
+nytt. Special Attack: Trance är en ren permanent självbuff (+4), inget
+mål att välja.
+
+Fyra kort nu: Dragon (Rare) → Reaper (Epic) → Freya (Legendary) →
+Zidane (Mystic), en tydlig tier-stege. Ett femte kort, Ruby (en
+summoner som kan tillkalla gudar, och som Zidane själv är intresserad
+av — en kärlekstriangel), väntar på sitt porträtt. Nya permanenta
+regressionstest för Freya och Zidane täcker alla nya mekaniker och
+tier-gatingen. Hela testsviten grön: **175/175**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
