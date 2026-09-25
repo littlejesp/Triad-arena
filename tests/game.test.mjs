@@ -10375,3 +10375,31 @@ test('Fas 36: My Bag — a read-only browsable view of playerProgress.earnedCard
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Bug fix: the Sisters stage lore panel must not be crushed by flexbox when the page is taller than the viewport (a flex item with overflow != visible gets an automatic min-size of 0, so it was shrinking to ~34px and hiding all the story text but the first title)', async () => {
+  const { page, pageErrors } = await newPage();
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  const result = await page.evaluate(() => {
+    state.draftMode = 'campaign';
+    // The Sisters stage is index 18 (Fas 35 moved it from 16 to make room
+    // for the two new pre-finale stages) -- find it by name rather than
+    // hardcoding the index, so this test survives any future reordering.
+    const stageIndex = CAMPAIGN_STAGES.findIndex(s => s.name === 'The Triple Triad Sisters');
+    campaignProgress = { stageIndex, unlocked: [], ngPlus: 0 };
+    state.showSisterLore = true;
+    render();
+    const panel = document.querySelector('.lore-panel');
+    return {
+      rendered: !!panel,
+      contentHeight: panel.scrollHeight,
+      visibleHeight: panel.getBoundingClientRect().height,
+      flexShrink: getComputedStyle(panel).flexShrink,
+    };
+  });
+  assert.equal(result.rendered, true);
+  assert.ok(result.contentHeight > 420, 'sanity check: the real lore content must exceed the panel\'s own 420px max-height, or this test would pass even with the bug');
+  assert.equal(result.flexShrink, '0', 'the panel must opt out of flex-shrink, or it gets crushed below its max-height when the page overflows the viewport');
+  assert.ok(result.visibleHeight >= 400, `the panel must render near its intended 420px max-height, not get crushed (got ${result.visibleHeight}px)`);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
