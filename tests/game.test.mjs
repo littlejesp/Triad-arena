@@ -9907,11 +9907,20 @@ test('Progression (Fas 27, step 1): every match earns points, Campaign stage/ful
     out.afterFullClear = playerProgress.points;
     out.campaignClearedOnceAfterFullClear = playerProgress.campaignClearedOnce;
 
-    // A SECOND full clear (e.g. New Game+) must NOT re-award the one-time bonus.
+    // A SECOND full clear (New Game+1) must award the stage bonus again
+    // AND a bigger clear bonus (3000, not another flat 2000) -- per the
+    // user's own request that clearing NG+1/+2/etc. earns progressively
+    // more, not nothing beyond the very first clear.
     campaignProgress = { stageIndex: CAMPAIGN_STAGES.length - 1, unlocked: [], ngPlus: 1 };
     win();
     finishGame();
     out.afterSecondFullClear = playerProgress.points;
+
+    // A THIRD full clear (New Game+2) scales again (4000).
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length - 1, unlocked: [], ngPlus: 2 };
+    win();
+    finishGame();
+    out.afterThirdFullClear = playerProgress.points;
 
     // Level thresholds.
     playerProgress.lifetimePoints = 0;
@@ -9931,9 +9940,10 @@ test('Progression (Fas 27, step 1): every match earns points, Campaign stage/ful
   assert.equal(result.afterCampaignStageWin, 160, 'a Campaign stage win awards 100, on top of the 60 already banked');
   assert.equal(result.campaignClearedOnceAfterOneStage, false, 'clearing one Campaign stage must not flag the whole Campaign as cleared');
   assert.equal(result.stageIndexAfterOneStage, 1, 'campaignProgress.stageIndex must still advance normally');
-  assert.equal(result.afterFullClear, 160 + 100 + 2000, 'clearing the FINAL stage awards the stage bonus AND the one-time 2000 full-clear bonus');
+  assert.equal(result.afterFullClear, 160 + 100 + 2000, 'clearing the FINAL stage awards the stage bonus AND the first 2000 full-clear bonus');
   assert.equal(result.campaignClearedOnceAfterFullClear, true, 'campaignClearedOnce must flip true the first time the whole Campaign is cleared');
-  assert.equal(result.afterSecondFullClear, 160 + 100 + 2000 + 100, 'a second full clear (New Game+) earns the stage bonus again but NOT another 2000 -- it is a one-time flag');
+  assert.equal(result.afterSecondFullClear, 160 + 100 + 2000 + 100 + 3000, 'clearing New Game+1 must award the stage bonus AND a bigger clear bonus (3000, scaling with the NG+ cycle just finished)');
+  assert.equal(result.afterThirdFullClear, 160 + 100 + 2000 + 100 + 3000 + 100 + 4000, 'clearing New Game+2 scales again to 4000');
   assert.equal(result.levelAtZero, 1);
   assert.equal(result.levelJustBelowThreshold, 1, '499 lifetime points must not yet reach Level 2 (threshold is exactly 500)');
   assert.equal(result.levelAtThreshold, 2, 'exactly 500 lifetime points must reach Level 2');

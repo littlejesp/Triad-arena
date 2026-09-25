@@ -12932,14 +12932,19 @@ function finishGame(){
       campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus };
       saveCampaignProgress();
       state.campaignUnlocked = newly;
-      // The big one-time bonus, and the gate for the packs/5-opponents
-      // system later -- only fires the FIRST time the whole Campaign is
-      // cleared (ngPlus replays don't re-trigger it, campaignClearedOnce
-      // is a permanent flag once set).
-      if(newStageIndex >= CAMPAIGN_STAGES.length && !playerProgress.campaignClearedOnce){
-        playerProgress.campaignClearedOnce = true;
+      // The big clear bonus. campaignClearedOnce itself still only flips
+      // ONCE (it's the permanent gate for the packs/Rivals system) --
+      // but per the user's own request ("man får ännu mer poäng när man
+      // kör campaign 1+ och ännu mer om man klarar +2 osv"), the POINTS
+      // bonus now fires on every full clear, scaling with the NG+ cycle
+      // just completed: 2000 the first time, +1000 per NG+ cycle after
+      // (3000 for NG+1, 4000 for NG+2, ...). campaignProgress.ngPlus is
+      // still the cycle that was just finished at this point -- it only
+      // advances when the player presses "Start New Game+N" afterward.
+      if(newStageIndex >= CAMPAIGN_STAGES.length){
+        if(!playerProgress.campaignClearedOnce) playerProgress.campaignClearedOnce = true;
         savePlayerProgress();
-        awardPoints(2000);
+        awardPoints(2000 + campaignProgress.ngPlus * 1000);
       }
     }
   }
