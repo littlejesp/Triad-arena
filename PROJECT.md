@@ -5158,6 +5158,34 @@ mekaniken), Judgment Descent, och att kortet bara någonsin dyker upp i
 Epic-packet (aldrig Rare, där Dragon bor, eller någon annan nivå,
 150 öppnade packet av varje). Hela testsviten grön: **173/173**.
 
+**Fas 39 (uppföljning). Två riktiga live-buggar hittade genom att
+användaren testade på riktigt (via ett konsol-fusk som låste upp
+korten direkt i väskan, eftersom Campaign+Packs annars hade krävt en
+hel replay).** Bekräftar exakt varför "jag vill se resultatet innan vi
+jobbar vidare" var rätt instinkt.
+
+1. **Ramen nådde inte kanterna i detaljvyn.** `object-fit:contain`
+   (Fas 38s egen fix för att undvika distorsion) höll ramen
+   odistorderad men lämnade ett oramat gap upptill/nedtill eftersom
+   detaljvyns bildruta (~9:16) är smalare än ramen (5:7) -- `contain`
+   krymper ner tills HELA ramen får plats, vilket lämnar tomrum i den
+   andra ledden. Bytt till `object-fit:cover` istället: ramen skalas
+   upp tills den TÄCKER hela rutan (kapar lite av sido-ornamentet
+   istället för att lämna luckor upptill/nedtill) -- användarens egen
+   avvägning: "man måste inte se alla detaljer i ramen. Men den ska
+   vara runt kortet."
+2. **Glöden saknades helt i detaljvyn.** `.card.exclusive-card::before`
+   var skrivet med `.card`-prefix, men `renderModal()`s stora
+   porträttvy (`.poster-art-full`) är en helt annan div utan `.card`-
+   klassen alls -- reglen matchade den aldrig. Tog bort `.card`-
+   prefixet (bara `.exclusive-card::before` nu) så samma regel matchar
+   båda kontexterna, och lade till `exclusive-card`-klassen på
+   `.poster-art-full` när kortet har `exclusiveFrame:true`.
+
+Båda bekräftade med nya skärmdumpar (ramen sluter nu tätt runt hela
+bilden, glöden syns runt hela postern). Hela testsviten grön:
+**173/173**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

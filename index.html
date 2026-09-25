@@ -448,8 +448,12 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
    .card.selected already owns ::after, and a card can be BOTH selected
    AND exclusive at once (e.g. sitting in hand), so they must live on
    separate pseudo-elements or one state's glow would silently replace
-   the other's instead of both showing. */
-.card.exclusive-card::before{
+   the other's instead of both showing.
+   No `.card` prefix -- the user reported the detail modal's big poster
+   view (.poster-art-full, a plain div, never has the .card class) was
+   missing the glow entirely, since this rule originally only matched
+   cardFace()'s small thumbnail. Bare .exclusive-card matches both. */
+.exclusive-card::before{
   content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
   box-shadow:0 0 0 2px rgba(224,192,47,0.6), 0 0 22px rgba(165,104,242,0.65);
   opacity:0.7;
@@ -3097,7 +3101,7 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    keeps the frame undistorted, letterboxed within the taller box --
    most of the portrait's vertical center (where the subject actually
    is) still ends up framed. */
-.poster-exclusive-frame{ object-fit:contain; }
+.poster-exclusive-frame{ object-fit:cover; }
 .poster-art-full img{ width:100%; display:block; }
 .poster-name-plain{ font-family:'Cinzel',serif; font-weight:700; font-size:22px; color:var(--gold-bright); }
 .poster-role-plain{ font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); margin-top:2px; }
@@ -5496,7 +5500,7 @@ function renderModal(){
   const fullArt = FULL_CARD_IMAGES[c.id];
 
   const artBlock = fullArt
-    ? `<div class="poster-art-full"><img src="${fullArt}" alt="${c.name}">${c.exclusiveFrame ? `<img class="exclusive-frame-overlay poster-exclusive-frame" src="exclusive-card-frame.png" alt="">` : ''}</div>`
+    ? `<div class="poster-art-full ${c.exclusiveFrame ? 'exclusive-card' : ''}"><img src="${fullArt}" alt="${c.name}">${c.exclusiveFrame ? `<img class="exclusive-frame-overlay poster-exclusive-frame" src="exclusive-card-frame.png" alt="">` : ''}</div>`
     : `
         <div class="poster-art" style="${CARD_IMAGES[c.id] ? `background-image:url('${CARD_IMAGES[c.id]}')` : `background:${c.hue}`}">
           <div class="poster-fade"></div>
