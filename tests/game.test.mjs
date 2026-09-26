@@ -11899,3 +11899,82 @@ test('Fas 54: nineteenth pack-exclusive card -- Pain (Legendary), a standalone c
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 55: twentieth pack-exclusive card -- Scarletta (Mystic), a gothic vampire-queen; the FIRST card in a deliberately different anime/chibi art style (user confirmed intentional after a style-mismatch flag)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const scarletta = findCardById('scarletta');
+    out.findable = scarletta !== null && scarletta.name === 'Scarletta';
+    out.notInHeroes = !HEROES.some(h => h.id === 'scarletta');
+    out.notInCampaignPool = !campaignPool().includes('scarletta');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    out.hasShield = scarletta.active.shield === true;
+
+    // Feeds on the Strong: +3 attacking a stronger card.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(scarletta, 'blue');
+    const stronger = { id:'str', name:'Str', top:20,right:20,bottom:20,left:20 };
+    out.feedsOnStrong = fullEffectiveValue(scarletta, 'top', stronger, 4, 'blue', 'attack') - scarletta.top === 3;
+
+    // Withering Touch: captured card permanently -2.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.board[4] = freshEntry(scarletta, 'blue');
+    state.board[1] = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.witheringTouch = state.board[1].owner === 'blue' && state.board[1].captureBonus === -2;
+
+    // Special: Harvest of Roses -- a GUARANTEED capture regardless of
+    // stats, but a Shield still protects its owner.
+    state.board = Array(9).fill(null);
+    const s1 = freshEntry(scarletta, 'blue');
+    const strongUnshielded = freshEntry({ id:'su', name:'SU', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = s1; state.board[5] = strongUnshielded;
+    SPECIAL_HANDLERS.scarletta({ srcEntry: s1, targetEntry: strongUnshielded, targetIndex: 5, owner: 'blue' });
+    out.harvestCapturesStrong = strongUnshielded.owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    const s2 = freshEntry(scarletta, 'blue');
+    const shielded = freshEntry({ id:'sh', name:'Sh', top:1,right:1,bottom:1,left:1 }, 'red');
+    shielded.grantedShield = true;
+    state.board[4] = s2; state.board[6] = shielded;
+    SPECIAL_HANDLERS.scarletta({ srcEntry: s2, targetEntry: shielded, targetIndex: 6, owner: 'blue' });
+    out.shieldBlocksHarvest = shielded.owner === 'red';
+
+    // buyPack: Scarletta only from the Mystic tier -- pack-exclusive only,
+    // per the user's own explicit confirmation ("hon får man endast inom
+    // packs").
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInMystic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.scarletta) sawInMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.scarletta) sawInLegendary = true;
+    }
+    out.drawableFromMystic = sawInMystic;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.hasShield, true);
+  assert.equal(result.feedsOnStrong, true, 'Feeds on the Strong must grant +3 when attacking a stronger card');
+  assert.equal(result.witheringTouch, true, 'Withering Touch must permanently apply -2 to a captured card');
+  assert.equal(result.harvestCapturesStrong, true, 'Harvest of Roses must guarantee a capture regardless of stat comparison');
+  assert.equal(result.shieldBlocksHarvest, true, 'a Shield must still protect its owner against Harvest of Roses');
+  assert.equal(result.drawableFromMystic, true);
+  assert.equal(result.neverFromLegendary, true, 'Scarletta must only ever come from the Mystic tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
