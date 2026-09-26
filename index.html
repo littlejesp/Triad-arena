@@ -3691,6 +3691,7 @@ const CARD_IMAGES = {
   mira: 'cards/card-mira.jpg',
   sunny: 'cards/card-sunny.jpg',
   pain: 'cards/card-pain.jpg',
+  scarletta: 'cards/card-scarletta.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3785,6 +3786,7 @@ const FULL_CARD_IMAGES = {
   mira: 'card-mira-full.jpg',
   sunny: 'card-sunny-full.jpg',
   pain: 'card-pain-full.jpg',
+  scarletta: 'card-scarletta-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5375,6 +5377,42 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Cruel by Nature (Passive)', desc:'Each time Pain captures a card, it is left permanently broken — it loses 2 Power on all sides.'},
       {name:'Thrives on Suffering (Passive)', desc:'When Pain attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she was built for a harder fight than this.'},
       {name:'Special Attack: Baptism of Pain', desc:"Costs 2 wins. Choose an adjacent enemy card — if Pain's total Power is greater, she tears through every defense regardless of a Shield and permanently gains +2 Power on all sides. Usable once per match."},
+    ] },
+  // Twentieth pack-exclusive card: Scarletta, a gothic vampire-queen
+  // with a scythe. This one's art arrived in a completely different
+  // render style -- anime/chibi (large eyes, doll-like proportions)
+  // instead of the photorealistic style every other pack-exclusive card
+  // uses, and with NO printed name/plate at all. Flagged the style break
+  // directly via AskUserQuestion rather than quietly building a card
+  // around it; the user confirmed it's intentional ("Behåll den — jag
+  // gillar den här stilen"), so this is now a deliberate second visual
+  // style within the pack-exclusive line, not a mistake to unwind. Asked
+  // separately for her name ("Scarletta").
+  //
+  // Mystic tier -- the user has been pushing for the top tier to feel
+  // genuinely showstopping, and a scythe-wielding vampire queen earns it
+  // on the art alone. Stats (39) sit just under Vaseir's own ceiling (40).
+  //
+  // Kit leans vampiric/predatory rather than reusing Vaseir's own
+  // "destroy on win" identity: shield (Undying Grace -- hard to put
+  // down), vsStrongerTotalPowerBoost (Feeds on the Strong -- thrives
+  // against tougher prey, same field as Ruby/Ragnar/Maximus/Pain),
+  // onWinDebuffLoserPermanent at the harsher Akari/Pain amount (2) for
+  // Withering Touch. Special "Harvest of Roses" is a GUARANTEED capture
+  // (not destroy) regardless of stats -- same specialBlockedByShield
+  // guard as Ruby's Godsfall, but a flip (she claims souls into her rose
+  // garden) rather than an outright destroy like Vaseir/Akari's specials.
+  { id:'scarletta', name:'Scarletta', role:'The Thorned Countess — Pack Exclusive (Mystic)', element:'dark',
+    top:10, right:9, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#2a0f18,#0d0b18 60%)', accent:'#c23b5a', icon:'🥀',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ shield:true, vsStrongerTotalPowerBoost:{amount:3}, onWinDebuffLoserPermanent:2 },
+    special:{ name:'Harvest of Roses', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Undying Grace (Passive)', desc:'The first time Scarletta would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
+      {name:'Feeds on the Strong (Passive)', desc:'When Scarletta attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she was always drawn to a worthy hunt.'},
+      {name:'Withering Touch (Passive)', desc:'Each time Scarletta captures a card, it is left permanently withered — it loses 2 Power on all sides.'},
+      {name:'Special Attack: Harvest of Roses', desc:"Costs 3 wins. Choose an enemy card — she claims its soul into her garden outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
     ] },
 ];
 
@@ -11418,6 +11456,19 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 2);
     return `${name}'s Baptism of Pain tears through every defense — ${targetEntry.card.name} falls regardless!`;
+  },
+  // Scarletta's Harvest of Roses: a GUARANTEED capture (a flip, not a
+  // destroy like Vaseir/Akari's own guaranteed effects) regardless of
+  // stats -- same specialBlockedByShield guard chain as Ruby's Godsfall.
+  scarletta({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Harvest of Roses!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name}'s Harvest of Roses claims ${targetEntry.card.name}'s soul into her garden!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all

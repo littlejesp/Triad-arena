@@ -5514,6 +5514,33 @@ hårdare nivå (2) + `vsStrongerTotalPowerBoost`. Special Baptism of Pain
 `ignoresShieldOnAttack`-passiv, fast bara för just denna Special).
 Nitton pack-exklusiva kort totalt nu. Hela testsviten grön: **188/188**.
 
+**Fas 55. Tjugonde pack-exklusiva kortet: Scarletta, The Thorned
+Countess (Mystic) — en gotisk vampyrdrottning med en lie.** Det här
+kortets konst kom i en HELT ANNAN renderingsstil — anime/chibi (stora
+ögon, docklika proportioner) — än alla övriga nitton kort
+(fotorealistiska), och helt utan tryckt namn/skylt alls. Flaggade
+stilbrottet direkt via `AskUserQuestion` istället för att tyst bygga
+ett kort på det; användaren bekräftade att det är medvetet ("Behåll
+den — jag gillar den här stilen", sedan "Cool va") — så det här är nu
+en avsiktlig ANDRA visuell stil inom pack-exklusiv-serien, inte ett
+misstag att riva upp. Namnet ("Scarletta") frågades separat eftersom
+inget syntes alls på kortet.
+
+Mystic-nivå — användaren har tryckt på att toppnivån ska kännas
+genuint "showstopping", och en lie-svingande vampyrdrottning förtjänar
+det på konsten ensam. Kit byggt kring rovdjurs-/vampyr-tema snarare än
+att återanvända Vaseirs "förstör vid vinst"-identitet: `shield`
+(Undying Grace), `vsStrongerTotalPowerBoost` (Feeds on the Strong,
+samma fält som Ruby/Ragnar/Maximus/Pain), `onWinDebuffLoserPermanent`
+på Akari/Pains egen hårdare nivå (2) för Withering Touch. Special
+Attack: Harvest of Roses är en GARANTERAD fångst (en flipp, inte en
+förstörelse som Vaseir/Akaris egna garanterade effekter) — samma
+`specialBlockedByShield`-skydd som Rubys Godsfall. Användaren
+bekräftade uttryckligen att hon ska vara ren pack-exklusiv (aldrig i
+Campaign/Random Draft/Choose Your Five), vilket redan var arkitekturen
+för alla tjugo korten. Tjugo pack-exklusiva kort totalt nu. Hela
+testsviten grön: **189/189**.
+
 **Viktig uppdatering av avsnitt 12 (facit)**: användaren tyckte den
 enhetliga guld/lila-ramen för alla tiers kändes "för vanligt" —
 efterfrågade att RAMENS INTENSITET SKA SKALA MED SÄLLSYNTHET istället
@@ -9281,6 +9308,17 @@ nivå av ram-intensitet beskrivs. (Historisk notering: Bram-familjens
 BLÅ ram med drakhuvuden var före den här regeln formulerades — inte en
 medveten sub-brand, bara drift. Rör inte om den, men nya kort i den
 familjen bör följa tier-skalan ovan som allt annat.)
+
+**Rendering-STIL (foto vs. anime/chibi)**: standarden är fotorealistisk
+(alla kort t.o.m. Pain). Scarletta (Fas 55) kom i en helt annan
+anime/chibi-stil (stora ögon, docklika proportioner) — flaggat direkt
+via `AskUserQuestion` som ett möjligt stilbrott, och användaren
+bekräftade uttryckligen att det var medvetet ("jag gillar den här
+stilen"). Det är nu en avsiktlig ANDRA visuell stil inom
+pack-exklusiv-serien, specifikt för Scarletta. **Flagga ändå varje NY
+avvikelse i rendering-stil på samma sätt innan du bygger ett kort på
+den** — bekräftelsen gäller Scarlettas egen stil, inte en generell
+öppning för att vilken framtida bild som helst kan avvika fritt.
 
 **Tekniska krav på varje bild** (skriv detta rakt av i bildbriefen):
 1. **Ramen bakad i HELA canvasen**, inte ett separat overlay-lager. Det
