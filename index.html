@@ -3693,6 +3693,11 @@ const CARD_IMAGES = {
   pain: 'cards/card-pain.jpg',
   scarletta: 'cards/card-scarletta.jpg',
   cinder: 'cards/card-cinder.jpg',
+  lilith: 'cards/card-lilith.jpg',
+  vex: 'cards/card-vex.jpg',
+  elaraqueen: 'cards/card-elaraqueen.jpg',
+  oni: 'cards/card-oni.jpg',
+  ren: 'cards/card-ren.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3789,6 +3794,11 @@ const FULL_CARD_IMAGES = {
   pain: 'card-pain-full.jpg',
   scarletta: 'card-scarletta-full.jpg',
   cinder: 'card-cinder-full.jpg',
+  lilith: 'card-lilith-full.jpg',
+  vex: 'card-vex-full.jpg',
+  elaraqueen: 'card-elaraqueen-full.jpg',
+  oni: 'card-oni-full.jpg',
+  ren: 'card-ren-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5404,16 +5414,23 @@ const PACK_EXCLUSIVE_CARDS = [
   // (not destroy) regardless of stats -- same specialBlockedByShield
   // guard as Ruby's Godsfall, but a flip (she claims souls into her rose
   // garden) rather than an outright destroy like Vaseir/Akari's specials.
+  //
+  // Retroactively bonded (Fas 57) once Lilith/Vex/Elara/Oni/Ren arrived
+  // sharing the same triquetra-corner frame and the user confirmed all
+  // seven belong to one "Queens" (mixed-gender, despite the name) group
+  // -- sisterAura added alongside her existing kit, same generalized
+  // shape as the Bram and Tidewalker families.
   { id:'scarletta', name:'Scarletta', role:'The Thorned Countess — Pack Exclusive (Mystic)', element:'dark',
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#2a0f18,#0d0b18 60%)', accent:'#c23b5a', icon:'🥀',
     packTier:'mystic', exclusiveGlow:true,
-    active:{ shield:true, vsStrongerTotalPowerBoost:{amount:3}, onWinDebuffLoserPermanent:2 },
+    active:{ shield:true, vsStrongerTotalPowerBoost:{amount:3}, onWinDebuffLoserPermanent:2, sisterAura:{ partners:['cinder','lilith','vex','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Harvest of Roses', cost:3, once:true, targets:'single' },
     skills: [
       {name:'Undying Grace (Passive)', desc:'The first time Scarletta would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
       {name:'Feeds on the Strong (Passive)', desc:'When Scarletta attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she was always drawn to a worthy hunt.'},
       {name:'Withering Touch (Passive)', desc:'Each time Scarletta captures a card, it is left permanently withered — it loses 2 Power on all sides.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Scarletta gains extra Power on all sides.'},
       {name:'Special Attack: Harvest of Roses', desc:"Costs 3 wins. Choose an enemy card — she claims its soul into her garden outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
     ] },
   // Twenty-first pack-exclusive card: Cinder, a fiery queen. Arrived as
@@ -5438,16 +5455,127 @@ const PACK_EXCLUSIVE_CARDS = [
   // with how many enemies were actually hit -- distinct from every other
   // AOE Special in this file (Freya/Selene/Faragon/Reaper/Evil Twist),
   // none of which scale their own self-buff by the enemy count.
+  //
+  // Retroactively bonded (Fas 57), see Scarletta's own comment above.
   { id:'cinder', name:'Cinder', role:'The Ashen Queen — Pack Exclusive (Mystic)', element:'fire',
     top:10, right:10, bottom:9, left:10,
     hue:'linear-gradient(160deg,#2a0f10,#0d0b18 60%)', accent:'#c23b3b', icon:'🔥',
     packTier:'mystic', exclusiveGlow:true,
-    active:{ shield:true, buffOnEnemyDestroyed:true },
+    active:{ shield:true, buffOnEnemyDestroyed:true, sisterAura:{ partners:['scarletta','lilith','vex','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Ashfall', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Crown of Embers (Passive)', desc:'The first time Cinder would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
       {name:'Feeds on Ruin (Passive)', desc:'Each time any enemy card is destroyed by any means, Cinder permanently gains +1 Power on all sides — she thrives amid a dying world.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Cinder gains extra Power on all sides.'},
       {name:'Special Attack: Ashfall', desc:'Costs 3 wins. Every enemy card on the board permanently loses 1 Power on all sides, and Cinder permanently gains +1 Power on all sides for each enemy scorched. Usable once per match.'},
+    ] },
+  // Twenty-second through twenty-sixth pack-exclusive cards: Lilith,
+  // Vex, Elara, Oni, and Ren -- the rest of the "Court of Queens"
+  // (mixed-gender despite the name; Ren is male) sharing the triquetra-
+  // corner frame with Scarletta/Cinder. All arrived as pure art, no
+  // lore text; names and the group-bond confirmation came from the user
+  // directly via AskUserQuestion, across several rounds (including two
+  // "is this the same character in a different pose, or a new one?"
+  // checks -- Cinder's own precedent made that question necessary again
+  // here, and once for Elara specifically, whose art the user picked
+  // between a katana pose and a bow pose).
+  //
+  // sisterAura partners lists point at all SIX other Court members;
+  // bonusByCount:{1:1,2:2,3:3,4:4} matches Scarletta/Cinder's own
+  // values (4 is the practical ceiling -- a 5-card hand can hold at
+  // most 4 OTHER Court members alongside the one being evaluated).
+  //
+  // id note: the winter queen is named "Elara" on her own card, but
+  // `elara` is already a HEROES id (Darien/Elara, "Healer of the
+  // Frozen Light") -- using it here would make findCardById always
+  // resolve to the WRONG card. Internal id is `elaraqueen`; her
+  // displayed `name` is still exactly "Elara".
+  //
+  // Lilith, The Veiled Oracle (Legendary, magic element): a scrying
+  // witch with an orb, books, candles, a black cat. debuffImmune
+  // (Bram's own field -- "her wards protect her mind") +
+  // vsStrongerTotalPowerBoost (Foresight). Special "Curse of Fate" is
+  // the threshold-capture + stealPower shape (Balalajka/Arielle/Brommi).
+  { id:'lilith', name:'Lilith', role:'The Veiled Oracle — Pack Exclusive (Legendary)', element:'magic',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🐈‍⬛',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ debuffImmune:true, vsStrongerTotalPowerBoost:{amount:3}, sisterAura:{ partners:['scarletta','cinder','vex','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    special:{ name:'Curse of Fate', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:"Warded Mind (Passive)", desc:"Lilith's Power can never be lowered by an enemy card's ability — her wards protect her mind from harm."},
+      {name:'Foresight (Passive)', desc:'When Lilith attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she already saw this fight coming.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Lilith gains extra Power on all sides.'},
+      {name:'Special Attack: Curse of Fate', desc:"Costs 2 wins. Choose an adjacent enemy card — if Lilith's total Power is greater, her curse lulls it and takes 2 Power permanently, claiming the card. Usable once per match."},
+    ] },
+  // Vex, The Hollow Whisper (Epic, void element): an elf-witch with a
+  // hanging orb pendant. boardUnderdogAttackBonus (reused widely) for
+  // "she thrives forgotten and outnumbered." Special "Void Embrace" is
+  // a permanent AOE debuff at a SMALLER amount than Faragon's Heaven's
+  // Fall (-1, not -2) matching her Epic (not Mystic) tier.
+  { id:'vex', name:'Vex', role:'The Hollow Whisper — Pack Exclusive (Epic)', element:'void',
+    top:8, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#160c28,#0d0b18 60%)', accent:'#7a4fc9', icon:'🌌',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ boardUnderdogAttackBonus:2, sisterAura:{ partners:['scarletta','cinder','lilith','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    special:{ name:'Void Embrace', cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Forgotten Fury (Passive)', desc:'While you control fewer cards on the board than your opponent, Vex gains +2 Power when attacking — she thrives forgotten and outnumbered.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Vex gains extra Power on all sides.'},
+      {name:'Special Attack: Void Embrace', desc:'Costs 2 wins. Every enemy card on the board permanently loses 1 Power on all sides. Usable once per match.'},
+    ] },
+  // Elara, The Frostbound Archer (Epic, ice element; internal id
+  // `elaraqueen`, see the note above). onCaptureBonus (Dragon's own
+  // field, "Growing Legend") for a hunter who learns from every kill.
+  // Special "Frozen Volley" is the threshold-capture + self-buff combo
+  // (Bram/Aric's own shape), a smaller amount matching her Epic tier.
+  { id:'elaraqueen', name:'Elara', role:'The Frostbound Archer — Pack Exclusive (Epic)', element:'ice',
+    top:9, right:8, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#0e1c30,#0d0b18 60%)', accent:'#6ec8f2', icon:'🏹',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ onCaptureBonus:1, sisterAura:{ partners:['scarletta','cinder','lilith','vex','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    special:{ name:'Frozen Volley', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Growing Legend (Passive)', desc:'Each time Elara takes control of a card, she permanently gains +1 Power on all sides.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Elara gains extra Power on all sides.'},
+      {name:'Special Attack: Frozen Volley', desc:"Costs 2 wins. Choose an adjacent enemy card — if Elara's total Power is greater, her arrow finds its mark and she permanently gains +2 Power on all sides. Usable once per match."},
+    ] },
+  // Oni, The Blood Oni (Mystic, dark element): an oni-mask warrior with
+  // twin bloodied hammers. vsStrongerTotalPowerBoost (Merciless
+  // Strength) + onWinDestroyLoserAlways (already proven on Nexzoth/
+  // Vaseir -- fits her brutal, crushing aesthetic). Special "Oni's
+  // Judgment" is a guaranteed destroy, same shape as Vaseir's Swallowed
+  // Whole/Akari's Wrath.
+  { id:'oni', name:'Oni', role:'The Blood Oni — Pack Exclusive (Mystic)', element:'dark',
+    top:10, right:10, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#2a0a10,#0d0b18 60%)', accent:'#c23b3b', icon:'👹',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ vsStrongerTotalPowerBoost:{amount:3}, onWinDestroyLoserAlways:true, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    special:{ name:"Oni's Judgment", cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Merciless Strength (Passive)', desc:'When Oni attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she was built for a harder fight than this.'},
+      {name:"Crushing Blow (Passive)", desc:'Each time Oni wins a battle, the defeated card is destroyed outright instead of captured.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Oni gains extra Power on all sides.'},
+      {name:"Special Attack: Oni's Judgment", desc:"Costs 3 wins. Choose an enemy card — she crushes it outright, destroying it regardless of stats (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Ren, The Frostblade (Epic, ice element; male, matching Elara's own
+  // setting/palette closely, though not asserted as her sibling/partner
+  // -- just a shared aesthetic and Court membership). onWinCappedBoost
+  // (Zidane/Vaelira's own field) for a duelist who grows sharper with
+  // every clash. Special "Twin Crystal Strike" is a plain threshold
+  // capture with no self-buff attached -- the one Special in this
+  // group that doesn't layer a bonus on top of the capture itself,
+  // matching his straightforward duelist identity.
+  { id:'ren', name:'Ren', role:'The Frostblade — Pack Exclusive (Epic)', element:'ice',
+    top:9, right:9, bottom:9, left:8,
+    hue:'linear-gradient(160deg,#0e1c30,#0d0b18 60%)', accent:'#6ec8f2', icon:'⚔️',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ onWinCappedBoost:{amount:1, max:3}, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','oni'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    special:{ name:'Twin Crystal Strike', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Duelist\'s Edge (Passive)', desc:'Each time Ren wins a battle, he gains +1 Power on all sides, up to 3 times per match.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Ren gains extra Power on all sides.'},
+      {name:'Special Attack: Twin Crystal Strike', desc:"Costs 2 wins. Choose an adjacent enemy card — if Ren's total Power is greater, his twin blades claim it outright. Usable once per match."},
     ] },
 ];
 
@@ -11514,6 +11642,75 @@ const SPECIAL_HANDLERS = {
     enemies.forEach(e => SpecialVerbs.debuff(e, 1));
     if(enemies.length > 0) SpecialVerbs.attackBoost(srcEntry, enemies.length);
     return `${srcEntry.card.name}'s Ashfall scorches the enemy ranks — she grows stronger from their ruin!`;
+  },
+  // Lilith's Curse of Fate: threshold capture + stealPower, same shape
+  // as Balalajka/Arielle/Brommi's own "Toast"/boarding-action Specials.
+  lilith({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Curse of Fate finds no purchase!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Curse of Fate!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
+    return `${name}'s Curse of Fate claims ${targetEntry.card.name}'s fortune!`;
+  },
+  // Vex's Void Embrace: a permanent AOE debuff at a smaller amount than
+  // Faragon's Heaven's Fall (-1, not -2), matching her Epic tier.
+  vex({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuff(e, 1));
+    return `${srcEntry.card.name}'s Void Embrace unravels the enemy ranks!`;
+  },
+  // Elara's Frozen Volley: threshold capture + self-buff, same combo
+  // shape as Bram/Aric's own Specials, smaller amount for her Epic tier.
+  elaraqueen({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Frozen Volley goes wide!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Frozen Volley!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${name}'s Frozen Volley strikes true — ${targetEntry.card.name} falls!`;
+  },
+  // Oni's Judgment: a GUARANTEED destroy regardless of stats, same
+  // shape as Vaseir's Swallowed Whole/Akari's Wrath.
+  oni({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds — ${name}'s hammers find no purchase!`;
+    }
+    if(isDestroyImmune(targetEntry) || protectedByInfiniteSeraph(targetEntry.owner)){
+      return `${targetEntry.card.name} resists ${name}'s judgment!`;
+    }
+    const victimName = targetEntry.card.name;
+    destroyCard(targetIndex);
+    return `${name} crushes ${victimName} outright — nothing is left of it!`;
+  },
+  // Ren's Twin Crystal Strike: a plain threshold capture with no bonus
+  // attached -- the one Special in the Court that doesn't layer
+  // anything on top of the capture itself.
+  ren({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Twin Crystal Strike is turned aside!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Twin Crystal Strike!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name}'s Twin Crystal Strike claims ${targetEntry.card.name} outright!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
