@@ -11314,7 +11314,7 @@ test('Fas 47: eleventh pack-exclusive card -- Bram, "The Last Toast" (Legendary)
   await page.close();
 });
 
-test('Fas 48: twelfth pack-exclusive card -- Brommi, "The Little Toast" (Epic), Bram\'s confirmed little brother (per the card\'s own printed "弟" stamp)', async () => {
+test('Fas 48: twelfth pack-exclusive card -- Brommi, "The Little Toast" (Epic), Bram\'s confirmed little brother (per the card\'s own printed "弟" stamp); migrated to the family sisterAura in Fas 49', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -11327,12 +11327,13 @@ test('Fas 48: twelfth pack-exclusive card -- Brommi, "The Little Toast" (Epic), 
 
     state.playerHand = [1,2]; state.enemyHand = [1,2];
 
-    // Brothers in Drink: pairPresence with Bram.
+    // Family Toast: sisterAura with Bram (see Fas 49 for the full
+    // 4-sibling scaling test) -- +1 with exactly one sibling present.
     state.board = Array(9).fill(null);
     state.board[4] = freshEntry(brommi, 'blue');
     out.noBonusAlone = fullEffectiveValue(brommi, 'top', null, 4, 'blue', 'defense') - brommi.top === 0;
     state.board[0] = freshEntry(bram, 'blue');
-    out.bonusWithBram = fullEffectiveValue(brommi, 'top', null, 4, 'blue', 'defense') - brommi.top === 2;
+    out.bonusWithBram = fullEffectiveValue(brommi, 'top', null, 4, 'blue', 'defense') - brommi.top === 1;
 
     // Little Fists, Big Heart: +2 attacking while behind on board count.
     state.board = Array(9).fill(null);
@@ -11381,13 +11382,184 @@ test('Fas 48: twelfth pack-exclusive card -- Brommi, "The Little Toast" (Epic), 
   assert.equal(result.notInHeroes, true);
   assert.equal(result.notInCampaignPool, true);
   assert.equal(result.noBonusAlone, true);
-  assert.equal(result.bonusWithBram, true, 'Brothers in Drink must give +2 while Bram is on the board');
+  assert.equal(result.bonusWithBram, true, 'Family Toast must give +1 with exactly one sibling (Bram) present');
   assert.equal(result.underdogAttack, true);
   assert.equal(result.noUnderdogDefense, true, 'Little Fists, Big Heart must be attack-only');
   assert.equal(result.stolenAndCaptured, true, 'The Little Toast must steal 1 Power on top of capturing the target');
   assert.equal(result.failsOnTie, true);
   assert.equal(result.drawableFromEpic, true);
   assert.equal(result.neverFromLegendary, true, "Brommi must only ever come from the Epic tier, never his brother's Legendary tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 49: thirteenth pack-exclusive card -- Sakura, "The Drunken Sister" (Rare); also generalizes sisterAura to a 4-sibling family (Bram/Brommi/Sakura/Akari) via a per-card partners list instead of the hardcoded 3-sister function', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const bram = findCardById('bram');
+    const brommi = findCardById('brommi');
+    const sakura = findCardById('sakura');
+    const akari = findCardById('akari');
+    out.findable = sakura !== null && sakura.name === 'Sakura';
+    out.notInHeroes = !HEROES.some(h => h.id === 'sakura');
+    out.notInCampaignPool = !campaignPool().includes('sakura');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Family Toast scaling: 0/1/2/3 siblings present, read from Bram's own
+    // sisterAura.partners list -- the actual engine generalization this
+    // family required (see fullEffectiveValue's own comment on the fix).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(bram, 'blue');
+    out.zeroSiblings = fullEffectiveValue(bram, 'top', null, 4, 'blue', 'attack') - bram.top === 0;
+    state.board[0] = freshEntry(brommi, 'blue');
+    out.oneSibling = fullEffectiveValue(bram, 'top', null, 4, 'blue', 'attack') - bram.top === 1;
+    state.board[1] = freshEntry(sakura, 'blue');
+    out.twoSiblings = fullEffectiveValue(bram, 'top', null, 4, 'blue', 'attack') - bram.top === 2;
+    state.board[2] = freshEntry(akari, 'blue');
+    out.threeSiblings = fullEffectiveValue(bram, 'top', null, 4, 'blue', 'attack') - bram.top === 3;
+
+    // An enemy-owned sibling must not count.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(bram, 'blue');
+    state.board[0] = freshEntry(brommi, 'red');
+    out.enemySiblingIgnored = fullEffectiveValue(bram, 'top', null, 4, 'blue', 'attack') - bram.top === 0;
+
+    // Existing Vaelira/Seraphine/Nyxara trio must be UNCHANGED by the
+    // generalization (their own partners arrays already ARE "the other
+    // two", so behavior must be numerically identical to before).
+    const vaelira = findCardById('vaelira'), seraphine = findCardById('seraphine'), nyxara = findCardById('nyxara');
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(vaelira, 'blue');
+    out.sistersAlone = fullEffectiveValue(vaelira, 'top', null, 4, 'blue', 'attack') - vaelira.top === 0;
+    state.board[0] = freshEntry(seraphine, 'blue');
+    out.sistersOne = fullEffectiveValue(vaelira, 'top', null, 4, 'blue', 'attack') - vaelira.top === 2;
+    state.board[1] = freshEntry(nyxara, 'blue');
+    out.sistersTwo = fullEffectiveValue(vaelira, 'top', null, 4, 'blue', 'attack') - vaelira.top === 4;
+
+    // Sakura's own kit: Charming Stumble is backed by marginShieldThreshold.
+    out.sakuraHasMarginShield = sakura.active.marginShieldThreshold === 1;
+
+    // Special: Sakura's Cup -- threshold capture that also grants HERSELF
+    // a Shield on success (not a buff, not a steal).
+    state.board = Array(9).fill(null);
+    const s1 = freshEntry(sakura, 'blue');
+    const weak = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = s1; state.board[5] = weak;
+    SPECIAL_HANDLERS.sakura({ srcEntry: s1, targetEntry: weak, targetIndex: 5, owner: 'blue' });
+    out.sakuraCapturedAndShielded = weak.owner === 'blue' && s1.grantedShield === true;
+
+    // Fails against a stronger target, no shield granted.
+    state.board = Array(9).fill(null);
+    const s2 = freshEntry(sakura, 'blue');
+    const strong = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red');
+    state.board[4] = s2; state.board[5] = strong;
+    SPECIAL_HANDLERS.sakura({ srcEntry: s2, targetEntry: strong, targetIndex: 5, owner: 'blue' });
+    out.sakuraFailsVsStronger = strong.owner === 'red' && !s2.grantedShield;
+
+    // buyPack: Sakura only from the Rare tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInRare = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('rare');
+      if(playerProgress.earnedCards.sakura) sawInRare = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.sakura) sawInLegendary = true;
+    }
+    out.drawableFromRare = sawInRare;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.zeroSiblings, true);
+  assert.equal(result.oneSibling, true, 'Family Toast must give +1 with exactly one sibling present');
+  assert.equal(result.twoSiblings, true, 'Family Toast must give +2 with exactly two siblings present');
+  assert.equal(result.threeSiblings, true, 'Family Toast must give +3 with all three other siblings present');
+  assert.equal(result.enemySiblingIgnored, true, "an enemy-owned sibling must not count toward Family Toast");
+  assert.equal(result.sistersAlone, true, 'the generalization must not change the Vaelira trio\'s own behavior');
+  assert.equal(result.sistersOne, true);
+  assert.equal(result.sistersTwo, true);
+  assert.equal(result.sakuraHasMarginShield, true);
+  assert.equal(result.sakuraCapturedAndShielded, true, "Sakura's Cup must capture AND grant Sakura herself a Shield");
+  assert.equal(result.sakuraFailsVsStronger, true);
+  assert.equal(result.drawableFromRare, true);
+  assert.equal(result.neverFromLegendary, true, 'Sakura must only ever come from the Rare tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 50: fourteenth pack-exclusive card -- Akari, "The Cruel Drunken Sister" (Mystic), the family\'s dark sheep (confirmed by the user as a sister, per the card\'s own printed "悪" stamp)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const akari = findCardById('akari');
+    out.findable = akari !== null && akari.name === 'Akari';
+    out.notInHeroes = !HEROES.some(h => h.id === 'akari');
+    out.notInCampaignPool = !campaignPool().includes('akari');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Cruel Strike: captured card permanently -2, harsher than Balalajka's own -1.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.board[4] = freshEntry(akari, 'blue');
+    state.board[1] = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.cruelStrikeApplied = state.board[1].owner === 'blue' && state.board[1].captureBonus === -2;
+
+    // Special: Akari's Wrath -- a GUARANTEED destroy regardless of stats,
+    // but a Shield still protects its owner.
+    state.board = Array(9).fill(null);
+    const a1 = freshEntry(akari, 'blue');
+    const strongUnshielded = freshEntry({ id:'su', name:'SU', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = a1; state.board[5] = strongUnshielded;
+    SPECIAL_HANDLERS.akari({ srcEntry: a1, targetEntry: strongUnshielded, targetIndex: 5, owner: 'blue' });
+    out.wrathDestroyedStrong = state.board[5] === null;
+
+    state.board = Array(9).fill(null);
+    const a2 = freshEntry(akari, 'blue');
+    const shielded = freshEntry({ id:'sh', name:'SH', top:1,right:1,bottom:1,left:1 }, 'red');
+    shielded.grantedShield = true;
+    state.board[4] = a2; state.board[6] = shielded;
+    SPECIAL_HANDLERS.akari({ srcEntry: a2, targetEntry: shielded, targetIndex: 6, owner: 'blue' });
+    out.wrathBlockedByShield = state.board[6] !== null && state.board[6].owner === 'red';
+
+    // buyPack: Akari only from the Mystic tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInMystic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.akari) sawInMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.akari) sawInLegendary = true;
+    }
+    out.drawableFromMystic = sawInMystic;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.cruelStrikeApplied, true, 'Cruel Strike must permanently apply -2 to a captured card');
+  assert.equal(result.wrathDestroyedStrong, true, "Akari's Wrath must guarantee a destroy regardless of stat comparison");
+  assert.equal(result.wrathBlockedByShield, true, "a Shield must still protect its owner against Akari's Wrath");
+  assert.equal(result.drawableFromMystic, true);
+  assert.equal(result.neverFromLegendary, true, 'Akari must only ever come from the Mystic tier');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

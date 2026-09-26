@@ -5420,6 +5420,51 @@ Freya/Zidane/Ruby, Kade/Selene, Vaseir/Balalajka) eftersom inget i
 konsten pekade dit — helt okej enligt avsnitt 11:s egen regel, så länge
 jag inte hittar på en falsk koppling. Hela testsviten grön: **182/182**.
 
+**Fas 49/50. Trettonde och fjortonde pack-exklusiva korten: Sakura, "The
+Drunken Sister" (Rare), och Akari, "The Cruel Drunken Sister" (Mystic) —
+Bram/Brommis systrar, alltså en HEL fyra-syskon-familj nu.** Sakura kom
+utan text ("elegant, skönhet, sake-tema, samma miljö som bröderna");
+jag frågade explicit via `AskUserQuestion` om släktskapet eftersom
+kortet saknade Brommis tydliga "弟"-stämpel, och fick "Ja, hon är
+Bram/Brommis syster" — bekräftat, inte gissat. Akari kom strax efter med
+sin egen bekräftelse rakt i chatten ("Elaka systern") plus sin egen
+"悪" (ond)-stämpel på kortet.
+
+**Verklig motorbegränsning hittad och fixad**: `pairPresence` (den
+mekanik Brommi ursprungligen använde mot Bram) stödjer bara EN namngiven
+partner — otillräckligt för fyra syskon. Lösningen fanns redan i
+motorn i en annan form: Vaelira/Seraphine/Nyxaras egen `sisterAura`
+({partners:[...], bonusByCount:{1:X,2:Y}}) är EXAKT rätt form för en
+skalande syskon-grupp — men själva avläsningen (`sistersPresentCount`)
+var hårdkodad till just de tre systrarnas id:n, inte generisk trots att
+varje korts egen `partners`-lista redan fanns i datan. Generaliserade
+båda läsplatserna (`fullEffectiveValue` OCH dess `staticLiveBonusFor`-
+spegelkopia för förhandsvisnings-badgen) till att läsa kortets EGEN
+`partners`-lista direkt istället för att anropa den hårdkodade
+funktionen — bevisat beteende-identiskt för Vaelira-trion (deras egna
+`partners`-listor ÄR redan "de andra två systrarna", exakt vad
+funktionen redan beräknade), så ingen regression, bara en riktig
+generalisering. `sistersPresentCount`/`SISTER_IDS` självt rördes INTE
+(används fortfarande av Vaelira-triones egen "Broken Focus"-svaghet och
+`freeIfSistersPresent`, som förblir exklusiva för just de tre).
+
+Bram och Brommi migrerades från Brommis gamla tvåvägs-`pairPresence`
+till samma delade `sisterAura` (partners: de tre andra syskonen,
+bonusByCount:{1:1,2:2,3:3}) — båda existerande korts test uppdaterades
+för den nya skalan (+1 med en syster/bror närvarande, inte +2 som förut).
+
+Sakura (Rare, lättaste nivån, matchar hennes mjukare stöd-arketyp):
+Charming Stumble återanvänder `marginShieldThreshold` (Darien/Elara/Twin
+Sisters eget fält). Special Sakura's Cup är en tröskel-fångst som ger
+HENNE SJÄLV en Shield på lyckad träff, inte en buff eller stöld.
+
+Akari (Mystic, familjens farligaste medlem): Cruel Strike återanvänder
+`onWinDebuffLoserPermanent` men på 2 istället för Balalajkas 1. Special
+Akari's Wrath är en GARANTERAD destroy (inte fångst) oavsett stats, samma
+skydds-kedja som Vaseirs Swallowed Whole/Rubys Godsfall.
+
+Fjorton pack-exklusiva kort totalt nu. Hela testsviten grön: **184/184**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
@@ -9116,11 +9161,16 @@ användaren bekräftade explicit "Dom är helt olika personer").
   från broderns tystnad/beräknande brutalitet. Lockar offer med sin
   musik snarare än att bara krossa dem. Tror kanske själv att han är
   familjens stora geni.
-- **Bram** ("The Last Toast") och **Brommi** ("The Little Toast") —
-  bröder, bekräftat via kortens egna "弟"-stämpel (lillebror). Berusade
-  kung fu-mästare (酔拳/小酔拳, "Drunken Fist"/"Little Drunken Fist").
-  Ingen kopplad lore-tråd till övriga karaktärer ännu — ett eget litet
-  hörn av världen, inte forcerat ihop med de andra.
+- **Bram** ("The Last Toast"), **Brommi** ("The Little Toast"),
+  **Sakura** ("The Drunken Sister") och **Akari** ("The Cruel Drunken
+  Sister") — fyra syskon, en berusad kung fu-familj (酔拳, "Drunken
+  Fist"). Bram/Brommi bekräftat bröder via kortens egen "弟"-stämpel;
+  Sakura och Akari bekräftade som systrar direkt av användaren
+  (`AskUserQuestion` respektive "Elaka systern" i chatten). Akari bär
+  sin egen "悪" (ond)-stämpel — familjens svarta får. Alla fyra delar
+  samma `sisterAura`-bindning (skalar med hur många syskon som är på
+  brädet). Ingen kopplad lore-tråd till övriga karaktärer ännu — ett
+  eget litet hörn av världen, inte forcerat ihop med de andra.
 
 **Tre narrativa "kluster" hittills** (per användarens egen taxonomi):
 krigare (Dragon, Zidane, Kade), gudomliga krafter (Faragon, Ruby, Freya),
