@@ -11125,3 +11125,103 @@ test('Fas 45: ninth pack-exclusive card -- Balalajka (Legendary), Vaseir\'s bard
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 46: tenth pack-exclusive card -- Faragon (Mystic), Dragon's ACTUAL half-god brother (a distinct character from Reaper); also proves the role-tag 'one connected world' payoff for Ruby's Godly Kinship", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const faragon = findCardById('faragon');
+    const ruby = findCardById('ruby');
+    out.findable = faragon !== null && faragon.name === 'Faragon';
+    out.notInHeroes = !HEROES.some(h => h.id === 'faragon');
+    out.notInCampaignPool = !campaignPool().includes('faragon');
+    out.roleMatchesGodRegex = /M(yth|yst)ic Card/.test(faragon.role);
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Sundering Descent: on-place, adjacent enemies -1, far enemies and
+    // allies untouched.
+    state.board = Array(9).fill(null);
+    const adjEnemy = freshEntry({ id:'adj', name:'Adj', top:5,right:5,bottom:5,left:5 }, 'red');
+    const farEnemy = freshEntry({ id:'far', name:'Far', top:5,right:5,bottom:5,left:5 }, 'red');
+    const adjAlly = freshEntry({ id:'ally', name:'Ally', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[1] = adjEnemy;
+    state.board[8] = farEnemy;
+    state.board[3] = adjAlly;
+    ON_PLACE_HANDLERS.faragon(null, 'blue', 4);
+    out.adjacentEnemyDebuffed = adjEnemy.captureBonus === -1;
+    out.farEnemyUnaffected = farEnemy.captureBonus === 0;
+    out.allyUnaffected = adjAlly.captureBonus === 0;
+
+    // Divine Aegis (shield) + Zealous Ascension: fires once, not twice.
+    out.hasShield = faragon.active.shield === true;
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src = freshEntry(faragon, 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry({ id:'w1', name:'W1', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    const sumAfterFirst = src.sideBonus ? Object.values(src.sideBonus).reduce((a,b)=>a+b,0) : 0;
+    out.firstWinGrantsOneBoost = sumAfterFirst === 1;
+    state.board[1] = freshEntry({ id:'w2', name:'W2', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    const sumAfterSecond = src.sideBonus ? Object.values(src.sideBonus).reduce((a,b)=>a+b,0) : 0;
+    out.secondWinGrantsNoMore = sumAfterSecond === 1;
+
+    // Special Attack: Heaven's Fall -- PERMANENT -2 to every enemy, allies spared.
+    state.board = Array(9).fill(null);
+    const s2 = freshEntry(faragon, 'blue');
+    const e1 = freshEntry({ id:'e1', name:'E1', top:5,right:5,bottom:5,left:5 }, 'red');
+    const e2 = freshEntry({ id:'e2', name:'E2', top:5,right:5,bottom:5,left:5 }, 'red');
+    const allySpared = freshEntry({ id:'a2', name:'A2', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = s2; state.board[0] = e1; state.board[1] = e2; state.board[2] = allySpared;
+    SPECIAL_HANDLERS.faragon({ srcEntry: s2, owner: 'blue' });
+    out.heavenFallHitBoth = e1.captureBonus === -2 && e2.captureBonus === -2;
+    out.heavenFallSparedAlly = allySpared.captureBonus === 0;
+
+    // The "one connected world" payoff: Ruby's Godly Kinship must count
+    // Faragon (a half-god) as one of her gods, via the shared role regex.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(ruby, 'blue');
+    const noBonus = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top;
+    state.board[0] = freshEntry(faragon, 'blue');
+    const withFaragon = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top;
+    out.rubyCountsFaragonAsGod = noBonus === 0 && withFaragon === 2;
+
+    // buyPack: faragon only from the Mystic tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInMystic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.faragon) sawInMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.faragon) sawInLegendary = true;
+    }
+    out.drawableFromMystic = sawInMystic;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.roleMatchesGodRegex, true, "Faragon's role must contain a Mythic/Mystic Card god-tag");
+  assert.equal(result.adjacentEnemyDebuffed, true);
+  assert.equal(result.farEnemyUnaffected, true);
+  assert.equal(result.allyUnaffected, true);
+  assert.equal(result.hasShield, true);
+  assert.equal(result.firstWinGrantsOneBoost, true);
+  assert.equal(result.secondWinGrantsNoMore, true, 'Zealous Ascension must only fire on the first win');
+  assert.equal(result.heavenFallHitBoth, true, "Heaven's Fall must permanently debuff every enemy on the board");
+  assert.equal(result.heavenFallSparedAlly, true);
+  assert.equal(result.rubyCountsFaragonAsGod, true, "Ruby's Godly Kinship must count Faragon as one of her gods");
+  assert.equal(result.drawableFromMystic, true);
+  assert.equal(result.neverFromLegendary, true, 'Faragon must only ever come from the Mystic tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

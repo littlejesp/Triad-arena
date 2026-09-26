@@ -5046,6 +5046,55 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Dirge of Surrender (Passive)', desc:"Each time Balalajka captures a card, its resolve is broken by his mocking song — it permanently loses 1 Power on all sides."},
       {name:'Special Attack: Thieving Serenade', desc:"Costs 2 wins. Choose an adjacent enemy card — if Balalajka's total Power is greater, his song lulls it as he lightens its coin purse, stealing 2 Power permanently and claiming the card. Usable once per match."},
     ] },
+  // Tenth pack-exclusive card: Dragon's ACTUAL brother, per a ChatGPT-
+  // drafted lore summary the user sent and then explicitly corrected on
+  // one key point -- an early guess in this same session (unprompted,
+  // "du kommer älska brodern") had assumed Reaper was Dragon's brother.
+  // Asked directly via AskUserQuestion whether Reaper should be renamed
+  // to Faragon; the user's answer was "Dom är helt olika personer" (they
+  // are completely different people) -- so Faragon is a genuinely NEW,
+  // separate character, not a rename. Reaper's own kit/lore is untouched.
+  //
+  // Half-god, fights from the air, dives down through the sky like a
+  // divine projectile with a giant lance/scythe-hybrid weapon ("the sky
+  // opens — and Faragon falls"). No art yet for this one -- CARD_IMAGES/
+  // FULL_CARD_IMAGES are deliberately left unset; cardFace()/renderModal()
+  // already fall back to the plain hue gradient + icon whenever an id has
+  // no image entry (see the `CARD_IMAGES[c.id] ? ... : ...` ternary at
+  // every call site), so this card is fully playable/testable now and
+  // just needs its portraits wired in later once the user sends them.
+  //
+  // role explicitly contains the substring "Mystic Card" (not just
+  // "Pack Exclusive (Mystic)" like every other card here) -- per the same
+  // lore doc's own taxonomy, grouping Faragon (half-god), Ruby (calls
+  // gods) and Freya under "gudomliga krafter" as one connected thread.
+  // Ruby's Godly Kinship reads any card whose role matches
+  // /M(yth|yst)ic Card/, so this makes Faragon count as one of "her
+  // gods" too -- a real, code-level payoff of the "one connected world"
+  // instruction, not just flavor text.
+  //
+  // Kit: Sundering Descent is a new ON_PLACE_HANDLERS entry (his impact
+  // on landing, same shape as Nyxara/Vaelira/Fenrir's own on-place
+  // effects) rather than a passive `active.*` aura -- the debuff is a
+  // ONE-TIME landing shockwave, not a persistent live aura, so the
+  // on-place hook is the correct primitive, not adjacentEnemiesBoost.
+  // shield + onWinDirectionalBoost are both reused verbatim (Astrael;
+  // Fenrir/Tiamat). Special "Heaven's Fall" is a genuinely new shape for
+  // this file: a permanent (not "this round") whole-board enemy debuff,
+  // distinguishing it from Reaper's Judgment Descent / Evil Twist's
+  // Yin-Yang Resonance, which are both temporary.
+  { id:'faragon', name:'Faragon', role:'Mystic Card — The Falling Half-God, Pack Exclusive', element:'light',
+    top:10, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c2440,#0d0b18 60%)', accent:'#e0c02f', icon:'⚡',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ shield:true, onWinDirectionalBoost:1 },
+    special:{ name:"Heaven's Fall", cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Sundering Descent (Passive)', desc:'When Faragon is placed, the sky itself cracks open as he crashes down — every adjacent enemy card permanently loses 1 Power on all sides from the impact.'},
+      {name:'Divine Aegis (Passive)', desc:'The first time Faragon would lose a battle, his half-divine blood shields him from harm — the loss is ignored and he keeps his position.'},
+      {name:'Zealous Ascension (Passive)', desc:'The first time Faragon wins a battle, the edge he struck with permanently gains +1 Power — each triumph sharpens the god within him.'},
+      {name:"Special Attack: Heaven's Fall", desc:'Costs 3 wins. The sky opens once more — every enemy card on the board permanently loses 2 Power on all sides. Usable once per match.'},
+    ] },
 ];
 
 function drawEnemyHand(){
@@ -9811,6 +9860,18 @@ const ON_PLACE_HANDLERS = {
     const target = enemies[Math.floor(Math.random()*enemies.length)];
     target.seraphineMarked = true;
   },
+  // Faragon's Sundering Descent: "the sky opens and he crashes down" is a
+  // ONE-TIME landing impact, not a persistent aura, so this belongs in
+  // ON_PLACE_HANDLERS (like Nyxara/Vaelira/Fenrir above) rather than a
+  // generic active.* field. Permanent (SpecialVerbs.debuff), unlike
+  // Fenrir's own on-place effect above which is also permanent but
+  // directional — this one is a plain adjacency blast, same shape as
+  // Pallis's Wolf Paw's Grip only permanent instead of round-scoped.
+  faragon(entry, owner, cellIndex){
+    adjacentEntries(cellIndex).forEach(({ entry: adjEntry }) => {
+      if(adjEntry.owner !== owner) SpecialVerbs.debuff(adjEntry, 1);
+    });
+  },
   // Kaeldryx's Scalebreaker, rebuilt per the approved art (was "choose 1
   // enemy card — it can't get Power bonuses this round", now a permanent
   // -2 debuff instead) — random target, same simplification as every other
@@ -10918,6 +10979,16 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
     return `${name}'s Thieving Serenade lulls ${targetEntry.card.name} — its coin purse is a little lighter now!`;
+  },
+  // Faragon's Heaven's Fall: unlike Reaper's Judgment Descent / Evil
+  // Twist's Yin-Yang Resonance (both "this round" via debuffThisRound),
+  // this is a PERMANENT whole-board enemy debuff (SpecialVerbs.debuff) --
+  // a genuinely new shape in this file, matching a half-god's judgment
+  // being lasting rather than a temporary battlefield condition.
+  faragon({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuff(e, 2));
+    return `${srcEntry.card.name}'s Heaven's Fall scours the enemy ranks — the sky itself judges them!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
