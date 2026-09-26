@@ -5465,6 +5465,65 @@ skydds-kedja som Vaseirs Swallowed Whole/Rubys Godsfall.
 
 Fjorton pack-exklusiva kort totalt nu. Hela testsviten grön: **184/184**.
 
+**Fas 51/52. Femtonde till sjuttonde pack-exklusiva korten: Arielle
+(Epic), Aric (Rare) och Mira (Legendary) — "Tidewalker"-besättningen, de
+FÖRSTA korten efter ChatGPT-stilrättningen (se avsnitt 12).** Man ser
+det direkt: kanoniska guld/lila-kompassramen, 1024×1536, matchande
+sunset-hamn-miljö/rekvisita över alla tre. Arielle/Aric kom först och
+delade det bokstavliga TRYCKTA namnet "Tidewalker" — starkt nog signal
+för att binda dem utan att gissa en specifik relation (syskon? partners?
+medkaptener? inget bekräftat) — beskrivna neutralt som besättningskamrater
+istället för att göra samma misstag som Reaper/Faragon tidigare i
+sessionen. Mira kom strax efter med ett HELT TOMT namnfält (inget namn
+inbränt alls, första gången det hänt) — frågade användaren direkt om
+namn och grupptillhörighet, fick "Mira" och "ja, samma besättning".
+
+Det gjorde tre — Arielle/Aric migrerades från sin ursprungliga tvåvägs-
+`pairPresence` till samma generaliserade `sisterAura` som Bram-familjen
+använder (bara EN namngiven partner stöds av `pairPresence`). Behöll
+värdet vid exakt en besättningskamrat (+2, samma som `pairPresence` gav)
+via `bonusByCount:{1:2,2:3}`. Delade över TRE olika tiers (Epic/Rare/
+Legendary) så att dra vem som helst aldrig garanterar någon annan.
+
+Arielle: Captain's Fortune (`vsStrongerTotalPowerBoost`), Sea Legs
+(`shield`), Special Rising Tide (tröskel-fångst + stjäl 2 Kraft, samma
+form som Balalajka/Brommi). Aric: Blade of the Tidewalker
+(`onCaptureBonus`), Special Tidewalker's Duel (tröskel-fångst +
+självbuff, Brams form fast mindre). Mira: Command the Deck
+(`adjacentAlliesBoost`), Special Rousing Anthem — en genuint NY form i
+filen: en PERMANENT (inte "denna rond") hel-sida-buff (Freyas Blessing
+är temporär, Selenes Embrace ger en Shield istället för en statbuff).
+Hela testsviten grön: **187/187**.
+
+**Fas 53/54. Artonde och nittonde pack-exklusiva korten: Sunny (Rare)
+och Pain (Legendary) — två fristående figurer, ingen koppling till
+Tidewalkers eller någon annan grupp (bekräftat direkt av användaren för
+båda).** Sunny kom med tomt namnfält igen (fråga → "Sunny" → egen
+figur); Pain kom med bara ETT stavat namn inbränt ("PAIN"), ingen
+undertitel, tolkat rakt av som kortets namn (samma konvention som
+"BALALAJKA"/"BRAM").
+
+Sunny: `onWinCleanseAlly` (Elara/Selenes fält) + `flatAttackBonus`
+(Sylvarion/Zaevirs fält) — en kombination inte använd ihop tidigare.
+Special Sunny's Feast är en ny AOE-form: rensa HELA sidan från negativa
+effekter OCH permanent +1, till skillnad från Freyas temporära buff och
+Selenes Shield-grant. Pain: `onWinDebuffLoserPermanent` på Akaris egen
+hårdare nivå (2) + `vsStrongerTotalPowerBoost`. Special Baptism of Pain
+är den ENDA enmåls-Specialen i filen som helt HOPPAR ÖVER
+`specialBlockedByShield` (samma "ignorerar försvar"-idé som Dragons egen
+`ignoresShieldOnAttack`-passiv, fast bara för just denna Special).
+Nitton pack-exklusiva kort totalt nu. Hela testsviten grön: **188/188**.
+
+**Viktig uppdatering av avsnitt 12 (facit)**: användaren tyckte den
+enhetliga guld/lila-ramen för alla tiers kändes "för vanligt" —
+efterfrågade att RAMENS INTENSITET SKA SKALA MED SÄLLSYNTHET istället
+för en identisk mall för alla fyra nivåer. Ny regel: Rare = enkel ren
+guldram; Epic = tjockare ram + svag lila glöd; Legendary = flerlagrad
+ram + partikeleffekter; Mystic = "taket" — sprickor av levande
+ljus/energi genom guldet, glöd som läcker in i scenen, UNIKA
+hörnprydnader per karaktär (inte samma kompass-stjärna varje gång). Se
+avsnitt 12 för den fullständiga, konkreta ChatGPT-brief-texten.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
@@ -9192,20 +9251,36 @@ kortet i kod.
 
 ### A. Bildstilen (vad du skickar till ChatGPT)
 
-**Kanonisk ram, gäller ALLA pack-exklusiva kort**: en tjock, ornamenterad
-guldram med gravyrmönster, och en tunn LILA/magisk glöd precis innanför
-guldkanten (#c9a227/#e0c02f-guld, #a568f2/#c23bce-lila) — samma "arkana
-kompass"-känsla som spelets egen kortbaksida. **Observation, inte ändrat
-än**: de fyra senaste korten (Bram/Brommi/Sakura/Akari, den berusade
-kung fu-familjen) kom med en BLÅ ram med drakhuvuden i hörnen istället —
-en annan stil än de tidigare tio. Om det var meningen att den familjen
-ska ha sin egen distinkta "sub-brand" är det okej, men om det bara var
-drift (glömde bort guld/lila-standarden mitt i en ny bildserie) bör
-nästa kort i den familjen (om fler kommer) medvetet väljas att antingen
-(a) fortsätta den blå drakstilen som familjens EGEN etablerade
-sub-identitet, eller (b) byta tillbaka till guld/lila för att matcha
-resten av rostret. Fråga användaren om det är oklart vilket som gäller
-innan nästa kort i en existerande familj beskrivs till ChatGPT.
+**Kanonisk grundpalett, gäller ALLA pack-exklusiva kort**: guld
+(#c9a227/#e0c02f) för själva ramens metall/gravyr, lila
+(#a568f2/#c23bce) för den magiska glöden — samma "arkana kompass"-känsla
+som spelets egen kortbaksida. **Ramens INTENSITET ska däremot skala med
+`packTier`, inte se identisk ut på alla fyra nivåer** (användarfeedback:
+den enhetliga ramen kändes "för vanligt" när alla fjorton kort fick
+exakt samma ram oavsett sällsynthet) — se den fullständiga, konkreta
+brief-texten i `chatgpt-tier-frame-brief.md` (skickad till användaren,
+sammanfattad här):
+
+- **Rare**: enkel, ren guldram. Tunt gravyrmönster, ett litet gem per
+  hörn, ingen extra glöd.
+- **Epic**: tjockare guldram, mer detaljerad gravyr, lila gems i
+  hörnen, en SVAG lila glöd innanför kanten.
+- **Legendary**: flerlagrad guld+lila-ram, större pulserande gems,
+  glöden sprider sig lite in i bilden, små partikeleffekter (gnistor/
+  dimma) från hörnen.
+- **Mystic — taket, gå all-in**: ramen ska kännas LEVANDE — sprickor av
+  ljus/energi genom guldet (lava, blixtar, eller stjärnstoft beroende på
+  temat), massiva glödande gem-kluster, glöden läcker FÖRBI ramen in i
+  scenen, och hörnprydnaderna ska vara UNIKA för just den karaktären
+  (drakmotiv för ett drakvarelse-kort, vingar för en himmelsk varelse,
+  stjärnor för en kosmisk gud) — INTE samma kompass-stjärna på varje
+  Mystic-kort som hittills.
+
+Ta alltid med kortets `packTier` i bildbriefen till ChatGPT så rätt
+nivå av ram-intensitet beskrivs. (Historisk notering: Bram-familjens
+BLÅ ram med drakhuvuden var före den här regeln formulerades — inte en
+medveten sub-brand, bara drift. Rör inte om den, men nya kort i den
+familjen bör följa tier-skalan ovan som allt annat.)
 
 **Tekniska krav på varje bild** (skriv detta rakt av i bildbriefen):
 1. **Ramen bakad i HELA canvasen**, inte ett separat overlay-lager. Det

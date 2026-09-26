@@ -3686,6 +3686,11 @@ const CARD_IMAGES = {
   brommi: 'cards/card-brommi.jpg',
   sakura: 'cards/card-sakura.jpg',
   akari: 'cards/card-akari.jpg',
+  arielle: 'cards/card-arielle.jpg',
+  aric: 'cards/card-aric.jpg',
+  mira: 'cards/card-mira.jpg',
+  sunny: 'cards/card-sunny.jpg',
+  pain: 'cards/card-pain.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3775,6 +3780,11 @@ const FULL_CARD_IMAGES = {
   brommi: 'card-brommi-full.jpg',
   sakura: 'card-sakura-full.jpg',
   akari: 'card-akari-full.jpg',
+  arielle: 'card-arielle-full.jpg',
+  aric: 'card-aric-full.jpg',
+  mira: 'card-mira-full.jpg',
+  sunny: 'card-sunny-full.jpg',
+  pain: 'card-pain-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5236,6 +5246,135 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Cruel Strike (Passive)', desc:'Each time Akari captures a card, it is left permanently broken — it loses 2 Power on all sides, far worse than a simple defeat.'},
       {name:'Family Toast (Passive)', desc:'For every sibling of hers on your side of the board (Bram, Brommi, or Sakura), Akari gains extra Power on all sides — even she still drinks with family.'},
       {name:"Special Attack: Akari's Wrath", desc:"Costs 3 wins. Choose an enemy card — she shows it no mercy, destroying it outright regardless of stats (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Fifteenth through seventeenth pack-exclusive cards: Arielle, Aric,
+  // and Mira, the Tidewalker crew -- the FIRST cards to arrive after the
+  // ChatGPT style correction (see PROJECT.md section 12), and it shows:
+  // the canonical gold/purple compass-ram frame, 1024x1536, matching
+  // sunset-harbor setting/props/palette across all three -- exactly the
+  // consistency that had drifted for the Bram family.
+  //
+  // Arielle/Aric arrived first sharing the literal SAME printed title
+  // ("Tidewalker"), strong enough signal to bond them (facit's own
+  // "confirmed relationship -> bonding field" rule) without asserting a
+  // specific relationship (siblings? partners? co-captains?) nobody's
+  // confirmed -- described neutrally as fellow Tidewalkers rather than
+  // guessing a family label the way the Reaper/Faragon mix-up did
+  // earlier this session. Mira arrived right after with a BLANK printed
+  // nameplate (no name burned into the art at all, unlike every other
+  // card so far) -- asked the user directly for her name and whether
+  // she's part of the same crew; got "Mira" and "yes, same crew".
+  //
+  // That makes THREE, so Arielle/Aric are migrated from their original
+  // two-way pairPresence to the same generalized sisterAura the Bram
+  // family uses (partners list, scales with how many crewmates are
+  // present) -- pairPresence only supports one named partner. Kept the
+  // single-crewmate value at +2 (matching the original pairPresence
+  // amount) via bonusByCount:{1:2,2:3}, so the just-one-other-Tidewalker
+  // case feels the same as it did before the migration.
+  //
+  // Split across THREE different tiers (Arielle Epic, Aric Rare, Mira
+  // Legendary) so pulling any one crewmate never guarantees another.
+  //
+  // Arielle: pirate captain, compass pendant, dagger at her hip --
+  // Captain's Fortune (vsStrongerTotalPowerBoost, Ruby/Ragnar/Maximus's
+  // own field) for "outmaneuvers bigger ships", Sea Legs (shield) for
+  // steady footing on a rolling deck. Special "Rising Tide" reuses the
+  // threshold-capture + stealPower shape (Balalajka/Brommi) -- a
+  // boarding action, she plunders on top of claiming the card.
+  { id:'arielle', name:'Arielle', role:'Tidewalker — Pack Exclusive (Epic)', element:'water',
+    top:8, right:10, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#1c1830,#0d0b18 60%)', accent:'#c9a227', icon:'🧭',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ sisterAura:{ partners:['aric','mira'], bonusByCount:{1:2,2:3} }, vsStrongerTotalPowerBoost:{amount:3}, shield:true },
+    special:{ name:'Rising Tide', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Bound by the Tide (Passive)', desc:'For every fellow Tidewalker on your side of the board (Aric or Mira), Arielle gains extra Power on all sides — the crew is rarely far apart.'},
+      {name:"Captain's Fortune (Passive)", desc:"When Arielle attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she's outmaneuvered bigger ships than this."},
+      {name:'Sea Legs (Passive)', desc:'The first time Arielle would lose a battle, her footing holds steady — the loss is ignored and she keeps her position.'},
+      {name:'Special Attack: Rising Tide', desc:"Costs 2 wins. Choose an adjacent enemy card — if Arielle's total Power is greater, she boards and plunders it, stealing 2 Power permanently and claiming the card. Usable once per match."},
+    ] },
+  // Aric: matching setting/palette to Arielle, sword and dagger at his
+  // belt -- a straightforward duelist kit contrasting her boarding-
+  // and-plunder one. Blade of the Tidewalker reuses onCaptureBonus
+  // (Dragon's own field). Special "Tidewalker's Duel" combines a
+  // threshold capture with a self-buff on success (Bram's own combo
+  // shape), smaller amount than Bram's since Aric is Rare, not Legendary.
+  { id:'aric', name:'Aric', role:'Tidewalker — Pack Exclusive (Rare)', element:'water',
+    top:9, right:8, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#1c1830,#0d0b18 60%)', accent:'#c9a227', icon:'⚓',
+    packTier:'rare', exclusiveGlow:true,
+    active:{ sisterAura:{ partners:['arielle','mira'], bonusByCount:{1:2,2:3} }, onCaptureBonus:1 },
+    special:{ name:"Tidewalker's Duel", cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Blade of the Tidewalker (Passive)', desc:'Each time Aric takes control of a card, he permanently gains +1 Power on all sides — his legend grows with every conquest.'},
+      {name:'Bound by the Tide (Passive)', desc:'For every fellow Tidewalker on your side of the board (Arielle or Mira), Aric gains extra Power on all sides — the crew is rarely far apart.'},
+      {name:"Special Attack: Tidewalker's Duel", desc:"Costs 2 wins. Choose an adjacent enemy card — if Aric's total Power is greater, he claims it in a decisive duel and permanently gains +2 Power on all sides. Usable once per match."},
+    ] },
+  // Mira: the crew's singer, rallying the deck with a mic in hand --
+  // Command the Deck reuses adjacentAlliesBoost (Zidane/Bahamut's own
+  // field) for "performs best with a crowd around her". Special "Rousing
+  // Anthem" is a genuinely new shape in this file: a PERMANENT (not
+  // "this round") whole-side ally buff -- Freya's Sanctuary's Blessing
+  // already owns the "this round" version, Selene's Embrace owns the
+  // "grant a Shield" version, so a permanent stat buff is the one AOE
+  // ally-buff shape not yet used.
+  { id:'mira', name:'Mira', role:'Tidewalker — Pack Exclusive (Legendary)', element:'water',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c1830,#0d0b18 60%)', accent:'#c9a227', icon:'🎤',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ sisterAura:{ partners:['arielle','aric'], bonusByCount:{1:2,2:3} }, adjacentAlliesBoost:{minCount:2, amount:1} },
+    special:{ name:'Rousing Anthem', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Voice of the Crew (Passive)', desc:'For every fellow Tidewalker on your side of the board (Arielle or Aric), Mira gains extra Power on all sides — the crew is rarely far apart.'},
+      {name:'Command the Deck (Passive)', desc:'While at least 2 of your other cards are adjacent to Mira, she gains +1 Power on all sides — she performs best with a crowd around her.'},
+      {name:'Special Attack: Rousing Anthem', desc:"Costs 3 wins. Every card on your side of the board permanently gains +1 Power on all sides — her song lifts the whole crew's spirit for good. Usable once per match."},
+    ] },
+  // Eighteenth pack-exclusive card: Sunny, a standalone character (user
+  // confirmed no connection to any existing group) -- a cheerful figure
+  // offering fruit near a waterfall/ruins, a completely different
+  // setting/palette from the Tidewalker crew's ship. Blank printed
+  // nameplate again; asked the user directly for her name.
+  //
+  // Kit: onWinCleanseAlly (Elara/Selene's own field) for "her cheer lifts
+  // a struggling ally", flatAttackBonus (Sylvarion/Zaevir's own field)
+  // for simple unconditional hardiness -- a combination not used
+  // together elsewhere. Special "Sunny's Feast" is a new AOE shape: a
+  // whole-side cleanse-then-permanent-+1 (distinct from Freya's
+  // temporary buff and Selene's Shield-grant).
+  { id:'sunny', name:'Sunny', role:'The Warm Harvest — Pack Exclusive (Rare)', element:'earth',
+    top:8, right:9, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#2a1c08,#0d0b18 60%)', accent:'#e0a12f', icon:'🍊',
+    packTier:'rare', exclusiveGlow:true,
+    active:{ onWinCleanseAlly:true, flatAttackBonus:1 },
+    special:{ name:"Sunny's Feast", cost:2, once:true, targets:'aoe' },
+    skills: [
+      {name:'Sunny Disposition (Passive)', desc:'Each time Sunny wins a battle, she cleanses the negative effects from one ally — her cheer is contagious.'},
+      {name:'Warm Welcome (Passive)', desc:'Sunny always fights with +1 Power on all sides — her warmth never runs out.'},
+      {name:"Special Attack: Sunny's Feast", desc:'Costs 2 wins. Every card on your side of the board is cleansed of negative effects and permanently gains +1 Power on all sides. Usable once per match.'},
+    ] },
+  // Nineteenth pack-exclusive card: Pain, a standalone character (no
+  // signal connecting her to any existing group; single stark printed
+  // name, no subtitle). A battle-scarred warrior contrasting Sunny's
+  // warmth, arriving right after her.
+  //
+  // Kit: onWinDebuffLoserPermanent at Akari's own harsher amount (2) for
+  // "Cruel by Nature", vsStrongerTotalPowerBoost (Ruby/Ragnar/Maximus's
+  // own field) for "thrives against a tougher fight". Special "Baptism
+  // of Pain" is this file's only single-target Special that explicitly
+  // SKIPS specialBlockedByShield entirely (Dragon's own ignoresShieldOnAttack
+  // is a passive covering EVERY normal battle; this is the same idea but
+  // scoped to just her Special).
+  { id:'pain', name:'Pain', role:'Pack Exclusive (Legendary)', element:'dark',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c0a10,#0d0b18 60%)', accent:'#8a2b3b', icon:'🖤',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ onWinDebuffLoserPermanent:2, vsStrongerTotalPowerBoost:{amount:3} },
+    special:{ name:'Baptism of Pain', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Cruel by Nature (Passive)', desc:'Each time Pain captures a card, it is left permanently broken — it loses 2 Power on all sides.'},
+      {name:'Thrives on Suffering (Passive)', desc:'When Pain attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she was built for a harder fight than this.'},
+      {name:'Special Attack: Baptism of Pain', desc:"Costs 2 wins. Choose an adjacent enemy card — if Pain's total Power is greater, she tears through every defense regardless of a Shield and permanently gains +2 Power on all sides. Usable once per match."},
     ] },
 ];
 
@@ -11212,6 +11351,73 @@ const SPECIAL_HANDLERS = {
     const victimName = targetEntry.card.name;
     destroyCard(targetIndex);
     return `${name} shows ${victimName} no mercy — nothing is left of it!`;
+  },
+  // Arielle's Rising Tide: same threshold-capture + stealPower shape as
+  // Balalajka/Brommi's own Toasts -- a boarding action, she plunders on
+  // top of claiming the card.
+  arielle({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Rising Tide breaks against the hull — no boarding today!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Rising Tide!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 2);
+    return `${name} boards and plunders ${targetEntry.card.name}!`;
+  },
+  // Aric's Tidewalker's Duel: same threshold-capture + self-buff combo as
+  // Bram's Last Toast, at a smaller amount (Rare tier, not Legendary).
+  aric({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s challenge goes unanswered — the duel never begins!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Tidewalker's Duel!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${name} claims a decisive duel over ${targetEntry.card.name}!`;
+  },
+  // Mira's Rousing Anthem: a PERMANENT (not "this round") whole-side ally
+  // buff -- Freya's Sanctuary's Blessing already owns the "this round"
+  // version, Selene's Embrace owns the "grant a Shield" version.
+  mira({ srcEntry, owner }){
+    const allies = state.board.filter(e => e && e.owner === owner);
+    allies.forEach(e => SpecialVerbs.attackBoost(e, 1));
+    return `${srcEntry.card.name}'s Rousing Anthem lifts the whole crew's spirit for good!`;
+  },
+  // Sunny's Feast: cleanse every ally's negative effects AND grant a
+  // permanent +1 -- distinct from Freya's temporary buff and Selene's
+  // Shield-grant.
+  sunny({ srcEntry, owner }){
+    const allies = state.board.filter(e => e && e.owner === owner);
+    allies.forEach(e => {
+      if(e.captureBonus < 0) e.captureBonus = 0;
+      SpecialVerbs.attackBoost(e, 1);
+    });
+    return `${srcEntry.card.name}'s Feast lifts your whole crew's spirits!`;
+  },
+  // Pain's Baptism of Pain: the only single-target Special in this file
+  // that explicitly SKIPS specialBlockedByShield entirely -- same "ignores
+  // defenses" idea as Dragon's own ignoresShieldOnAttack passive, but
+  // scoped to just this one Special rather than every normal battle.
+  pain({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Baptism of Pain fails to break through!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${name}'s Baptism of Pain tears through every defense — ${targetEntry.card.name} falls regardless!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all

@@ -11563,3 +11563,339 @@ test('Fas 50: fourteenth pack-exclusive card -- Akari, "The Cruel Drunken Sister
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 51: fifteenth and sixteenth pack-exclusive cards -- Arielle (Epic) and Aric (Rare), both titled "Tidewalker" -- the first cards after the ChatGPT frame-style correction (PROJECT.md section 12)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const arielle = findCardById('arielle');
+    const aric = findCardById('aric');
+    out.bothFindable = arielle !== null && aric !== null;
+    out.notInHeroes = !HEROES.some(h => h.id === 'arielle') && !HEROES.some(h => h.id === 'aric');
+    out.notInCampaignPool = !campaignPool().includes('arielle') && !campaignPool().includes('aric');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Bound by the Tide: sisterAura (migrated from a two-way pairPresence
+    // once Mira confirmed a third crewmate -- see Fas 52 for the full
+    // 3-way scaling test). +2 with exactly one other crewmate present,
+    // same value the original pairPresence gave.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(arielle, 'blue');
+    out.arielleNoBonusAlone = fullEffectiveValue(arielle, 'top', null, 4, 'blue', 'defense') - arielle.top === 0;
+    state.board[0] = freshEntry(aric, 'blue');
+    out.arielleBonusWithAric = fullEffectiveValue(arielle, 'top', null, 4, 'blue', 'defense') - arielle.top === 2;
+    out.aricBonusWithArielle = fullEffectiveValue(aric, 'top', null, 0, 'blue', 'defense') - aric.top === 2;
+
+    // Captain's Fortune: +3 attacking a stronger card.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(arielle, 'blue');
+    const stronger = { id:'str', name:'Str', top:20,right:20,bottom:20,left:20 };
+    out.captainsFortune = fullEffectiveValue(arielle, 'top', stronger, 4, 'blue', 'attack') - arielle.top === 3;
+    out.arielleHasShield = arielle.active.shield === true;
+
+    // Special: Rising Tide -- threshold capture that also steals 2 Power.
+    state.board = Array(9).fill(null);
+    const s1 = freshEntry(arielle, 'blue');
+    const weak = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = s1; state.board[5] = weak;
+    SPECIAL_HANDLERS.arielle({ srcEntry: s1, targetEntry: weak, targetIndex: 5, owner: 'blue' });
+    out.risingTide = weak.owner === 'blue' && weak.captureBonus === -2 && s1.captureBonus === 2;
+
+    // Fails against an equal-or-stronger target.
+    state.board = Array(9).fill(null);
+    const s1b = freshEntry(arielle, 'blue');
+    const equalTarget = freshEntry({ id:'equal', name:'Equal', top:8,right:10,bottom:9,left:9 }, 'red');
+    state.board[4] = s1b; state.board[5] = equalTarget;
+    SPECIAL_HANDLERS.arielle({ srcEntry: s1b, targetEntry: equalTarget, targetIndex: 5, owner: 'blue' });
+    out.risingTideFailsOnTie = equalTarget.owner === 'red';
+
+    // Blade of the Tidewalker: +1 permanent per capture (onCaptureBonus,
+    // needs the real resolveFlips path, not a bare battleNeighbors call --
+    // onCaptureBonus is applied after the flip resolves, not inside it).
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src3 = freshEntry(aric, 'blue');
+    state.board[4] = src3;
+    state.board[1] = freshEntry({ id:'w1', name:'W1', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.bladeOfTidewalker = src3.captureBonus === 1;
+
+    // Special: Tidewalker's Duel -- threshold capture + self-buff on success.
+    state.board = Array(9).fill(null);
+    const s2 = freshEntry(aric, 'blue');
+    const weak2 = freshEntry({ id:'weak2', name:'Weak2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = s2; state.board[5] = weak2;
+    SPECIAL_HANDLERS.aric({ srcEntry: s2, targetEntry: weak2, targetIndex: 5, owner: 'blue' });
+    out.tidewalkersDuel = weak2.owner === 'blue' && s2.captureBonus === 2;
+
+    // A Shield still blocks both Specials.
+    state.board = Array(9).fill(null);
+    const s3 = freshEntry(arielle, 'blue');
+    const shielded = freshEntry({ id:'sh', name:'Sh', top:1,right:1,bottom:1,left:1 }, 'red');
+    shielded.grantedShield = true;
+    state.board[4] = s3; state.board[5] = shielded;
+    SPECIAL_HANDLERS.arielle({ srcEntry: s3, targetEntry: shielded, targetIndex: 5, owner: 'blue' });
+    out.risingTideShieldBlocks = shielded.owner === 'red';
+
+    // buyPack gating: Arielle only Epic, Aric only Rare -- pulling one
+    // never guarantees the other.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawArielleEpic=false, sawArielleRare=false, sawAricRare=false, sawAricEpic=false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.arielle) sawArielleEpic = true;
+      if(playerProgress.earnedCards.aric) sawAricEpic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('rare');
+      if(playerProgress.earnedCards.aric) sawAricRare = true;
+      if(playerProgress.earnedCards.arielle) sawArielleRare = true;
+    }
+    out.arielleFromEpic = sawArielleEpic;
+    out.arielleNeverFromRare = !sawArielleRare;
+    out.aricFromRare = sawAricRare;
+    out.aricNeverFromEpic = !sawAricEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.bothFindable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.arielleNoBonusAlone, true);
+  assert.equal(result.arielleBonusWithAric, true, 'Bound by the Tide must give Arielle +2 while Aric is on the board');
+  assert.equal(result.aricBonusWithArielle, true, 'Bound by the Tide must give Aric +2 while Arielle is on the board');
+  assert.equal(result.captainsFortune, true, "Captain's Fortune must grant +3 when attacking a stronger card");
+  assert.equal(result.arielleHasShield, true);
+  assert.equal(result.risingTide, true, 'Rising Tide must steal 2 Power on top of capturing the target');
+  assert.equal(result.risingTideFailsOnTie, true);
+  assert.equal(result.bladeOfTidewalker, true, 'Blade of the Tidewalker must permanently gain +1 per capture');
+  assert.equal(result.tidewalkersDuel, true, "Tidewalker's Duel must capture AND grant +2 Power on success");
+  assert.equal(result.risingTideShieldBlocks, true, 'a Shield must still block Rising Tide');
+  assert.equal(result.arielleFromEpic, true);
+  assert.equal(result.arielleNeverFromRare, true, 'Arielle must only ever come from the Epic tier');
+  assert.equal(result.aricFromRare, true);
+  assert.equal(result.aricNeverFromEpic, true, "Aric must only ever come from the Rare tier, never Arielle's Epic tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 52: seventeenth pack-exclusive card -- Mira (Legendary), the Tidewalker crew\'s singer; also proves the full 3-way sisterAura scaling (Arielle/Aric/Mira)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const arielle = findCardById('arielle');
+    const aric = findCardById('aric');
+    const mira = findCardById('mira');
+    out.findable = mira !== null && mira.name === 'Mira';
+    out.notInHeroes = !HEROES.some(h => h.id === 'mira');
+    out.notInCampaignPool = !campaignPool().includes('mira');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Full 3-way scaling from Arielle's own side: 0 -> 0, 1 -> +2, 2 -> +3.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(arielle, 'blue');
+    out.zeroCrew = fullEffectiveValue(arielle, 'top', null, 4, 'blue', 'attack') - arielle.top === 0;
+    state.board[0] = freshEntry(aric, 'blue');
+    out.oneCrew = fullEffectiveValue(arielle, 'top', null, 4, 'blue', 'attack') - arielle.top === 2;
+    state.board[1] = freshEntry(mira, 'blue');
+    out.twoCrew = fullEffectiveValue(arielle, 'top', null, 4, 'blue', 'attack') - arielle.top === 3;
+
+    // An enemy-owned crewmate must not count.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(arielle, 'blue');
+    state.board[0] = freshEntry(aric, 'red');
+    out.enemyCrewIgnored = fullEffectiveValue(arielle, 'top', null, 4, 'blue', 'attack') - arielle.top === 0;
+
+    // Mira's own aura reads correctly too.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(mira, 'blue');
+    out.miraZero = fullEffectiveValue(mira, 'top', null, 4, 'blue', 'attack') - mira.top === 0;
+    state.board[0] = freshEntry(arielle, 'blue');
+    out.miraOne = fullEffectiveValue(mira, 'top', null, 4, 'blue', 'attack') - mira.top === 2;
+
+    // Command the Deck: +1 while 2+ other allies adjacent.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(mira, 'blue');
+    state.board[1] = freshEntry({ id:'a1', name:'A1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[3] = freshEntry({ id:'a2', name:'A2', top:5,right:5,bottom:5,left:5 }, 'blue');
+    out.commandTheDeck = fullEffectiveValue(mira, 'top', null, 4, 'blue', 'attack') - mira.top === 1;
+
+    // Special: Rousing Anthem -- PERMANENT whole-side +1, including herself.
+    state.board = Array(9).fill(null);
+    const m1 = freshEntry(mira, 'blue');
+    const ally1 = freshEntry({ id:'ally1', name:'Ally1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = m1; state.board[0] = ally1;
+    SPECIAL_HANDLERS.mira({ srcEntry: m1, owner: 'blue' });
+    out.rousingAnthem = m1.captureBonus === 1 && ally1.captureBonus === 1;
+
+    // buyPack: Mira only from the Legendary tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInLegendary = false, sawInEpic = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.mira) sawInLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.mira) sawInEpic = true;
+    }
+    out.drawableFromLegendary = sawInLegendary;
+    out.neverFromEpic = !sawInEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.zeroCrew, true);
+  assert.equal(result.oneCrew, true, 'Bound by the Tide must give +2 with exactly one other crewmate present');
+  assert.equal(result.twoCrew, true, 'Bound by the Tide must give +3 with both other crewmates present');
+  assert.equal(result.enemyCrewIgnored, true, 'an enemy-owned crewmate must not count');
+  assert.equal(result.miraZero, true);
+  assert.equal(result.miraOne, true);
+  assert.equal(result.commandTheDeck, true, 'Command the Deck must give +1 with 2+ adjacent allies');
+  assert.equal(result.rousingAnthem, true, 'Rousing Anthem must permanently buff the whole side, including Mira herself');
+  assert.equal(result.drawableFromLegendary, true);
+  assert.equal(result.neverFromEpic, true, 'Mira must only ever come from the Legendary tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 53: eighteenth pack-exclusive card -- Sunny (Rare), a standalone character with no printed nameplate (confirmed name/no-group directly by the user)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const sunny = findCardById('sunny');
+    out.findable = sunny !== null && sunny.name === 'Sunny';
+    out.notInHeroes = !HEROES.some(h => h.id === 'sunny');
+    out.notInCampaignPool = !campaignPool().includes('sunny');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Warm Welcome: unconditional +1 (flatAttackBonus).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(sunny, 'blue');
+    out.warmWelcome = fullEffectiveValue(sunny, 'top', null, 4, 'blue', 'attack') - sunny.top === 1;
+
+    // Special: Sunny's Feast -- cleanses negative captureBonus AND grants
+    // a permanent +1 to the whole side, including herself.
+    state.board = Array(9).fill(null);
+    const s1 = freshEntry(sunny, 'blue');
+    s1.captureBonus = -2;
+    const ally = freshEntry({ id:'ally', name:'Ally', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = s1; state.board[0] = ally;
+    SPECIAL_HANDLERS.sunny({ srcEntry: s1, owner: 'blue' });
+    out.sunnysFeast = s1.captureBonus === 1 && ally.captureBonus === 1;
+
+    // buyPack: Sunny only from the Rare tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInRare = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('rare');
+      if(playerProgress.earnedCards.sunny) sawInRare = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.sunny) sawInLegendary = true;
+    }
+    out.drawableFromRare = sawInRare;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.warmWelcome, true, 'Warm Welcome must be an unconditional +1');
+  assert.equal(result.sunnysFeast, true, "Sunny's Feast must cleanse AND permanently buff the whole side, including herself");
+  assert.equal(result.drawableFromRare, true);
+  assert.equal(result.neverFromLegendary, true, 'Sunny must only ever come from the Rare tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 54: nineteenth pack-exclusive card -- Pain (Legendary), a standalone character with only a single stark printed name, no subtitle', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const pain = findCardById('pain');
+    out.findable = pain !== null && pain.name === 'Pain';
+    out.notInHeroes = !HEROES.some(h => h.id === 'pain');
+    out.notInCampaignPool = !campaignPool().includes('pain');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Cruel by Nature: captured card permanently -2.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    state.board[4] = freshEntry(pain, 'blue');
+    state.board[1] = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.cruelByNature = state.board[1].owner === 'blue' && state.board[1].captureBonus === -2;
+
+    // Thrives on Suffering: +3 attacking a stronger card.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(pain, 'blue');
+    const stronger = { id:'str', name:'Str', top:20,right:20,bottom:20,left:20 };
+    out.thrivesOnSuffering = fullEffectiveValue(pain, 'top', stronger, 4, 'blue', 'attack') - pain.top === 3;
+
+    // Special: Baptism of Pain -- ignores a Shield ENTIRELY (unlike every
+    // other threshold Special in this file), plus a +2 self-buff on success.
+    state.board = Array(9).fill(null);
+    const p1 = freshEntry(pain, 'blue');
+    const shieldedWeak = freshEntry({ id:'sw', name:'SW', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedWeak.grantedShield = true;
+    state.board[4] = p1; state.board[5] = shieldedWeak;
+    SPECIAL_HANDLERS.pain({ srcEntry: p1, targetEntry: shieldedWeak, targetIndex: 5, owner: 'blue' });
+    out.painIgnoresShield = shieldedWeak.owner === 'blue' && p1.captureBonus === 2;
+
+    // Fails against an equal-or-stronger target (the threshold check still applies).
+    state.board = Array(9).fill(null);
+    const p2 = freshEntry(pain, 'blue');
+    const strong = freshEntry({ id:'str2', name:'Str2', top:20,right:20,bottom:20,left:20 }, 'red');
+    state.board[4] = p2; state.board[5] = strong;
+    SPECIAL_HANDLERS.pain({ srcEntry: p2, targetEntry: strong, targetIndex: 5, owner: 'blue' });
+    out.painFailsVsStronger = strong.owner === 'red';
+
+    // buyPack: Pain only from the Legendary tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInLegendary = false, sawInMystic = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.pain) sawInLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.pain) sawInMystic = true;
+    }
+    out.drawableFromLegendary = sawInLegendary;
+    out.neverFromMystic = !sawInMystic;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.cruelByNature, true, 'Cruel by Nature must permanently apply -2 to a captured card');
+  assert.equal(result.thrivesOnSuffering, true);
+  assert.equal(result.painIgnoresShield, true, "Baptism of Pain must ignore a Shield entirely, unlike every other threshold Special");
+  assert.equal(result.painFailsVsStronger, true);
+  assert.equal(result.drawableFromLegendary, true);
+  assert.equal(result.neverFromMystic, true, 'Pain must only ever come from the Legendary tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
