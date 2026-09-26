@@ -3684,6 +3684,8 @@ const CARD_IMAGES = {
   balalajka: 'cards/card-balalajka.jpg',
   bram: 'cards/card-bram.jpg',
   brommi: 'cards/card-brommi.jpg',
+  sakura: 'cards/card-sakura.jpg',
+  akari: 'cards/card-akari.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3771,6 +3773,8 @@ const FULL_CARD_IMAGES = {
   balalajka: 'card-balalajka-full.jpg',
   bram: 'card-bram-full.jpg',
   brommi: 'card-brommi-full.jpg',
+  sakura: 'card-sakura-full.jpg',
+  akari: 'card-akari-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5127,26 +5131,35 @@ const PACK_EXCLUSIVE_CARDS = [
   // unconditional self-buff on success (like Zidane's Trance) in the
   // SAME Special -- pouring everything he has left into one final
   // strike, rather than either shape alone.
+  //
+  // Family Toast (sisterAura) added after Sakura/Akari confirmed this is
+  // actually a FOUR-sibling family, not just two brothers -- replaces
+  // what would otherwise need two separate pairPresence fields (the
+  // engine only supports ONE named partner per pairPresence). Reuses the
+  // exact same generalized sisterAura shape as Vaelira/Seraphine/Nyxara
+  // (see fullEffectiveValue's own comment on the fix this required).
   { id:'bram', name:'Bram', role:'The Last Toast — Pack Exclusive (Legendary)', element:'fire',
     top:9, right:10, bottom:9, left:9,
     hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#c9a227', icon:'🍶',
     packTier:'legendary', exclusiveGlow:true,
-    active:{ onWinCappedBoost:{amount:1, max:3}, debuffImmune:true },
+    active:{ onWinCappedBoost:{amount:1, max:3}, debuffImmune:true, sisterAura:{ partners:['brommi','sakura','akari'], bonusByCount:{1:1,2:2,3:3} } },
     special:{ name:'The Last Toast', cost:3, once:true, targets:'single' },
     skills: [
       {name:'Drunken Fortitude (Passive)', desc:'Each time Bram wins a battle, he gains +1 Power on all sides, up to 3 times per match — with every toast, his strikes grow surer.'},
       {name:'Unreadable Technique (Passive)', desc:"Bram's Power can never be lowered by an enemy card's ability — no one can predict a drunken master's next move, least of all with magic."},
+      {name:'Family Toast (Passive)', desc:'For every sibling of his on your side of the board (Brommi, Sakura, or Akari), Bram gains extra Power on all sides — the family always drinks together.'},
       {name:'Special Attack: The Last Toast', desc:"Costs 3 wins. Choose an adjacent enemy card — if Bram's total Power is greater, he claims it with one final, decisive strike and pours everything he has left into it, permanently gaining +3 Power on all sides. Usable once per match."},
     ] },
   // Twelfth pack-exclusive card: Brommi, "The Little Toast" -- Bram's
   // actual little brother, per the card's own printed "弟" (little
   // brother) stamp and matching title ("The Last Toast" / "The Little
   // Toast", "酔拳"/"小酔拳" -- Drunken Fist / LITTLE Drunken Fist).
-  // Confirmed sibling pair, so pairPresence with Bram, same shape as
-  // every other sibling/couple pair in this file. Split to a different
-  // tier (Epic, joining Reaper/Kade) so pulling one never guarantees the
-  // other, same convention as Kade/Selene and Vaseir/Balalajka. Stats
-  // (36) match the other Epic cards.
+  // Confirmed sibling pair, split to a different tier (Epic, joining
+  // Reaper/Kade) so pulling one never guarantees the other, same
+  // convention as Kade/Selene and Vaseir/Balalajka. Stats (36) match the
+  // other Epic cards. Migrated from a plain two-way pairPresence (Bram
+  // only) to the shared family sisterAura once Sakura/Akari confirmed
+  // there are four siblings, not two -- see Bram's own comment above.
   //
   // Kit: reckless/underdog energy fitting a scrappy little brother who
   // punches above his weight -- boardUnderdogAttackBonus (Reaper/Kade's
@@ -5160,12 +5173,69 @@ const PACK_EXCLUSIVE_CARDS = [
     top:9, right:9, bottom:10, left:8,
     hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#c9a227', icon:'🐕',
     packTier:'epic', exclusiveGlow:true,
-    active:{ pairPresence:{partner:'bram', amount:2}, boardUnderdogAttackBonus:2 },
+    active:{ boardUnderdogAttackBonus:2, sisterAura:{ partners:['bram','sakura','akari'], bonusByCount:{1:1,2:2,3:3} } },
     special:{ name:'The Little Toast', cost:2, once:true, targets:'single' },
     skills: [
-      {name:'Brothers in Drink (Passive)', desc:'While Bram is anywhere on the board, Brommi gains +2 Power on all sides — the little brother never drinks alone.'},
       {name:'Little Fists, Big Heart (Passive)', desc:'While you control fewer cards on the board than your opponent, Brommi gains +2 Power when attacking — he fights hardest with the odds against him.'},
+      {name:'Family Toast (Passive)', desc:'For every sibling of his on your side of the board (Bram, Sakura, or Akari), Brommi gains extra Power on all sides — the little brother never drinks alone.'},
       {name:'Special Attack: The Little Toast', desc:"Costs 2 wins. Choose an adjacent enemy card — if Brommi's total Power is greater, he lulls it into one last drink and lightens its resolve, stealing 1 Power permanently and claiming the card. Usable once per match."},
+    ] },
+  // Thirteenth pack-exclusive card: Sakura, "The Drunken Sister" -- one
+  // of the two sisters completing the family. User confirmed via
+  // AskUserQuestion this is Bram/Brommi's sister, not a standalone
+  // character in the same tradition. Same setting/props as her brothers
+  // (sake jars, alley, moon, dragon-corner frame), but graceful/charming
+  // rather than a brawler -- "酔って美しく" ("beautiful when drunk"),
+  // offering a cup outward rather than throwing a punch. Assigned Rare
+  // (joins Dragon) -- the lightest tier, matching her gentler role
+  // against Bram/Brommi's more aggressive kits; stats (35) match
+  // Dragon's own Rare level.
+  //
+  // Kit: marginShieldThreshold (Darien/Elara/Twin Sisters' own field --
+  // "wins by only 1? becomes a draw instead") reused for "her charm makes
+  // attackers hesitate at the last second." Special "Sakura's Cup" is a
+  // threshold capture (same shape as her brothers') that also grants
+  // herself a Shield on success, rather than a buff or a steal -- "once
+  // she's won someone over, she can't be swayed back."
+  { id:'sakura', name:'Sakura', role:'The Drunken Sister — Pack Exclusive (Rare)', element:'water',
+    top:8, right:9, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241018,#0d0b18 60%)', accent:'#e05a8f', icon:'🍵',
+    packTier:'rare', exclusiveGlow:true,
+    active:{ marginShieldThreshold:1, sisterAura:{ partners:['bram','brommi','akari'], bonusByCount:{1:1,2:2,3:3} } },
+    special:{ name:"Sakura's Cup", cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Charming Stumble (Passive)', desc:'If an enemy attacks Sakura and wins by only 1 Power, the battle becomes a draw instead — even mid-strike, no one can stay focused on hurting her.'},
+      {name:'Family Toast (Passive)', desc:'For every sibling of hers on your side of the board (Bram, Brommi, or Akari), Sakura gains extra Power on all sides — she never drinks alone.'},
+      {name:"Special Attack: Sakura's Cup", desc:"Costs 2 wins. Choose an adjacent enemy card — if Sakura's total Power is greater, she offers it a cup it can't refuse and claims it, then permanently gains a protective Shield. Usable once per match."},
+    ] },
+  // Fourteenth pack-exclusive card: Akari, "The Cruel Drunken Sister" --
+  // the family's dark sheep, marked with the card's own printed "悪"
+  // (wicked/evil) stamp, confirmed by the user as a sister ("Elaka
+  // systern"). Same setting as the rest of the family but drenched in
+  // blood rather than sake spills, a sharp tonal contrast to Sakura's
+  // gentler "Drunken Sister". Assigned Mystic (joins Zidane/Ruby/Vaseir/
+  // Faragon) -- the family's most dangerous member earns the roster's
+  // top bracket on her own merits, same judgment call made for every
+  // other Mystic card here; stats (39) sit just under Vaseir's own
+  // ceiling (40).
+  //
+  // Kit: onWinDebuffLoserPermanent (Torn/Balalajka's field) at a HARSHER
+  // amount (2, vs Balalajka's 1) for "Cruel Strike" -- captured cards are
+  // left permanently broken, not just weakened. Special "Akari's Wrath"
+  // is a GUARANTEED destroy (not capture) regardless of stats -- same
+  // specialBlockedByShield/isDestroyImmune/protectedByInfiniteSeraph
+  // guard chain as Vaseir's Swallowed Whole/Ruby's Godsfall -- fitting
+  // "cruel" better than a mere capture.
+  { id:'akari', name:'Akari', role:'The Cruel Drunken Sister — Pack Exclusive (Mystic)', element:'fire',
+    top:10, right:9, bottom:10, left:10,
+    hue:'linear-gradient(160deg,#2a0f10,#0d0b18 60%)', accent:'#c23b3b', icon:'🩸',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ onWinDebuffLoserPermanent:2, sisterAura:{ partners:['bram','brommi','sakura'], bonusByCount:{1:1,2:2,3:3} } },
+    special:{ name:"Akari's Wrath", cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Cruel Strike (Passive)', desc:'Each time Akari captures a card, it is left permanently broken — it loses 2 Power on all sides, far worse than a simple defeat.'},
+      {name:'Family Toast (Passive)', desc:'For every sibling of hers on your side of the board (Bram, Brommi, or Sakura), Akari gains extra Power on all sides — even she still drinks with family.'},
+      {name:"Special Attack: Akari's Wrath", desc:"Costs 3 wins. Choose an enemy card — she shows it no mercy, destroying it outright regardless of stats (a Shield still protects its owner). Usable once per match."},
     ] },
 ];
 
@@ -5914,8 +5984,10 @@ function staticLiveBonusFor(card, cellIndex, owner){
     if(state.board.some(e => e && e.owner === owner && e.card.id === pp.partner)) bonus += pp.amount;
   }
   if(card.active && card.active.sisterAura){
+    // Kept in sync with fullEffectiveValue's own copy above (see its
+    // comment) -- generalized to the card's own `partners` list.
     const sa = card.active.sisterAura;
-    const count = sistersPresentCount(card.id, owner);
+    const count = sa.partners.filter(id => state.board.some(e => e && e.owner === owner && e.card.id === id)).length;
     if(sa.bonusByCount[count]) bonus += sa.bonusByCount[count];
   }
   if(card.active && card.active.boardLeadBonus){
@@ -9525,8 +9597,17 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     }
   }
   if(card.active && card.active.sisterAura){
+    // Generalized to read the card's OWN partners list directly instead of
+    // routing through sistersPresentCount (which is hardcoded to
+    // SISTER_IDS = Vaelira/Seraphine/Nyxara) -- numerically identical for
+    // those three (their own `partners` arrays already ARE "the other two
+    // sisters' ids", exactly what that function computed), but now also
+    // works for any OTHER sibling group's card without touching that
+    // function or its own freeIfSistersPresent callers, which still need
+    // the hardcoded three. Needed for the Bram/Brommi/Sakura/Akari family
+    // (four siblings, not three) added this session.
     const sa = card.active.sisterAura;
-    const count = sistersPresentCount(card.id, owner);
+    const count = sa.partners.filter(id => state.board.some(e => e && e.owner === owner && e.card.id === id)).length;
     if(sa.bonusByCount[count]) v += sa.bonusByCount[count];
   }
   // Live board-count comparisons — recomputed on every call, nothing stored,
@@ -11097,6 +11178,40 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
     return `${name}'s Little Toast lulls ${targetEntry.card.name} into one last drink!`;
+  },
+  // Sakura's Cup: same threshold-capture shape as her brothers', but
+  // grants herself a Shield on success (SpecialVerbs.grantShield, reused
+  // from Pallis/Selene) instead of a buff or a steal -- "once she's won
+  // someone over, she can't be swayed back."
+  sakura({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Cup goes untouched — this one wasn't thirsty!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Sakura's Cup!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.grantShield(srcEntry);
+    return `${name} offers a cup ${targetEntry.card.name} can't refuse!`;
+  },
+  // Akari's Wrath: a GUARANTEED destroy (not capture) regardless of
+  // stats -- same specialBlockedByShield/isDestroyImmune/
+  // protectedByInfiniteSeraph guard chain as Vaseir's Swallowed Whole and
+  // Shiva's Void power, fitting "cruel" better than a mere capture.
+  akari({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds — ${name}'s wrath finds no purchase!`;
+    }
+    if(isDestroyImmune(targetEntry) || protectedByInfiniteSeraph(targetEntry.owner)){
+      return `${targetEntry.card.name} resists ${name}'s wrath!`;
+    }
+    const victimName = targetEntry.card.name;
+    destroyCard(targetIndex);
+    return `${name} shows ${victimName} no mercy — nothing is left of it!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
