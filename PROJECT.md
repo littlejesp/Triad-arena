@@ -5564,6 +5564,44 @@ från varje annan AOE-Special i filen (Freya/Selene/Faragon/Reaper/Evil
 Twist), som alla har en FAST självbuff-mängd. Tjugoen pack-exklusiva
 kort totalt nu. Hela testsviten grön: **190/190**.
 
+**Fas 57. Tjugoandra till tjugosjätte pack-exklusiva korten: Lilith
+(Legendary), Vex (Epic), Elara (Epic), Oni (Mystic) och Ren (Epic) —
+"Court of Queens" (blandat kön trots namnet; Ren är man).** Efter
+Cinder kom fem bilder till i följd, alla med samma triquetra-hörnmotiv
+i ramen. Frågade efter varje bild om namn och grupptillhörighet;
+användaren bekräftade att alla sju (inklusive redan levererade
+Scarletta/Cinder) hör ihop som EN grupp. Två av bilderna (vinter-
+drottningen: katana-pose vs pilbågs-pose) krävde samma "är det samma
+karaktär i en annan pose, eller en ny figur?"-fråga som Cinders egna
+tre bilder redan hade lärt mig att ställa — landade på pilbågs-bilden.
+
+**Verklig id-kollision hittad och undviken innan den blev en bugg**:
+den nya vinterdrottningen heter "Elara" på sitt eget kort, men `elara`
+är REDAN ett HEROES-id (Darien/Elara, "Healer of the Frozen Light") —
+att återanvända det hade gjort `findCardById('elara')` alltid peka på
+FEL kort. Internt id blev `elaraqueen` istället; hennes visade `name`
+är fortfarande exakt "Elara". Nytt permanent test bekräftar explicit
+att båda korten fortfarande går att hitta korrekt och oberoende av
+varandra.
+
+Scarletta och Cinder migrerades retroaktivt till att också bära
+gruppens delade `sisterAura` (samma generaliserade form som Bram- och
+Tidewalker-familjerna, `bonusByCount:{1:1,2:2,3:3,4:4}` — 4 är taket
+eftersom en 5-korts-hand som mest rymmer 4 ANDRA Court-medlemmar
+bredvid det utvärderade kortet). Alla sju bär nu samma "Court of
+Queens (Passive)"-rad i sina skills-listor.
+
+Individuella kit, alla återanvända fält i nya kombinationer: Lilith
+(`debuffImmune` + `vsStrongerTotalPowerBoost`, Special: tröskel-fångst
++ stjäl 2), Vex (`boardUnderdogAttackBonus`, Special: permanent AOE-
+debuff -1, mindre än Faragons -2 eftersom Epic inte Mystic), Elara
+(`onCaptureBonus`, Special: tröskel-fångst + självbuff +2), Oni
+(`vsStrongerTotalPowerBoost` + `onWinDestroyLoserAlways`, Special: en
+GARANTERAD destroy — samma form som Vaseir/Akari), Ren (`onWinCappedBoost`,
+Special: en REN tröskel-fångst utan extra bonus — den enda Specialen i
+gruppen utan något extra lager ovanpå själva fångsten). Tjugosex
+pack-exklusiva kort totalt nu. Hela testsviten grön: **191/191**.
+
 **Viktig uppdatering av avsnitt 12 (facit)**: användaren tyckte den
 enhetliga guld/lila-ramen för alla tiers kändes "för vanligt" —
 efterfrågade att RAMENS INTENSITET SKA SKALA MED SÄLLSYNTHET istället
@@ -9280,6 +9318,15 @@ användaren bekräftade explicit "Dom är helt olika personer").
   samma `sisterAura`-bindning (skalar med hur många syskon som är på
   brädet). Ingen kopplad lore-tråd till övriga karaktärer ännu — ett
   eget litet hörn av världen, inte forcerat ihop med de andra.
+- **Court of Queens** — sju medlemmar (blandat kön trots namnet):
+  **Scarletta** (The Thorned Countess), **Cinder** (The Ashen Queen),
+  **Lilith** (The Veiled Oracle), **Vex** (The Hollow Whisper),
+  **Elara** (The Frostbound Archer — internt id `elaraqueen` för att
+  inte krocka med den redan existerande HEROES-`elara`), **Oni** (The
+  Blood Oni), och **Ren** (The Frostblade, den enda mannen). Alla sju
+  delar samma triquetra-hörnram och en gemensam `sisterAura`-bindning.
+  Ingen individuell familjerelation (syskon/kärlekspar) bekräftad inom
+  gruppen — bara en delad "hov"-identitet.
 
 **Tre narrativa "kluster" hittills** (per användarens egen taxonomi):
 krigare (Dragon, Zidane, Kade), gudomliga krafter (Faragon, Ruby, Freya),
@@ -9385,7 +9432,13 @@ den** — bekräftelsen gäller Scarlettas egen stil, inte en generell
    var ansiktet sitter i just den bilden — kolla alltid resultatet med
    `Read` innan du går vidare).
 3. Lägg till `id: 'cards/card-<id>.jpg'` i `CARD_IMAGES` och
-   `id: 'card-<id>-full.jpg'` i `FULL_CARD_IMAGES`.
+   `id: 'card-<id>-full.jpg'` i `FULL_CARD_IMAGES`. **Kontrollera FILNAMNET
+   mot `git ls-files | grep <id>` INNAN du sparar** — en display-name som
+   råkar krocka med ett REDAN BEFINTLIGT korts id (t.ex. den nya
+   "Elara"/`elaraqueen` mot den gamla HEROES-`elara`) skriver annars tyst
+   över det gamla kortets bildfil på disk, även om själva id:t i
+   `CARD_IMAGES`-nyckeln är korrekt särskiljt (`elaraqueen` ≠ `elara`)
+   — filnamnet och id:t är två separata krock-ytor, kolla båda.
 4. Om bilden inte finns än (kortet designas från ren lore-text utan
    konst): hoppa över steg 1–3 helt. `cardFace()`/`renderModal()` faller
    redan tillbaka på `hue`-gradienten + `icon` när ett kort saknar en

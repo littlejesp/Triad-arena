@@ -12054,3 +12054,200 @@ test("Fas 56: twenty-first pack-exclusive card -- Cinder (Mystic), a fiery queen
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 57: twenty-second through twenty-sixth pack-exclusive cards -- Lilith, Vex, Elara, Oni, and Ren, the rest of the Court of Queens; also proves the 7-way sisterAura scaling and the elaraqueen/elara id-collision guard against the existing HEROES card", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const scarletta = findCardById('scarletta');
+    const cinder = findCardById('cinder');
+    const lilith = findCardById('lilith');
+    const vex = findCardById('vex');
+    const elara = findCardById('elaraqueen');
+    const oni = findCardById('oni');
+    const ren = findCardById('ren');
+    out.allFindable = [scarletta,cinder,lilith,vex,elara,oni,ren].every(c => c !== null);
+    out.elaraNameIsElara = elara.name === 'Elara';
+    const originalElara = findCardById('elara');
+    out.elaraIdNotCollide = originalElara !== null && originalElara.name === 'Elara' && originalElara.role.includes('Healer');
+    out.noneInHeroes = ['scarletta','cinder','lilith','vex','elaraqueen','oni','ren'].every(id => !HEROES.some(h => h.id === id));
+    out.noneInCampaignPool = ['scarletta','cinder','lilith','vex','elaraqueen','oni','ren'].every(id => !campaignPool().includes(id));
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Court of Queens sisterAura scaling, 0 through 4 other Court members present.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(lilith, 'blue');
+    const zero = fullEffectiveValue(lilith, 'top', null, 4, 'blue', 'attack') - lilith.top;
+    state.board[0] = freshEntry(scarletta, 'blue');
+    const one = fullEffectiveValue(lilith, 'top', null, 4, 'blue', 'attack') - lilith.top;
+    state.board[1] = freshEntry(cinder, 'blue');
+    const two = fullEffectiveValue(lilith, 'top', null, 4, 'blue', 'attack') - lilith.top;
+    state.board[2] = freshEntry(vex, 'blue');
+    const three = fullEffectiveValue(lilith, 'top', null, 4, 'blue', 'attack') - lilith.top;
+    state.board[3] = freshEntry(elara, 'blue');
+    const four = fullEffectiveValue(lilith, 'top', null, 4, 'blue', 'attack') - lilith.top;
+    out.scaling = zero === 0 && one === 1 && two === 2 && three === 3 && four === 4;
+
+    // An enemy-owned Court member must not count.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(lilith, 'blue');
+    state.board[0] = freshEntry(scarletta, 'red');
+    out.enemyCourtIgnored = fullEffectiveValue(lilith, 'top', null, 4, 'blue', 'attack') - lilith.top === 0;
+
+    // Lilith: Warded Mind (debuffImmune) + Foresight (vsStrongerTotalPowerBoost)
+    // + Special Curse of Fate (threshold capture + steal 2).
+    const dbg = freshEntry(lilith, 'blue');
+    state.board = Array(9).fill(null);
+    state.board[4] = dbg;
+    SpecialVerbs.debuff(dbg, 5);
+    out.lilithDebuffImmune = dbg.captureBonus === 0;
+
+    state.board = Array(9).fill(null);
+    const l1 = freshEntry(lilith, 'blue');
+    const weak = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = l1; state.board[5] = weak;
+    SPECIAL_HANDLERS.lilith({ srcEntry: l1, targetEntry: weak, targetIndex: 5, owner: 'blue' });
+    out.lilithSpecial = weak.owner === 'blue' && weak.captureBonus === -2 && l1.captureBonus === 2;
+
+    // Vex: Forgotten Fury (underdog attack bonus) + Special Void Embrace
+    // (permanent AOE -1, allies spared).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(vex, 'blue');
+    state.board[0] = freshEntry({ id:'f1', name:'F1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'f2', name:'F2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.vexUnderdog = fullEffectiveValue(vex, 'top', null, 4, 'blue', 'attack') - vex.top === 2;
+
+    state.board = Array(9).fill(null);
+    const v1 = freshEntry(vex, 'blue');
+    const ve1 = freshEntry({ id:'ve1', name:'Ve1', top:5,right:5,bottom:5,left:5 }, 'red');
+    const vally = freshEntry({ id:'va1', name:'Va1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = v1; state.board[0] = ve1; state.board[1] = vally;
+    SPECIAL_HANDLERS.vex({ srcEntry: v1, owner: 'blue' });
+    out.vexSpecial = ve1.captureBonus === -1 && vally.captureBonus === 0;
+
+    // Elara: Growing Legend (onCaptureBonus) + Special Frozen Volley
+    // (threshold capture + self-buff).
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const e1 = freshEntry(elara, 'blue');
+    state.board[4] = e1;
+    state.board[1] = freshEntry({ id:'w1', name:'W1', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.elaraCaptureBonus = e1.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const e2 = freshEntry(elara, 'blue');
+    const w2 = freshEntry({ id:'w2', name:'W2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = e2; state.board[5] = w2;
+    SPECIAL_HANDLERS.elaraqueen({ srcEntry: e2, targetEntry: w2, targetIndex: 5, owner: 'blue' });
+    out.elaraSpecial = w2.owner === 'blue' && e2.captureBonus === 2;
+
+    // Oni: Merciless Strength (vsStrongerTotalPowerBoost) + Crushing Blow
+    // (onWinDestroyLoserAlways, via the real battle path) + Special
+    // Oni's Judgment (guaranteed destroy, Shield still blocks).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(oni, 'blue');
+    const strongF = { id:'sf', name:'SF', top:20,right:20,bottom:20,left:20 };
+    out.oniVsStronger = fullEffectiveValue(oni, 'top', strongF, 4, 'blue', 'attack') - oni.top === 3;
+
+    state.board = Array(9).fill(null);
+    const o1 = freshEntry(oni, 'blue');
+    const strongU = freshEntry({ id:'su', name:'SU', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = o1; state.board[5] = strongU;
+    SPECIAL_HANDLERS.oni({ srcEntry: o1, targetEntry: strongU, targetIndex: 5, owner: 'blue' });
+    out.oniDestroysStrong = state.board[5] === null;
+
+    state.board = Array(9).fill(null);
+    const o2 = freshEntry(oni, 'blue');
+    const shieldedO = freshEntry({ id:'sho', name:'SHO', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedO.grantedShield = true;
+    state.board[4] = o2; state.board[6] = shieldedO;
+    SPECIAL_HANDLERS.oni({ srcEntry: o2, targetEntry: shieldedO, targetIndex: 6, owner: 'blue' });
+    out.oniShieldBlocks = shieldedO.owner === 'red';
+
+    state.board = Array(9).fill(null);
+    const o3 = freshEntry(oni, 'blue');
+    state.board[4] = o3;
+    state.board[1] = freshEntry({ id:'w3', name:'W3', top:1,right:1,bottom:1,left:1 }, 'red');
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.oniWinDestroys = state.board[1] === null;
+
+    // Ren: Duelist's Edge (onWinCappedBoost, capped at 3) + Special Twin
+    // Crystal Strike (plain threshold capture, no bonus attached).
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const r1 = freshEntry(ren, 'blue');
+    state.board[4] = r1;
+    for(let i = 0; i < 4; i++){
+      state.board[1] = freshEntry({ id:'rw'+i, name:'RW', top:1,right:1,bottom:1,left:1 }, 'red');
+      battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    }
+    out.renCapped = r1.captureBonus === 3;
+
+    state.board = Array(9).fill(null);
+    const r2 = freshEntry(ren, 'blue');
+    const w4 = freshEntry({ id:'w4', name:'W4', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = r2; state.board[5] = w4;
+    SPECIAL_HANDLERS.ren({ srcEntry: r2, targetEntry: w4, targetIndex: 5, owner: 'blue' });
+    out.renSpecial = w4.owner === 'blue' && r2.captureBonus === 0;
+
+    // buyPack gating: each Court member only from its own stated tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawLilithLegendary=false, sawLilithMystic=false, sawVexEpic=false, sawElaraEpic=false, sawOniMystic=false, sawRenEpic=false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.lilith) sawLilithLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.lilith) sawLilithMystic = true;
+      if(playerProgress.earnedCards.oni) sawOniMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.vex) sawVexEpic = true;
+      if(playerProgress.earnedCards.elaraqueen) sawElaraEpic = true;
+      if(playerProgress.earnedCards.ren) sawRenEpic = true;
+    }
+    out.lilithFromLegendary = sawLilithLegendary;
+    out.lilithNeverFromMystic = !sawLilithMystic;
+    out.vexFromEpic = sawVexEpic;
+    out.elaraFromEpic = sawElaraEpic;
+    out.oniFromMystic = sawOniMystic;
+    out.renFromEpic = sawRenEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.allFindable, true);
+  assert.equal(result.elaraNameIsElara, true);
+  assert.equal(result.elaraIdNotCollide, true, 'the new elaraqueen card must not shadow or be shadowed by the existing HEROES elara (Healer of the Frozen Light)');
+  assert.equal(result.noneInHeroes, true);
+  assert.equal(result.noneInCampaignPool, true);
+  assert.equal(result.scaling, true, 'Court of Queens sisterAura must scale +1 per member present, 0 through 4');
+  assert.equal(result.enemyCourtIgnored, true, 'an enemy-owned Court member must not count');
+  assert.equal(result.lilithDebuffImmune, true);
+  assert.equal(result.lilithSpecial, true, 'Curse of Fate must steal 2 Power on top of capturing the target');
+  assert.equal(result.vexUnderdog, true);
+  assert.equal(result.vexSpecial, true, "Void Embrace must debuff every enemy -1 and spare Vex's own side");
+  assert.equal(result.elaraCaptureBonus, true);
+  assert.equal(result.elaraSpecial, true, 'Frozen Volley must capture AND grant +2 Power on success');
+  assert.equal(result.oniVsStronger, true);
+  assert.equal(result.oniDestroysStrong, true, "Oni's Judgment must guarantee a destroy regardless of stat comparison");
+  assert.equal(result.oniShieldBlocks, true);
+  assert.equal(result.oniWinDestroys, true, 'Crushing Blow must destroy the loser on a normal win, not just capture it');
+  assert.equal(result.renCapped, true, "Duelist's Edge must cap at +3");
+  assert.equal(result.renSpecial, true, 'Twin Crystal Strike must capture with no additional bonus');
+  assert.equal(result.lilithFromLegendary, true);
+  assert.equal(result.lilithNeverFromMystic, true, 'Lilith must only ever come from the Legendary tier');
+  assert.equal(result.vexFromEpic, true);
+  assert.equal(result.elaraFromEpic, true);
+  assert.equal(result.oniFromMystic, true);
+  assert.equal(result.renFromEpic, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
