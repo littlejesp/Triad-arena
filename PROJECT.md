@@ -5231,6 +5231,164 @@ av — en kärlekstriangel), väntar på sitt porträtt. Nya permanenta
 regressionstest för Freya och Zidane täcker alla nya mekaniker och
 tier-gatingen. Hela testsviten grön: **175/175**.
 
+**Fas 42. Femte pack-exklusiva kortet: Ruby, The Astral Summoner
+(Mystic).** Slutet på kärlekskvadraten: en summoner som kan tillkalla
+gudar, och det är hon — inte Freya — som Zidane faktiskt är kär i, per
+användarens egna ord. Ett vakt-/beskyddar-kit: Astral Ward (samma
+`shield`-primitiv som resten av rostret), Divine Favor
+(`vsStrongerTotalPowerBoost`, +3 mot ett starkare mål), och en helt ny
+mekanik på användarens direkta specifikation ("om någon gud exempelvis
+shiva eller bahamut... är på brädet blir hon superfarlig för dom är
+hennes bästa vänner") — Godly Kinship (`allyGodBoost:{amount,max}`):
++2 Kraft för varje EGEN "gud" på brädet (rostrets egna `role`-taggar
+"Mythic Card"/"Mystic Card", återanvända direkt via regex istället för
+att hårdkoda en id-lista, så alla FRAMTIDA gudomliga kort automatiskt
+räknas som hennes vänner också), upp till +6.
+
+**Självfångad bugg innan leverans**: satte först `max:6` och trodde det
+begränsade SLUTSUMMAN till +6 — men det här kodbasens etablerade
+`{amount,max}`-mönster (bekräftat mot `auraPerPetrifiedEnemy`) begränsar
+i själva verket ANTALET kvalificerande föremål, inte slutsumman. Med 4
+gudar på brädet gav `max:6` faktiskt +8 (min(4,6)×2), inte +6. Fixat
+till `max:3` (3 gudar × 2 = +6, matchar korttextens "upp till +6").
+Special Attack: Godsfall är en GARANTERAD fångst (ingen
+stat-jämförelse alls, till skillnad från varje annat
+enmåls-Special i filen) — bara en Shield stoppar den, samma
+"skölden skyddar ändå sin ägare"-regel som Gamblers Ultima. Nytt
+permanent regressionstest låser fast både mekaniken och maxtaks-fixen.
+Hela testsviten grön: **176/176**.
+
+**Fas 43. Sjätte och sjunde pack-exklusiva korten: Kade (Epic) och
+Selene (Legendary) — ett helt nytt kärlekspar, separat från
+Freya/Zidane/Ruby-kvadraten.** Användarens egen beskrivning: "ghetto
+killen som krigar för en ljus framtid" — en gatuprofet med en
+spådomsboll (visar en framtida stad, ett kramande par) och en trogen
+hund vid sin sida. Den andra bilden, bara textad "The couple", är den
+enda konst vi har av Selene — ingen separat solo-bild ännu, så hennes
+full-/thumbnail-konst är beskuren från den delade kramar-bilden (mitt
+eget beslut, lätt att byta ut om en solo-bild dyker upp senare).
+Bekräftat via `AskUserQuestion`: de två går in som 6:e/7:e
+pack-exklusiva kort (inte Rival-exklusiva kort, som fortfarande är en
+separat, opåbörjad idé), döpta Kade och Selene efter användarens eget
+val mellan förslag.
+
+Bindningsmekaniken återanvänder `pairPresence` rakt av (samma fält som
+Darien/Elara, Twin Brothers/Twin Sisters) — "får bonus medan den andra
+är någonstans på brädet" ÄR redan spelets egen "par"-mekanik, inget
+nytt motorstöd behövdes. Kade (Epic) lutar mot "underdog som slåss för
+en bättre morgondag" (återanvänder `boardUnderdogAttackBonus`) plus en
+egen Special, Glimpse of Dawn — unik i filen genom att den lyckas på
+OAVGJORT (`>=`) istället för att kräva strikt högre Kraft, eftersom
+"han redan såg exakt detta ögonblick komma". Selene (Legendary) är den
+lugna/skyddande kontrasten: `onWinCleanseAlly` (återanvänt från Elara)
+och en Special som ger hela sidan en Shield istället för en
+statbuff (Freya äger redan "buffa alla"-formen). Tiers delade isär med
+flit (precis som Zidane/Ruby delar Mystic) så att dra det ena aldrig
+garanterar det andra.
+
+**Bugg hittad och fixad under eget testskrivande**: `onWinCleanseAlly`
+väljer en SLUMPMÄSSIG allierad, och vid den tidpunkten har det nyss
+erövrade kortet REDAN flippats till segrarens sida (se
+`checkOnWinBonuses`s egen kommentar om detta) — så det finns alltid
+minst två kandidater, och vilken som väljs är ett myntkast. Ett första
+testförsök antog fel att bara Selene själv kunde väljas och floppade
+slumpmässigt; fixat genom att verifiera BÅDA möjliga utfallen istället
+för att gissa vilket som händer. Hela testsviten grön: **177/177**.
+
+**Fas 44. Åttonde pack-exklusiva kortet: Vaseir, The Vaultbound
+Devourer (Mystic).** Användarens egna ord: en orm som vaktar en skatt
+som också heter Vaseir, och "alla som har försökt ta skatten har blivit
+mat" — läst rakt av som kortets hela kit. Högsta stat-summan hittills
+(40). Tre återanvända fält: `onWinDestroyLoserAlways` (redan beprövat
+på Nexzoth — "blir mat" är en DESTROY, inte en vanlig fångst, rutan blir
+tom istället för att flippa), `shield:true` (han lämnar aldrig sin
+skatt — till skillnad från Nexzoth, som saknar Shield helt), och
+`buffOnEnemyDestroyed` (Morvaths eget fält). Special Attack: Swallowed
+Whole är en garanterad DESTROY (inte fångst) på ett valt mål, samma
+skydds-kedja (`specialBlockedByShield`/`isDestroyImmune`/
+`protectedByInfiniteSeraph`) som Rubys Godsfall och Shivas Void-kraft
+redan använder.
+
+**En riktig, tidigare dold motor-bugg hittades och fixades under
+byggandet**: `onCaptureBonus` (mitt första val för tredje passiven)
+tickade aldrig, eftersom det fältet bara appliceras via
+flipp-vägen (kollar om rutan fortfarande tillhör segraren EFTER
+striden) — men `destroyCard()` nollställer ju rutan, så kontrollen
+misslyckas alltid för ett destroy-baserat kit. Bytte till
+`buffOnEnemyDestroyed` istället, som är inbyggt direkt i
+`destroyCard()` — men DEN hade i sin tur en egen, subtilare bugg:
+`destroyCard`s gissning om vem som ska belönas (`beneficiaryOwner`)
+baserades på den förstörda rutans `entry.owner`, men vid tiden
+`checkOnWinBonuses` anropar den för `onWinDestroyLoserAlways` har den
+rutan REDAN flippats till segrarens sida (se `battleNeighbors`) —
+gissningen pekade alltså bakvänt, och bonusen gick aldrig till rätt
+spelare. Detta har suttit dolt i Nexzoths REDAN LEVERERADE kort ända
+sedan Fas 7 (samma kombination av `onWinDestroyLoserAlways` +
+`buffOnEnemyDestroyed`), utan att något tidigare test fångade det
+eftersom testerna alltid anropat `destroyCard()` direkt istället för
+via en riktig vinst-flipp. Fixat genom att låta `destroyCard` acceptera
+ett explicit `opts.beneficiaryOwner`, och `onWinDestroyLoserAlways`s
+anropsplats skickar nu `winnerEntry.owner` rakt av istället för att
+gissa. Nytt regressionstest på Nexzoth-testet (via den riktiga
+`resolveFlips`-vägen, inte en bar `destroyCard()`-anrop) låser fast
+fixen retroaktivt. Hela testsviten grön: **179/179**.
+
+**Fas 45. Nionde pack-exklusiva kortet: Balalajka, The Coinsong
+Trickster (Legendary) — Vaseirs "konstiga bror".** Samma
+krönta-orm-på-en-skatthög-silhuett, men han spelar balalajka istället
+för att sluka inkräktare — den avsiktligt komiska/charmiga motpolen
+till sin brors rena förintelse. Delad isär från Vaseirs Mystic-nivå ner
+till Legendary (samma "dra-det-ena-garanterar-inte-det-andra"-princip
+som Kade/Selene), på min egen bedömning efter användarens uttryckliga
+"Dessa kort finns inte bara i rare. Du bestämmer standaren." Kit:
+`pairPresence` mot Vaseir (samma syskon-bindning som Kade/Selene, fast
+för ett mycket annorlunda "par"), `onWinDebuffLoserPermanent` (Torns
+eget fält — det erövrade kortets vilja bryts permanent av hans hånfulla
+sång), och Special Attack: Thieving Serenade — samma
+tröskel-+`SpecialVerbs.stealPower`-form som Twisted Gipsys House of
+Shadows/Darons Shattered Crown redan använder. Nio pack-exklusiva kort
+totalt nu, tre tydliga syskon-/kärlekspar (Freya↔Zidane↔Ruby-triangeln,
+Kade↔Selene, Vaseir↔Balalajka). Hela testsviten grön: **179/179**.
+
+**Fas 46. Tionde pack-exklusiva kortet: Faragon, The Falling Half-God
+(Mystic) — Dragons FAKTISKA bror.** Användaren skickade en ChatGPT-
+skriven lore-sammanfattning av alla karaktärer (se nya avsnitt 11,
+"Lore-bibel") med en uttrycklig regel: alla dessa kort ska höra ihop i
+EN sammanhängande värld, inte separata one-off-historier. Sammanfattningen
+antydde att Dragons bror var densamma som redan levererade Reaper-kortet
+— jag frågade direkt via `AskUserQuestion` om Reaper skulle döpas om till
+Faragon, och fick svaret "Dom är helt olika personer". Faragon är alltså
+ett HELT NYTT tionde kort, inte en omdöpning; Reapers eget kit/lore rörs
+inte alls.
+
+Halvgud, slåss från luften, störtar ner som ett gudomligt projektil med
+ett enormt lie-liknande lansvapen ("Himlen öppnar sig — och Faragon
+faller ner"). Inget porträtt ännu — `CARD_IMAGES`/`FULL_CARD_IMAGES`
+lämnades medvetet tomma; `cardFace()`/`renderModal()` faller redan
+tillbaka på ren hue-gradient + ikon för alla kort utan bild-entry, så
+kortet är fullt spelbart/testbart redan nu och behöver bara bild kopplas
+in senare.
+
+Kit: Sundering Descent är en helt ny `ON_PLACE_HANDLERS`-post (en
+engångs-nedslagschock på angränsande fiender vid placering, samma form
+som Nyxara/Vaelira/Fenrirs egna on-place-effekter — INTE en generisk
+`active.*`-aura, eftersom effekten bara triggas EN gång vid placering).
+Divine Aegis (`shield`) och Zealous Ascension (`onWinDirectionalBoost`,
+fyrar bara på FÖRSTA vinsten) återanvänds rakt av. Special Attack:
+Heaven's Fall är en genuint ny form i filen: en PERMANENT (inte
+"denna rond") hel-bräde-fiendedebuff, till skillnad från Reapers
+Judgment Descent/Evil Twists Yin-Yang Resonance (båda temporära).
+
+**Kodmässig payoff av "en sammanhängande värld"-regeln, inte bara
+text**: Faragons `role`-sträng innehåller medvetet "Mystic Card"
+(samma tagg rostrets egna gudar som Bahamut/Shiva redan bär), så Rubys
+Godly Kinship-mekanik (som läser av exakt den taggen via regex)
+räknar nu Faragon som en av hennes gudar automatiskt — precis den typ
+av verklig, spelbar koppling mellan kort som "en värld"-regeln efterfrågar,
+inte bara en delad bakgrundshistoria. Nytt permanent regressionstest
+bekräftar både mekaniken och just den Ruby-kopplingen. Hela testsviten
+grön: **180/180**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
@@ -8865,3 +9023,74 @@ användaren, bara idéer:
    koppla in fler "(Flavor only)"-förmågor, eller multiplayer (medvetet
    uppskjutet, se avsnitt 5b — bygg INTE detta utan att fråga först, det är
    en stor arkitekturändring).
+
+## 11. Lore-bibel: de pack-exklusiva karaktärernas sammankopplade värld
+
+**Viktig regel från användaren, verbatim i andemening**: dessa karaktärer
+är INTE separata one-off-berättelser. De ska visa sig vara delar av SAMMA
+värld och samma större konflikt. Varje nytt kort ska fråga "vad har den
+här personen för koppling till världen/de andra karaktärerna/den större
+konflikten?", inte bara "här är en cool ny figur". Lore byggs lager för
+lager, och gamla karaktärers historier kan återupptas när nya kort
+kopplar an till dem. Användaren skickar ibland lore skriven av ChatGPT
+för att sammanfatta — **ta det som förslag/utkast att tolka, inte som
+absolut sanning ordagrant**, särskilt om något motsäger vad användaren
+själv redan bekräftat direkt i chatten (se t.ex. Faragon/Reaper-fallet
+nedan, där ett ChatGPT-utkast antydde att de var samma person, men
+användaren bekräftade explicit "Dom är helt olika personer").
+
+**Etablerade kopplingar (bekräftat av användaren):**
+
+- **Dragon** — Den fallne lansriddaren. Bär mörk rustning med
+  drakmotiv/-gravyrer (INTE en bokstavlig drake — bara symboliken). Har en
+  bror: **Faragon**.
+- **Faragon** — Dragons bror, men en HALVGUD, en helt annan person än
+  Reaper (bekräftat explicit av användaren — tidigare i sessionen gissade
+  Claude fel att Reaper var "brodern"). Slåss med ett enormt lie-liknande
+  lansvapen, attackerar från luften och störtar ner som ett gudomligt
+  projektil ("Himlen öppnar sig — och Faragon faller ner"). Se kortet
+  själv (Fas 46) för mekanikerna.
+- **Reaper** (The Fallen Seraph) — förblir sin egen, fristående figur;
+  INTE Dragons bror trots den tidigare (felaktiga) antagandet tidigt i
+  sessionen. Ingen bekräftad familjekoppling till Dragon.
+- **Freya** — Får liv att blomstra vid beröring, en skönhet utan dess
+  like, tar hand om en gammal kyrka. Har börjat få känslor för en ung man
+  hon träffat där — det är **Zidane**.
+- **Zidane** — Soldat/krigare som kämpar för fred, populär, vapen
+  inspirerat av FFIX men ska få sin egen lore-identitet över tid. Vet
+  inte vad han vill: fokuserar på att rädda världen men har börjat få
+  känslor för **Ruby** (inte Freya, som han ändå träffat i kyrkan — en
+  medveten kärlekstriangel).
+- **Ruby** — Gudarnas kallerska, en summoner som kan tillkalla gudomliga
+  väsen. Det är henne Zidane egentligen dras till.
+- **Gudomliga krafter i världen** (samma "kategori" narrativt, och nu
+  även KODMÄSSIGT via `role`-taggen "Mythic Card"/"Mystic Card" som Rubys
+  Godly Kinship-mekanik läser av): Faragon (halvgud), Ruby (kan kalla på
+  gudar), Freya (livets/blomstringens kraft, om än inte kod-taggad som en
+  "gud" — hennes kraft är egen, inte gudomligt lånad).
+- **Kade** ("Den överlevande krigaren", tidigare bara "ghetto-killen
+  med hunden") — Har varit nära döden fyra gånger och överlevt varje
+  gång; många ser ner på honom men hans överlevnad + personliga
+  förändring motbevisar det. Ärrad, till kropp och liv. Har en mystisk
+  förmåga att se glimtar av möjliga framtider när han sitter ensam i
+  mörka gränder (redan kodad som `Special Attack: Glimpse of Dawn`).
+- **Selene** ("Hans kärlek — Vi mot världen") — Kades flickvän, italiensk,
+  dömer honom inte för hans förflutna utan ser vem han faktiskt är. Deras
+  relation: "vi mot världen." De har en hund tillsammans (synlig i
+  kortkonsten, ingen egen spelmekanik).
+- **Vaseir** — Enorm, fruktad orm som vaktar en legendarisk skatt (som
+  också bär hans namn). Är själva barriären mellan världen och skatten,
+  inte "bara" en fälla — alla som försökt ta skatten har blivit mat.
+- **Balalajka** — Vaseirs bror, kaotisk och musikälskande till skillnad
+  från broderns tystnad/beräknande brutalitet. Lockar offer med sin
+  musik snarare än att bara krossa dem. Tror kanske själv att han är
+  familjens stora geni.
+
+**Tre narrativa "kluster" hittills** (per användarens egen taxonomi):
+krigare (Dragon, Zidane, Kade), gudomliga krafter (Faragon, Ruby, Freya),
+mörka väktare (Vaseir, Balalajka) — plus en andra kärleks-/relationsnivå
+ovanpå (Freya→Zidane→Ruby-triangeln; Kade↔Selene "vi mot världen";
+Vaseir↔Balalajka som bröder). Framtida kort bör fortsätta koppla an hit
+istället för att starta ett helt nytt, orelaterat hörn av världen —
+fråga användaren om ett nytt kort ska koppla till en EXISTERANDE tråd
+om det inte är uppenbart.
