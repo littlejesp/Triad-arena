@@ -5389,6 +5389,37 @@ inte bara en delad bakgrundshistoria. Nytt permanent regressionstest
 bekräftar både mekaniken och just den Ruby-kopplingen. Hela testsviten
 grön: **180/180**.
 
+**Fas 47/48. Elfte och tolfte pack-exklusiva korten: Bram, "The Last
+Toast" (Legendary), och Brommi, "The Little Toast" (Epic) — bröder.**
+Den här gången kom korten UTAN någon medföljande lore-text alls, bara
+bilderna själva: en berusad kung fu-mästare (酔拳 = "Drunken Fist") som
+står över en hel gränd fulla med besegrade fiender och sakekrukor,
+med banderoller "飲めば強くなる" ("drick och bli starkare"). Mekaniken
+är därför helt min egen tolkning direkt från konsten, inte en
+kod-implementation av given text. Bram: Drunken Fortitude
+(`onWinCappedBoost`, +1/vinst upp till 3) och Unreadable Technique
+(`debuffImmune:true`, filens FÖRSTA användning av det fältet på ett
+pack-exklusivt kort). Special Attack: The Last Toast är en ny kombo-form
+i filen — vanlig tröskel-fångst (som Twin Brothers/Balalajka) PLUS en
+ovillkorad självbuff på lyckad träff (som Zidanes Trance) i SAMMA
+Special, ingen annan Special i filen kombinerar båda formerna.
+
+Brommi dök upp strax efter, uttryckligen märkt "弟" (lillebror) på
+kortet och med matchande titel/tema ("The Little Toast", "小酔拳" =
+"LILLA Drunken Fist") — en bekräftad syskonrelation, inte en gissning.
+Samma `pairPresence`-bindning som alla andra syskon-/kärlekspar i filen,
+delad till en annan nivå (Epic, bredvid Reaper/Kade) enligt samma
+"dra-det-ena-garanterar-inte-det-andra"-princip. Kit: reused
+`boardUnderdogAttackBonus` (skiljer honom mekaniskt från Bram, ingen
+reskin) och en billigare (cost 2 mot Brams 3) variant av tröskel-fångst
+som stjäl Kraft (`stealPower`, Balalajkas egen form) istället för att
+självbuffa — en busig lillebrors drag, inte ett avgörande finalslag.
+
+Ingen påtvingad koppling till en befintlig lore-tråd (Dragon/Faragon,
+Freya/Zidane/Ruby, Kade/Selene, Vaseir/Balalajka) eftersom inget i
+konsten pekade dit — helt okej enligt avsnitt 11:s egen regel, så länge
+jag inte hittar på en falsk koppling. Hela testsviten grön: **182/182**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
@@ -9085,6 +9116,11 @@ användaren bekräftade explicit "Dom är helt olika personer").
   från broderns tystnad/beräknande brutalitet. Lockar offer med sin
   musik snarare än att bara krossa dem. Tror kanske själv att han är
   familjens stora geni.
+- **Bram** ("The Last Toast") och **Brommi** ("The Little Toast") —
+  bröder, bekräftat via kortens egna "弟"-stämpel (lillebror). Berusade
+  kung fu-mästare (酔拳/小酔拳, "Drunken Fist"/"Little Drunken Fist").
+  Ingen kopplad lore-tråd till övriga karaktärer ännu — ett eget litet
+  hörn av världen, inte forcerat ihop med de andra.
 
 **Tre narrativa "kluster" hittills** (per användarens egen taxonomi):
 krigare (Dragon, Zidane, Kade), gudomliga krafter (Faragon, Ruby, Freya),

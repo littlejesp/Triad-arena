@@ -11225,3 +11225,169 @@ test("Fas 46: tenth pack-exclusive card -- Faragon (Mystic), Dragon's ACTUAL hal
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 47: eleventh pack-exclusive card -- Bram, "The Last Toast" (Legendary), a drunken-fist master with no prior lore text -- mechanics read directly from the art', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const bram = findCardById('bram');
+    out.findable = bram !== null && bram.name === 'Bram';
+    out.notInHeroes = !HEROES.some(h => h.id === 'bram');
+    out.notInCampaignPool = !campaignPool().includes('bram');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Drunken Fortitude: +1 per win, capped at 3.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const src = freshEntry(bram, 'blue');
+    state.board[4] = src;
+    for(let i = 0; i < 4; i++){
+      state.board[1] = freshEntry({ id:'w'+i, name:'W', top:1,right:1,bottom:1,left:1 }, 'red');
+      battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    }
+    out.cappedAtThree = src.captureBonus === 3;
+
+    // Unreadable Technique: debuffImmune -- a debuff attempt is a no-op.
+    const dbgEntry = freshEntry(bram, 'blue');
+    state.board = Array(9).fill(null);
+    state.board[4] = dbgEntry;
+    SpecialVerbs.debuff(dbgEntry, 5);
+    out.debuffImmune = dbgEntry.captureBonus === 0;
+
+    // Special: The Last Toast -- threshold capture PLUS a +3 self-buff on
+    // success, a combo not used together anywhere else in this file.
+    state.board = Array(9).fill(null);
+    const s2 = freshEntry(bram, 'blue');
+    const weakTarget = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = s2; state.board[5] = weakTarget;
+    SPECIAL_HANDLERS.bram({ srcEntry: s2, targetEntry: weakTarget, targetIndex: 5, owner: 'blue' });
+    out.capturedAndBuffed = weakTarget.owner === 'blue' && s2.captureBonus === 3;
+
+    // Fails against an equal-or-stronger target.
+    state.board = Array(9).fill(null);
+    const s3 = freshEntry(bram, 'blue');
+    const equalTarget = freshEntry({ id:'equal', name:'Equal', top:9,right:10,bottom:9,left:9 }, 'red');
+    state.board[4] = s3; state.board[5] = equalTarget;
+    SPECIAL_HANDLERS.bram({ srcEntry: s3, targetEntry: equalTarget, targetIndex: 5, owner: 'blue' });
+    out.failsOnTie = equalTarget.owner === 'red' && s3.captureBonus === 0;
+
+    // A Shield still blocks it.
+    state.board = Array(9).fill(null);
+    const s4 = freshEntry(bram, 'blue');
+    const shieldedTarget = freshEntry({ id:'shielded', name:'Shielded', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedTarget.grantedShield = true;
+    state.board[4] = s4; state.board[5] = shieldedTarget;
+    SPECIAL_HANDLERS.bram({ srcEntry: s4, targetEntry: shieldedTarget, targetIndex: 5, owner: 'blue' });
+    out.shieldBlocks = shieldedTarget.owner === 'red';
+
+    // buyPack: Bram only from the Legendary tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInLegendary = false, sawInMystic = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.bram) sawInLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.bram) sawInMystic = true;
+    }
+    out.drawableFromLegendary = sawInLegendary;
+    out.neverFromMystic = !sawInMystic;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.cappedAtThree, true, 'Drunken Fortitude must cap at +3');
+  assert.equal(result.debuffImmune, true, "Unreadable Technique must block any enemy debuff attempt");
+  assert.equal(result.capturedAndBuffed, true, 'The Last Toast must capture AND grant +3 Power on success');
+  assert.equal(result.failsOnTie, true);
+  assert.equal(result.shieldBlocks, true);
+  assert.equal(result.drawableFromLegendary, true);
+  assert.equal(result.neverFromMystic, true, 'Bram must only ever come from the Legendary tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 48: twelfth pack-exclusive card -- Brommi, "The Little Toast" (Epic), Bram\'s confirmed little brother (per the card\'s own printed "弟" stamp)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const brommi = findCardById('brommi');
+    const bram = findCardById('bram');
+    out.findable = brommi !== null && brommi.name === 'Brommi';
+    out.notInHeroes = !HEROES.some(h => h.id === 'brommi');
+    out.notInCampaignPool = !campaignPool().includes('brommi');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Brothers in Drink: pairPresence with Bram.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(brommi, 'blue');
+    out.noBonusAlone = fullEffectiveValue(brommi, 'top', null, 4, 'blue', 'defense') - brommi.top === 0;
+    state.board[0] = freshEntry(bram, 'blue');
+    out.bonusWithBram = fullEffectiveValue(brommi, 'top', null, 4, 'blue', 'defense') - brommi.top === 2;
+
+    // Little Fists, Big Heart: +2 attacking while behind on board count.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(brommi, 'blue');
+    state.board[0] = freshEntry({ id:'f1', name:'F1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'f2', name:'F2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.underdogAttack = fullEffectiveValue(brommi, 'top', null, 4, 'blue', 'attack') - brommi.top === 2;
+    out.noUnderdogDefense = fullEffectiveValue(brommi, 'top', null, 4, 'blue', 'defense') - brommi.top === 0;
+
+    // Special: The Little Toast -- threshold capture that also steals 1
+    // Power, same shape as Balalajka's Thieving Serenade but smaller.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(brommi, 'blue');
+    const weak = freshEntry({ id:'weak', name:'Weak', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = src; state.board[5] = weak;
+    SPECIAL_HANDLERS.brommi({ srcEntry: src, targetEntry: weak, targetIndex: 5, owner: 'blue' });
+    out.stolenAndCaptured = weak.owner === 'blue' && weak.captureBonus === -1 && src.captureBonus === 1;
+
+    // Fails against an equal-or-stronger target.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(brommi, 'blue');
+    const equalTarget = freshEntry({ id:'equal', name:'Equal', top:9,right:9,bottom:10,left:8 }, 'red');
+    state.board[4] = src2; state.board[5] = equalTarget;
+    SPECIAL_HANDLERS.brommi({ srcEntry: src2, targetEntry: equalTarget, targetIndex: 5, owner: 'blue' });
+    out.failsOnTie = equalTarget.owner === 'red';
+
+    // buyPack: Brommi only from Epic, never his brother's Legendary tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInEpic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.brommi) sawInEpic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.brommi) sawInLegendary = true;
+    }
+    out.drawableFromEpic = sawInEpic;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.noBonusAlone, true);
+  assert.equal(result.bonusWithBram, true, 'Brothers in Drink must give +2 while Bram is on the board');
+  assert.equal(result.underdogAttack, true);
+  assert.equal(result.noUnderdogDefense, true, 'Little Fists, Big Heart must be attack-only');
+  assert.equal(result.stolenAndCaptured, true, 'The Little Toast must steal 1 Power on top of capturing the target');
+  assert.equal(result.failsOnTie, true);
+  assert.equal(result.drawableFromEpic, true);
+  assert.equal(result.neverFromLegendary, true, "Brommi must only ever come from the Epic tier, never his brother's Legendary tier");
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
