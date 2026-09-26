@@ -3682,6 +3682,8 @@ const CARD_IMAGES = {
   selene: 'cards/card-selene.jpg',
   vaseir: 'cards/card-vaseir.jpg',
   balalajka: 'cards/card-balalajka.jpg',
+  bram: 'cards/card-bram.jpg',
+  brommi: 'cards/card-brommi.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3767,6 +3769,8 @@ const FULL_CARD_IMAGES = {
   selene: 'card-selene-full.jpg',
   vaseir: 'card-vaseir-full.jpg',
   balalajka: 'card-balalajka-full.jpg',
+  bram: 'card-bram-full.jpg',
+  brommi: 'card-brommi-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5094,6 +5098,74 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Divine Aegis (Passive)', desc:'The first time Faragon would lose a battle, his half-divine blood shields him from harm — the loss is ignored and he keeps his position.'},
       {name:'Zealous Ascension (Passive)', desc:'The first time Faragon wins a battle, the edge he struck with permanently gains +1 Power — each triumph sharpens the god within him.'},
       {name:"Special Attack: Heaven's Fall", desc:'Costs 3 wins. The sky opens once more — every enemy card on the board permanently loses 2 Power on all sides. Usable once per match.'},
+    ] },
+  // Eleventh pack-exclusive card: Bram, "The Last Toast" (per the card's
+  // own printed title/name -- no accompanying lore text this time, so
+  // the mechanics below are entirely my own read of the art: a drunken-
+  // fist master standing over a whole alley of defeated foes, sake jars
+  // everywhere, banners reading "飲めば強くなる" ("drink and grow
+  // stronger") and "酔拳" ("Drunken Fist"). Doesn't force a connection to
+  // an existing lore thread (Dragon/Faragon, Freya/Zidane/Ruby, Kade/
+  // Selene, Vaseir/Balalajka) since nothing in the art points to one --
+  // per PROJECT.md section 11's own rule, a new corner of the world is
+  // fine as long as I don't invent a false connection.
+  //
+  // Legendary tier (joins Freya/Selene/Balalajka) -- a peak MORTAL
+  // martial artist, not a monster or a god, so Mystic (reserved so far
+  // for the roster's actual gods/half-gods/guardian-beasts) felt like
+  // the wrong bracket even though his power fantasy is extreme. Stats
+  // (37) match the other three Legendary cards exactly.
+  //
+  // Kit: Drunken Fortitude reuses onWinCappedBoost (Zidane/Vaelira) --
+  // "each toast makes his strikes surer", capped so it doesn't stack
+  // forever. Unreadable Technique is `debuffImmune:true`, this file's
+  // first use of that field on a PACK_EXCLUSIVE card -- "you can't
+  // out-think a drunk man's next move," and mechanically distinct from
+  // every other passive already used here. Special "The Last Toast"
+  // (matching the card's own printed name) is a fresh combo shape: a
+  // plain threshold capture (like Twin Brothers/Balalajka) PLUS an
+  // unconditional self-buff on success (like Zidane's Trance) in the
+  // SAME Special -- pouring everything he has left into one final
+  // strike, rather than either shape alone.
+  { id:'bram', name:'Bram', role:'The Last Toast — Pack Exclusive (Legendary)', element:'fire',
+    top:9, right:10, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#c9a227', icon:'🍶',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ onWinCappedBoost:{amount:1, max:3}, debuffImmune:true },
+    special:{ name:'The Last Toast', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Drunken Fortitude (Passive)', desc:'Each time Bram wins a battle, he gains +1 Power on all sides, up to 3 times per match — with every toast, his strikes grow surer.'},
+      {name:'Unreadable Technique (Passive)', desc:"Bram's Power can never be lowered by an enemy card's ability — no one can predict a drunken master's next move, least of all with magic."},
+      {name:'Special Attack: The Last Toast', desc:"Costs 3 wins. Choose an adjacent enemy card — if Bram's total Power is greater, he claims it with one final, decisive strike and pours everything he has left into it, permanently gaining +3 Power on all sides. Usable once per match."},
+    ] },
+  // Twelfth pack-exclusive card: Brommi, "The Little Toast" -- Bram's
+  // actual little brother, per the card's own printed "弟" (little
+  // brother) stamp and matching title ("The Last Toast" / "The Little
+  // Toast", "酔拳"/"小酔拳" -- Drunken Fist / LITTLE Drunken Fist).
+  // Confirmed sibling pair, so pairPresence with Bram, same shape as
+  // every other sibling/couple pair in this file. Split to a different
+  // tier (Epic, joining Reaper/Kade) so pulling one never guarantees the
+  // other, same convention as Kade/Selene and Vaseir/Balalajka. Stats
+  // (36) match the other Epic cards.
+  //
+  // Kit: reckless/underdog energy fitting a scrappy little brother who
+  // punches above his weight -- boardUnderdogAttackBonus (Reaper/Kade's
+  // own field) instead of Bram's onWinCappedBoost, so the brothers don't
+  // feel like a reskin of each other. Special "The Little Toast" is a
+  // cheaper (cost 2, vs Bram's 3), smaller-stakes version of the same
+  // "threshold capture" shape, but steals Power (SpecialVerbs.stealPower,
+  // Balalajka's own shape) instead of self-buffing -- a mischievous
+  // little sibling's move, not a decisive finishing blow.
+  { id:'brommi', name:'Brommi', role:'The Little Toast — Pack Exclusive (Epic)', element:'wind',
+    top:9, right:9, bottom:10, left:8,
+    hue:'linear-gradient(160deg,#241a08,#0d0b18 60%)', accent:'#c9a227', icon:'🐕',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'bram', amount:2}, boardUnderdogAttackBonus:2 },
+    special:{ name:'The Little Toast', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Brothers in Drink (Passive)', desc:'While Bram is anywhere on the board, Brommi gains +2 Power on all sides — the little brother never drinks alone.'},
+      {name:'Little Fists, Big Heart (Passive)', desc:'While you control fewer cards on the board than your opponent, Brommi gains +2 Power when attacking — he fights hardest with the odds against him.'},
+      {name:'Special Attack: The Little Toast', desc:"Costs 2 wins. Choose an adjacent enemy card — if Brommi's total Power is greater, he lulls it into one last drink and lightens its resolve, stealing 1 Power permanently and claiming the card. Usable once per match."},
     ] },
 ];
 
@@ -10989,6 +11061,42 @@ const SPECIAL_HANDLERS = {
     const enemies = state.board.filter(e => e && e.owner !== owner);
     enemies.forEach(e => SpecialVerbs.debuff(e, 2));
     return `${srcEntry.card.name}'s Heaven's Fall scours the enemy ranks — the sky itself judges them!`;
+  },
+  // Bram's The Last Toast: plain threshold capture (same shape as Twin
+  // Brothers/Balalajka) PLUS an unconditional self-buff on success (same
+  // shape as Zidane's Trance) in the SAME Special -- a combo not used
+  // together anywhere else in this file.
+  bram({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Last Toast finds no strength left to finish it!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against The Last Toast!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 3);
+    return `${name} pours everything into one Last Toast — ${targetEntry.card.name} never saw it coming!`;
+  },
+  // Brommi's The Little Toast: same threshold-capture shape as Bram's own
+  // Last Toast, but steals Power (Balalajka's stealPower shape) instead
+  // of self-buffing -- the mischievous little-sibling version, not a
+  // decisive finishing blow.
+  brommi({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Little Toast fizzles out before it lands!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against The Little Toast!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
+    return `${name}'s Little Toast lulls ${targetEntry.card.name} into one last drink!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
