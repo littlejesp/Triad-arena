@@ -5541,6 +5541,29 @@ Campaign/Random Draft/Choose Your Five), vilket redan var arkitekturen
 för alla tjugo korten. Tjugo pack-exklusiva kort totalt nu. Hela
 testsviten grön: **189/189**.
 
+**Fas 56. Tjugoförsta pack-exklusiva kortet: Cinder, The Ashen Queen
+(Mystic) — en eldig drottning.** Kom som TRE separata bilder i följd,
+alla med samma krona/hår/ram/triquetra-hörnmotiv men olika poser
+(brinnande stad + spira; en svart panter; drakvingar + månförmörkelse +
+en hel armé). Trodde först detta kunde vara tre olika systrar (mönstret
+från Sakura/Akari/Bram/Brommi), men användaren klargjorde: "Chat gpt
+fel bad om 3 olika systrar" — ChatGPT hade missförstått en begäran om
+posalternativ för EN karaktär som en begäran om tre olika figurer.
+Bekräftade med användaren, i två omgångar, vilken av de tre bilderna
+som skulle bli den slutgiltiga kortkonsten (landade på drakvinge-
+/arme-bilden). Fristående figur, ingen koppling till Scarletta eller
+någon annan tråd (bekräftat).
+
+Mystic-nivå, matchar skalan i den slutgiltiga bilden (en hel armé,
+drakar, en förmörkelse). Kit: `shield` (Crown of Embers) +
+`buffOnEnemyDestroyed` (Feeds on Ruin, Morvath/Nexzoth/Vaseirs eget
+fält, återanvänt rakt av). Special Attack: Ashfall är en ny AOE-form i
+filen — en liten permanent debuff till varje fiende PLUS en självbuff
+som SKALAR med hur många fiender som faktiskt träffades, till skillnad
+från varje annan AOE-Special i filen (Freya/Selene/Faragon/Reaper/Evil
+Twist), som alla har en FAST självbuff-mängd. Tjugoen pack-exklusiva
+kort totalt nu. Hela testsviten grön: **190/190**.
+
 **Viktig uppdatering av avsnitt 12 (facit)**: användaren tyckte den
 enhetliga guld/lila-ramen för alla tiers kändes "för vanligt" —
 efterfrågade att RAMENS INTENSITET SKA SKALA MED SÄLLSYNTHET istället

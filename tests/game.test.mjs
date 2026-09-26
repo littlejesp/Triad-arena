@@ -11978,3 +11978,79 @@ test('Fas 55: twentieth pack-exclusive card -- Scarletta (Mystic), a gothic vamp
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 56: twenty-first pack-exclusive card -- Cinder (Mystic), a fiery queen; her Special's self-buff-scales-with-enemy-count shape is new to this file", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const cinder = findCardById('cinder');
+    out.findable = cinder !== null && cinder.name === 'Cinder';
+    out.notInHeroes = !HEROES.some(h => h.id === 'cinder');
+    out.notInCampaignPool = !campaignPool().includes('cinder');
+    out.hasShield = cinder.active.shield === true;
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Feeds on Ruin: +1 whenever any enemy card is destroyed by any means
+    // (buffOnEnemyDestroyed, reused verbatim from Morvath/Nexzoth/Vaseir).
+    state.board = Array(9).fill(null);
+    const c1 = freshEntry(cinder, 'blue');
+    state.board[4] = c1;
+    state.board[1] = freshEntry({ id:'t1', name:'T1', top:1,right:1,bottom:1,left:1 }, 'red');
+    destroyCard(1);
+    out.feedsOnRuin = c1.captureBonus === 1;
+
+    // Special: Ashfall -- -1 to every enemy, allies spared, and Cinder
+    // gains +1 per enemy actually hit (scaling self-buff, not a flat amount).
+    state.board = Array(9).fill(null);
+    const c2 = freshEntry(cinder, 'blue');
+    const e1 = freshEntry({ id:'e1', name:'E1', top:5,right:5,bottom:5,left:5 }, 'red');
+    const e2 = freshEntry({ id:'e2', name:'E2', top:5,right:5,bottom:5,left:5 }, 'red');
+    const ally = freshEntry({ id:'a1', name:'A1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[4] = c2; state.board[0] = e1; state.board[1] = e2; state.board[2] = ally;
+    SPECIAL_HANDLERS.cinder({ srcEntry: c2, owner: 'blue' });
+    out.ashfallDebuffedBoth = e1.captureBonus === -1 && e2.captureBonus === -1;
+    out.ashfallSparedAlly = ally.captureBonus === 0;
+    out.ashfallScaledSelfBuff = c2.captureBonus === 2;
+
+    // No enemies on the board -> no self-buff at all (guards the
+    // enemies.length === 0 case explicitly).
+    state.board = Array(9).fill(null);
+    const c3 = freshEntry(cinder, 'blue');
+    state.board[4] = c3;
+    SPECIAL_HANDLERS.cinder({ srcEntry: c3, owner: 'blue' });
+    out.noSelfBuffWithNoEnemies = c3.captureBonus === 0;
+
+    // buyPack: Cinder only from the Mystic tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawInMystic = false, sawInLegendary = false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.cinder) sawInMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.cinder) sawInLegendary = true;
+    }
+    out.drawableFromMystic = sawInMystic;
+    out.neverFromLegendary = !sawInLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.findable, true);
+  assert.equal(result.notInHeroes, true);
+  assert.equal(result.notInCampaignPool, true);
+  assert.equal(result.hasShield, true);
+  assert.equal(result.feedsOnRuin, true, 'Feeds on Ruin must fire off any enemy destroy, not just her own kills');
+  assert.equal(result.ashfallDebuffedBoth, true);
+  assert.equal(result.ashfallSparedAlly, true, "Ashfall must never touch Cinder's own side");
+  assert.equal(result.ashfallScaledSelfBuff, true, 'Ashfall must scale its self-buff by the number of enemies hit, not a flat amount');
+  assert.equal(result.noSelfBuffWithNoEnemies, true);
+  assert.equal(result.drawableFromMystic, true);
+  assert.equal(result.neverFromLegendary, true, 'Cinder must only ever come from the Mystic tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

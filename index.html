@@ -3692,6 +3692,7 @@ const CARD_IMAGES = {
   sunny: 'cards/card-sunny.jpg',
   pain: 'cards/card-pain.jpg',
   scarletta: 'cards/card-scarletta.jpg',
+  cinder: 'cards/card-cinder.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3787,6 +3788,7 @@ const FULL_CARD_IMAGES = {
   sunny: 'card-sunny-full.jpg',
   pain: 'card-pain-full.jpg',
   scarletta: 'card-scarletta-full.jpg',
+  cinder: 'card-cinder-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5413,6 +5415,39 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Feeds on the Strong (Passive)', desc:'When Scarletta attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she was always drawn to a worthy hunt.'},
       {name:'Withering Touch (Passive)', desc:'Each time Scarletta captures a card, it is left permanently withered — it loses 2 Power on all sides.'},
       {name:'Special Attack: Harvest of Roses', desc:"Costs 3 wins. Choose an enemy card — she claims its soul into her garden outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Twenty-first pack-exclusive card: Cinder, a fiery queen. Arrived as
+  // three separate images the user thought were pose options for ONE
+  // character; turned out ChatGPT had misread the request as "three
+  // different sisters" and generated three unrelated takes instead of
+  // three variants of the same card ("Chat gpt fel bad om 3 olika
+  // systrar"). Confirmed with the user which single image to use as the
+  // final card art (went through two rounds -- a panther portrait, then
+  // switched to this one: dragons, a blood eclipse, an army below).
+  // Standalone character, no connection to Scarletta or any other
+  // existing thread (user confirmed).
+  //
+  // Mystic tier -- matches the scale of the final chosen art (an army,
+  // dragons, an eclipse). Stats (39) sit just under Vaseir/Scarletta's
+  // own ceiling.
+  //
+  // Kit: shield (Crown of Embers) + buffOnEnemyDestroyed (Feeds on
+  // Ruin, Morvath/Nexzoth/Vaseir's own field -- "thrives amid a dying
+  // world", reused verbatim). Special "Ashfall" is a fresh AOE shape:
+  // a small permanent debuff to every enemy PLUS a self-buff that scales
+  // with how many enemies were actually hit -- distinct from every other
+  // AOE Special in this file (Freya/Selene/Faragon/Reaper/Evil Twist),
+  // none of which scale their own self-buff by the enemy count.
+  { id:'cinder', name:'Cinder', role:'The Ashen Queen — Pack Exclusive (Mystic)', element:'fire',
+    top:10, right:10, bottom:9, left:10,
+    hue:'linear-gradient(160deg,#2a0f10,#0d0b18 60%)', accent:'#c23b3b', icon:'🔥',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ shield:true, buffOnEnemyDestroyed:true },
+    special:{ name:'Ashfall', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Crown of Embers (Passive)', desc:'The first time Cinder would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
+      {name:'Feeds on Ruin (Passive)', desc:'Each time any enemy card is destroyed by any means, Cinder permanently gains +1 Power on all sides — she thrives amid a dying world.'},
+      {name:'Special Attack: Ashfall', desc:'Costs 3 wins. Every enemy card on the board permanently loses 1 Power on all sides, and Cinder permanently gains +1 Power on all sides for each enemy scorched. Usable once per match.'},
     ] },
 ];
 
@@ -11469,6 +11504,16 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     return `${name}'s Harvest of Roses claims ${targetEntry.card.name}'s soul into her garden!`;
+  },
+  // Cinder's Ashfall: a small permanent debuff to every enemy PLUS a
+  // self-buff that scales with how many enemies were actually hit --
+  // distinct from every other AOE Special in this file, none of which
+  // scale their own self-buff by the enemy count.
+  cinder({ srcEntry, owner }){
+    const enemies = state.board.filter(e => e && e.owner !== owner);
+    enemies.forEach(e => SpecialVerbs.debuff(e, 1));
+    if(enemies.length > 0) SpecialVerbs.attackBoost(srcEntry, enemies.length);
+    return `${srcEntry.card.name}'s Ashfall scorches the enemy ranks — she grows stronger from their ruin!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
