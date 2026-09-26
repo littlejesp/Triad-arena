@@ -9180,3 +9180,150 @@ Vaseir↔Balalajka som bröder). Framtida kort bör fortsätta koppla an hit
 istället för att starta ett helt nytt, orelaterat hörn av världen —
 fråga användaren om ett nytt kort ska koppla till en EXISTERANDE tråd
 om det inte är uppenbart.
+
+## 12. Facit: så här bygger vi ett nytt pack-exklusivt kort
+
+Skrivet efter att stilen glömdes bort mitt i en lång fram-och-tillbaka om
+klädseln på ett kort ("vi hade redan en tydlig kortstil och layout, och
+jag tappade bort den när vi gick fram och tillbaka med kläderna"). Det
+här avsnittet är facit — läs det INNAN nästa pack-exklusiva kort
+påbörjas, både för bildbrief-texten till ChatGPT och för hur jag bygger
+kortet i kod.
+
+### A. Bildstilen (vad du skickar till ChatGPT)
+
+**Kanonisk ram, gäller ALLA pack-exklusiva kort**: en tjock, ornamenterad
+guldram med gravyrmönster, och en tunn LILA/magisk glöd precis innanför
+guldkanten (#c9a227/#e0c02f-guld, #a568f2/#c23bce-lila) — samma "arkana
+kompass"-känsla som spelets egen kortbaksida. **Observation, inte ändrat
+än**: de fyra senaste korten (Bram/Brommi/Sakura/Akari, den berusade
+kung fu-familjen) kom med en BLÅ ram med drakhuvuden i hörnen istället —
+en annan stil än de tidigare tio. Om det var meningen att den familjen
+ska ha sin egen distinkta "sub-brand" är det okej, men om det bara var
+drift (glömde bort guld/lila-standarden mitt i en ny bildserie) bör
+nästa kort i den familjen (om fler kommer) medvetet väljas att antingen
+(a) fortsätta den blå drakstilen som familjens EGEN etablerade
+sub-identitet, eller (b) byta tillbaka till guld/lila för att matcha
+resten av rostret. Fråga användaren om det är oklart vilket som gäller
+innan nästa kort i en existerande familj beskrivs till ChatGPT.
+
+**Tekniska krav på varje bild** (skriv detta rakt av i bildbriefen):
+1. **Ramen bakad i HELA canvasen**, inte ett separat overlay-lager. Det
+   är den etablerade metoden sedan Freya/Zidane (Fas 40) — den gamla
+   metoden (separat transparent ramfil som läggs ovanpå i kod,
+   `exclusiveFrame:true`) finns kvar i motorn men används inte längre;
+   alla 14 kort hittills har `exclusiveGlow:true` istället.
+2. **Stående canvas, 1024×1536** (den nyare, nu etablerade storleken —
+   de första fem korten (Dragon–Ruby) använde 941×1672, vilket också
+   fungerar men bör inte blandas i onödan; 1024×1536 är standarden
+   framåt).
+3. **Kortets namn + undertitel inbränt i botten**, i samma stiliserade
+   guld-skylt-typsnitt som redan syns på alla 14 korten (t.ex. "DRAGON",
+   "BRAM / THE LAST TOAST"). Det ÄR okej att ha namnet inbränt — till
+   skillnad från resten av rostrets vanliga kortporträtt (som ALDRIG får
+   ha text inbränt), är detta specifikt vad som gör pack-exklusiva kort
+   kännas som en egen, premium serie.
+4. **En enda scen, en enda karaktär i fokus** (par-bilder som "The
+   couple" är okej som ETT av flera bildskick för samma lansering, men
+   varje KORT behöver sin egen tydliga huvudperson i bilden).
+5. **Håll klädsel/rekvisita/miljö KONSEKVENT inom en familj.** Det här är
+   precis det som gick fel: när flera bilder för samma familj/relation
+   tas fram efter varandra (syskon, par), be ChatGPT uttryckligen hålla
+   sig till SAMMA kläder/miljö/rekvisita-språk som föregående kort i
+   samma familj visade, inte bara samma "vibe" i ord. Om möjligt, bifoga
+   eller beskriv föregående korts bild som referens i samma
+   ChatGPT-konversation innan nästa syskons bild beställs.
+6. **Ingen spelregeltext, inga siffror, ingen extra UI** utöver namn/
+   titel — Special Attack-namn, kostnad, stats etc. läggs INTE i bilden,
+   det hanteras helt i kod.
+
+### B. Tekniskt flöde när bilden kommer in (mitt jobb)
+
+1. Spara originalet i full upplösning som `card-<id>-full.jpg`
+   (`FULL_CARD_IMAGES[id]`), använt av detaljvyn (`renderModal`).
+2. Beskär en 640×418-thumbnail (`cards/card-<id>.jpg`, `CARD_IMAGES[id]`)
+   med "bred beskärning"-tekniken (etablerad sedan Fas 40, se avsnitt 9):
+   använd HELA bildens bredd (så ramens sidokanter syns även i den lilla
+   vyn), `crop_h = int(bredd / (5/7))`, välj `y0` så ansiktet + eventuell
+   namnskylt hamnar inom beskärningen (`y0` mellan ~40–250 beroende på
+   var ansiktet sitter i just den bilden — kolla alltid resultatet med
+   `Read` innan du går vidare).
+3. Lägg till `id: 'cards/card-<id>.jpg'` i `CARD_IMAGES` och
+   `id: 'card-<id>-full.jpg'` i `FULL_CARD_IMAGES`.
+4. Om bilden inte finns än (kortet designas från ren lore-text utan
+   konst): hoppa över steg 1–3 helt. `cardFace()`/`renderModal()` faller
+   redan tillbaka på `hue`-gradienten + `icon` när ett kort saknar en
+   bild-entry (se Faragons egen kommentar i koden) — kortet är fullt
+   spelbart/testbart ändå, bilden kopplas in senare utan att något annat
+   behöver ändras.
+
+### C. Kortdata och mekanik
+
+- **`packTier`**: `'rare'|'epic'|'legendary'|'mystic'`, mitt eget beslut
+  baserat på hur kraftfullt/betydelsefullt kortet känns i sin egen lore
+  — användaren har uttryckligen sagt "Du bestämmer standarden", tiers
+  behöver INTE vara jämnt fördelade. Ungefärlig statsumma per nivå (för
+  konsekvens, inte en hård regel): Rare ~35, Epic ~36, Legendary ~37,
+  Mystic ~38–40.
+- **Återanvänd BEFINTLIGA `active.*`-fält i första hand** — hela den
+  här sessionens 14 kort bygger nästan uteslutande på fält som redan
+  fanns (`shield`, `onCaptureBonus`, `onWinCappedBoost`,
+  `boardUnderdogAttackBonus`, `vsStrongerTotalPowerBoost`,
+  `onWinDebuffLoserPermanent`, `debuffImmune`, `marginShieldThreshold`,
+  `pairPresence`, `sisterAura`, m.fl.). Uppfinn bara ett NYTT fält när
+  ingen befintlig kombination fångar idén (t.ex. `allyGodBoost` för
+  Rubys "gudarna är hennes vänner"-mekanik, eller `ON_PLACE_HANDLERS`
+  för Faragons nedslagschock).
+- **2–3 passiva förmågor + 1 Special Attack** är normen. Special Attack
+  ska heta efter kortets EGET tryckta namn när det finns ett (t.ex.
+  "The Last Toast", "Godsfall") — annars välj något som passar
+  lore-texten.
+- **Syskon-/kärleksbindning**: två karaktärer → `pairPresence`
+  (`{partner:'id', amount:N}`, ett fält per kort, pekar på den andra).
+  TRE ELLER FLER karaktärer i samma familj → `sisterAura`
+  (`{partners:['id1','id2',...], bonusByCount:{1:X,2:Y,3:Z}}`), generisk
+  sedan Fas 49 (läser kortets EGEN `partners`-lista, inte längre
+  hårdkodad till Vaelira-trion). Dela ALLTID syskon/par över OLIKA
+  `packTier`, aldrig samma — annars garanterar ett drag det andra kortet
+  också, vilket underminerar hela "jaga specifika kort"-poängen.
+- **Namn-id:er**: korta, gemener, inga mellanslag (`kade`, `sisterAura`-
+  partners refererar till dessa exakta id:n).
+
+### D. Lore och relationer
+
+- Anta ALDRIG en familje-/kärleksrelation som inte är uttryckligen
+  bekräftad — antingen av en tydlig stämpel/text PÅ kortet ("弟"), eller
+  av användaren direkt i chatten. Är det oklart: fråga (se Faragon/
+  Reaper- och Sakura-fallen ovan, båda löstes med en snabb fråga istället
+  för en gissning).
+- Uppdatera avsnitt 11 (Lore-bibeln) varje gång en ny relation eller ett
+  nytt kort bekräftas, så framtida sessioner har hela bilden utan att
+  behöva läsa igenom hela chatthistoriken.
+- Ett nytt kort behöver INTE tvingas in i en befintlig lore-tråd om
+  inget i bilden/texten pekar dit (Bram-familjen är sitt eget hörn) —
+  men fråga om det är oklart, hellre än att gissa fel åt endera hållet.
+
+### E. Leverans-checklista (samma för varje nytt kort, i ordning)
+
+1. Bearbeta bild(er) → `card-<id>-full.jpg` + `cards/card-<id>.jpg`
+   (steg B ovan), eller hoppa över om ingen bild finns än.
+2. Lägg till kortobjektet i `PACK_EXCLUSIVE_CARDS`, `CARD_IMAGES`,
+   `FULL_CARD_IMAGES`.
+3. Lägg till ev. `SPECIAL_HANDLERS.<id>`/`ON_PLACE_HANDLERS.<id>`.
+4. Verifiera manuellt med ett engångs-Playwright-skript i scratchpad
+   (samma mönster som `verify_*.mjs`-filerna denna session) INNAN du
+   skriver det permanenta testet — snabbare att hitta buggar där.
+5. Skriv ett permanent regressionstest i `tests/game.test.mjs` (nästa
+   lediga "Fas N"-nummer): findable/inte i HEROES/inte i campaignPool,
+   varje passiv, Special (lyckas + misslyckas + blockeras av Shield om
+   relevant), `buyPack`-gating (rätt tier, ALDRIG andra tiers — kör
+   minst 150 iterationer per tier för att lita på slumpen).
+6. Lägg till sandbox-`executablePath`-workaround i
+   `tests/game.test.mjs` (se avsnitt 9), kör HELA testsviten, bekräfta
+   grönt, ta bort workaround igen innan commit.
+7. Skriv en PROJECT.md-post (nästa "Fas N", samma stil som ovanstående
+   poster) + uppdatera Lore-bibeln (avsnitt 11) om en ny relation
+   bekräftades.
+8. Committa, pusha till arbetsbranchen, merge till `main` (`--no-ff`),
+   pusha `main`, synka tillbaka arbetsbranchen (`--ff-only`), pusha den
+   igen — se avsnitt 9 för exakta kommandon.
