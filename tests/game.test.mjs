@@ -12251,3 +12251,219 @@ test("Fas 57: twenty-second through twenty-sixth pack-exclusive cards -- Lilith,
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 58: twenty-seventh through thirty-second pack-exclusive cards -- Astra and Umbriel extend the Court of Queens to nine members, and the Crimson Dynasty (Jade/Ryuji) and Blossom pair (Hayato/Hanami) debut as new bonded pairPresence duos", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const astra = findCardById('astra');
+    const umbriel = findCardById('umbriel');
+    const jade = findCardById('jade');
+    const ryuji = findCardById('ryuji');
+    const hayato = findCardById('hayato');
+    const hanami = findCardById('hanami');
+    const scarletta = findCardById('scarletta');
+    out.allFindable = [astra,umbriel,jade,ryuji,hayato,hanami].every(c => c !== null);
+    out.noneInHeroes = ['astra','umbriel','jade','ryuji','hayato','hanami'].every(id => !HEROES.some(h => h.id === id));
+    out.noneInCampaignPool = ['astra','umbriel','jade','ryuji','hayato','hanami'].every(id => !campaignPool().includes(id));
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Astra: Celestial Ward (shield) + Constellation (alliedCountScaleBonus,
+    // capped at +3) -- verified alone (no allies, no bonus) and with 4 generic
+    // allies (capped at +3, not +4).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(astra, 'blue');
+    out.astraAloneNoBonus = fullEffectiveValue(astra, 'top', null, 4, 'blue', 'attack') - astra.top === 0;
+    state.board[0] = freshEntry({ id:'a1', name:'A1', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[1] = freshEntry({ id:'a2', name:'A2', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[2] = freshEntry({ id:'a3', name:'A3', top:5,right:5,bottom:5,left:5 }, 'blue');
+    state.board[3] = freshEntry({ id:'a4', name:'A4', top:5,right:5,bottom:5,left:5 }, 'blue');
+    out.astraCappedAtThree = fullEffectiveValue(astra, 'top', null, 4, 'blue', 'attack') - astra.top === 3;
+    out.astraHasShield = astra.active.shield === true;
+
+    // Astra + Scarletta: proves the Court of Queens sisterAura now recognizes
+    // Astra as a 9th member from both directions. When Astra is the ally seen
+    // by Scarletta (who only has sisterAura), the bonus is +1. When Astra is
+    // the one on the board, she carries BOTH alliedCountScaleBonus (+1 for
+    // Scarletta as a generic ally) AND sisterAura (+1 for Scarletta as a Court
+    // member), stacking to +2.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(scarletta, 'blue');
+    state.board[0] = freshEntry(astra, 'blue');
+    out.scarlettaCountsAstra = fullEffectiveValue(scarletta, 'top', null, 4, 'blue', 'attack') - scarletta.top === 1;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(astra, 'blue');
+    state.board[0] = freshEntry(scarletta, 'blue');
+    out.astraCountsScarlettaAndAllied = fullEffectiveValue(astra, 'top', null, 4, 'blue', 'attack') - astra.top === 2;
+
+    // Astra's Special Starfall Judgment: auto-targets the weakest enemy on
+    // the board (no explicit targetEntry passed), still respects Shield.
+    state.board = Array(9).fill(null);
+    const s1 = freshEntry(astra, 'blue');
+    const strong = freshEntry({ id:'strong', name:'Strong', top:20,right:20,bottom:20,left:20 }, 'red');
+    const weakest = freshEntry({ id:'weakest', name:'Weakest', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = s1; state.board[0] = strong; state.board[1] = weakest;
+    SPECIAL_HANDLERS.astra({ srcEntry: s1, owner: 'blue' });
+    out.astraJudgesWeakest = weakest.owner === 'blue' && strong.owner === 'red';
+
+    state.board = Array(9).fill(null);
+    const s2 = freshEntry(astra, 'blue');
+    const shieldedWeakest = freshEntry({ id:'shw', name:'ShW', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedWeakest.grantedShield = true;
+    state.board[4] = s2; state.board[1] = shieldedWeakest;
+    SPECIAL_HANDLERS.astra({ srcEntry: s2, owner: 'blue' });
+    out.astraShieldBlocks = shieldedWeakest.owner === 'red';
+
+    // Umbriel: Veil of Night (debuffImmune) + Waning Harvest (onCaptureBonus)
+    // + Special Crescent Reap (threshold capture + steal 1).
+    const dbg = freshEntry(umbriel, 'blue');
+    state.board = Array(9).fill(null);
+    state.board[4] = dbg;
+    SpecialVerbs.debuff(dbg, 5);
+    out.umbrielDebuffImmune = dbg.captureBonus === 0;
+
+    state.board = Array(9).fill(null);
+    const u1 = freshEntry(umbriel, 'blue');
+    const uw = freshEntry({ id:'uw', name:'UW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = u1; state.board[5] = uw;
+    SPECIAL_HANDLERS.umbriel({ srcEntry: u1, targetEntry: uw, targetIndex: 5, owner: 'blue' });
+    out.umbrielSpecial = uw.owner === 'blue' && uw.captureBonus === -1 && u1.captureBonus === 1;
+
+    // Jade & Ryuji: the Crimson Dynasty, a 2-member pairPresence duo.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(jade, 'blue');
+    out.jadeNoBonusAlone = fullEffectiveValue(jade, 'top', null, 4, 'blue', 'defense') - jade.top === 0;
+    state.board[0] = freshEntry(ryuji, 'blue');
+    out.jadeBonusWithRyuji = fullEffectiveValue(jade, 'top', null, 4, 'blue', 'defense') - jade.top === 2;
+    out.ryujiBonusWithJade = fullEffectiveValue(ryuji, 'top', null, 0, 'blue', 'defense') - ryuji.top === 2;
+
+    // Jade's Special Blood Moon Reckoning: guaranteed capture, Shield still blocks.
+    state.board = Array(9).fill(null);
+    const j1 = freshEntry(jade, 'blue');
+    const strongU = freshEntry({ id:'su', name:'SU', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = j1; state.board[5] = strongU;
+    SPECIAL_HANDLERS.jade({ srcEntry: j1, targetEntry: strongU, targetIndex: 5, owner: 'blue' });
+    out.jadeGuaranteed = strongU.owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    const j2 = freshEntry(jade, 'blue');
+    const shieldedJ = freshEntry({ id:'shj', name:'ShJ', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedJ.grantedShield = true;
+    state.board[4] = j2; state.board[6] = shieldedJ;
+    SPECIAL_HANDLERS.jade({ srcEntry: j2, targetEntry: shieldedJ, targetIndex: 6, owner: 'blue' });
+    out.jadeShieldBlocks = shieldedJ.owner === 'red';
+
+    // Ryuji: Fang of the Underdog (boardUnderdogAttackBonus) + Special Twin
+    // Fang Strike (threshold capture + self attackBoost).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(ryuji, 'blue');
+    state.board[0] = freshEntry({ id:'f1', name:'F1', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = freshEntry({ id:'f2', name:'F2', top:1,right:1,bottom:1,left:1 }, 'red');
+    out.ryujiUnderdog = fullEffectiveValue(ryuji, 'top', null, 4, 'blue', 'attack') - ryuji.top === 2;
+
+    state.board = Array(9).fill(null);
+    const r1 = freshEntry(ryuji, 'blue');
+    const rw = freshEntry({ id:'rw', name:'RW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = r1; state.board[5] = rw;
+    SPECIAL_HANDLERS.ryuji({ srcEntry: r1, targetEntry: rw, targetIndex: 5, owner: 'blue' });
+    out.ryujiSpecial = rw.owner === 'blue' && r1.captureBonus === 2;
+
+    // Hayato & Hanami: the Blossom pair, a 2-member pairPresence duo.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(hayato, 'blue');
+    out.hayatoNoBonusAlone = fullEffectiveValue(hayato, 'top', null, 4, 'blue', 'defense') - hayato.top === 0;
+    state.board[0] = freshEntry(hanami, 'blue');
+    out.hayatoBonusWithHanami = fullEffectiveValue(hayato, 'top', null, 4, 'blue', 'defense') - hayato.top === 2;
+    out.hanamiBonusWithHayato = fullEffectiveValue(hanami, 'top', null, 0, 'blue', 'defense') - hanami.top === 2;
+
+    // Hayato's Special Falling Blade: threshold capture + self attackBoost.
+    state.board = Array(9).fill(null);
+    const h1 = freshEntry(hayato, 'blue');
+    const hw = freshEntry({ id:'hw', name:'HW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = h1; state.board[5] = hw;
+    SPECIAL_HANDLERS.hayato({ srcEntry: h1, targetEntry: hw, targetIndex: 5, owner: 'blue' });
+    out.hayatoSpecial = hw.owner === 'blue' && h1.captureBonus === 2;
+
+    // Hanami: Petal Ward (marginShieldThreshold) + Special Fan's Embrace
+    // (threshold capture + self grantShield).
+    state.board = Array(9).fill(null);
+    const n1 = freshEntry(hanami, 'blue');
+    const nw = freshEntry({ id:'nw', name:'NW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = n1; state.board[5] = nw;
+    SPECIAL_HANDLERS.hanami({ srcEntry: n1, targetEntry: nw, targetIndex: 5, owner: 'blue' });
+    out.hanamiSpecial = nw.owner === 'blue' && n1.grantedShield === true;
+    out.hanamiMarginShield = hanami.active.marginShieldThreshold === 1;
+
+    // buyPack gating: each new card only from its own stated tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawAstraMystic=false, sawUmbrielLegendary=false, sawJadeLegendary=false, sawHayatoLegendary=false;
+    let sawRyujiEpic=false, sawHanamiEpic=false, sawJadeEpic=false, sawRyujiLegendary=false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.astra) sawAstraMystic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.umbriel) sawUmbrielLegendary = true;
+      if(playerProgress.earnedCards.jade) sawJadeLegendary = true;
+      if(playerProgress.earnedCards.hayato) sawHayatoLegendary = true;
+      if(playerProgress.earnedCards.ryuji) sawRyujiLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.ryuji) sawRyujiEpic = true;
+      if(playerProgress.earnedCards.hanami) sawHanamiEpic = true;
+      if(playerProgress.earnedCards.jade) sawJadeEpic = true;
+    }
+    out.astraFromMystic = sawAstraMystic;
+    out.umbrielFromLegendary = sawUmbrielLegendary;
+    out.jadeFromLegendary = sawJadeLegendary;
+    out.jadeNeverFromEpic = !sawJadeEpic;
+    out.ryujiFromEpic = sawRyujiEpic;
+    out.ryujiNeverFromLegendary = !sawRyujiLegendary;
+    out.hayatoFromLegendary = sawHayatoLegendary;
+    out.hanamiFromEpic = sawHanamiEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.allFindable, true);
+  assert.equal(result.noneInHeroes, true);
+  assert.equal(result.noneInCampaignPool, true);
+  assert.equal(result.astraAloneNoBonus, true);
+  assert.equal(result.astraCappedAtThree, true, "Constellation must cap the final bonus at +3");
+  assert.equal(result.astraHasShield, true);
+  assert.equal(result.scarlettaCountsAstra, true, 'Astra must be recognized as a 9th Court of Queens member');
+  assert.equal(result.astraCountsScarlettaAndAllied, true, "Astra's own alliedCountScaleBonus and sisterAura must both apply and stack");
+  assert.equal(result.astraJudgesWeakest, true, "Starfall Judgment must auto-target the weakest enemy on the board");
+  assert.equal(result.astraShieldBlocks, true);
+  assert.equal(result.umbrielDebuffImmune, true);
+  assert.equal(result.umbrielSpecial, true, 'Crescent Reap must steal 1 Power on top of capturing the target');
+  assert.equal(result.jadeNoBonusAlone, true);
+  assert.equal(result.jadeBonusWithRyuji, true, 'Jade and Ryuji must be a bonded pairPresence duo');
+  assert.equal(result.ryujiBonusWithJade, true);
+  assert.equal(result.jadeGuaranteed, true, "Blood Moon Reckoning must guarantee a capture regardless of stat comparison");
+  assert.equal(result.jadeShieldBlocks, true);
+  assert.equal(result.ryujiUnderdog, true);
+  assert.equal(result.ryujiSpecial, true, 'Twin Fang Strike must capture AND grant +2 Power on success');
+  assert.equal(result.hayatoNoBonusAlone, true);
+  assert.equal(result.hayatoBonusWithHanami, true, 'Hayato and Hanami must be a bonded pairPresence duo');
+  assert.equal(result.hanamiBonusWithHayato, true);
+  assert.equal(result.hayatoSpecial, true, 'Falling Blade must capture AND grant +2 Power on success');
+  assert.equal(result.hanamiSpecial, true, "Fan's Embrace must capture AND grant Hanami a Shield on success");
+  assert.equal(result.hanamiMarginShield, true);
+  assert.equal(result.astraFromMystic, true);
+  assert.equal(result.umbrielFromLegendary, true);
+  assert.equal(result.jadeFromLegendary, true);
+  assert.equal(result.jadeNeverFromEpic, true, 'Jade must only ever come from the Legendary tier');
+  assert.equal(result.ryujiFromEpic, true);
+  assert.equal(result.ryujiNeverFromLegendary, true, 'Ryuji must only ever come from the Epic tier');
+  assert.equal(result.hayatoFromLegendary, true);
+  assert.equal(result.hanamiFromEpic, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

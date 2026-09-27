@@ -3698,6 +3698,12 @@ const CARD_IMAGES = {
   elaraqueen: 'cards/card-elaraqueen.jpg',
   oni: 'cards/card-oni.jpg',
   ren: 'cards/card-ren.jpg',
+  astra: 'cards/card-astra.jpg',
+  umbriel: 'cards/card-umbriel.jpg',
+  jade: 'cards/card-jade.jpg',
+  ryuji: 'cards/card-ryuji.jpg',
+  hayato: 'cards/card-hayato.jpg',
+  hanami: 'cards/card-hanami.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3799,6 +3805,12 @@ const FULL_CARD_IMAGES = {
   elaraqueen: 'card-elaraqueen-full.jpg',
   oni: 'card-oni-full.jpg',
   ren: 'card-ren-full.jpg',
+  astra: 'card-astra-full.jpg',
+  umbriel: 'card-umbriel-full.jpg',
+  jade: 'card-jade-full.jpg',
+  ryuji: 'card-ryuji-full.jpg',
+  hayato: 'card-hayato-full.jpg',
+  hanami: 'card-hanami-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5424,7 +5436,7 @@ const PACK_EXCLUSIVE_CARDS = [
     top:10, right:9, bottom:10, left:10,
     hue:'linear-gradient(160deg,#2a0f18,#0d0b18 60%)', accent:'#c23b5a', icon:'🥀',
     packTier:'mystic', exclusiveGlow:true,
-    active:{ shield:true, vsStrongerTotalPowerBoost:{amount:3}, onWinDebuffLoserPermanent:2, sisterAura:{ partners:['cinder','lilith','vex','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    active:{ shield:true, vsStrongerTotalPowerBoost:{amount:3}, onWinDebuffLoserPermanent:2, sisterAura:{ partners:['cinder','lilith','vex','elaraqueen','oni','ren','astra','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Harvest of Roses', cost:3, once:true, targets:'single' },
     skills: [
       {name:'Undying Grace (Passive)', desc:'The first time Scarletta would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
@@ -5461,7 +5473,7 @@ const PACK_EXCLUSIVE_CARDS = [
     top:10, right:10, bottom:9, left:10,
     hue:'linear-gradient(160deg,#2a0f10,#0d0b18 60%)', accent:'#c23b3b', icon:'🔥',
     packTier:'mystic', exclusiveGlow:true,
-    active:{ shield:true, buffOnEnemyDestroyed:true, sisterAura:{ partners:['scarletta','lilith','vex','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    active:{ shield:true, buffOnEnemyDestroyed:true, sisterAura:{ partners:['scarletta','lilith','vex','elaraqueen','oni','ren','astra','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Ashfall', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Crown of Embers (Passive)', desc:'The first time Cinder would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
@@ -5500,7 +5512,7 @@ const PACK_EXCLUSIVE_CARDS = [
     top:9, right:9, bottom:10, left:9,
     hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🐈‍⬛',
     packTier:'legendary', exclusiveGlow:true,
-    active:{ debuffImmune:true, vsStrongerTotalPowerBoost:{amount:3}, sisterAura:{ partners:['scarletta','cinder','vex','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    active:{ debuffImmune:true, vsStrongerTotalPowerBoost:{amount:3}, sisterAura:{ partners:['scarletta','cinder','vex','elaraqueen','oni','ren','astra','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Curse of Fate', cost:2, once:true, targets:'single' },
     skills: [
       {name:"Warded Mind (Passive)", desc:"Lilith's Power can never be lowered by an enemy card's ability — her wards protect her mind from harm."},
@@ -5517,7 +5529,7 @@ const PACK_EXCLUSIVE_CARDS = [
     top:8, right:9, bottom:10, left:9,
     hue:'linear-gradient(160deg,#160c28,#0d0b18 60%)', accent:'#7a4fc9', icon:'🌌',
     packTier:'epic', exclusiveGlow:true,
-    active:{ boardUnderdogAttackBonus:2, sisterAura:{ partners:['scarletta','cinder','lilith','elaraqueen','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    active:{ boardUnderdogAttackBonus:2, sisterAura:{ partners:['scarletta','cinder','lilith','elaraqueen','oni','ren','astra','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Void Embrace', cost:2, once:true, targets:'aoe' },
     skills: [
       {name:'Forgotten Fury (Passive)', desc:'While you control fewer cards on the board than your opponent, Vex gains +2 Power when attacking — she thrives forgotten and outnumbered.'},
@@ -5533,7 +5545,7 @@ const PACK_EXCLUSIVE_CARDS = [
     top:9, right:8, bottom:9, left:9,
     hue:'linear-gradient(160deg,#0e1c30,#0d0b18 60%)', accent:'#6ec8f2', icon:'🏹',
     packTier:'epic', exclusiveGlow:true,
-    active:{ onCaptureBonus:1, sisterAura:{ partners:['scarletta','cinder','lilith','vex','oni','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    active:{ onCaptureBonus:1, sisterAura:{ partners:['scarletta','cinder','lilith','vex','oni','ren','astra','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Frozen Volley', cost:2, once:true, targets:'single' },
     skills: [
       {name:'Growing Legend (Passive)', desc:'Each time Elara takes control of a card, she permanently gains +1 Power on all sides.'},
@@ -5550,7 +5562,7 @@ const PACK_EXCLUSIVE_CARDS = [
     top:10, right:10, bottom:9, left:9,
     hue:'linear-gradient(160deg,#2a0a10,#0d0b18 60%)', accent:'#c23b3b', icon:'👹',
     packTier:'mystic', exclusiveGlow:true,
-    active:{ vsStrongerTotalPowerBoost:{amount:3}, onWinDestroyLoserAlways:true, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','ren'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    active:{ vsStrongerTotalPowerBoost:{amount:3}, onWinDestroyLoserAlways:true, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','ren','astra','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:"Oni's Judgment", cost:3, once:true, targets:'single' },
     skills: [
       {name:'Merciless Strength (Passive)', desc:'When Oni attacks a card with a higher total Power than her own, she gains +3 Power in that battle — she was built for a harder fight than this.'},
@@ -5570,12 +5582,135 @@ const PACK_EXCLUSIVE_CARDS = [
     top:9, right:9, bottom:9, left:8,
     hue:'linear-gradient(160deg,#0e1c30,#0d0b18 60%)', accent:'#6ec8f2', icon:'⚔️',
     packTier:'epic', exclusiveGlow:true,
-    active:{ onWinCappedBoost:{amount:1, max:3}, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','oni'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    active:{ onWinCappedBoost:{amount:1, max:3}, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','oni','astra','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
     special:{ name:'Twin Crystal Strike', cost:2, once:true, targets:'single' },
     skills: [
       {name:'Duelist\'s Edge (Passive)', desc:'Each time Ren wins a battle, he gains +1 Power on all sides, up to 3 times per match.'},
       {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Ren gains extra Power on all sides.'},
       {name:'Special Attack: Twin Crystal Strike', desc:"Costs 2 wins. Choose an adjacent enemy card — if Ren's total Power is greater, his twin blades claim it outright. Usable once per match."},
+    ] },
+  // Twenty-seventh and twenty-eighth pack-exclusive cards: Astra and
+  // Umbriel, two more members of the Court of Queens sharing its
+  // triquetra-corner frame (a celestial star-queen with a floating orb,
+  // and a crescent-scythe wielder against a waterfall/moon backdrop).
+  // Every existing Court member's sisterAura.partners list is updated
+  // to include both -- bonusByCount stays unchanged at
+  // {1:1,2:2,3:3,4:4} since a 5-card hand can never hold more than 4
+  // OTHER Court members regardless of how large the total group grows.
+  //
+  // Astra, The Starbound Sovereign (Mystic, light element): a cosmic
+  // queen with a floating orb. alliedCountScaleBonus (an EXISTING field,
+  // already used by The Concord, but never before on a pack-exclusive
+  // card) for "draws power from her whole court" -- a genuinely fresh
+  // angle rather than another vsStrongerTotalPowerBoost. Special
+  // "Starfall Judgment" auto-targets the board's WEAKEST enemy and
+  // guarantees its capture -- the only Special in this file that picks
+  // its own target instead of either an explicit single-target choice
+  // or a plain whole-board AOE.
+  { id:'astra', name:'Astra', role:'The Starbound Sovereign — Pack Exclusive (Mystic)', element:'light',
+    top:10, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c1830,#0d0b18 60%)', accent:'#d4c14f', icon:'🪐',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ shield:true, alliedCountScaleBonus:{max:3, amount:1}, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','oni','ren','umbriel'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    special:{ name:'Starfall Judgment', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Celestial Ward (Passive)', desc:'The first time Astra would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
+      {name:'Constellation (Passive)', desc:'Astra gains +1 Power on all sides for every other card on your side of the board, up to +3.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Astra gains extra Power on all sides.'},
+      {name:'Special Attack: Starfall Judgment', desc:"Costs 3 wins. The stars themselves choose — the weakest enemy card on the board is claimed outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Umbriel, The Waning Reaper (Legendary, shadow element): a crescent-
+  // scythe wielder in a moonlit ruin. debuffImmune (Bram's own field) +
+  // onCaptureBonus (Dragon's own field) -- a combination not paired
+  // together elsewhere. Special "Crescent Reap" reuses the threshold-
+  // capture + stealPower shape (Balalajka/Arielle/Brommi/Lilith).
+  { id:'umbriel', name:'Umbriel', role:'The Waning Reaper — Pack Exclusive (Legendary)', element:'shadow',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🌘',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ debuffImmune:true, onCaptureBonus:1, sisterAura:{ partners:['scarletta','cinder','lilith','vex','elaraqueen','oni','ren','astra'], bonusByCount:{1:1,2:2,3:3,4:4} } },
+    special:{ name:'Crescent Reap', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Moonlit Ward (Passive)', desc:"Umbriel's Power can never be lowered by an enemy card's ability — the waning moon shields her from harm."},
+      {name:'Growing Legend (Passive)', desc:'Each time Umbriel takes control of a card, she permanently gains +1 Power on all sides.'},
+      {name:'Court of Queens (Passive)', desc:'For every fellow member of the Court on your side of the board, Umbriel gains extra Power on all sides.'},
+      {name:'Special Attack: Crescent Reap', desc:"Costs 2 wins. Choose an adjacent enemy card — if Umbriel's total Power is greater, her scythe reaps it, stealing 1 Power permanently and claiming the card. Usable once per match."},
+    ] },
+  // Twenty-ninth and thirtieth pack-exclusive cards: Jade and Ryuji,
+  // "The Crimson Dynasty" -- a red/green-gemmed variant of the
+  // triquetra frame, a blood-moon Chinese-imperial aesthetic distinct
+  // from the Court of Queens' own purple/gold. Two characters, so
+  // pairPresence (not sisterAura) per facit's own "2 vs 3+" rule.
+  //
+  // Jade, The Blood Moon Empress (Legendary, earth element): a scythe-
+  // wielding empress. shield + onCaptureBonus, Special "Blood Moon
+  // Reckoning" is a GUARANTEED capture (same shape as Scarletta's
+  // Harvest of Roses).
+  { id:'jade', name:'Jade', role:'The Blood Moon Empress — Pack Exclusive (Legendary)', element:'earth',
+    top:9, right:10, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#1c2410,#0d0b18 60%)', accent:'#8fd15a', icon:'🏮',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'ryuji', amount:2}, shield:true, onCaptureBonus:1 },
+    special:{ name:'Blood Moon Reckoning', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Bound by Blood (Passive)', desc:'While Ryuji is anywhere on the board, Jade gains +2 Power on all sides.'},
+      {name:'Imperial Grace (Passive)', desc:'The first time Jade would lose a battle, she refuses to fall — the loss is ignored and she keeps her position.'},
+      {name:'Growing Legend (Passive)', desc:'Each time Jade takes control of a card, she permanently gains +1 Power on all sides.'},
+      {name:'Special Attack: Blood Moon Reckoning', desc:"Costs 3 wins. Choose an enemy card — she claims it outright under the blood moon, no contest of strength (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Ryuji, The Crimson Fang (Epic, fire element): a dual-blade warrior
+  // matching Jade's palette/setting. boardUnderdogAttackBonus, Special
+  // "Twin Fang Strike" is the threshold-capture + self-buff combo
+  // (Bram/Aric/Elara's own shape).
+  { id:'ryuji', name:'Ryuji', role:'The Crimson Fang — Pack Exclusive (Epic)', element:'fire',
+    top:9, right:9, bottom:9, left:8,
+    hue:'linear-gradient(160deg,#241008,#0d0b18 60%)', accent:'#c23b3b', icon:'🗡️',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'jade', amount:2}, boardUnderdogAttackBonus:2 },
+    special:{ name:'Twin Fang Strike', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Bound by Blood (Passive)', desc:'While Jade is anywhere on the board, Ryuji gains +2 Power on all sides.'},
+      {name:'Underdog\'s Fury (Passive)', desc:'While you control fewer cards on the board than your opponent, Ryuji gains +2 Power when attacking.'},
+      {name:'Special Attack: Twin Fang Strike', desc:"Costs 2 wins. Choose an adjacent enemy card — if Ryuji's total Power is greater, his blades claim it and he permanently gains +2 Power on all sides. Usable once per match."},
+    ] },
+  // Thirty-first and thirty-second pack-exclusive cards: Hayato and
+  // Hanami, a moonlit cherry-blossom pair sharing a red/gold frame with
+  // green-gem floral medallions (distinct from both the Court's
+  // triquetra and the Crimson Dynasty's own recolor). Confirmed as a
+  // matched pair by the shared setting (lantern-lit garden, maple/
+  // cherry blossoms, a bridge over water) -- pairPresence.
+  //
+  // Hayato, The Autumn Blade (Legendary, wind element): a seated
+  // swordsman among red maple leaves. shield + onCaptureBonus, Special
+  // "Falling Blade" is the threshold-capture + self-buff combo.
+  { id:'hayato', name:'Hayato', role:'The Autumn Blade — Pack Exclusive (Legendary)', element:'wind',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#241010,#0d0b18 60%)', accent:'#c9a227', icon:'🍁',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'hanami', amount:2}, shield:true, onCaptureBonus:1 },
+    special:{ name:'Falling Blade', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Moonlit Vow (Passive)', desc:'While Hanami is anywhere on the board, Hayato gains +2 Power on all sides.'},
+      {name:'Still Water (Passive)', desc:'The first time Hayato would lose a battle, he refuses to fall — the loss is ignored and he keeps his position.'},
+      {name:'Growing Legend (Passive)', desc:'Each time Hayato takes control of a card, he permanently gains +1 Power on all sides.'},
+      {name:'Special Attack: Falling Blade', desc:"Costs 2 wins. Choose an adjacent enemy card — if Hayato's total Power is greater, his blade claims it and he permanently gains +2 Power on all sides. Usable once per match."},
+    ] },
+  // Hanami, The Blossom Whisper (Epic, wind element): a geisha with a
+  // fan -- her art initially arrived without the frame at all (a
+  // ChatGPT mistake the user caught and had corrected). onWinCleanseAlly
+  // + marginShieldThreshold, Special "Fan's Embrace" is the threshold-
+  // capture + self-Shield combo (Sakura's Cup's own shape).
+  { id:'hanami', name:'Hanami', role:'The Blossom Whisper — Pack Exclusive (Epic)', element:'wind',
+    top:8, right:9, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#241018,#0d0b18 60%)', accent:'#e05a8f', icon:'🪭',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'hayato', amount:2}, onWinCleanseAlly:true, marginShieldThreshold:1 },
+    special:{ name:"Fan's Embrace", cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Moonlit Vow (Passive)', desc:'While Hayato is anywhere on the board, Hanami gains +2 Power on all sides.'},
+      {name:'Graceful Stumble (Passive)', desc:'If an enemy attacks Hanami and wins by only 1 Power, the battle becomes a draw instead.'},
+      {name:'Steady Light (Passive)', desc:'Each time Hanami wins a battle, she cleanses the negative effects from one ally.'},
+      {name:"Special Attack: Fan's Embrace", desc:"Costs 2 wins. Choose an adjacent enemy card — if Hanami's total Power is greater, she claims it and permanently gains a protective Shield. Usable once per match."},
     ] },
 ];
 
@@ -11711,6 +11846,107 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     return `${name}'s Twin Crystal Strike claims ${targetEntry.card.name} outright!`;
+  },
+  // Astra's Starfall Judgment: the only Special in this file that picks
+  // its OWN target (the board's weakest enemy by totalPower) instead of
+  // either an explicit single-target choice or a plain whole-board AOE.
+  // Still respects a Shield on whichever enemy is chosen.
+  astra({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    const enemies = state.board
+      .map((e, i) => ({ e, i }))
+      .filter(({ e }) => e && e.owner !== owner);
+    if(enemies.length === 0){
+      return `${name}'s Starfall Judgment finds no target among the stars!`;
+    }
+    let weakest = enemies[0];
+    enemies.forEach(candidate => {
+      if(totalPower(candidate.e) < totalPower(weakest.e)) weakest = candidate;
+    });
+    if(specialBlockedByShield(weakest.e, weakest.i)){
+      return `${weakest.e.card.name}'s shield holds against Starfall Judgment!`;
+    }
+    const victimName = weakest.e.card.name;
+    weakest.e.owner = owner;
+    weakest.e.justFlipped = true;
+    checkSisterFlip(weakest.e);
+    return `${name}'s Starfall Judgment descends on ${victimName}!`;
+  },
+  // Umbriel's Crescent Reap: same threshold-capture + stealPower shape
+  // as Balalajka/Arielle/Brommi/Lilith's own Specials, smallest steal
+  // amount (1) of the group.
+  umbriel({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Crescent Reap finds no purchase!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Crescent Reap!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
+    return `${name}'s Crescent Reap claims ${targetEntry.card.name}!`;
+  },
+  // Jade's Blood Moon Reckoning: a GUARANTEED capture, same shape as
+  // Scarletta's Harvest of Roses.
+  jade({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Blood Moon Reckoning!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name}'s Blood Moon Reckoning claims ${targetEntry.card.name} outright!`;
+  },
+  // Ryuji's Twin Fang Strike: threshold capture + self-buff, same combo
+  // shape as Bram/Aric/Elara's own Specials.
+  ryuji({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Twin Fang Strike is turned aside!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Twin Fang Strike!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${name}'s Twin Fang Strike claims ${targetEntry.card.name}!`;
+  },
+  // Hayato's Falling Blade: threshold capture + self-buff, same combo shape.
+  hayato({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Falling Blade is turned aside!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Falling Blade!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${name}'s Falling Blade claims ${targetEntry.card.name}!`;
+  },
+  // Hanami's Fan's Embrace: threshold capture + self-Shield, same shape
+  // as Sakura's Cup.
+  hanami({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Fan's Embrace goes unanswered!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Fan's Embrace!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.grantShield(srcEntry);
+    return `${name}'s Fan's Embrace claims ${targetEntry.card.name}!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
