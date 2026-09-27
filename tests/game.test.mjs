@@ -12576,3 +12576,115 @@ test("Fas 59: thirty-third and thirty-fourth pack-exclusive cards -- Damyan (Leg
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 60: thirty-fifth and thirty-sixth pack-exclusive cards -- Wren (Epic) and Corvin (Legendary), another new standalone bonded pair sharing a single source image (only the thumbnail crops differ between the two cards, not the full art)", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const wren = findCardById('wren');
+    const corvin = findCardById('corvin');
+    out.allFindable = [wren, corvin].every(c => c !== null);
+    out.noneInHeroes = ['wren','corvin'].every(id => !HEROES.some(h => h.id === id));
+    out.noneInCampaignPool = ['wren','corvin'].every(id => !campaignPool().includes(id));
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // pairPresence: no bonus alone, +2 with the other present.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(wren, 'blue');
+    out.wrenNoBonusAlone = fullEffectiveValue(wren, 'top', null, 4, 'blue', 'defense') - wren.top === 0;
+    state.board[0] = freshEntry(corvin, 'blue');
+    out.wrenBonusWithCorvin = fullEffectiveValue(wren, 'top', null, 4, 'blue', 'defense') - wren.top === 2;
+    out.corvinBonusWithWren = fullEffectiveValue(corvin, 'top', null, 0, 'blue', 'defense') - corvin.top === 2;
+
+    // Wren: Silent Wing (debuffImmune).
+    const dbg = freshEntry(wren, 'blue');
+    state.board = Array(9).fill(null);
+    state.board[4] = dbg;
+    SpecialVerbs.debuff(dbg, 5);
+    out.wrenDebuffImmune = dbg.captureBonus === 0;
+
+    // Wren's Special Silver Fang: threshold capture + steal 1.
+    state.board = Array(9).fill(null);
+    const w1 = freshEntry(wren, 'blue');
+    const ww = freshEntry({ id:'ww', name:'WW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = w1; state.board[5] = ww;
+    SPECIAL_HANDLERS.wren({ srcEntry: w1, targetEntry: ww, targetIndex: 5, owner: 'blue' });
+    out.wrenSpecial = ww.owner === 'blue' && ww.captureBonus === -1 && w1.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const w2 = freshEntry(wren, 'blue');
+    const strongW = freshEntry({ id:'strongw', name:'StrongW', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = w2; state.board[5] = strongW;
+    SPECIAL_HANDLERS.wren({ srcEntry: w2, targetEntry: strongW, targetIndex: 5, owner: 'blue' });
+    out.wrenSpecialThresholdBlocks = strongW.owner === 'red';
+
+    // Corvin: Shield + Twilight's Toll (onWinDebuffLoserPermanent) via the
+    // real battle path.
+    state.board = Array(9).fill(null);
+    const c1 = freshEntry(corvin, 'blue');
+    const cfoe = freshEntry({ id:'cfoe', name:'CFoe', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = c1; state.board[1] = cfoe;
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.corvinDebuffsLoser = cfoe.captureBonus === -1;
+    out.corvinHasShield = corvin.active.shield === true;
+
+    // Corvin's Special Twin Blade Requiem: guaranteed capture, Shield still blocks.
+    state.board = Array(9).fill(null);
+    const c2 = freshEntry(corvin, 'blue');
+    const strongC = freshEntry({ id:'strongc', name:'StrongC', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = c2; state.board[5] = strongC;
+    SPECIAL_HANDLERS.corvin({ srcEntry: c2, targetEntry: strongC, targetIndex: 5, owner: 'blue' });
+    out.corvinGuaranteed = strongC.owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    const c3 = freshEntry(corvin, 'blue');
+    const shieldedC = freshEntry({ id:'shc', name:'ShC', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedC.grantedShield = true;
+    state.board[4] = c3; state.board[6] = shieldedC;
+    SPECIAL_HANDLERS.corvin({ srcEntry: c3, targetEntry: shieldedC, targetIndex: 6, owner: 'blue' });
+    out.corvinShieldBlocks = shieldedC.owner === 'red';
+
+    // buyPack gating: each card only from its own stated tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawWrenEpic=false, sawCorvinLegendary=false, sawWrenLegendary=false, sawCorvinEpic=false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.wren) sawWrenEpic = true;
+      if(playerProgress.earnedCards.corvin) sawCorvinEpic = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.corvin) sawCorvinLegendary = true;
+      if(playerProgress.earnedCards.wren) sawWrenLegendary = true;
+    }
+    out.wrenFromEpic = sawWrenEpic;
+    out.wrenNeverFromLegendary = !sawWrenLegendary;
+    out.corvinFromLegendary = sawCorvinLegendary;
+    out.corvinNeverFromEpic = !sawCorvinEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.allFindable, true);
+  assert.equal(result.noneInHeroes, true);
+  assert.equal(result.noneInCampaignPool, true);
+  assert.equal(result.wrenNoBonusAlone, true);
+  assert.equal(result.wrenBonusWithCorvin, true, 'Wren and Corvin must be a bonded pairPresence duo');
+  assert.equal(result.corvinBonusWithWren, true);
+  assert.equal(result.wrenDebuffImmune, true);
+  assert.equal(result.wrenSpecial, true, 'Silver Fang must steal 1 Power on top of capturing the target');
+  assert.equal(result.wrenSpecialThresholdBlocks, true, 'Silver Fang must fail against a stronger target');
+  assert.equal(result.corvinDebuffsLoser, true, "Twilight's Toll must permanently debuff the loser of a normal battle");
+  assert.equal(result.corvinHasShield, true);
+  assert.equal(result.corvinGuaranteed, true, 'Twin Blade Requiem must guarantee a capture regardless of stat comparison');
+  assert.equal(result.corvinShieldBlocks, true);
+  assert.equal(result.wrenFromEpic, true);
+  assert.equal(result.wrenNeverFromLegendary, true, 'Wren must only ever come from the Epic tier');
+  assert.equal(result.corvinFromLegendary, true);
+  assert.equal(result.corvinNeverFromEpic, true, 'Corvin must only ever come from the Legendary tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
