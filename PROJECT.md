@@ -5833,6 +5833,22 @@ Gamla `card-back-purple.jpg` lämnad orörd på disk men är inte längre
 refererad. Ingen testsvit-påverkan (ren tillgångs-/konstantväxling, ingen
 logik ändrad).
 
+**Fas 61:s pack-sigill fick sin riktiga ChatGPT-genererade bild.**
+Användaren körde prompten från Fas 61 (se den — röd/blå kristall-romb,
+gravyr-linjer, sprickor av ljus) och fick tillbaka exakt rätt resultat
+på första försöket. Sparad som `triad-seal.png` (PNG, inte JPEG — bilden
+har en genomskinlig alfakanal som måste bevaras, till skillnad från all
+annan kortkonst i spelet som är ogenomskinlig och sparas som JPEG).
+`.packs-seal-diamond` bytte från den rena CSS-placeholdern
+(`conic-gradient` + `clip-path` till en romb) till `background-image:
+url('triad-seal.png')` med `background-size:contain` — `clip-path`
+togs bort helt eftersom bildens egen alfakanal redan definierar
+diamant-formen. Pulserings- och sprick-animationerna (`packsSealPulse`/
+`packsSealCrack`) rördes inte alls — båda bygger på `filter:drop-shadow`/
+`brightness`/`transform`, som fungerar identiskt oavsett om elementet
+har en bakgrundsfärg eller en bakgrundsbild. Verifierad visuellt via
+Playwright-skärmdump innan skepp. Ingen testsvit-påverkan.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

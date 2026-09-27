@@ -1200,12 +1200,11 @@ button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px
 @keyframes packsTagFade{ from{ opacity:0; } to{ opacity:1; } }
 
 /* Pack-opening step 0: the sealed pack -- a Triad symbol glowing red+blue
-   that the player taps to "crack" the pack open (user's own request). The
-   diamond is a pure CSS shape (conic-gradient clipped to a rhombus) so the
-   ritual works today without depending on external art; see PROJECT.md for
-   the ChatGPT prompt to generate a fancier custom symbol image later (drop
-   it in as a background-image on .packs-seal-diamond to upgrade it, no
-   markup changes needed). */
+   that the player taps to "crack" the pack open (user's own request).
+   triad-seal.png is the ChatGPT-generated art (see PROJECT.md for the
+   prompt); it already has its own diamond silhouette baked into its alpha
+   channel, so no clip-path is needed here the way the earlier CSS-only
+   placeholder (a conic-gradient clipped to a rhombus) required. */
 .packs-seal-screen{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:22px; padding:34px 10px 24px;
@@ -1216,8 +1215,8 @@ button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px
 }
 .packs-seal-diamond{
   width:100%; height:100%;
-  background:conic-gradient(from 180deg, #ff3b57, #5e9dff, #ff3b57);
-  clip-path:polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%);
+  background-image:url('triad-seal.png');
+  background-size:contain; background-repeat:no-repeat; background-position:center;
   animation:packsSealPulse 2.2s ease-in-out infinite;
   transition:transform 0.15s ease;
 }
