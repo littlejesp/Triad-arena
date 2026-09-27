@@ -5818,6 +5818,21 @@ med egen rubrik i tierens `PACK_TIERS`-glödfärg. Modalen breddades
 fler får plats per rad ändå. Trettiosex pack-exklusiva kort oförändrat.
 Hela testsviten grön: **195/195**.
 
+**Fas 62. Ny korrygg (`CARD_BACK_IMAGE`).** Användaren skickade en ny
+ChatGPT-genererad bild (lejon och drake som vakter runt en guld/lila-
+ramad kortrygg med en ädelstenssymbol i mitten) och bekräftade via
+fråga att den skulle ersätta den gamla lila korryggen, inte
+pack-sigillet. Sparad som `card-back-guardians.jpg`, konstanten
+`CARD_BACK_IMAGE` uppdaterad att peka på den nya filen — inga andra
+kodändringar behövdes eftersom både `.card-back-face` och
+`.packs-reveal-back` redan använder `background-size:cover;
+background-position:center`, så den nya bilden beskärs snyggt
+automatiskt i alla befintliga slots (hand, bräde, pack-reveal). Verifierad
+visuellt via en Playwright-skärmdump av pack-reveal-läget innan skepp.
+Gamla `card-back-purple.jpg` lämnad orörd på disk men är inte längre
+refererad. Ingen testsvit-påverkan (ren tillgångs-/konstantväxling, ingen
+logik ändrad).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
@@ -6930,9 +6945,13 @@ cards/               45 beskurna JPG-thumbnails, "card-<id>.jpg", 640×418.
                      (visas i kortmodalen när man klickar (i)). Sparas som JPEG
                      (kvalitet 90) — allt är ogenomskinlig konst, ingen alfa
                      behövs, och det sparar ~110MB jämfört med PNG.
-card-back-purple.jpg Kortrygg (draghög). card-back.jpg är en äldre röd
-                     variant som fortfarande används för motståndarens dolda
-                     handkort (.card-back-mini, hårdkodad i CSS).
+card-back-guardians.jpg Kortrygg (draghög, CARD_BACK_IMAGE), bytt från
+                     card-back-purple.jpg i Fas 62 (lejon/drake-vakter,
+                     ChatGPT-genererad). Den gamla filen ligger kvar orörd
+                     men är inte längre refererad från koden. card-back.jpg
+                     är en äldre röd variant som fortfarande används för
+                     motståndarens dolda handkort (.card-back-mini,
+                     hårdkodad i CSS).
 arena-bg.jpg         Bakgrundsdekor för arenan.
 flame-*.png          Blå/röd flamikon vid poängtavlan (score-flame) — PNG
                      eftersom den faktiskt behöver alfa-transparens.
