@@ -5612,6 +5612,73 @@ ljus/energi genom guldet, glöd som läcker in i scenen, UNIKA
 hörnprydnader per karaktär (inte samma kompass-stjärna varje gång). Se
 avsnitt 12 för den fullständiga, konkreta ChatGPT-brief-texten.
 
+**Fas 58. Tjugosjunde till trettioandra pack-exklusiva korten: Astra
+(Mystic), Umbriel (Legendary), Jade (Legendary), Ryuji (Epic), Hayato
+(Legendary) och Hanami (Epic).** Sex bilder till kom in medan "pausen"
+efter Fas 57 fortfarande formellt gällde — användaren själv erkände
+mönstret ("Vi kanske måste rensa sen för det blir kaka på kaka. Chat
+gpts fel") men fortsatte skicka bilder ändå. Höll build helt still
+under tiden, bekräftade bara varje ny bild som "köad" tills ett
+uttryckligt startskott kom: "Kör igång, bygg alla sju nu gör dom unika
+kort som vi pratade om. Dom får även ha synergier ultimates vfx precis
+som du tycker uppgradera dom häftiga och roliga att spela med." (Sju
+bilder räknat, men en — en oramad geisha — visade sig vara ett
+ChatGPT-misstag som en efterföljande, korrekt inramad bild ersatte;
+"Här kommer rätt. Du hade helt rätt där han gjorde fel." Sex distinkta
+karaktärer i slutänden, inte sju.)
+
+**Astra och Umbriel — Court of Queens växer till nio medlemmar.**
+Astra (kosmisk drottning, stjärnhimmel/planetring-tema) och Umbriel
+(månskära/lie-drottning, mörkare tema) bar samma triquetra-hörnmotiv
+som gruppens övriga sju kort. Alla SJU befintliga medlemmars
+`sisterAura.partners`-listor uppdaterades att inkludera båda de nya
+id:na (`astra`, `umbriel`); `bonusByCount:{1:1,2:2,3:3,4:4}` lämnades
+oförändrat eftersom taket redan gällde det faktiska korthands-taket (en
+5-korts-hand rymmer som mest 4 ANDRA Court-medlemmar), inte gruppens
+totala storlek. Astra bär dessutom `alliedCountScaleBonus:{max:3,
+amount:1}` (Constellation) UTÖVER sin egen `sisterAura` — de två
+fälten staplas (en ensam Court-syster ger både +1 allierad-bonus och
++1 sisterAura, totalt +2), vilket verifierades explicit mot koden
+innan kittet skrevs, eftersom `alliedCountScaleBonus.max` begränsar
+SLUTSUMMAN (inte antalet allierade som räknas) — motsatt konvention
+mot `sisterAura`/`allyGodBoost`, en skillnad som redan fångats en gång
+tidigare i sessionen (Rubys `allyGodBoost`-bugg) och därför
+dubbelkollades igen innan återanvändning. Astras Special, Starfall
+Judgment, är filens FÖRSTA Special som väljer sitt eget mål automatiskt
+(svagaste fiende på brädet räknat på total Power) istället för att
+kräva ett explicit spelarvalt mål eller träffa hela brädet
+ovillkorligt — respekterar fortfarande Shield. Umbriel: `debuffImmune`
++ `onCaptureBonus` (Waning Harvest), Special Crescent Reap är
+tröskel-fångst + stjäl 1 Power (samma form som Balalajka/Arielle/
+Brommi/Lilith).
+
+**Jade och Ryuji — "Crimson Dynasty", ett nytt tvåpersoners bundet
+par.** Röd/grön-tema, båda med dubbelblad/kejsarinne-motiv på bilderna.
+Första nya `pairPresence`-paret sedan Tidewalker-familjen migrerades
+bort från det fältet till en trio-`sisterAura`; Jade/Ryuji är bara två
+medlemmar så `pairPresence:{partner:'...', amount:2}` är korrekt
+enligt facit-regeln i avsnitt 12. Jade: `shield` + `onCaptureBonus`,
+Special Blood Moon Reckoning är en GARANTERAD fångst oavsett
+statjämförelse (samma form som Scarletta/Ruby/Vaseir/Akari, Shield
+blockerar fortfarande). Ryuji: `boardUnderdogAttackBonus`, Special Twin
+Fang Strike är tröskel-fångst + självbuff +2 (samma form som Bram/Aric/
+Elara).
+
+**Hayato och Hanami — "Blossom", ett nytt tvåpersoners bundet par.**
+Hayato (katana-samuraj, höstlöv-tema) och Hanami (körsbärsblom-geisha,
+efter att en tidigare oramad bild av samma karaktär korrigerades).
+Samma `pairPresence`-form som Jade/Ryuji. Hayato: `shield` +
+`onCaptureBonus`, Special Falling Blade är tröskel-fångst + självbuff
++2 (samma form som Ryuji/Bram/Aric/Elara). Hanami:
+`marginShieldThreshold` (Petal Ward), Special Fan's Embrace är
+tröskel-fångst + självtilldelad Shield (samma form som Sakuras Cup).
+
+Innan bygget: kontrollerade explicit både id- OCH filnamnskollisioner
+för alla sex nya id:n (`git ls-files | grep <id>`) enligt den nya
+regeln i avsnitt 12 — direkt en läxa från `card-elara.jpg`-misstaget i
+Fas 57. Inga kollisioner hittades. Trettiotvå pack-exklusiva kort
+totalt nu. Hela testsviten grön: **192/192**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
