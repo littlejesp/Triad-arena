@@ -5679,6 +5679,47 @@ regeln i avsnitt 12 — direkt en läxa från `card-elara.jpg`-misstaget i
 Fas 57. Inga kollisioner hittades. Trettiotvå pack-exklusiva kort
 totalt nu. Hela testsviten grön: **192/192**.
 
+**Astras stats höjdes senare från 38 till 40 totalt** (10/9/10/9 →
+10/10/10/10), på användarens direkta begäran ("Höj Astra till 40
+totalt"). Ingen mekanikförändring, bara statjustering. Full testsvit
+kontrollerad grön igen efteråt (mekaniken bygger på relativa bonusar,
+inte absoluta tal, så inga tester behövde ändras).
+
+**Fas 59. Trettiotredje och trettiofjärde pack-exklusiva korten:
+Damyan (Legendary) och Isolde (Epic) — ett nytt fristående bundet
+par.** Gotisk slott/blodmåne/röda lönnlöv-estetik, svart+röd+guld-
+rustning. Ingen koppling till Court of Queens, Crimson Dynasty eller
+Blossom (bekräftat av användaren: "Nytt fristående par"). Ingen av
+bilderna hade ett tryckt namn, så båda namnen valdes av Claude och
+bekräftades av användaren via en fråga (mellan "Corvin & Vesper",
+"Ashwin & Ravyn" och "Damyan & Isolde" — det sistnämnda vanns).
+
+**Ovanlig bildleverans**: båda bilderna visade paret TILLSAMMANS i
+samma ruta (till skillnad från alla tidigare par, som fått varsin
+SOLO-bild) — en med Damyan i fokus fram till vänster, en med Isolde i
+fokus fram till vänster. Frågade explicit hur bilderna skulle användas;
+användaren klargjorde: "Det ska vara samma kort fast olika kort" — dvs
+samma delade tema/parbindning, men två separata spelbara kort. Löstes
+genom att låta varje bild bli den kortspecifika helbilden för personen
+som är i fokus i just den bilden (Damyan-bilden → Damyans kort,
+Isolde-bilden → Isoldes kort); båda syns i bakgrunden av varandras
+kort, vilket känns naturligt för ett bundet par.
+
+Kit: `pairPresence` (samma tvåpersonersform som Jade/Ryuji och Hayato/
+Hanami) på båda. Damyan kombinerar det med `vsStrongerTotalPowerBoost`
+(Lilith/Oni/Sarahs eget fält) — en ny kombination tillsammans med
+`pairPresence`. Special Guardian's Oath är tröskel-fångst + självtilldelad
+Shield (samma form som Sakuras Cup/Hanamis Fan's Embrace). Isolde
+kombinerar `pairPresence` med `onCaptureBonus` (Growing Legend, samma
+fält som Umbriel/Elara/Jade/Hayato) — också en ny kombination. Special
+Crimson Whisper är tröskel-fångst + stjäl 1 Power (samma form som
+Balalajka/Arielle/Brommi/Lilith/Umbriel).
+
+Kontrollerade både id- och filnamnskollisioner för `damyan`/`isolde`
+innan bygget (facit-regeln från avsnitt 12) — inga hittades.
+Trettiofyra pack-exklusiva kort totalt nu. Hela testsviten grön:
+**193/193**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

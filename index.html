@@ -3704,6 +3704,8 @@ const CARD_IMAGES = {
   ryuji: 'cards/card-ryuji.jpg',
   hayato: 'cards/card-hayato.jpg',
   hanami: 'cards/card-hanami.jpg',
+  damyan: 'cards/card-damyan.jpg',
+  isolde: 'cards/card-isolde.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3811,6 +3813,8 @@ const FULL_CARD_IMAGES = {
   ryuji: 'card-ryuji-full.jpg',
   hayato: 'card-hayato-full.jpg',
   hanami: 'card-hanami-full.jpg',
+  damyan: 'card-damyan-full.jpg',
+  isolde: 'card-isolde-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5711,6 +5715,51 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Graceful Stumble (Passive)', desc:'If an enemy attacks Hanami and wins by only 1 Power, the battle becomes a draw instead.'},
       {name:'Steady Light (Passive)', desc:'Each time Hanami wins a battle, she cleanses the negative effects from one ally.'},
       {name:"Special Attack: Fan's Embrace", desc:"Costs 2 wins. Choose an adjacent enemy card — if Hanami's total Power is greater, she claims it and permanently gains a protective Shield. Usable once per match."},
+    ] },
+  // Thirty-third and thirty-fourth pack-exclusive cards: Damyan and
+  // Isolde -- a new standalone bonded pair (gothic castle/blood-moon/
+  // red-maple aesthetic, black+red+gold armor, distinct from the Court
+  // of Queens' triquetra frame, the Crimson Dynasty's red/green, and
+  // Blossom's red/gold floral). Both images arrived showing the pair
+  // TOGETHER in one frame rather than solo shots -- user's own
+  // clarification: "Det ska vara samma kort fast olika kort", i.e. one
+  // shared pose/theme but two separate playable cards, each card's full
+  // art cropped toward whichever of the two is in front in that image
+  // (Damyan front-left in image 1, Isolde front-left in image 2). No
+  // printed nameplate on either image, so both names were chosen by
+  // Claude and confirmed by the user via AskUserQuestion.
+  //
+  // Damyan, The Bloodmoon Guardian (Legendary, shadow element): the
+  // heavy-sword tank half of the pair. pairPresence + vsStrongerTotalPowerBoost
+  // (Lilith/Oni's own field, new combo alongside pairPresence). Special
+  // "Guardian's Oath" is the threshold-capture + self-Shield combo
+  // (Sakura's Cup / Hanami's Fan's Embrace shape).
+  { id:'damyan', name:'Damyan', role:'The Bloodmoon Guardian — Pack Exclusive (Legendary)', element:'shadow',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#1c0d10,#0d0b18 60%)', accent:'#d4af37', icon:'⚔️',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'isolde', amount:2}, vsStrongerTotalPowerBoost:{amount:2} },
+    special:{ name:"Guardian's Oath", cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Bloodmoon Vow (Passive)', desc:'While Isolde is anywhere on the board, Damyan gains +2 Power on all sides.'},
+      {name:"Guardian's Resolve (Passive)", desc:'When battling a card with greater total Power, Damyan gains +2 Power for that battle.'},
+      {name:"Special Attack: Guardian's Oath", desc:"Costs 2 wins. Choose an adjacent enemy card — if Damyan's total Power is greater, he claims it and permanently gains a protective Shield. Usable once per match."},
+    ] },
+  // Isolde, The Crimson Thorn (Epic, fire element): the swift dual-
+  // dagger half of the pair. pairPresence + onCaptureBonus (Growing
+  // Legend's own field, new combo alongside pairPresence). Special
+  // "Crimson Whisper" is the threshold-capture + stealPower shape
+  // (Balalajka/Arielle/Brommi/Lilith/Umbriel's own shape).
+  { id:'isolde', name:'Isolde', role:'The Crimson Thorn — Pack Exclusive (Epic)', element:'fire',
+    top:8, right:9, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#24080f,#0d0b18 60%)', accent:'#8b1e3f', icon:'🩸',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'damyan', amount:2}, onCaptureBonus:1 },
+    special:{ name:'Crimson Whisper', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Bloodmoon Vow (Passive)', desc:'While Damyan is anywhere on the board, Isolde gains +2 Power on all sides.'},
+      {name:'Growing Legend (Passive)', desc:'Each time Isolde takes control of a card, she permanently gains +1 Power on all sides.'},
+      {name:'Special Attack: Crimson Whisper', desc:"Costs 2 wins. Choose an adjacent enemy card — if Isolde's total Power is greater, her blades claim it, stealing 1 Power permanently. Usable once per match."},
     ] },
 ];
 
@@ -11947,6 +11996,38 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.grantShield(srcEntry);
     return `${name}'s Fan's Embrace claims ${targetEntry.card.name}!`;
+  },
+  // Damyan's Guardian's Oath: threshold capture + self-Shield, same shape
+  // as Sakura's Cup / Hanami's Fan's Embrace.
+  damyan({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Guardian's Oath goes unanswered!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Guardian's Oath!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.grantShield(srcEntry);
+    return `${name}'s Guardian's Oath claims ${targetEntry.card.name}!`;
+  },
+  // Isolde's Crimson Whisper: threshold capture + stealPower, same shape
+  // as Balalajka/Arielle/Brommi/Lilith/Umbriel's own Specials.
+  isolde({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Crimson Whisper finds no purchase!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Crimson Whisper!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
+    return `${name}'s Crimson Whisper claims ${targetEntry.card.name}!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all

@@ -12467,3 +12467,112 @@ test("Fas 58: twenty-seventh through thirty-second pack-exclusive cards -- Astra
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 59: thirty-third and thirty-fourth pack-exclusive cards -- Damyan (Legendary) and Isolde (Epic), a new standalone bonded pair; both images showed the pair together rather than solo, cropped toward whichever is in front in each shot", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const damyan = findCardById('damyan');
+    const isolde = findCardById('isolde');
+    out.allFindable = [damyan, isolde].every(c => c !== null);
+    out.noneInHeroes = ['damyan','isolde'].every(id => !HEROES.some(h => h.id === id));
+    out.noneInCampaignPool = ['damyan','isolde'].every(id => !campaignPool().includes(id));
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // pairPresence: no bonus alone, +2 when the other is present.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(damyan, 'blue');
+    out.damyanNoBonusAlone = fullEffectiveValue(damyan, 'top', null, 4, 'blue', 'defense') - damyan.top === 0;
+    state.board[0] = freshEntry(isolde, 'blue');
+    out.damyanBonusWithIsolde = fullEffectiveValue(damyan, 'top', null, 4, 'blue', 'defense') - damyan.top === 2;
+    out.isoldeBonusWithDamyan = fullEffectiveValue(isolde, 'top', null, 0, 'blue', 'defense') - isolde.top === 2;
+
+    // Damyan: Guardian's Resolve (vsStrongerTotalPowerBoost).
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(damyan, 'blue');
+    const strongFoe = { id:'sf', name:'SF', top:20, right:20, bottom:20, left:20 };
+    out.damyanVsStronger = fullEffectiveValue(damyan, 'top', strongFoe, 4, 'blue', 'attack') - damyan.top === 2;
+
+    // Damyan's Special Guardian's Oath: threshold capture + self-Shield.
+    state.board = Array(9).fill(null);
+    const d1 = freshEntry(damyan, 'blue');
+    const dw = freshEntry({ id:'dw', name:'DW', top:1, right:1, bottom:1, left:1 }, 'red');
+    state.board[4] = d1; state.board[5] = dw;
+    SPECIAL_HANDLERS.damyan({ srcEntry: d1, targetEntry: dw, targetIndex: 5, owner: 'blue' });
+    out.damyanSpecial = dw.owner === 'blue' && d1.grantedShield === true;
+
+    state.board = Array(9).fill(null);
+    const d2 = freshEntry(damyan, 'blue');
+    const strong2 = freshEntry({ id:'strong2', name:'Strong2', top:30, right:30, bottom:30, left:30 }, 'red');
+    state.board[4] = d2; state.board[5] = strong2;
+    SPECIAL_HANDLERS.damyan({ srcEntry: d2, targetEntry: strong2, targetIndex: 5, owner: 'blue' });
+    out.damyanSpecialThresholdBlocks = strong2.owner === 'red';
+
+    // Isolde: Growing Legend (onCaptureBonus) via the real battle path.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const i1 = freshEntry(isolde, 'blue');
+    state.board[4] = i1;
+    state.board[1] = freshEntry({ id:'iw', name:'IW', top:1, right:1, bottom:1, left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.isoldeCaptureBonus = i1.captureBonus === 1;
+
+    // Isolde's Special Crimson Whisper: threshold capture + steal 1.
+    state.board = Array(9).fill(null);
+    const i2 = freshEntry(isolde, 'blue');
+    const iw2 = freshEntry({ id:'iw2', name:'IW2', top:1, right:1, bottom:1, left:1 }, 'red');
+    state.board[4] = i2; state.board[5] = iw2;
+    SPECIAL_HANDLERS.isolde({ srcEntry: i2, targetEntry: iw2, targetIndex: 5, owner: 'blue' });
+    out.isoldeSpecial = iw2.owner === 'blue' && iw2.captureBonus === -1 && i2.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const i3 = freshEntry(isolde, 'blue');
+    const shieldedI = freshEntry({ id:'shi', name:'ShI', top:1, right:1, bottom:1, left:1 }, 'red');
+    shieldedI.grantedShield = true;
+    state.board[4] = i3; state.board[6] = shieldedI;
+    SPECIAL_HANDLERS.isolde({ srcEntry: i3, targetEntry: shieldedI, targetIndex: 6, owner: 'blue' });
+    out.isoldeShieldBlocks = shieldedI.owner === 'red';
+
+    // buyPack gating: each card only from its own stated tier.
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawDamyanLegendary=false, sawIsoldeEpic=false, sawDamyanEpic=false, sawIsoldeLegendary=false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('legendary');
+      if(playerProgress.earnedCards.damyan) sawDamyanLegendary = true;
+      if(playerProgress.earnedCards.isolde) sawIsoldeLegendary = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.isolde) sawIsoldeEpic = true;
+      if(playerProgress.earnedCards.damyan) sawDamyanEpic = true;
+    }
+    out.damyanFromLegendary = sawDamyanLegendary;
+    out.damyanNeverFromEpic = !sawDamyanEpic;
+    out.isoldeFromEpic = sawIsoldeEpic;
+    out.isoldeNeverFromLegendary = !sawIsoldeLegendary;
+
+    return out;
+  })()`);
+  assert.equal(result.allFindable, true);
+  assert.equal(result.noneInHeroes, true);
+  assert.equal(result.noneInCampaignPool, true);
+  assert.equal(result.damyanNoBonusAlone, true);
+  assert.equal(result.damyanBonusWithIsolde, true, 'Damyan and Isolde must be a bonded pairPresence duo');
+  assert.equal(result.isoldeBonusWithDamyan, true);
+  assert.equal(result.damyanVsStronger, true, "Guardian's Resolve must grant +2 when facing a stronger card");
+  assert.equal(result.damyanSpecial, true, "Guardian's Oath must capture AND grant Damyan a Shield on success");
+  assert.equal(result.damyanSpecialThresholdBlocks, true, "Guardian's Oath must fail against a stronger target");
+  assert.equal(result.isoldeCaptureBonus, true, 'Growing Legend must grant +1 Power permanently on each capture');
+  assert.equal(result.isoldeSpecial, true, 'Crimson Whisper must steal 1 Power on top of capturing the target');
+  assert.equal(result.isoldeShieldBlocks, true);
+  assert.equal(result.damyanFromLegendary, true);
+  assert.equal(result.damyanNeverFromEpic, true, 'Damyan must only ever come from the Legendary tier');
+  assert.equal(result.isoldeFromEpic, true);
+  assert.equal(result.isoldeNeverFromLegendary, true, 'Isolde must only ever come from the Legendary tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
