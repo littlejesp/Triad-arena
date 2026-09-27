@@ -3706,6 +3706,8 @@ const CARD_IMAGES = {
   hanami: 'cards/card-hanami.jpg',
   damyan: 'cards/card-damyan.jpg',
   isolde: 'cards/card-isolde.jpg',
+  wren: 'cards/card-wren.jpg',
+  corvin: 'cards/card-corvin.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3815,6 +3817,8 @@ const FULL_CARD_IMAGES = {
   hanami: 'card-hanami-full.jpg',
   damyan: 'card-damyan-full.jpg',
   isolde: 'card-isolde-full.jpg',
+  wren: 'card-wren-full.jpg',
+  corvin: 'card-corvin-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5760,6 +5764,53 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Bloodmoon Vow (Passive)', desc:'While Damyan is anywhere on the board, Isolde gains +2 Power on all sides.'},
       {name:'Growing Legend (Passive)', desc:'Each time Isolde takes control of a card, she permanently gains +1 Power on all sides.'},
       {name:'Special Attack: Crimson Whisper', desc:"Costs 2 wins. Choose an adjacent enemy card — if Isolde's total Power is greater, her blades claim it, stealing 1 Power permanently. Usable once per match."},
+    ] },
+  // Thirty-fifth and thirty-sixth pack-exclusive cards: Wren and Corvin --
+  // another new standalone bonded pair, purple/gold frame with a floating-
+  // feather motif, castle/waterfall/floating-isles sunset backdrop --
+  // distinct from Damyan/Isolde's red/black/gold gothic palette. Only ONE
+  // shared image exists of this pair (unlike Damyan/Isolde's two), so both
+  // cards' FULL art is the same picture; only the THUMBNAIL crops differ
+  // (Wren's uses the standard full-width technique since she's the
+  // dominant full-body subject, Corvin's is a tighter close-up on his own
+  // side of the frame -- a deliberate one-off deviation from the usual
+  // "vary y0 only" thumbnail rule, needed because a full-width crop of
+  // this particular image reads nearly identically for both characters).
+  // No printed nameplate on the image; both names chosen by Claude and
+  // confirmed by the user via AskUserQuestion.
+  //
+  // Wren, The Featherfall Blade (Epic, wind element): the dagger-wielder.
+  // pairPresence + debuffImmune (Bram/Lilith/Umbriel's own field) -- a new
+  // combo alongside pairPresence. Special "Silver Fang" is the threshold-
+  // capture + stealPower shape (Balalajka/Arielle/Brommi/Lilith/Umbriel/
+  // Isolde's own shape).
+  { id:'wren', name:'Wren', role:'The Featherfall Blade — Pack Exclusive (Epic)', element:'wind',
+    top:8, right:9, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#201535,#0d0b18 60%)', accent:'#c9a2e0', icon:'🪶',
+    packTier:'epic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'corvin', amount:2}, debuffImmune:true },
+    special:{ name:'Silver Fang', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Featherbond Vow (Passive)', desc:'While Corvin is anywhere on the board, Wren gains +2 Power on all sides.'},
+      {name:'Silent Wing (Passive)', desc:"Wren's Power can never be lowered by an enemy card's ability."},
+      {name:'Special Attack: Silver Fang', desc:"Costs 2 wins. Choose an adjacent enemy card — if Wren's total Power is greater, her daggers claim it, stealing 1 Power permanently. Usable once per match."},
+    ] },
+  // Corvin, The Twilight Wing (Legendary, light element): the twin-sword
+  // guardian. pairPresence + shield + onWinDebuffLoserPermanent
+  // (Scarletta's own field) -- a new combo alongside pairPresence. Special
+  // "Twin Blade Requiem" is a GUARANTEED capture (same shape as
+  // Scarletta/Jade's own Specials).
+  { id:'corvin', name:'Corvin', role:'The Twilight Wing — Pack Exclusive (Legendary)', element:'light',
+    top:9, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#241c10,#0d0b18 60%)', accent:'#c9a227', icon:'🦅',
+    packTier:'legendary', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'wren', amount:2}, shield:true, onWinDebuffLoserPermanent:1 },
+    special:{ name:'Twin Blade Requiem', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Featherbond Vow (Passive)', desc:'While Wren is anywhere on the board, Corvin gains +2 Power on all sides.'},
+      {name:"Guardian's Ward (Passive)", desc:'The first time Corvin would lose a battle, he refuses to fall — the loss is ignored and he keeps his position.'},
+      {name:"Twilight's Toll (Passive)", desc:'Each time Corvin wins a battle, the loser permanently loses 1 Power on all sides.'},
+      {name:'Special Attack: Twin Blade Requiem', desc:"Costs 3 wins. Choose an enemy card — his twin blades claim it outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
     ] },
 ];
 
@@ -12028,6 +12079,34 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
     return `${name}'s Crimson Whisper claims ${targetEntry.card.name}!`;
+  },
+  // Wren's Silver Fang: threshold capture + stealPower, same shape as
+  // Balalajka/Arielle/Brommi/Lilith/Umbriel/Isolde's own Specials.
+  wren({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Silver Fang finds no purchase!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Silver Fang!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
+    return `${name}'s Silver Fang claims ${targetEntry.card.name}!`;
+  },
+  // Corvin's Twin Blade Requiem: a GUARANTEED capture, same shape as
+  // Scarletta/Jade's own Specials.
+  corvin({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Twin Blade Requiem!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name}'s Twin Blade Requiem claims ${targetEntry.card.name} outright!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all

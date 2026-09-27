@@ -5720,6 +5720,40 @@ innan bygget (facit-regeln från avsnitt 12) — inga hittades.
 Trettiofyra pack-exklusiva kort totalt nu. Hela testsviten grön:
 **193/193**.
 
+**Fas 60. Trettiofemte och trettiosjätte pack-exklusiva korten: Wren
+(Epic) och Corvin (Legendary) — ännu ett nytt fristående bundet par.**
+Lila/guld-ram med ett flytande-fjäder-motiv, slott/vattenfall/flytande
+öar i solnedgång — en helt egen palett, skild från både Damyan/Isoldes
+gotiska röd/svart/guld och alla tidigare grupper. Namnlösa bilder igen;
+båda namnen valdes av Claude och bekräftades av användaren ("Wren &
+Corvin" vann över "Kyra & Theron" och "Sable & Ilan").
+
+**Ny variant av "delad bild"-problemet**: den här gången fanns bara EN
+bild av paret (till skillnad från Damyans/Isoldes två), med kvinnan
+skarpt i fokus fram till vänster och mannen något mjukare men fullt
+användbar i bakgrunden till höger. Frågade explicit om båda skulle bli
+kort från samma enda bild eller bara en av dem just nu; svar: "Båda".
+Löste det genom att låta BÅDA kortens fulla bild vara samma delade
+bild (det finns bara en), men gav dem OLIKA tumnagelbeskärningar: Wrens
+tumnagel använder standardtekniken (full bredd, ramkanter synliga,
+eftersom hon är huvudmotivet i helfigur), medan Corvins tumnagel är en
+medvetet TÄTARE närbild beskuren mot hans egen sida av bilden — annars
+hade de två tumnaglarna sett i princip identiska ut. Ett dokumenterat
+engångsavsteg från den vanliga "variera bara y0"-regeln i avsnitt 12,
+eftersom den regeln förutsätter en bild där båda karaktärerna delar
+nästan hela höjden/bredden jämnt, vilket inte stämde här.
+
+Kit: `pairPresence` på båda (samma tvåpersonersform). Wren kombinerar
+det med `debuffImmune` (Bram/Lilith/Umbriels eget fält) — ny
+kombination. Special Silver Fang är tröskel-fångst + stjäl 1 Power
+(samma återanvända form som Isoldes Crimson Whisper m.fl.). Corvin
+kombinerar `pairPresence` med `shield` + `onWinDebuffLoserPermanent`
+(Scarlettas eget fält) — ny kombination. Special Twin Blade Requiem är
+en GARANTERAD fångst (samma form som Scarletta/Jade). Kontrollerade
+id- och filnamnskollisioner för `wren`/`corvin` innan bygget — inga
+hittades. Trettiosex pack-exklusiva kort totalt nu. Hela testsviten
+grön: **194/194**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
