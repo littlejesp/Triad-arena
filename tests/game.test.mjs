@@ -12688,3 +12688,126 @@ test("Fas 60: thirty-fifth and thirty-sixth pack-exclusive cards -- Wren (Epic) 
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 61: Pack-opening ritual (sealed Triad symbol -> tap to crack -> face-down cards glowing the pack's rarity color -> Open All -> revealed) plus a real CSS-specificity bug fix for both the Packs and My Bag modals, and My Bag's new rarity-grouped, bigger-tile redesign", async () => {
+  const { page, pageErrors } = await newPage();
+  const result1 = await page.evaluate(`(() => {
+    const out = {};
+    playerProgress.campaignClearedOnce = true;
+    playerProgress.points = 1000000;
+    playerProgress.lifetimePoints = 1000000;
+    playerProgress.earnedCards = {};
+
+    // buyPack starts the reveal ritual sealed, not revealed outright.
+    buyPack('rare');
+    out.startsSealedStage = state.packOpenResult && state.packOpenResult.stage === 'sealed';
+    out.drewTenCards = state.packOpenResult.drawn.length === 10;
+
+    state.showPacks = true;
+    render();
+
+    // Regression test for a real bug: on screens >=700px, a pre-existing
+    // @media(min-width:700px) .modal-poster rule (meant only for the
+    // card-info popup's side-by-side art+skills layout) ties in CSS
+    // specificity with the single-class .packs-modal rule and wins by
+    // source order, turning the whole modal into a squeezed flex row --
+    // this is what made the user's real pack-opening screen show almost
+    // nothing but a sliver of text. .modal-poster.packs-modal (two
+    // classes) must win regardless of viewport width.
+    const packsModalEl = document.querySelector('.packs-modal');
+    const packsCs = getComputedStyle(packsModalEl);
+    out.packsModalCorrectMaxWidth = packsCs.maxWidth === '480px';
+    out.packsModalIsBlock = packsCs.display === 'block';
+
+    out.sealBtnExists = !!document.getElementById('packs-seal-btn');
+    out.openAllBtnMissingWhileSealed = !document.getElementById('packs-openall-btn');
+
+    // Tap the seal: the crack class is added synchronously, the stage only
+    // flips to faceDown after the click handler's own 550ms timeout.
+    document.getElementById('packs-seal-btn').click();
+    out.crackingClassAddedImmediately = document.getElementById('packs-seal-btn').classList.contains('is-cracking');
+    out.stageStillSealedRightAfterClick = state.packOpenResult.stage === 'sealed';
+
+    return out;
+  })()`);
+
+  // Real wall-clock wait past the seal button's own 550ms crack timeout.
+  await page.waitForTimeout(700);
+
+  const result2 = await page.evaluate(`(() => {
+    const out = {};
+    out.stageNowFaceDown = state.packOpenResult.stage === 'faceDown';
+    out.openAllBtnExists = !!document.getElementById('packs-openall-btn');
+    out.facedownClassOnList = !!document.querySelector('.packs-reveal-list.is-facedown');
+    out.tenFaceDownCardsVisible = document.querySelectorAll('.packs-reveal-card').length === 10;
+    // The flip animation must NOT be active yet in this stage.
+    out.noRevealedClassYet = !document.querySelector('.packs-reveal-list.is-revealed');
+
+    document.getElementById('packs-openall-btn').click();
+    out.stageNowRevealed = state.packOpenResult.stage === 'revealed';
+    out.revealedClassOnList = !!document.querySelector('.packs-reveal-list.is-revealed');
+    out.backBtnExistsAfterReveal = !!document.getElementById('packs-back-btn');
+
+    document.getElementById('packs-back-btn').click();
+    out.packOpenResultClearedAfterBack = state.packOpenResult === null;
+
+    // My Bag: rarity grouping, sort order, and its own width-specificity fix.
+    playerProgress.earnedCards = {};
+    const mysticCard = PACK_EXCLUSIVE_CARDS.find(c => c.packTier === 'mystic');
+    const legendaryCard = PACK_EXCLUSIVE_CARDS.find(c => c.packTier === 'legendary');
+    const epicCard = PACK_EXCLUSIVE_CARDS.find(c => c.packTier === 'epic');
+    const rareCard = PACK_EXCLUSIVE_CARDS.find(c => c.packTier === 'rare');
+    const heroCard = HEROES[0];
+    [mysticCard, legendaryCard, epicCard, rareCard].forEach(c => { playerProgress.earnedCards[c.id] = 2; });
+    playerProgress.earnedCards[heroCard.id] = 5;
+
+    state.showPacks = false;
+    state.showBag = true;
+    render();
+
+    const bagModalEl = document.querySelector('.bag-modal');
+    const bagCs = getComputedStyle(bagModalEl);
+    out.bagModalCorrectMaxWidth = bagCs.maxWidth === '720px';
+    out.bagModalIsBlock = bagCs.display === 'block';
+
+    const headings = Array.from(document.querySelectorAll('.bag-tier-heading')).map(h => h.textContent);
+    out.bagShowsAllFiveGroups = headings.length === 5;
+    out.bagOrderIsMysticFirst = headings[0] && headings[0].includes('Mystic');
+    out.bagOrderIsLegendarySecond = headings[1] && headings[1].includes('Legendary');
+    out.bagOrderIsEpicThird = headings[2] && headings[2].includes('Epic');
+    out.bagOrderIsRareFourth = headings[3] && headings[3].includes('Rare');
+    out.bagOrderStandardLast = headings[4] && headings[4].includes('Standard');
+    out.bagTileHasTierGlowVar = !!document.querySelector('.bag-card-tile[style*="--tier-glow"]');
+
+    return out;
+  })()`);
+  const result = { ...result1, ...result2 };
+  assert.equal(result.startsSealedStage, true, 'buyPack must start the reveal ritual sealed, not revealed');
+  assert.equal(result.drewTenCards, true);
+  assert.equal(result.packsModalCorrectMaxWidth, true, 'the Packs modal must stay 480px wide even at >=700px viewports');
+  assert.equal(result.packsModalIsBlock, true, 'the Packs modal must not inherit the card-info popup\'s flex layout');
+  assert.equal(result.sealBtnExists, true);
+  assert.equal(result.openAllBtnMissingWhileSealed, true);
+  assert.equal(result.crackingClassAddedImmediately, true);
+  assert.equal(result.stageStillSealedRightAfterClick, true, 'the stage must only flip after the crack animation delay');
+  assert.equal(result.stageNowFaceDown, true);
+  assert.equal(result.openAllBtnExists, true);
+  assert.equal(result.facedownClassOnList, true);
+  assert.equal(result.tenFaceDownCardsVisible, true);
+  assert.equal(result.noRevealedClassYet, true, 'cards must not auto-flip before Open All is tapped');
+  assert.equal(result.stageNowRevealed, true);
+  assert.equal(result.revealedClassOnList, true);
+  assert.equal(result.backBtnExistsAfterReveal, true);
+  assert.equal(result.packOpenResultClearedAfterBack, true);
+  assert.equal(result.bagModalCorrectMaxWidth, true, 'the My Bag modal must stay 720px wide even at >=700px viewports');
+  assert.equal(result.bagModalIsBlock, true);
+  assert.equal(result.bagShowsAllFiveGroups, true);
+  assert.equal(result.bagOrderIsMysticFirst, true, 'My Bag must sort rarity groups Mystic > Legendary > Epic > Rare > Standard');
+  assert.equal(result.bagOrderIsLegendarySecond, true);
+  assert.equal(result.bagOrderIsEpicThird, true);
+  assert.equal(result.bagOrderIsRareFourth, true);
+  assert.equal(result.bagOrderStandardLast, true);
+  assert.equal(result.bagTileHasTierGlowVar, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

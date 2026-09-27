@@ -5754,6 +5754,70 @@ id- och filnamnskollisioner för `wren`/`corvin` innan bygget — inga
 hittades. Trettiosex pack-exklusiva kort totalt nu. Hela testsviten
 grön: **194/194**.
 
+**Fas 61. Pack-öppningsritual (sigill → spräck → nervänt med
+sällsynthetsljus → Open All → flip) plus en riktig CSS-bugg fixad i
+både Packs- och My Bag-modalerna, samt My Bag ombyggd med
+rarity-gruppering och större kort.** Användaren skickade en skärmdump
+av sin riktiga bärbara dator: efter att ha öppnat ett Rare Pack syntes
+bara en liten låda med texten "Rare Pack opened! / Back to Packs" —
+inga kort alls synliga. Bad om en ny öppningsritual inspirerad av
+Triple Triad/Final Fantasy Brave Exvius summon-flödet: en symbol som
+glöder rött och blått, tryck för att spräcka den, korten ligger
+nervända med ett sällsynthetsljus, en "Open All"-knapp flippar allt.
+
+**Grundorsaken till den ursprungliga buggen hittades under bygget**: en
+befintlig `@media(min-width:700px) .modal-poster`-regel (byggd för
+kortdetalj-popupens sida-vid-sida art+skills-layout på breda skärmar)
+har exakt samma CSS-specificitet som den enkla-klass-regeln
+`.packs-modal{max-width:480px}`, och vinner på källkodsordning på
+skärmar ≥700px bred — precis vad en riktig bärbar dator alltid är.
+Resultatet: hela reveal-rutnätet klämdes ihop till en nästan osynlig
+`display:flex`-rad. Exakt samma bugg-KLASS var redan känd och löst en
+gång tidigare för `.leaderboard-modal` (kommentar i koden beskriver det
+uttryckligen), men lösningen (tvåklass-selektor `.modal-poster.leaderboard-modal`
+för att garantera högre specificitet) hade aldrig applicerats på
+`.packs-modal`. Fixade genom samma mönster: `.modal-poster.packs-modal`.
+Hittade sedan EN TILL variant av samma bugg när jag byggde om My Bag
+(se nedan): `.bag-modal` och `.packs-modal` delar samma div och båda
+har tvåklass-specificitet, så de tävlade mot VARANDRA — löst med en
+trekomponents-selektor `.modal-poster.packs-modal.bag-modal`. Båda
+buggarna fångade och regressionstestade (kollar `getComputedStyle`
+direkt, eftersom testsvitens headless-webbläsare default-viewport
+redan är ≥700px och därmed exakt reproducerar buggen).
+
+**Ritualen**: `packOpenResult` fick ett nytt `stage`-fält
+(`'sealed' → 'faceDown' → 'revealed'`). `buyPack` drar korten direkt
+(som förut) men visar dem inte — istället visas en pulserande
+diamant-symbol (ren CSS: `conic-gradient` klippt till en romb, glöd i
+rött+blått via `drop-shadow`-animation) som spricker (skala+ljusblixt+
+fade) vid klick. Efter spricktiden (550ms) visas alla 10 korten
+NERVÄNDA med ett pulserande glödrand i packets egen sällsynthetsfärg
+(samma `--pack-glow`-variabel som redan fanns för flip-poppen, nu
+återanvänd för själva väntan-fasen) — den befintliga stagger-flip-
+animationen är oförändrad men nu villkorad bakom en `.is-revealed`-
+klass som bara sätts efter att spelaren trycker "Open All", istället
+för att spela automatiskt så fort korten renderas.
+
+**ChatGPT-prompt skriven** (i mitt scratchpad, given direkt till
+användaren i chatten) för en riktig bild av symbolen — en gravyr-
+mönstrad kristall-romb, blå/röd tvådelad glöd som möts i en vit söm i
+mitten, samma polerade nivå som en FFBE-summon-lacrima. Placeholder-
+diamanten (ren CSS) fungerar redan idag utan den bilden; när
+användaren får filen från ChatGPT byts den bara in som bakgrundsbild
+på `.packs-seal-diamond`, ingen kodomskrivning behövs.
+
+**My Bag ombyggd** ("bättre känsla av sin bag... sällsynt ordning...
+större bild"), efter research på hur trendiga TCG:er (Pokémon TCG
+Pocket, Marvel Snap) presenterar en samling: grupperat och sorterat
+efter sällsynthet, med en färgkod per grupp, snarare än en platt lista
+sorterad bara på antal ägda. Nya `BAG_TIER_ORDER`/`BAG_TIER_LABELS`
+grupperar spelarens kort i Mystic → Legendary → Epic → Rare →
+Standard (HEROES-kort utan `packTier` hamnar i Standard), var grupp
+med egen rubrik i tierens `PACK_TIERS`-glödfärg. Modalen breddades
+(480px → 720px) och kortrutorna gjordes större (85px → 120px min) så
+fler får plats per rad ändå. Trettiosex pack-exklusiva kort oförändrat.
+Hela testsviten grön: **195/195**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

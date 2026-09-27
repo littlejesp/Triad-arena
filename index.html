@@ -312,6 +312,36 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .bag-wallet b{ color:#fff; }
 .bag-coin{ font-size:15px; filter:drop-shadow(0 0 3px rgba(201,162,39,0.8)); }
 
+/* My Bag redesign: rarity-grouped sections (see BAG_TIER_ORDER above) with
+   bigger card tiles than the old flat .rivals-picker-grid list -- user's
+   own request ("bättre känsla av sin bag... sällsynt ordning... större
+   bild") after comparing this to how trendy TCGs (Pokémon TCG Pocket,
+   Marvel Snap) present a collection: grouped by rarity, larger art, a
+   color cue per tier. The modal itself is also widened past the shared
+   .packs-modal's 480px so the bigger tiles still fit several per row. */
+/* Three classes (0,3,0), not two -- the bag modal's div carries BOTH
+   packs-modal (shared base styling) and bag-modal (this override), so a
+   plain .modal-poster.bag-modal (0,2,0) tied in specificity with
+   .modal-poster.packs-modal below and lost to it by source order,
+   collapsing right back to 480px. */
+.modal-poster.packs-modal.bag-modal{ max-width:720px; display:block; }
+.bag-sections{ display:flex; flex-direction:column; gap:18px; max-height:62vh; overflow-y:auto; padding:4px 2px; }
+.bag-tier-heading{
+  display:flex; align-items:baseline; gap:8px;
+  font-family:'Cinzel',serif; font-weight:700; font-size:14px; color:#fff;
+  margin-bottom:8px; padding-bottom:5px;
+  border-bottom:1px solid rgba(var(--tier-glow,201,162,39),0.55);
+  text-shadow:0 0 8px rgba(var(--tier-glow,201,162,39),0.55);
+}
+.bag-tier-count{ font-size:11px; font-weight:400; color:var(--text-dim); text-shadow:none; }
+.bag-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr));
+  gap:12px;
+}
+.bag-card-tile .card{
+  box-shadow:0 0 0 2px rgba(var(--tier-glow,201,162,39),0.6), 0 0 12px 1px rgba(var(--tier-glow,201,162,39),0.4);
+}
+
 /* Fas 7 (design review #2, "meta layer" tier) -- see ACHIEVEMENTS. */
 .achievement-list{ display:flex; flex-wrap:wrap; gap:8px; }
 .achievement-badge{
@@ -1069,7 +1099,15 @@ button.ghost.leaderboard-view-btn{ width:auto; flex:0 0 auto; margin-top:0; padd
    lose to the base button.ghost{width:100%} rule regardless of source
    order and collapse the row next to it. */
 button.ghost.packs-open-btn{ width:auto; flex:0 0 auto; margin-top:0; padding:7px 12px; font-size:12px; white-space:nowrap; }
-.packs-modal{ max-width:480px; padding:22px 20px 20px; }
+/* modal-poster.packs-modal (tag-less but two classes, (0,2,0)) is needed
+   here, not plain .packs-modal ((0,1,0)) -- same real bug as
+   .leaderboard-modal's own comment above describes, and the one actually
+   responsible for the pack-reveal grid rendering as a near-invisible sliver
+   on the user's real (>=700px) laptop screen: the card-info modal's
+   @media(min-width:700px) .modal-poster rule (display:flex, max-width:780px)
+   ties in specificity and wins by source order at that width, squeezing
+   the whole reveal grid into a flex row a few px wide. */
+.modal-poster.packs-modal{ max-width:480px; padding:22px 20px 20px; display:block; }
 .packs-modal h3{ font-family:'Cinzel',serif; color:var(--gold-bright); margin:0 0 6px; }
 .packs-tier-list{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
 .packs-tier{
@@ -1095,6 +1133,13 @@ button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px
 .packs-reveal-card{ position:relative; aspect-ratio:5/7; perspective:500px; }
 .packs-reveal-inner{
   position:relative; width:100%; height:100%; transform-style:preserve-3d;
+  transform:rotateY(0deg);
+}
+/* The flip only actually plays once the player taps "Open All" -- the
+   .is-revealed class (added to the list wrapper only in that stage) gates
+   it, so cards sit still face-down during the earlier "sealed"/"face-down"
+   stages below instead of auto-flipping the instant they're drawn. */
+.packs-reveal-list.is-revealed .packs-reveal-inner{
   animation: packsCardFlip 0.7s cubic-bezier(.3,.1,.3,1) both;
   animation-delay: var(--flip-delay, 0s);
 }
@@ -1110,12 +1155,25 @@ button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px
   background-size:cover; background-position:center;
   border:1px solid rgba(201,162,39,0.3);
 }
+/* Face-down stage: each card's back pulses in the pack's own rarity color
+   (--pack-glow) so the player gets a hint of what's coming before they hit
+   "Open All" -- user's own request ("korten flippas nervända med
+   sällsyntheten ljuset"). */
+.packs-reveal-list.is-facedown .packs-reveal-back{
+  animation: packsBackGlow 1.6s ease-in-out infinite alternate;
+}
+@keyframes packsBackGlow{
+  from{ box-shadow:0 0 6px 1px rgba(var(--pack-glow,201,162,39),0.35) inset, 0 0 6px 1px rgba(var(--pack-glow,201,162,39),0.35); }
+  to{ box-shadow:0 0 16px 4px rgba(var(--pack-glow,201,162,39),0.9) inset, 0 0 16px 4px rgba(var(--pack-glow,201,162,39),0.9); }
+}
 .packs-reveal-front{
   transform:rotateY(180deg);
   background:linear-gradient(160deg,#2c2722,#16130f 72%);
   border:1px solid rgba(201,162,39,0.3);
   display:flex; align-items:flex-end;
   box-shadow:0 0 0 0 rgba(var(--pack-glow,201,162,39),0);
+}
+.packs-reveal-list.is-revealed .packs-reveal-front{
   animation: packsGlowPop 0.5s ease both;
   animation-delay: calc(var(--flip-delay, 0s) + 0.35s);
 }
@@ -1132,11 +1190,50 @@ button.ghost.packs-buy-btn{ flex:0 0 auto; width:auto; margin-top:0; padding:6px
 .packs-reveal-tag{
   position:absolute; top:3px; right:3px; z-index:1; font-size:7px; font-weight:700; padding:2px 4px;
   border-radius:4px; background:rgba(201,162,39,0.9); color:#1a1408;
-  opacity:0; animation: packsTagFade 0.3s ease both;
+  opacity:0;
+}
+.packs-reveal-list.is-revealed .packs-reveal-tag{
+  animation: packsTagFade 0.3s ease both;
   animation-delay: calc(var(--flip-delay, 0s) + 0.55s);
 }
 .packs-reveal-tag.packs-reveal-capped{ background:rgba(184,69,46,0.9); color:#fff; }
 @keyframes packsTagFade{ from{ opacity:0; } to{ opacity:1; } }
+
+/* Pack-opening step 0: the sealed pack -- a Triad symbol glowing red+blue
+   that the player taps to "crack" the pack open (user's own request). The
+   diamond is a pure CSS shape (conic-gradient clipped to a rhombus) so the
+   ritual works today without depending on external art; see PROJECT.md for
+   the ChatGPT prompt to generate a fancier custom symbol image later (drop
+   it in as a background-image on .packs-seal-diamond to upgrade it, no
+   markup changes needed). */
+.packs-seal-screen{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:22px; padding:34px 10px 24px;
+}
+.packs-seal-hint{ font-size:12px; color:var(--text-dim); text-align:center; }
+.packs-seal-symbol{
+  all:unset; cursor:pointer; width:130px; height:130px; display:block;
+}
+.packs-seal-diamond{
+  width:100%; height:100%;
+  background:conic-gradient(from 180deg, #ff3b57, #5e9dff, #ff3b57);
+  clip-path:polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%);
+  animation:packsSealPulse 2.2s ease-in-out infinite;
+  transition:transform 0.15s ease;
+}
+.packs-seal-symbol:hover .packs-seal-diamond{ transform:scale(1.06); }
+@keyframes packsSealPulse{
+  0%,100%{ filter:drop-shadow(0 0 10px rgba(94,157,255,0.85)) drop-shadow(0 0 4px rgba(255,59,87,0.6)); transform:scale(1); }
+  50%{ filter:drop-shadow(0 0 22px rgba(255,59,87,0.9)) drop-shadow(0 0 10px rgba(94,157,255,0.85)); transform:scale(1.05); }
+}
+.packs-seal-symbol.is-cracking .packs-seal-diamond{
+  animation:packsSealCrack 0.55s cubic-bezier(.5,0,.75,0) forwards;
+}
+@keyframes packsSealCrack{
+  0%{ transform:scale(1); opacity:1; filter:brightness(1); }
+  40%{ transform:scale(1.3); opacity:1; filter:brightness(2.4); }
+  100%{ transform:scale(1.8); opacity:0; filter:brightness(3); }
+}
 
 /* Progression step 3: Rivals. */
 .rivals-warning{
@@ -6309,20 +6406,34 @@ function renderLeaderboardModal(){
 }
 
 // Progression step 2: packs UI. Same modal-overlay/modal-poster shape as
-// renderGraveyardModal/renderLeaderboardModal above. Three states:
+// renderGraveyardModal/renderLeaderboardModal above. Four states now:
 // locked (Campaign not cleared yet), browsing tiers (buy buttons, each
-// gated live by canBuyPack), or showing the reveal of the pack just
-// opened (state.packOpenResult, cleared by the "Back to Packs" button).
+// gated live by canBuyPack), or the reveal RITUAL of the pack just opened
+// (state.packOpenResult, cleared by the "Back to Packs" button), which
+// itself has three stages -- see packOpenResult.stage's own comment on
+// buyPack: 'sealed' (glowing Triad symbol, tap to crack), 'faceDown'
+// (cards drawn, back-up, pulsing the pack's rarity glow, "Open All" to
+// flip), 'revealed' (the flip animation plays, "Back to Packs" appears).
 function renderPacksModal(){
   if(!state.showPacks) return '';
   const locked = !playerProgress.campaignClearedOnce;
   let body;
   if(locked){
     body = `<div class="leaderboard-status">Packs unlock once you've cleared the whole Campaign for the first time. Every match still earns points toward it in the meantime.</div>`;
+  } else if(state.packOpenResult && state.packOpenResult.stage === 'sealed'){
+    body = `
+      <div class="packs-seal-screen">
+        <div class="packs-reveal-title">${state.packOpenResult.tierName}</div>
+        <button class="packs-seal-symbol" id="packs-seal-btn" aria-label="Crack open the pack">
+          <div class="packs-seal-diamond"></div>
+        </button>
+        <div class="packs-seal-hint">Tap the seal to crack it open</div>
+      </div>`;
   } else if(state.packOpenResult){
+    const revealed = state.packOpenResult.stage === 'revealed';
     body = `
       <div class="packs-reveal-title">${state.packOpenResult.tierName} opened!</div>
-      <div class="packs-reveal-list">
+      <div class="packs-reveal-list ${revealed ? 'is-revealed' : 'is-facedown'}">
         ${state.packOpenResult.drawn.map((c, i) => `
           <div class="packs-reveal-card" style="--pack-glow:${state.packOpenResult.glow}; --flip-delay:${(i * 0.15).toFixed(2)}s;">
             <div class="packs-reveal-inner">
@@ -6336,7 +6447,9 @@ function renderPacksModal(){
           </div>
         `).join('')}
       </div>
-      <button class="cta" id="packs-back-btn">Back to Packs</button>`;
+      ${revealed
+        ? `<button class="cta" id="packs-back-btn">Back to Packs</button>`
+        : `<button class="cta" id="packs-openall-btn">Open All</button>`}`;
   } else {
     body = `
       <p class="graveyard-hint">Spend points on a pack of 10 cards. Higher tiers cost more and need a higher level.</p>
@@ -6433,6 +6546,21 @@ function renderRivalsModal(){
 // new count-badge option (see cardFace's own opts.countBadge) so you can
 // actually see how many of each you hold, including copies held hostage
 // by a rival (still counted in earnedCards until reclaimed or lost).
+// Bag rarity grouping: every PACK_EXCLUSIVE_CARDS card carries its own
+// packTier (rare/epic/legendary/mystic); ordinary HEROES cards earned from
+// Rivals don't, so they fall into a 'standard' bucket. Reuses PACK_TIERS'
+// own glow color per tier so a card's rarity reads the same way here as it
+// does in the Packs reveal -- user's own request, after looking at how
+// trendy TCGs (Pokémon TCG Pocket, Marvel Snap) handle a collection screen:
+// grouped/sorted by rarity, with a color cue per tier, rather than one flat
+// list sorted only by how many copies you own.
+const BAG_TIER_ORDER = ['mystic', 'legendary', 'epic', 'rare', 'standard'];
+const BAG_TIER_LABELS = { mystic:'💠 Mystic', legendary:'⭐ Legendary', epic:'🔮 Epic', rare:'🔷 Rare', standard:'⚔️ Standard' };
+const BAG_STANDARD_GLOW = '150,150,150';
+function bagTierGlow(tierId){
+  const t = PACK_TIERS.find(t => t.id === tierId);
+  return t ? t.glow : BAG_STANDARD_GLOW;
+}
 function renderBagModal(){
   if(!state.showBag) return '';
   const locked = !playerProgress.campaignClearedOnce;
@@ -6444,25 +6572,42 @@ function renderBagModal(){
     if(ids.length === 0){
       body = `<div class="leaderboard-status">Your bag is empty. Open a Pack to start earning cards.</div>`;
     } else {
-      ids.sort((a, b) => {
-        const diff = playerProgress.earnedCards[b] - playerProgress.earnedCards[a];
-        if(diff !== 0) return diff;
-        return (findCardById(a)?.name || a).localeCompare(findCardById(b)?.name || b);
+      const grouped = {};
+      ids.forEach(id => {
+        const card = findCardById(id);
+        if(!card) return;
+        const tier = card.packTier || 'standard';
+        (grouped[tier] = grouped[tier] || []).push(id);
+      });
+      Object.values(grouped).forEach(list => {
+        list.sort((a, b) => {
+          const diff = playerProgress.earnedCards[b] - playerProgress.earnedCards[a];
+          if(diff !== 0) return diff;
+          return (findCardById(a)?.name || a).localeCompare(findCardById(b)?.name || b);
+        });
       });
       body = `
         <p class="graveyard-hint">${ids.length} card${ids.length===1?'':'s'} earned from Packs and Rivals.</p>
-        <div class="rivals-picker-grid">
-          ${ids.map(id => {
-            const card = findCardById(id);
-            if(!card) return '';
-            return cardFace(card, { noInfo:false, countBadge: playerProgress.earnedCards[id] });
-          }).join('')}
+        <div class="bag-sections">
+          ${BAG_TIER_ORDER.filter(tier => grouped[tier] && grouped[tier].length).map(tier => `
+            <div class="bag-tier-section">
+              <div class="bag-tier-heading" style="--tier-glow:${bagTierGlow(tier)}">
+                ${BAG_TIER_LABELS[tier]} <span class="bag-tier-count">${grouped[tier].length}</span>
+              </div>
+              <div class="bag-grid">
+                ${grouped[tier].map(id => {
+                  const card = findCardById(id);
+                  if(!card) return '';
+                  return `<div class="bag-card-tile" style="--tier-glow:${bagTierGlow(tier)}">${cardFace(card, { noInfo:false, countBadge: playerProgress.earnedCards[id] })}</div>`;
+                }).join('')}
+              </div>
+            </div>`).join('')}
         </div>`;
     }
   }
   return `
     <div class="modal-overlay" id="bag-overlay">
-      <div class="modal-poster packs-modal">
+      <div class="modal-poster packs-modal bag-modal">
         <button class="modal-close" id="bag-close">✕</button>
         <h3><img src="bag-icon.png" class="bag-icon-inline" alt=""> My Bag</h3>
         <div class="bag-wallet"><span class="bag-coin">🪙</span> <b>${playerProgress.points.toLocaleString()}</b> points</div>
@@ -8472,6 +8617,24 @@ function attachHandlers(){
       render();
     });
   });
+  // Seal -> face-down: play the crack animation in place first (adding the
+  // class directly, not via render(), so the CSS transition actually has
+  // something to animate FROM), then flip the stage once it's done. 550ms
+  // matches packsSealCrack's own duration above.
+  const packsSealBtn = document.getElementById('packs-seal-btn');
+  if(packsSealBtn) packsSealBtn.addEventListener('click', ()=>{
+    if(packsSealBtn.classList.contains('is-cracking')) return;
+    packsSealBtn.classList.add('is-cracking');
+    setTimeout(()=>{
+      if(state.packOpenResult) state.packOpenResult.stage = 'faceDown';
+      render();
+    }, 550);
+  });
+  const packsOpenAllBtn = document.getElementById('packs-openall-btn');
+  if(packsOpenAllBtn) packsOpenAllBtn.addEventListener('click', ()=>{
+    if(state.packOpenResult) state.packOpenResult.stage = 'revealed';
+    render();
+  });
   const packsBackBtn = document.getElementById('packs-back-btn');
   if(packsBackBtn) packsBackBtn.addEventListener('click', ()=>{
     state.packOpenResult = null;
@@ -9873,7 +10036,11 @@ function buyPack(tierId){
     drawn.push({ id: card.id, name: card.name, wasNew: current === 0, capped });
   }
   savePlayerProgress();
-  state.packOpenResult = { tierId: tier.id, tierName: tier.name, glow: tier.glow, drawn };
+  // stage: 'sealed' (glowing Triad symbol, tap to crack) -> 'faceDown'
+  // (cards drawn but still back-up, pulsing the pack's rarity glow) ->
+  // 'revealed' (the existing stagger-flip reveal). User's own request: a
+  // ritual before the reveal instead of jumping straight to flipped cards.
+  state.packOpenResult = { tierId: tier.id, tierName: tier.name, glow: tier.glow, drawn, stage: 'sealed' };
 }
 
 // Progression step 3: the FF8-style trading-rule opponents. Locked behind
