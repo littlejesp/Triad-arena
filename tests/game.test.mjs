@@ -10116,11 +10116,12 @@ test('Progression (Fas 32, step 3): Rivals are locked until Campaign is cleared 
   await page.close();
 });
 
-test('Progression (Fas 32, step 3): resolveRiskMatch applies the ONE/ALL rule correctly on a loss, lets a win reclaim exactly one held card, and a draw changes nothing', async () => {
+test('Progression (Fas 32, step 3): resolveRiskMatch applies the ONE/ALL rule correctly on a loss, a win with exactly one eligible prize auto-awards it, and a draw changes nothing', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(() => {
     const out = {};
     const wageredFive = ['gambler','vaelira','nyxara','seraphine','odin'];
+    const gamblerHand = () => ['gambler','vaelira','nyxara','seraphine','odin'].map(id => findCardById(id));
     const winBoard = (winnerOwner) => new Array(9).fill(null).map((_, i) => ({ card: HEROES[0], owner: i < 6 ? winnerOwner : (winnerOwner === 'blue' ? 'red' : 'blue') }));
 
     // ONE rule loss: exactly one of the five wagered cards is removed.
@@ -10146,25 +10147,35 @@ test('Progression (Fas 32, step 3): resolveRiskMatch applies the ONE/ALL rule co
     out.allRuleRemainingCount = Object.values(playerProgress.earnedCards).reduce((a,b)=>a+b, 0);
     out.allRuleHeldTotal = Object.values(playerProgress.opponentHeld['tiamat-rival']).reduce((a,b)=>a+b, 0);
 
-    // A win reclaims exactly one held card, capped at EARNED_CARD_CAP.
+    // A win with exactly ONE eligible prize (4 of the rival's 5 cards left
+    // unplaced in enemyHand, and one held card of the player's own) must
+    // auto-award that single candidate directly -- no choice needed when
+    // there's nothing to choose between. Reclaims, so kind stays 'reclaimed'.
     playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: { 'gambler-rival': { tiamat: 2 } } };
     state.draftMode = 'risk';
     state.selected = wageredFive.slice();
     state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.enemyHand = gamblerHand(); // all 5 left unplaced -- 0 played + 1 held (tiamat) = exactly 1 candidate
     state.board = winBoard('blue');
     finishGame();
     out.reclaimResultKind = state.riskResult && state.riskResult.kind;
+    out.reclaimNoChoiceOpened = state.riskWinChoice === null;
     out.reclaimedTiamatCount = playerProgress.earnedCards.tiamat;
     out.heldTiamatAfterReclaim = playerProgress.opponentHeld['gambler-rival'].tiamat;
 
-    // A win with nothing held: no reclaim, riskResult stays null.
+    // A win with nothing held and only ONE of the rival's cards actually
+    // played (the other 4 left in enemyHand) must auto-award that one
+    // native card as a fresh 'won' result, not fabricate a reclaim.
     playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
     state.draftMode = 'risk';
     state.selected = wageredFive.slice();
     state.riskMatch = { opponentId: 'gambler-rival', rule: 'one', previousAiDifficulty: 'normal' };
+    state.enemyHand = ['vaelira','nyxara','seraphine','odin'].map(id => findCardById(id)); // only 'gambler' was placed
     state.board = winBoard('blue');
     finishGame();
-    out.winNothingHeldResult = state.riskResult;
+    out.winNothingHeldKind = state.riskResult && state.riskResult.kind;
+    out.winNothingHeldCardId = state.riskResult && state.riskResult.cardIds[0];
+    out.winNothingHeldNoChoiceOpened = state.riskWinChoice === null;
 
     // A draw changes nothing at all.
     playerProgress = { points: 0, lifetimePoints: 0, campaignClearedOnce: true, earnedCards: { gambler:1, vaelira:1, nyxara:1, seraphine:1, odin:1 }, opponentHeld: {} };
@@ -10193,9 +10204,12 @@ test('Progression (Fas 32, step 3): resolveRiskMatch applies the ONE/ALL rule co
   assert.equal(result.allRuleRemainingCount, 0, 'ALL rule must remove every one of the 5 wagered cards on a loss');
   assert.equal(result.allRuleHeldTotal, 5, "the opponent's held pile must gain all 5 taken cards");
   assert.equal(result.reclaimResultKind, 'reclaimed');
+  assert.equal(result.reclaimNoChoiceOpened, true, 'a single eligible candidate must auto-award, not open a choice screen');
   assert.equal(result.reclaimedTiamatCount, 1, 'a reclaim must add exactly 1 copy back to earnedCards (tiamat was not owned at all before the win)');
   assert.equal(result.heldTiamatAfterReclaim, 1, "the opponent's held count for the reclaimed card must drop by exactly 1");
-  assert.equal(result.winNothingHeldResult, null, 'a win with nothing held must not fabricate a reclaim result');
+  assert.equal(result.winNothingHeldKind, 'won', 'winning with nothing held must still award one of the rival\'s own played cards');
+  assert.equal(result.winNothingHeldCardId, 'gambler', 'only "gambler" was actually placed, so it must be the one auto-awarded');
+  assert.equal(result.winNothingHeldNoChoiceOpened, true);
   assert.equal(result.drawWinner, 'draw');
   assert.equal(result.drawResult, null, 'a draw must never trigger a risk win or loss outcome');
   assert.equal(result.drawEarnedCardsUnchanged, true, 'a draw must never touch earnedCards');
@@ -12869,11 +12883,15 @@ test("Fas 62: Random Draft/Choose Your Five win bonus raised to 250, a sixth Riv
     out.riskResultCardsRendered = document.querySelectorAll('.risk-result-cards .card').length === 5;
     out.riskResultLostClassPresent = !!document.querySelector('.risk-result-lost');
 
-    // A win reclaiming a held card also shows its face, with the reclaimed styling.
+    // A win reclaiming a held card also shows its face, with the reclaimed
+    // styling. All 5 of the rival's own cards left unplaced (enemyHand) so
+    // the held card is the ONLY eligible prize -- auto-awards directly
+    // instead of opening a choice screen (Fas 68 covers that flow).
     playerProgress.opponentHeld = { 'mystic-rival': { astra: 1 } };
     playerProgress.earnedCards = { umbriel:1, jade:1, ryuji:1, hayato:1, wren:1 };
     state.riskMatch = { opponentId: 'mystic-rival', rule: 'all', previousAiDifficulty: 'easy' };
     state.selected = ['umbriel','jade','ryuji','hayato','wren'];
+    state.enemyHand = ['vaseir','astra','akari','scarletta','cinder'].map(id => findCardById(id));
     resolveRiskMatch('blue');
     out.riskResultReclaimedHasCardId = state.riskResult.kind === 'reclaimed' && state.riskResult.cardIds[0] === 'astra';
     state.winner = 'blue';
@@ -13150,6 +13168,87 @@ test("Fas 67: Rivals wager picker gets an \"Auto-Pick 5 Synergy Cards\" button -
   assert.equal(result.beginDuelEnabledAfterClick, true, 'Begin Duel must enable immediately once Auto-Pick fills all 5 slots');
   assert.equal(result.selectedCardsShowInGrid, true);
   assert.deepEqual(result.playerHandAfterAutopick, ['astra','jade','ryuji','scarletta','umbriel'], 'the auto-picked hand must carry through into the actual battle correctly');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 68: Rivals wins now use FF8's own \"Direct\" trade rule -- the prize pool is the rival's cards actually PLACED this match plus any held card, and the player CHOOSES which one to claim when more than one is eligible", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+
+    // 4 of the rival's 5 cards were placed (1 -- 'odin' -- left unplaced in
+    // enemyHand), 0 held: a 4-candidate pool must open a CHOICE, excluding
+    // the unplaced card.
+    playerProgress = { points:0, lifetimePoints:0, campaignClearedOnce:true, earnedCards:{ gambler:1,vaelira:1,nyxara:1,seraphine:1,odin:1 }, opponentHeld:{} };
+    state.riskMatch = { opponentId:'gambler-rival', rule:'one', previousAiDifficulty:'normal' };
+    state.enemyHand = [ findCardById('odin') ];
+    resolveRiskMatch('blue');
+    out.choiceOpened = !!state.riskWinChoice;
+    out.choicePoolExcludesUnplaced = state.riskWinChoice && !state.riskWinChoice.pool.includes('odin');
+    out.choicePoolHasFour = state.riskWinChoice && state.riskWinChoice.pool.length === 4;
+    out.riskResultNullWhileChoicePending = state.riskResult === null;
+
+    chooseRiskWinCard('vaelira');
+    out.riskResultKindAfterChoice = state.riskResult && state.riskResult.kind;
+    out.riskResultCardIdAfterChoice = state.riskResult && state.riskResult.cardIds[0];
+    out.vaeliraCountAfterWin = playerProgress.earnedCards.vaelira;
+    out.choiceClearedAfterPick = state.riskWinChoice === null;
+
+    // Picking an id NOT in the pool must be a no-op (defensive guard).
+    playerProgress.earnedCards.nyxara = 1;
+    state.riskMatch = { opponentId:'gambler-rival', rule:'one', previousAiDifficulty:'normal' };
+    state.enemyHand = [ findCardById('odin') ];
+    resolveRiskMatch('blue');
+    const poolBeforeBadPick = state.riskWinChoice.pool.slice();
+    chooseRiskWinCard('this-is-not-in-the-pool');
+    out.badPickIgnored = state.riskWinChoice && JSON.stringify(state.riskWinChoice.pool) === JSON.stringify(poolBeforeBadPick);
+
+    // A held card is IN the combined pool too; picking it is a 'reclaimed'
+    // result (not 'won'), and decrements the held count.
+    playerProgress = { points:0, lifetimePoints:0, campaignClearedOnce:true, earnedCards:{ gambler:1,vaelira:1,nyxara:1,seraphine:1,odin:1 }, opponentHeld:{ 'gambler-rival': { tiamat: 1 } } };
+    state.riskMatch = { opponentId:'gambler-rival', rule:'one', previousAiDifficulty:'normal' };
+    state.enemyHand = [ findCardById('odin') ];
+    resolveRiskMatch('blue');
+    out.heldCardInPool = state.riskWinChoice && state.riskWinChoice.pool.includes('tiamat');
+    out.poolSizeWithHeld = state.riskWinChoice && state.riskWinChoice.pool.length;
+    chooseRiskWinCard('tiamat');
+    out.reclaimKindWhenPickingHeld = state.riskResult && state.riskResult.kind;
+    out.heldTiamatDecremented = playerProgress.opponentHeld['gambler-rival'].tiamat === 0;
+
+    // Full render/click wiring on the actual result screen.
+    playerProgress = { points:0, lifetimePoints:0, campaignClearedOnce:true, earnedCards:{ gambler:1,vaelira:1,nyxara:1,seraphine:1,odin:1 }, opponentHeld:{} };
+    state.riskMatch = { opponentId:'gambler-rival', rule:'one', previousAiDifficulty:'normal' };
+    state.enemyHand = [ findCardById('odin') ];
+    state.draftMode = 'risk';
+    state.phase = 'result';
+    state.winner = 'blue';
+    resolveRiskMatch('blue');
+    render();
+    out.choiceCardsRenderedInDOM = document.querySelectorAll('[data-riskchoice]').length === 4;
+    out.noRematchBtnWhileChoicePending = !document.getElementById('rematch-btn');
+    document.querySelector('[data-riskchoice]').click();
+    render();
+    out.rematchBtnAppearsAfterChoice = !!document.getElementById('rematch-btn');
+
+    return out;
+  })()`);
+  assert.equal(result.choiceOpened, true);
+  assert.equal(result.choicePoolExcludesUnplaced, true, "a rival card left unplaced in enemyHand must not be an eligible prize");
+  assert.equal(result.choicePoolHasFour, true);
+  assert.equal(result.riskResultNullWhileChoicePending, true, 'riskResult must stay null until the player actually picks');
+  assert.equal(result.riskResultKindAfterChoice, 'won');
+  assert.equal(result.riskResultCardIdAfterChoice, 'vaelira');
+  assert.equal(result.vaeliraCountAfterWin, 2);
+  assert.equal(result.choiceClearedAfterPick, true);
+  assert.equal(result.badPickIgnored, true, 'choosing an id outside the pool must be ignored, not corrupt the pending choice');
+  assert.equal(result.heldCardInPool, true, "a card the rival currently holds from the player must also be an eligible prize");
+  assert.equal(result.poolSizeWithHeld, 5);
+  assert.equal(result.reclaimKindWhenPickingHeld, 'reclaimed', 'picking a held card must be a reclaim, not a fresh win');
+  assert.equal(result.heldTiamatDecremented, true);
+  assert.equal(result.choiceCardsRenderedInDOM, true);
+  assert.equal(result.noRematchBtnWhileChoicePending, true, 'the rematch button must not appear until a prize is actually chosen');
+  assert.equal(result.rematchBtnAppearsAfterChoice, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
