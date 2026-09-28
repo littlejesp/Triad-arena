@@ -3186,6 +3186,20 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
 .risk-result-cards .card{ width:70px; }
 .risk-result-lost .card{ box-shadow:0 0 0 2px rgba(224,48,79,0.8), 0 0 10px 2px rgba(224,48,79,0.5); }
 .risk-result-reclaimed .card{ box-shadow:0 0 0 2px rgba(94,200,122,0.85), 0 0 10px 2px rgba(94,200,122,0.5); }
+/* A brand-new card WON from a rival's own hand (FF8's own "Direct" rule,
+   see resolveRiskMatch) is a genuinely new acquisition, not just getting
+   your own property back -- gold glow to read as a fresh win rather than
+   reusing reclaimed's green ("this was already yours"). */
+.risk-result-won .card{ box-shadow:0 0 0 2px rgba(201,162,39,0.9), 0 0 12px 3px rgba(201,162,39,0.6); }
+/* The post-win prize CHOICE screen (user's own follow-up: "spelas det
+   special kortet ska man kunna välja det också" -- you get to pick among
+   whichever of the rival's cards were actually PLACED this match, rather
+   than a blind random roll). Same card-tile sizing as the result cards
+   above; a gold hover cue since these tiles are actually clickable,
+   unlike every other use of .risk-result-cards which are purely display. */
+.risk-choice-label{ margin-top:10px; font-size:12px; color:var(--gold); }
+.risk-choice-cards .card{ cursor:pointer; transition:transform 0.15s ease; }
+.risk-choice-cards .card:hover{ transform:translateY(-4px); box-shadow:0 0 0 2px rgba(201,162,39,0.9), 0 0 14px 3px rgba(201,162,39,0.6); }
 
 .footer-note{ text-align:center; font-size:11px; color:var(--text-dim); margin-top:26px; opacity:0.7; }
 
@@ -6241,7 +6255,8 @@ let state = {
   rivalView: null,        // opponent id currently shown in the warning/wager-picker sub-view, or null for the opponent list
   rivalPicked: [],        // card ids currently picked in the wager picker (max 5), cleared when the modal closes
   riskMatch: null,        // { opponentId, rule, previousAiDifficulty } while a risk match is actually being played, see beginRiskMatch/resolveRiskMatch
-  riskResult: null,       // { kind:'lost'|'reclaimed', opponentName, cardNames, cardIds } — shown once on the result screen after a risk match, then cleared
+  riskResult: null,       // { kind:'lost'|'reclaimed'|'won', opponentName, cardNames, cardIds } — shown once on the result screen after a risk match, then cleared
+  riskWinChoice: null,    // { opponentId, pool:[ids] } -- set instead of riskResult when a win has more than one eligible prize card, so the player picks one on the result screen (see chooseRiskWinCard)
   showBag: false,         // true while the 🎒 My Bag modal (read-only browse of playerProgress.earnedCards) is open
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
@@ -8080,6 +8095,24 @@ function renderBattle(){
         </div>
         <button class="cta" id="campaign-retry-btn">Retry Stage</button>
       `;
+    } else if(state.riskWinChoice){
+      // Rivals win with more than one eligible prize card -- the player
+      // picks which one to claim instead of it being auto-rolled (see
+      // resolveRiskMatch's own comment). No rematch/continue button here
+      // on purpose: picking a card is what finalizes and re-renders into
+      // the normal result view below, which does have one.
+      const oppName = (RISK_OPPONENTS.find(o => o.id === state.riskWinChoice.opponentId) || {}).name || 'the rival';
+      const poolCards = state.riskWinChoice.pool.map(id => findCardById(id)).filter(Boolean);
+      resultHtml = `
+        <div class="result-banner">
+          <h2>${title}</h2>
+          <p>${sub}</p>
+          <div class="risk-choice-label">Choose your prize from ${oppName}'s hand:</div>
+          <div class="risk-result-cards risk-choice-cards">
+            ${poolCards.map(c => cardFace(c, { noInfo:true, clickable:true, dataAttr:`data-riskchoice="${c.id}"` })).join('')}
+          </div>
+        </div>
+      `;
     } else {
       // Fas 6 (design review #2): matchStats (Fas 4) was only ever shown
       // pre-match in the "Your record" panel -- a fresh win streak or a
@@ -8111,6 +8144,8 @@ function renderBattle(){
           statsLines.push(`⚔️ ${state.riskResult.opponentName} claimed ${state.riskResult.cardNames.join(', ')}!`);
         } else if(state.riskResult.kind === 'reclaimed'){
           statsLines.push(`⚔️ Reclaimed ${state.riskResult.cardNames.join(', ')} from ${state.riskResult.opponentName}!`);
+        } else if(state.riskResult.kind === 'won'){
+          statsLines.push(`⚔️ Won ${state.riskResult.cardNames.join(', ')} from ${state.riskResult.opponentName}!`);
         }
         // A text line alone made it easy to miss exactly WHICH of the 5
         // wagered cards was actually taken (user's own request: "man måste
@@ -8986,6 +9021,9 @@ function attachHandlers(){
     if(endTurnBtn) endTurnBtn.addEventListener('click', endPlayerTurn);
     const rematch = document.getElementById('rematch-btn');
     if(rematch) rematch.addEventListener('click', resetGame);
+    document.querySelectorAll('[data-riskchoice]').forEach(el=>{
+      el.addEventListener('click', ()=> chooseRiskWinCard(el.dataset.riskchoice));
+    });
     const concede = document.getElementById('concede-btn');
     if(concede) concede.addEventListener('click', resetGame);
     const campaignNext = document.getElementById('campaign-next-btn');
@@ -10256,12 +10294,28 @@ function beginRiskMatch(opponentId, cardIds){
 // Called from finishGame() once the normal win/loss bookkeeping is done.
 // A loss removes 1 copy of either all 5 or 1 (per the opponent's rule)
 // of the wagered cards from the player's earned pool into that
-// opponent's held pool. A win lets the player reclaim exactly one card
-// that opponent is currently holding from them, if any. A draw changes
+// opponent's held pool.
+//
+// A win uses FF8's own "Direct" trade rule (user's own explicit request,
+// "man har en chans att vinna just det kortet som i ff8"), refined by a
+// follow-up request ("spelas det special kortet ska man kunna välja det
+// också"): the prize pool is only the rival's cards that were actually
+// PLACED on the board this match (a 9-cell board can never fit both full
+// 5-card hands, so exactly one side always has a leftover unplaced card --
+// see the `unplaced` check below), plus any of the player's own cards
+// that rival currently holds from an earlier loss. If that pool has more
+// than one candidate, the player PICKS which one to claim on the result
+// screen (state.riskWinChoice, resolved by chooseRiskWinCard) instead of
+// it being randomly auto-assigned -- you saw them play it, so you get to
+// choose it. If picking the card lands on one the rival was holding, it
+// comes back to the player exactly like the old "reclaim" (held count
+// drops, riskResult.kind stays 'reclaimed'); if it's one of the rival's
+// own native cards, the player gains a brand-new copy of it (kind:'won'),
+// capped at EARNED_CARD_CAP like any other earned card. A draw changes
 // nothing (per the user's own "de kort man väljer" framing, a draw was
-// never described as a loss). Always clears state.riskMatch and
-// restores the difficulty the player had before challenging, win or
-// lose, so it never leaks into their next ordinary match.
+// never described as a loss). Always clears state.riskMatch and restores
+// the difficulty the player had before challenging, win or lose, so it
+// never leaks into their next ordinary match.
 function resolveRiskMatch(winner){
   const risk = state.riskMatch;
   if(!risk) return;
@@ -10269,6 +10323,7 @@ function resolveRiskMatch(winner){
   playerProgress.opponentHeld[risk.opponentId] = playerProgress.opponentHeld[risk.opponentId] || {};
   const held = playerProgress.opponentHeld[risk.opponentId];
   state.riskResult = null;
+  state.riskWinChoice = null;
 
   if(winner === 'red'){
     const wagered = state.selected.slice();
@@ -10281,17 +10336,46 @@ function resolveRiskMatch(winner){
     state.riskResult = { kind:'lost', opponentName: opp ? opp.name : '???', cardNames: lostNames, cardIds: lostIds };
   } else if(winner === 'blue'){
     const heldIds = Object.keys(held).filter(id => held[id] > 0);
-    if(heldIds.length > 0){
-      const reclaimId = heldIds[Math.floor(Math.random() * heldIds.length)];
-      held[reclaimId]--;
-      playerProgress.earnedCards[reclaimId] = Math.min(EARNED_CARD_CAP, (playerProgress.earnedCards[reclaimId] || 0) + 1);
-      state.riskResult = { kind:'reclaimed', opponentName: opp ? opp.name : '???', cardNames:[findCardById(reclaimId)?.name || reclaimId], cardIds:[reclaimId] };
+    const unplaced = new Set(state.enemyHand.map(c => c.id));
+    const playedIds = (opp ? opp.enemyIds : []).filter(id => !unplaced.has(id));
+    const prizePool = playedIds.concat(heldIds);
+    if(prizePool.length === 1){
+      applyRiskWin(risk.opponentId, prizePool[0]);
+    } else if(prizePool.length > 1){
+      state.riskWinChoice = { opponentId: risk.opponentId, pool: prizePool };
     }
   }
 
   state.aiDifficulty = risk.previousAiDifficulty;
   state.riskMatch = null;
   savePlayerProgress();
+}
+
+// The actual card-award bookkeeping for a Rivals win -- shared by
+// resolveRiskMatch's own "only one candidate" auto-award path and the
+// player's manual pick via chooseRiskWinCard below.
+function applyRiskWin(opponentId, wonId){
+  const opp = RISK_OPPONENTS.find(o => o.id === opponentId);
+  playerProgress.opponentHeld[opponentId] = playerProgress.opponentHeld[opponentId] || {};
+  const held = playerProgress.opponentHeld[opponentId];
+  const wasHeld = held[wonId] > 0;
+  if(wasHeld) held[wonId]--;
+  playerProgress.earnedCards[wonId] = Math.min(EARNED_CARD_CAP, (playerProgress.earnedCards[wonId] || 0) + 1);
+  state.riskResult = {
+    kind: wasHeld ? 'reclaimed' : 'won',
+    opponentName: opp ? opp.name : '???',
+    cardNames: [findCardById(wonId)?.name || wonId],
+    cardIds: [wonId],
+  };
+  state.riskWinChoice = null;
+}
+
+// Wired to the result screen's prize-choice cards (see renderBattle()).
+function chooseRiskWinCard(wonId){
+  if(!state.riskWinChoice || !state.riskWinChoice.pool.includes(wonId)) return;
+  applyRiskWin(state.riskWinChoice.opponentId, wonId);
+  savePlayerProgress();
+  render();
 }
 
 // Leaderboard (Fas 26): a real cross-device leaderboard needs a stable
@@ -15075,7 +15159,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, riskWinChoice:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,

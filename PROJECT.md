@@ -6005,6 +6005,45 @@ orelaterat men högre-tier kort (Dragon) valdes bort trots inga egna
 synergier — och den auto-valda handen fungerar korrekt hela vägen genom
 `beginRiskMatch`/`startBattle()`. Hela testsviten grön: **201/201**.
 
+**Fas 68. Rivals-vinster byggdes om till FF8:s egen "Direct"-regel, med
+ett tillägg: spelaren VÄLJER priset.** Användaren frågade varför en
+vinst mot Tiamat inte gav något speciellt kort (typ Astra) — svaret var
+att Rivals bara någonsin lät dig ÅTERTA dina egna tidigare förlorade
+kort, aldrig vinna av rivalens EGNA kort. Föreslog att ändra det till
+FF8:s "Direct"-regel (en vinst flyttar ett kort från förlorarens hand);
+användaren sa ja, och la sedan till en egen nyans: "spelas det special
+kortet ska man kunna välja det också" — inte bara slumpas, utan väljas
+bland de kort rivalen FAKTISKT spelade den matchen.
+
+**Ny prispool-logik i `resolveRiskMatch`**: vid vinst byggs poolen av
+(a) rivalens egna kort som faktiskt PLACERADES på brädet den matchen
+(ett 9-rutors bräde kan aldrig rymma båda sidors fulla 5-korts-händer,
+så exakt ETT kort blir alltid kvar oplacerat — filtreras bort via
+`state.enemyHand` vid matchslut) plus (b) alla kort spelaren själv
+förlorat till just den rivalen sen tidigare (samma "held"-koncept som
+förut). Om poolen bara har EN kandidat tilldelas den direkt (ny
+hjälpfunktion `applyRiskWin`, delad logik). Har poolen FLERA kandidater
+öppnas istället ett nytt val-steg på resultatskärmen
+(`state.riskWinChoice`), där spelaren klickar det kort de vill ha —
+`chooseRiskWinCard(id)` slutför då samma `applyRiskWin`-bokföring.
+Landar valet på ett kort rivalen höll från en tidigare förlust blir
+resultatet `'reclaimed'` (som förut); landar det på ett av rivalens
+egna kort blir det en helt ny `'won'`-status, med egen guldfärgad glöd
+(`.risk-result-won`) skild från "reclaimed"s gröna för att tydligt visa
+att det är en ny vinst, inte bara återfått eget.
+
+Ingen "Draft Again"-knapp visas förrän spelaren faktiskt valt sitt pris
+— tvingar fram valet istället för att kunna klicka förbi det. Två
+befintliga tester (Fas 32-steg-3 och Fas 62) byggde på gamla, odeklarerade
+`state.enemyHand`-antaganden och behövde uppdateras för att explicit
+sätta vilka kort som "spelats" i respektive scenario. Nytt Fas 68-test
+täcker hela flödet: poolen exkluderar korrekt det oplacerade kortet,
+en enkel-kandidat-vinst auto-tilldelas utan att öppna ett val, ett
+ogiltigt val ignoreras (skadar inte det väntande valet), ett återtaget
+kort ger `'reclaimed'` och minskar `held`-räkningen, och hela
+render/klick-kedjan på riktiga resultatskärmen fungerar (inget
+"Draft Again" förrän valet är gjort). Hela testsviten grön: **202/202**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
