@@ -9591,9 +9591,12 @@ test('Gameplay aids (Easy/Normal only, user-requested "extra hjälpmedel"): the 
     out.comboHardEmpty = getComboChainCells().size;
 
     // Reset for the combo-glow check: a real registered card (Cave Ogre)
-    // as the caster, surrounded by four synthetic enemies whose facing
-    // edge exactly matches the ogre's own -- a real, deterministic 4-way
-    // Same capture reaching BIG_COMBO_CHAIN_THRESHOLD in one hop.
+    // as the caster, surrounded by THREE synthetic enemies whose facing
+    // edge exactly matches the ogre's own -- a real, deterministic 3-way
+    // Same capture reaching BIG_COMBO_CHAIN_THRESHOLD (3) but staying
+    // BELOW CRAZY_COMBO_HEXAGON_THRESHOLD (4), so this still exercises the
+    // plain ring tier specifically (see the dedicated hexagon-tier test
+    // for the 4+ case).
     state.rules.same = true;
     state.rules.combo = true;
     state.board = Array(9).fill(null);
@@ -9601,13 +9604,12 @@ test('Gameplay aids (Easy/Normal only, user-requested "extra hjälpmedel"): the 
     state.board[1] = mk(1, 1, 8, 1); // bottom 8 matches ogre's top 8
     state.board[3] = mk(1, 4, 1, 1); // right 4 matches ogre's left 4
     state.board[5] = mk(1, 1, 1, 5); // left 5 matches ogre's right 5
-    state.board[7] = mk(8, 1, 1, 1); // top 8 matches ogre's bottom 8
     state.pendingCard = 'ogre';
     state.aiDifficulty = 'normal';
-    out.comboNormal = Array.from(getComboChainCells());
+    out.comboNormal = Array.from(getComboChainCells().keys());
 
     state.aiDifficulty = 'hard';
-    out.comboHard = Array.from(getComboChainCells());
+    out.comboHard = Array.from(getComboChainCells().keys());
     out.suggestedHardOnComboBoard = getSuggestedPlacementCell();
 
     // Full render wiring: cell 4 should carry BOTH the suggested-ring and
@@ -9626,7 +9628,7 @@ test('Gameplay aids (Easy/Normal only, user-requested "extra hjälpmedel"): the 
   assert.equal(result.suggestedNormal, 3, 'the only cell that actually captures (index 3) must be the suggested one');
   assert.equal(result.suggestedHard, null, 'no suggestion at all on Hard difficulty');
   assert.equal(result.comboHardEmpty, 0, 'no combo glow at all on Hard difficulty');
-  assert.deepEqual(result.comboNormal, [4], 'the 4-way Same capture cell must glow -- it reaches BIG_COMBO_CHAIN_THRESHOLD in a single hop');
+  assert.deepEqual(result.comboNormal, [4], 'the 3-way Same capture cell must glow -- it reaches BIG_COMBO_CHAIN_THRESHOLD in a single hop');
   assert.deepEqual(result.comboHard, [], 'the combo glow must also be fully suppressed on Hard, even though the same board would glow on Normal');
   assert.equal(result.suggestedHardOnComboBoard, null);
   assert.equal(result.htmlHasSuggestedRingNormal, 1);
@@ -12977,6 +12979,129 @@ test("Fas 63: My Bag's card-info popup now has prev/next browsing arrows (wrappi
   assert.equal(result.prevWrapsToLast, true, 'the prev arrow must wrap around to the last card, not dead-end at the first');
   assert.equal(result.listClearedOnClose, true);
   assert.equal(result.noArrowsOutsideBag, true, 'browsing arrows must only appear when the card was opened from My Bag');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 64: BIG_COMBO_CHAIN_THRESHOLD lowered 4 -> 3 -- the golden \"crazy combo\" hint ring now lights up for a 3-card Same/Plus/Combo chain (not just 4+), and an actual 3-flip placement still triggers chainShake", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    out.thresholdIsNow3 = BIG_COMBO_CHAIN_THRESHOLD === 3;
+
+    state.rules.same = true; state.rules.plus = false; state.rules.combo = true;
+    state.turn = 'blue';
+    state.phase = 'battle';
+    state.placedThisTurn = false;
+    state.ultimateBanner = null;
+    state.aiDifficulty = 'normal';
+    state.board = Array(9).fill(null);
+    // Cave Ogre (top8/right5/bottom8/left4) with only THREE of its four
+    // neighbors present/matching (cell 7 left empty) -- a real 3-way Same
+    // chain, one short of the OLD threshold of 4.
+    const mk = (top, right, bottom, left) => ({ card: { id:'synth', name:'Synth', top, right, bottom, left }, owner:'red', captureBonus:0 });
+    state.board[1] = mk(1, 1, 8, 1); // bottom 8 matches ogre's top 8
+    state.board[3] = mk(1, 4, 1, 1); // right 4 matches ogre's left 4
+    state.board[5] = mk(1, 1, 1, 5); // left 5 matches ogre's right 5
+    state.pendingCard = 'ogre';
+    out.hintCellsForThreeChain = Array.from(getComboChainCells().keys());
+
+    // Placing it for real must actually flip all three AND trigger chainShake.
+    state.playerHand = [{ id:'ogre', name:'Cave Ogre', top:8, right:5, bottom:8, left:4 }];
+    state.enemyHand = [];
+    state.chainShake = false;
+    placeCard(4, 'ogre', 'blue');
+    out.threeFlipped = [1,3,5].every(i => state.board[i].owner === 'blue');
+    out.chainShakeFiredFor3 = state.chainShake === true;
+
+    return out;
+  })()`);
+  assert.equal(result.thresholdIsNow3, true);
+  assert.deepEqual(result.hintCellsForThreeChain, [4], 'the combo-hint ring must light up cell 4 for a 3-way Same chain now that the threshold is 3');
+  assert.equal(result.threeFlipped, true);
+  assert.equal(result.chainShakeFiredFor3, true, 'an actual 3-flip chain must trigger chainShake, matching what the hint promised');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 65: CRAZY_COMBO_HEXAGON_THRESHOLD -- a chain of 4+ gets the wilder spinning-hexagon hint instead of the calmer ring (same golden light, different shape), while a 3-chain still gets the plain ring", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    state.rules.same = true; state.rules.plus = false; state.rules.combo = true;
+    state.turn = 'blue';
+    state.phase = 'battle';
+    state.placedThisTurn = false;
+    state.ultimateBanner = null;
+    state.aiDifficulty = 'normal';
+    const mk = (top, right, bottom, left) => ({ card: { id:'synth', name:'Synth', top, right, bottom, left }, owner:'red', captureBonus:0 });
+
+    // Exactly 3 matching neighbors -- must stay the plain ring.
+    state.board = Array(9).fill(null);
+    state.board[1] = mk(1, 1, 8, 1);
+    state.board[3] = mk(1, 4, 1, 1);
+    state.board[5] = mk(1, 1, 1, 5);
+    state.pendingCard = 'ogre';
+    out.threeChainSize = getComboChainCells().get(4);
+    let html = renderBattle();
+    out.threeChainHasRing = html.includes('class="combo-hint-ring"');
+    out.threeChainHasHexagon = html.includes('class="combo-hint-hexagon"');
+
+    // All 4 matching neighbors -- must upgrade to the hexagon.
+    state.board[7] = mk(8, 1, 1, 1);
+    out.fourChainSize = getComboChainCells().get(4);
+    html = renderBattle();
+    out.fourChainHasHexagon = html.includes('class="combo-hint-hexagon"');
+    out.fourChainHasRing = html.includes('class="combo-hint-ring"');
+
+    return out;
+  })()`);
+  assert.equal(result.threeChainSize, 3);
+  assert.equal(result.threeChainHasRing, true, 'a 3-chain must still show the plain ring');
+  assert.equal(result.threeChainHasHexagon, false, 'a 3-chain must NOT show the hexagon');
+  assert.equal(result.fourChainSize, 4);
+  assert.equal(result.fourChainHasHexagon, true, 'a 4+ chain must show the hexagon instead');
+  assert.equal(result.fourChainHasRing, false, 'a 4+ chain must NOT also show the plain ring on the same cell');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 66: critical bug fix -- startBattle() used to silently drop any selected card that wasn't in HEROES, so wagering pack-exclusive cards in a Rivals match (or picking them in Campaign, Fas 62) meant fewer than 5 cards actually ended up in the player's hand", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+
+    // All 5 wagered cards are pack-exclusive (the exact Rivals scenario
+    // that triggered the user's real bug report: "jag valde 5 kort men
+    // fick bara två kort i handen").
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards: { astra:1, umbriel:1, jade:1, ryuji:1, hayato:1 }, campaignClearedOnce: true, opponentHeld: {} };
+    state.riskMatch = { opponentId: 'mystic-rival', rule: 'all', previousAiDifficulty: 'easy' };
+    state.draftMode = 'risk';
+    state.selected = ['astra','umbriel','jade','ryuji','hayato'];
+    startBattle();
+    out.allPackExclusiveHandCount = state.playerHand.length;
+    out.allPackExclusiveIds = state.playerHand.map(c => c.id).sort();
+
+    // A mix of HEROES + pack-exclusive selections must ALL survive too.
+    state.riskMatch = null;
+    state.draftMode = 'random';
+    state.selected = ['bahamut', 'sarah', 'astra', 'umbriel', 'jade'];
+    startBattle();
+    out.mixedHandCount = state.playerHand.length;
+    out.mixedHandIds = state.playerHand.map(c => c.id).sort();
+
+    // Plain HEROES-only selection must be completely unaffected.
+    state.selected = ['bahamut', 'sarah', 'zaevir', 'vayra', 'darien'];
+    startBattle();
+    out.plainHeroesHandCount = state.playerHand.length;
+
+    return out;
+  })()`);
+  assert.equal(result.allPackExclusiveHandCount, 5, 'wagering 5 pack-exclusive cards must put all 5 in the actual playing hand, not silently drop them');
+  assert.deepEqual(result.allPackExclusiveIds, ['astra','hayato','jade','ryuji','umbriel']);
+  assert.equal(result.mixedHandCount, 5, 'a mix of HEROES and pack-exclusive selections must all survive into the hand');
+  assert.deepEqual(result.mixedHandIds, ['astra','bahamut','jade','sarah','umbriel']);
+  assert.equal(result.plainHeroesHandCount, 5, 'a plain HEROES-only selection must be unaffected');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

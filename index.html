@@ -2977,6 +2977,19 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   animation:comboHintSpin 1.8s linear infinite;
 }
 @keyframes comboHintSpin{ to{ transform:rotate(360deg); } }
+/* Same golden light as the ring above, but for a chain reaching
+   CRAZY_COMBO_HEXAGON_THRESHOLD -- shaped as a hexagon outline (a real
+   inline SVG stroke, not a masked gradient, since a true hexagon RING
+   isn't expressible with the ring's own box-geometry mask trick) and
+   spinning twice as fast ("snurrar hej vilt", the user's own words) to
+   read as a bigger, wilder moment than the calmer 3-chain ring. */
+.combo-hint-hexagon{
+  position:absolute; inset:-6px; z-index:4; pointer-events:none;
+  animation:comboHexagonSpin 0.9s linear infinite;
+  filter:drop-shadow(0 0 6px rgba(255,208,90,0.85));
+}
+.combo-hint-hexagon polygon{ fill:none; stroke:#ffe08a; stroke-width:6; }
+@keyframes comboHexagonSpin{ to{ transform:rotate(360deg); } }
 .cell .card{ position:absolute; inset:0; width:100%; height:100%; cursor:default; }
 .cell .card.placing{ animation: cardLand calc(.48s * var(--fx-speed,1)) cubic-bezier(.22,1.6,.4,1); }
 @keyframes cardLand{
@@ -7219,7 +7232,11 @@ function boardCellHtml(cell, i, previewVulnerable, suggestedCell, comboHintCells
   // placeTargetable too as a defensive belt-and-braces (getSuggestedPlacementCell/
   // getComboChainCells already only ever consider empty, legal cells).
   const isSuggested = placeTargetable && suggestedCell === i;
-  const isComboHint = placeTargetable && comboHintCells && comboHintCells.has(i);
+  const comboChainSize = placeTargetable && comboHintCells ? comboHintCells.get(i) : undefined;
+  const isComboHint = comboChainSize !== undefined;
+  // The bigger of the two hint tiers -- see CRAZY_COMBO_HEXAGON_THRESHOLD's
+  // own comment.
+  const isCrazyHexagonHint = isComboHint && comboChainSize >= CRAZY_COMBO_HEXAGON_THRESHOLD;
   const cellClass = `${placeTargetable ? 'targetable':''} ${capturePreview && capturePreview.captures > 0 ? 'would-capture':''} ${specialTargetable ? 'special-target':''} ${isVulnerable ? 'preview-vulnerable':''}`;
   const ghost = !cell && state.destroyGhosts.find(g => g.index === i);
   return `
@@ -7234,7 +7251,9 @@ function boardCellHtml(cell, i, previewVulnerable, suggestedCell, comboHintCells
         }) : (ghost ? cardFace(ghost.card, { owner:ghost.owner, destroyed:true, noInfo:true }) : `<div class="cell-rune" aria-hidden="true" style="animation-delay:${(i % 9) * -0.7}s;"></div>`)}
       ${capturePreview && capturePreview.captures > 0 ? `<div class="capture-badge">⚔ ${capturePreview.captures}</div>` : ''}
       ${cell && cell.justFlipped ? `<img class="conquered-badge-small" src="conquered-badge${cell.owner === 'red' ? '-red' : ''}.png" alt="Conquered" aria-hidden="true" style="animation-delay:${cell.fxDelay || 0}ms;">` : ''}
-      ${isComboHint ? `<div class="combo-hint-ring" aria-hidden="true"></div>` : ''}
+      ${isComboHint ? (isCrazyHexagonHint
+        ? `<svg class="combo-hint-hexagon" viewBox="0 0 100 100" aria-hidden="true"><polygon points="50,4 93,27 93,73 50,96 7,73 7,27"></polygon></svg>`
+        : `<div class="combo-hint-ring" aria-hidden="true"></div>`) : ''}
       ${isSuggested ? `<div class="suggested-ring" aria-hidden="true"></div><div class="suggested-badge" aria-hidden="true">💡</div>` : ''}
     </div>
   `;
@@ -9027,7 +9046,17 @@ function campaignStatBoost(card, amount){
 }
 
 function startBattle(){
-  const chosenHeroes = HEROES.filter(h => state.selected.includes(h.id));
+  // Real, previously-uncaught bug: this used to be HEROES.filter(...),
+  // which silently DROPPED any selected card that wasn't in HEROES --
+  // meaning any pack-exclusive card wagered in a Rivals match (the whole
+  // point of earning one), or now also picked in Campaign (Fas 62), never
+  // made it into the actual playing hand. User's own bug report: "jag
+  // valde 5 kort men fick bara två kort i handen" -- exactly what happens
+  // when 3 of 5 selected ids are pack-exclusive and get filtered out here.
+  // findCardById resolves HEROES/FOREST_FOES/PACK_EXCLUSIVE_CARDS alike,
+  // and .map+.filter(Boolean) preserves state.selected's own ids (order
+  // doesn't matter either way since the very next line shuffles it).
+  const chosenHeroes = state.selected.map(id => findCardById(id)).filter(Boolean);
   state.playerHand = shuffle(chosenHeroes.slice());
   const campaignStage = state.draftMode === 'campaign' ? currentCampaignStage() : null;
   const riskOpponent = state.riskMatch ? RISK_OPPONENTS.find(o => o.id === state.riskMatch.opponentId) : null;
@@ -11123,8 +11152,14 @@ const ON_PLACE_HANDLERS = {
 // moment -- triggers placeCard's own chainShake below, and is reused
 // verbatim by the "crazy combo" placement hint (getComboChainCells) so a
 // cell the hint promised would be a big chain always actually shakes the
-// screen when you play it.
-const BIG_COMBO_CHAIN_THRESHOLD = 4;
+// screen when you play it. Lowered 4 -> 3 on the user's own request: the
+// golden combo-hint-ring (see its own CSS comment) wasn't lighting up for
+// a 3-card chain, which felt big enough to deserve it.
+const BIG_COMBO_CHAIN_THRESHOLD = 3;
+// A second, higher tier on top of the above: a chain THIS big or bigger
+// gets the wilder spinning-hexagon hint instead of the calmer ring (same
+// golden light, different shape) -- user's own follow-up request.
+const CRAZY_COMBO_HEXAGON_THRESHOLD = 4;
 
 function placeCard(cellIndex, cardId, owner){
   const hand = owner === 'blue' ? state.playerHand : state.enemyHand;
@@ -14065,9 +14100,14 @@ function getSuggestedPlacementCell(){
 // placeCard) -- so the glow always keeps its promise. Uses
 // simulatePlacementDetailed (the same safe, non-mutating simulation the
 // AI's own search already relies on) purely for its sameOrPlus/combo
-// breakdown, never for the resulting board itself.
+// breakdown, never for the resulting board itself. Returns a Map of
+// index -> chain size (not just a Set of indices) so boardCellHtml can
+// pick the right visual tier -- the user's own follow-up request: a
+// bigger chain (>= CRAZY_COMBO_HEXAGON_THRESHOLD) gets the same golden
+// light but shaped as a wildly-spinning hexagon instead of the calmer
+// circular ring.
 function getComboChainCells(){
-  const glowing = new Set();
+  const glowing = new Map();
   if(!aidsEnabled()) return glowing;
   if(!state.rules.combo || !(state.rules.same || state.rules.plus)) return glowing;
   const card = findCardById(state.pendingCard);
@@ -14075,7 +14115,8 @@ function getComboChainCells(){
   state.board.forEach((cell, i) => {
     if(cell) return;
     const { sameOrPlus, combo } = simulatePlacementDetailed(state.board, i, card, 'blue');
-    if(sameOrPlus + combo >= BIG_COMBO_CHAIN_THRESHOLD) glowing.add(i);
+    const chainSize = sameOrPlus + combo;
+    if(chainSize >= BIG_COMBO_CHAIN_THRESHOLD) glowing.set(i, chainSize);
   });
   return glowing;
 }
