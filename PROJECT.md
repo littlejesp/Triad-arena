@@ -5918,6 +5918,59 @@ aldrig tar slut. Verifierad med Playwright (ordning matchar bagens
 egen, wrap fungerar, inga pilar utanför My Bag) plus en
 skärmdumpskontroll. Hela testsviten grön: **197/197**.
 
+**Fas 64. `BIG_COMBO_CHAIN_THRESHOLD` sänkt 4 → 3.** Användaren
+undrade varför den gyllene, svirvlande "galen combo"-ringen (som
+tänds runt en ruta INNAN man placerar, om placeringen skulle utlösa
+en stor Same/Plus/Combo-kedja) inte tändes vid en kedja på exakt 3
+kort. Svaret: tröskeln var hårdkodad till 4. Sänkt till 3 — samma
+konstant styr både förhandsvisnings-ringen och den faktiska
+skärmskakningen (`chainShake`) vid en riktig placering, så de förblir
+synkade (ringen lovar aldrig något placeringen sedan inte håller).
+Inga befintliga tester bröts (ingen testade tidigare exakt
+gränsvärdet 3 vs 4), men ett par tester som råkade använda en 4-kedja
+för att testa "vanliga" ringen fick flyttas till en riktig 3-kedja i
+Fas 65 nedan, eftersom en 4-kedja nu tillhör NÄSTA tier. Hela
+testsviten grön: **198/198**.
+
+**Fas 65. Ny eskaleringsnivå: en snurrande hexagon för kedjor på 4+.**
+Direkt uppföljning: "när det är minst 4 kort som flippas så ska det
+vara samma ljus som ett hexagon som snurrar hej vilt". Ny konstant
+`CRAZY_COMBO_HEXAGON_THRESHOLD = 4`. `getComboChainCells()` returnerar
+nu en `Map<rutindex, kedjestorlek>` istället för en ren `Set` (samma
+`.has()`/`.size`-API bevarat för bakåtkompatibilitet, men
+`Array.from(...)` måste nu skrivas `Array.from(map.keys())` — två
+befintliga testställen uppdaterade). Vid kedjestorlek ≥ 4 renderas en
+riktig inline-SVG hexagon-kontur (`<polygon>` med `stroke`, ingen
+`fill`) istället för `.combo-hint-ring` — provade CSS-mask-tricket
+ringen använder (content-box-urklipp XORat mot hela boxen) men det
+fungerar bara för rektangulära/rundade former, inte en godtycklig
+hexagon, så SVG-stroke blev den enkla, robusta lösningen. Samma
+guldfärg (`#ffe08a`) för visuell kontinuitet, men snurrar dubbelt så
+fort (0.9s mot ringens 1.8s) för att kännas "vildare". Verifierat att
+en 3-kedja fortfarande ger ringen och en 4-kedja ger hexagonen, aldrig
+båda samtidigt på samma ruta. Hela testsviten grön: **199/199**.
+
+**Fas 66. Kritisk bugg fixad: `startBattle()` tappade tyst
+pack-exklusiva kort ur handen.** Användaren rapporterade: "Jag valde 5
+kort men fick bara två kort i handen, innan de hade jag bara 3st" —
+en riktig, allvarlig bugg jag kunde reproducera exakt.
+`startBattle()`s handbygge var `HEROES.filter(h =>
+state.selected.includes(h.id))` — vilket bara någonsin matchat kort
+som finns i `HEROES`-arrayen. Varje gång `state.selected` innehöll ett
+PACK-EXKLUSIVT kort (vilket är HELA poängen med att satsa dem i
+Rivals, och numera även möjligt i Campaign sedan Fas 62) föll det kortet
+tyst bort ur den faktiska spelhanden. Detta hade sannolikt ALLTID
+varit trasigt för Rivals — ett befintligt test (Fas 32) råkade bara
+satsa fem HEROES-kort och missade därför buggen helt.
+
+Reproducerat direkt: satsade 5 pack-exklusiva kort mot "The Mystic
+Vanguard" → `state.playerHand.length` blev **0**, inte 5. Fixat genom
+att byta till `state.selected.map(id => findCardById(id)).filter(Boolean)`
+— `findCardById` känner igen HEROES/FOREST_FOES/PACK_EXCLUSIVE_CARDS
+oavsett källa. Verifierat: rent pack-exklusivt val (5/5), blandat
+HEROES+pack-kort (5/5), och ren HEROES-only Random Draft (oförändrat,
+5/5). Hela testsviten grön: **200/200**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
