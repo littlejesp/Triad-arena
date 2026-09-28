@@ -3162,6 +3162,17 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
    it happens instead of only in the pre-match "Your record" panel. */
 .result-stats{ margin-top:8px; padding-top:8px; border-top:1px solid rgba(201,162,39,0.25); font-size:12px; color:var(--gold); }
 .result-stats div + div{ margin-top:3px; }
+/* The actual card face(s) lost to / reclaimed from a Rivals opponent,
+   shown alongside the text line above -- user's own request to clearly
+   SEE which card was taken, not just read its name in a sentence. Red glow
+   for a loss, green for a reclaim; each tile is a plain small .card (same
+   cardFace() markup used everywhere else), just capped narrower here so 5
+   losses from an "ALL" rival still fit in one row without overflowing the
+   result banner. */
+.risk-result-cards{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px; }
+.risk-result-cards .card{ width:70px; }
+.risk-result-lost .card{ box-shadow:0 0 0 2px rgba(224,48,79,0.8), 0 0 10px 2px rgba(224,48,79,0.5); }
+.risk-result-reclaimed .card{ box-shadow:0 0 0 2px rgba(94,200,122,0.85), 0 0 10px 2px rgba(94,200,122,0.5); }
 
 .footer-note{ text-align:center; font-size:11px; color:var(--text-dim); margin-top:26px; opacity:0.7; }
 
@@ -3171,6 +3182,17 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   background:rgba(4,3,9,0.86); backdrop-filter:blur(2px);
   display:flex; align-items:center; justify-content:center; padding:24px 16px;
 }
+/* The card-detail popup (opened via any "i" button, including the ones
+   inside My Bag/Packs/Rivals/Graveyard) must always render ON TOP of
+   whichever other modal it was opened from -- it shares the same
+   .modal-overlay z-index (50) as every other modal, and render() happens
+   to append it EARLIER in the DOM than My Bag/Packs/Rivals, so at equal
+   z-index it was painting BEHIND them instead of in front. Real bug the
+   user hit in practice (tapped "i" on a card inside My Bag, the detail
+   popup opened invisibly behind it). #modal-overlay (its own unique id,
+   unlike the other modals' *-overlay ids) gets a higher z-index so this
+   holds regardless of DOM order. */
+#modal-overlay{ z-index:60; }
 .modal-poster{
   width:100%; max-width:420px; max-height:92vh; overflow-y:auto;
   background:var(--void-2); border:1px solid var(--gold); border-radius:16px;
@@ -3183,6 +3205,22 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   font-size:15px; display:flex; align-items:center; justify-content:center; cursor:pointer;
 }
 .modal-close:hover{ border-color:var(--gold); color:var(--gold-bright); }
+
+/* Prev/next browsing arrows for the card-detail popup (My Bag only for
+   now -- see openCardModal's own comment). Siblings of .modal-poster
+   inside #modal-overlay, so they sit fixed at the edges of the screen
+   (lightbox-style) rather than hugging the poster itself, which stays
+   centered and unchanged either way. */
+.modal-nav{
+  position:absolute; top:50%; transform:translateY(-50%); z-index:9;
+  width:40px; height:40px; border-radius:50%;
+  background:rgba(4,3,9,0.75); border:1px solid rgba(255,255,255,0.35); color:#fff;
+  font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; user-select:none;
+}
+.modal-nav:hover{ border-color:var(--gold); color:var(--gold-bright); }
+.modal-nav-prev{ left:12px; }
+.modal-nav-next{ right:12px; }
 
 .poster-art{
   position:relative; width:100%; aspect-ratio:3/4;
@@ -6176,6 +6214,7 @@ let state = {
   log: 'Choose the five champions who will carry your banner.',
   winner: null,
   viewingCard: null,      // card object currently shown in the detail modal
+  viewingCardList: null,  // ordered array of card ids to browse with prev/next arrows (My Bag only for now), or null for no arrows
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
@@ -6189,7 +6228,7 @@ let state = {
   rivalView: null,        // opponent id currently shown in the warning/wager-picker sub-view, or null for the opponent list
   rivalPicked: [],        // card ids currently picked in the wager picker (max 5), cleared when the modal closes
   riskMatch: null,        // { opponentId, rule, previousAiDifficulty } while a risk match is actually being played, see beginRiskMatch/resolveRiskMatch
-  riskResult: null,       // { kind:'lost'|'reclaimed', opponentName, cardNames } — shown once on the result screen after a risk match, then cleared
+  riskResult: null,       // { kind:'lost'|'reclaimed', opponentName, cardNames, cardIds } — shown once on the result screen after a risk match, then cleared
   showBag: false,         // true while the 🎒 My Bag modal (read-only browse of playerProgress.earnedCards) is open
   winsPopup: null,        // { owner, amount } — transient "+N Wins!" toast
   chainShake: false,      // true briefly after a large Same/Plus/Combo chain (see placeCard) — .arena-frame.chain-shake
@@ -6229,13 +6268,19 @@ function findCardById(id){
   return HEROES.find(h => h.id === id) || FOREST_FOES.find(f => f.id === id) || PACK_EXCLUSIVE_CARDS.find(c => c.id === id) || null;
 }
 
-function openCardModal(id){
+// listIds (optional): the ordered card ids to browse with the modal's
+// prev/next arrows -- user's own request, after opening a card from My Bag
+// and wanting to flip through the rest without closing and reopening each
+// time. Omitted/null everywhere else (hand, board, campaign picker, etc.)
+// keeps today's behavior, no arrows shown.
+function openCardModal(id, listIds){
   const card = findCardById(id);
-  if(card){ state.viewingCard = card; state.showRulebook = false; render(); }
+  if(card){ state.viewingCard = card; state.viewingCardList = listIds || null; state.showRulebook = false; render(); }
 }
 
 function closeCardModal(){
   state.viewingCard = null;
+  state.viewingCardList = null;
   render();
 }
 
@@ -6653,8 +6698,22 @@ function renderModal(){
        <div class="poster-stars-plain">${'★'.repeat(cardLevel(c))}</div>`
     : '';
 
+  // Prev/next browsing (My Bag only today -- see openCardModal's own
+  // comment). Wraps around at either end so "bläddra" never dead-ends.
+  const navList = state.viewingCardList;
+  let navHtml = '';
+  if(navList && navList.length > 1){
+    const idx = navList.indexOf(c.id);
+    const prevId = navList[(idx - 1 + navList.length) % navList.length];
+    const nextId = navList[(idx + 1) % navList.length];
+    navHtml = `
+      <button class="modal-nav modal-nav-prev" id="modal-nav-prev" data-nav="${prevId}" title="Previous card">‹</button>
+      <button class="modal-nav modal-nav-next" id="modal-nav-next" data-nav="${nextId}" title="Next card">›</button>`;
+  }
+
   return `
     <div class="modal-overlay" id="modal-overlay">
+      ${navHtml}
       <div class="modal-poster">
         <button class="modal-close" id="modal-close">✕</button>
         ${artBlock}
@@ -7106,7 +7165,7 @@ function renderCampaignPanel(){
     <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
     <div class="section-label">Choose exactly five champions</div>
     <div class="draft-grid">
-      ${poolIds.map(id => HEROES.find(h=>h.id===id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true, unlocked: campaignProgress.unlocked.includes(h.id) })).join('')}
+      ${poolIds.map(id => findCardById(id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true, unlocked: campaignProgress.unlocked.includes(h.id) })).join('')}
     </div>
     <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
   `;
@@ -8026,11 +8085,25 @@ function renderBattle(){
       // Progression step 3: the result of a just-finished risk match (see
       // resolveRiskMatch) -- lost wagered cards, or a reclaimed one --
       // surfaced the same way every other post-match payoff line above is.
+      let riskResultCardsHtml = '';
       if(state.riskResult){
         if(state.riskResult.kind === 'lost'){
           statsLines.push(`⚔️ ${state.riskResult.opponentName} claimed ${state.riskResult.cardNames.join(', ')}!`);
         } else if(state.riskResult.kind === 'reclaimed'){
           statsLines.push(`⚔️ Reclaimed ${state.riskResult.cardNames.join(', ')} from ${state.riskResult.opponentName}!`);
+        }
+        // A text line alone made it easy to miss exactly WHICH of the 5
+        // wagered cards was actually taken (user's own request: "man måste
+        // kunna se vilket kort man förlorar") -- the random pick in
+        // resolveRiskMatch is uniform, not a visible "AI choice", but the
+        // player still needs to clearly SEE the outcome, so this shows the
+        // actual card face(s), not just its name in a sentence.
+        const riskCards = (state.riskResult.cardIds || []).map(id => findCardById(id)).filter(Boolean);
+        if(riskCards.length){
+          riskResultCardsHtml = `
+            <div class="risk-result-cards risk-result-${state.riskResult.kind}">
+              ${riskCards.map(c => cardFace(c, { noInfo:true })).join('')}
+            </div>`;
         }
       }
       resultHtml = `
@@ -8038,6 +8111,7 @@ function renderBattle(){
           <h2>${title}</h2>
           <p>${sub}</p>
           ${statsLines.length ? `<div class="result-stats">${statsLines.map(l=>`<div>${l}</div>`).join('')}</div>` : ''}
+          ${riskResultCardsHtml}
         </div>
         <button class="cta" id="rematch-btn">Draft Again</button>
       `;
@@ -8495,7 +8569,15 @@ function attachHandlers(){
   document.querySelectorAll('.info-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      openCardModal(btn.dataset.info);
+      // Only My Bag gets prev/next browsing for now (the user's own
+      // request was specifically about browsing their bag) -- the list is
+      // just every .info-btn currently in that modal, in the same top-to-
+      // bottom order they're displayed (spanning all rarity-tier sections).
+      const bagOverlay = btn.closest('#bag-overlay');
+      const listIds = bagOverlay
+        ? Array.from(bagOverlay.querySelectorAll('.info-btn[data-info]')).map(b => b.dataset.info)
+        : null;
+      openCardModal(btn.dataset.info, listIds);
     });
   });
 
@@ -8512,6 +8594,16 @@ function attachHandlers(){
   }
   const modalClose = document.getElementById('modal-close');
   if(modalClose) modalClose.addEventListener('click', closeCardModal);
+  const modalNavPrev = document.getElementById('modal-nav-prev');
+  if(modalNavPrev) modalNavPrev.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    openCardModal(modalNavPrev.dataset.nav, state.viewingCardList);
+  });
+  const modalNavNext = document.getElementById('modal-nav-next');
+  if(modalNavNext) modalNavNext.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    openCardModal(modalNavNext.dataset.nav, state.viewingCardList);
+  });
 
   const rulebookOverlay = document.getElementById('rulebook-overlay');
   if(rulebookOverlay){
@@ -10062,6 +10154,14 @@ const RISK_OPPONENTS = [
   { id:'hollow-crown', name:'The Hollow Crown', rule:'one', aiDifficulty:'hard', enemyIds:['shadowking','deathblade','lyrith','graff','voidqueen'] },
   { id:'tiamat-rival', name:'Tiamat', rule:'all', aiDifficulty:'hard', enemyIds:['tiamat','elyrion','celestialjudgment','infiniteseraph','fenrir'] },
   { id:'omega-rival', name:'Omega Weapon', rule:'all', aiDifficulty:'hard', enemyIds:['omegaweapon','leviathan','yojimbo','chocoboking','concord'] },
+  // Sixth rival, user's own request ("de nya korten vi har gjort... top 5
+  // bästa ska man kunna vinna"): a hand built from the 5 highest-total-stat
+  // pack-exclusive cards across all of PACK_EXCLUSIVE_CARDS (Vaseir/Astra
+  // at 40, Akari/Scarletta/Cinder at 39 -- all Mystic tier, confirmed with
+  // the user rather than picked unilaterally). ALL 5 at risk / Hard AI,
+  // same top tier as Tiamat/Omega Weapon, since this is meant to be an
+  // equally serious final-boss-style challenge.
+  { id:'mystic-rival', name:'The Mystic Vanguard', rule:'all', aiDifficulty:'hard', enemyIds:['vaseir','astra','akari','scarletta','cinder'] },
 ];
 function earnedCardIds(){
   return Object.keys(playerProgress.earnedCards).filter(id => playerProgress.earnedCards[id] > 0);
@@ -10115,14 +10215,14 @@ function resolveRiskMatch(winner){
       held[id] = (held[id] || 0) + 1;
     });
     const lostNames = lostIds.map(id => findCardById(id)?.name || id);
-    state.riskResult = { kind:'lost', opponentName: opp ? opp.name : '???', cardNames: lostNames };
+    state.riskResult = { kind:'lost', opponentName: opp ? opp.name : '???', cardNames: lostNames, cardIds: lostIds };
   } else if(winner === 'blue'){
     const heldIds = Object.keys(held).filter(id => held[id] > 0);
     if(heldIds.length > 0){
       const reclaimId = heldIds[Math.floor(Math.random() * heldIds.length)];
       held[reclaimId]--;
       playerProgress.earnedCards[reclaimId] = Math.min(EARNED_CARD_CAP, (playerProgress.earnedCards[reclaimId] || 0) + 1);
-      state.riskResult = { kind:'reclaimed', opponentName: opp ? opp.name : '???', cardNames:[findCardById(reclaimId)?.name || reclaimId] };
+      state.riskResult = { kind:'reclaimed', opponentName: opp ? opp.name : '???', cardNames:[findCardById(reclaimId)?.name || reclaimId], cardIds:[reclaimId] };
     }
   }
 
@@ -10285,8 +10385,18 @@ function checkAchievements(winner, blueCount){
 // still tracked/persisted (finishGame's "new champions joined your story"
 // result-screen beat still fires) — they're just no longer read here, so
 // they're now pure narrative flavor rather than a gameplay gate.
+// User's own follow-up request: earned pack-exclusive cards (Packs/Rivals)
+// should also be pickable in Campaign, not just Random Draft/Choose Your
+// Five/Rivals. Still gated by actually having EARNED them (earnedCardIds(),
+// the same rule Rivals wagers already use) -- this isn't "unlock every
+// pack card for free in Campaign", just "what you already own works
+// everywhere". Dedupes against HEROES since a HEROES card can itself be
+// drawn from a pack (buyPack's pool is HEROES+PACK_EXCLUSIVE_CARDS), which
+// would otherwise list it twice.
 function campaignPool(){
-  return HEROES.map(h => h.id);
+  const heroIds = HEROES.map(h => h.id);
+  const earnedExtra = earnedCardIds().filter(id => !heroIds.includes(id));
+  return heroIds.concat(earnedExtra);
 }
 function currentCampaignStage(){
   return CAMPAIGN_STAGES[campaignProgress.stageIndex] || null;
@@ -14831,7 +14941,10 @@ function finishGame(){
   if(state.draftMode === 'campaign'){
     awardPoints(state.winner === 'blue' ? 100 : 20);
   } else {
-    awardPoints(state.winner === 'blue' ? 50 : state.winner === 'draw' ? 20 : 10);
+    // Random Draft/Choose Your Five win bonus raised 50 -> 250 on the
+    // user's own request ("typ 250 per runda"), draw/loss left unchanged;
+    // Campaign's own 100/20 was explicitly left alone too.
+    awardPoints(state.winner === 'blue' ? 250 : state.winner === 'draw' ? 20 : 10);
   }
   if(state.draftMode === 'campaign' && state.winner === 'blue'){
     const stage = currentCampaignStage();
@@ -14887,7 +15000,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,

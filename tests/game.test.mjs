@@ -9952,15 +9952,15 @@ test('Progression (Fas 27, step 1): every match earns points, Campaign stage/ful
 
     return out;
   });
-  assert.equal(result.afterRandomWin, 50, 'a Random/Choose Your Five win should award 50 points');
-  assert.equal(result.afterRandomLoss, 60, 'a loss should still award something (10), just less than a win');
-  assert.equal(result.afterCampaignStageWin, 160, 'a Campaign stage win awards 100, on top of the 60 already banked');
+  assert.equal(result.afterRandomWin, 250, 'a Random/Choose Your Five win should award 250 points');
+  assert.equal(result.afterRandomLoss, 260, 'a loss should still award something (10), just less than a win');
+  assert.equal(result.afterCampaignStageWin, 360, 'a Campaign stage win awards 100, on top of the 260 already banked');
   assert.equal(result.campaignClearedOnceAfterOneStage, false, 'clearing one Campaign stage must not flag the whole Campaign as cleared');
   assert.equal(result.stageIndexAfterOneStage, 1, 'campaignProgress.stageIndex must still advance normally');
-  assert.equal(result.afterFullClear, 160 + 100 + 2000, 'clearing the FINAL stage awards the stage bonus AND the first 2000 full-clear bonus');
+  assert.equal(result.afterFullClear, 360 + 100 + 2000, 'clearing the FINAL stage awards the stage bonus AND the first 2000 full-clear bonus');
   assert.equal(result.campaignClearedOnceAfterFullClear, true, 'campaignClearedOnce must flip true the first time the whole Campaign is cleared');
-  assert.equal(result.afterSecondFullClear, 160 + 100 + 2000 + 100 + 3000, 'clearing New Game+1 must award the stage bonus AND a bigger clear bonus (3000, scaling with the NG+ cycle just finished)');
-  assert.equal(result.afterThirdFullClear, 160 + 100 + 2000 + 100 + 3000 + 100 + 4000, 'clearing New Game+2 scales again to 4000');
+  assert.equal(result.afterSecondFullClear, 360 + 100 + 2000 + 100 + 3000, 'clearing New Game+1 must award the stage bonus AND a bigger clear bonus (3000, scaling with the NG+ cycle just finished)');
+  assert.equal(result.afterThirdFullClear, 360 + 100 + 2000 + 100 + 3000 + 100 + 4000, 'clearing New Game+2 scales again to 4000');
   assert.equal(result.levelAtZero, 1);
   assert.equal(result.levelJustBelowThreshold, 1, '499 lifetime points must not yet reach Level 2 (threshold is exactly 500)');
   assert.equal(result.levelAtThreshold, 2, 'exactly 500 lifetime points must reach Level 2');
@@ -12808,6 +12808,175 @@ test("Fas 61: Pack-opening ritual (sealed Triad symbol -> tap to crack -> face-d
   assert.equal(result.bagOrderIsRareFourth, true);
   assert.equal(result.bagOrderStandardLast, true);
   assert.equal(result.bagTileHasTierGlowVar, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 62: Random Draft/Choose Your Five win bonus raised to 250, a sixth Rival (\"The Mystic Vanguard\") wagering the top-5-by-stat pack-exclusive cards, risk-match results now show the actual card face(s) lost/reclaimed, and earned pack-exclusive cards become usable in Campaign", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    function winningBoard(ids){
+      return [...ids, 'ogre','ogre','ogre','ogre'].map((id,i) =>
+        ({ card: findCardById(id), owner: i < 5 ? 'blue' : 'red' }));
+    }
+
+    // Random Draft win now awards 250; draw/loss and Campaign untouched.
+    playerProgress = { points: 0, lifetimePoints: 0, earnedCards: {}, campaignClearedOnce: true, opponentHeld: {} };
+    state.draftMode = 'random';
+    state.board = winningBoard(['bahamut','sarah','zaevir','vayra','darien']);
+    state.phase = 'battle';
+    state.wins = { blue: 0, red: 0 };
+    finishGame();
+    out.randomWinAwards250 = playerProgress.points === 250;
+
+    playerProgress.points = 0;
+    state.draftMode = 'random';
+    state.board = ['bahamut','sarah','zaevir','vayra','darien','ogre','ogre','ogre','ogre'].map((id,i) => ({ card: findCardById(id), owner: 'red' }));
+    state.phase = 'battle';
+    finishGame();
+    out.randomLossStillAwards10 = playerProgress.points === 10;
+
+    playerProgress.points = 0;
+    state.draftMode = 'campaign';
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0 };
+    state.board = winningBoard(['bahamut','sarah','zaevir','vayra','darien']);
+    state.phase = 'battle';
+    finishGame();
+    out.campaignWinStillAwards100 = playerProgress.points === 100;
+
+    // Sixth Rival: The Mystic Vanguard, ALL 5 at risk, the top-5-by-stat
+    // pack-exclusive hand (Vaseir/Astra/Akari/Scarletta/Cinder).
+    const mystic = RISK_OPPONENTS.find(o => o.id === 'mystic-rival');
+    out.mysticRivalExists = !!mystic;
+    out.mysticRivalRuleIsAll = mystic && mystic.rule === 'all';
+    out.mysticRivalHandCorrect = mystic && JSON.stringify(mystic.enemyIds.slice().sort()) === JSON.stringify(['akari','astra','cinder','scarletta','vaseir'].sort());
+
+    // Losing a risk match now records WHICH cards were taken (cardIds, not
+    // just their names) and the result screen renders their actual card faces.
+    playerProgress.opponentHeld = {};
+    playerProgress.earnedCards = { astra:1, umbriel:1, jade:1, ryuji:1, hayato:1 };
+    state.riskMatch = { opponentId: 'mystic-rival', rule: 'all', previousAiDifficulty: 'easy' };
+    state.selected = ['astra','umbriel','jade','ryuji','hayato'];
+    resolveRiskMatch('red');
+    out.riskResultHasFiveCardIds = Array.isArray(state.riskResult.cardIds) && state.riskResult.cardIds.length === 5;
+    state.draftMode = 'risk';
+    state.phase = 'result';
+    state.winner = 'red';
+    render();
+    out.riskResultCardsRendered = document.querySelectorAll('.risk-result-cards .card').length === 5;
+    out.riskResultLostClassPresent = !!document.querySelector('.risk-result-lost');
+
+    // A win reclaiming a held card also shows its face, with the reclaimed styling.
+    playerProgress.opponentHeld = { 'mystic-rival': { astra: 1 } };
+    playerProgress.earnedCards = { umbriel:1, jade:1, ryuji:1, hayato:1, wren:1 };
+    state.riskMatch = { opponentId: 'mystic-rival', rule: 'all', previousAiDifficulty: 'easy' };
+    state.selected = ['umbriel','jade','ryuji','hayato','wren'];
+    resolveRiskMatch('blue');
+    out.riskResultReclaimedHasCardId = state.riskResult.kind === 'reclaimed' && state.riskResult.cardIds[0] === 'astra';
+    state.winner = 'blue';
+    render();
+    out.riskResultReclaimedClassPresent = !!document.querySelector('.risk-result-reclaimed');
+
+    // #modal-overlay (card-info popup) must always outrank every other
+    // modal's z-index, regardless of DOM order -- real bug: opening a
+    // card's info popup from inside My Bag rendered it invisibly BEHIND
+    // the Bag modal.
+    playerProgress.campaignClearedOnce = true;
+    playerProgress.earnedCards = { astra: 1 };
+    state.showBag = true;
+    render();
+    document.querySelector('.bag-card-tile .info-btn').click();
+    const modalOverlay = document.getElementById('modal-overlay');
+    const bagOverlay = document.getElementById('bag-overlay');
+    out.cardModalOutranksBagModal = modalOverlay && bagOverlay &&
+      parseInt(getComputedStyle(modalOverlay).zIndex, 10) > parseInt(getComputedStyle(bagOverlay).zIndex, 10);
+    state.showBag = false;
+    state.viewingCard = null;
+
+    // Campaign pool: earned pack-exclusive cards become pickable, unearned
+    // ones stay excluded, and HEROES stay fully available regardless.
+    playerProgress.earnedCards = { astra: 1 };
+    out.campaignPoolIncludesEarnedAstra = campaignPool().includes('astra');
+    out.campaignPoolExcludesUnearnedUmbriel = !campaignPool().includes('umbriel');
+    out.campaignPoolStillHasAllHeroes = HEROES.every(h => campaignPool().includes(h.id));
+
+    campaignProgress = { stageIndex: 1, unlocked: [], ngPlus: 0 };
+    state.draftMode = 'campaign';
+    state.selected = [];
+    state.phase = 'draft';
+    render();
+    out.campaignDraftGridIncludesAstra = !!document.querySelector('.draft-grid .card[data-cardid="astra"]');
+
+    // Once lost to a rival (earnedCards back to 0), it must drop out of the
+    // campaign pool again -- earning is a live condition, not a one-time flag.
+    playerProgress.earnedCards = { astra: 0 };
+    out.campaignPoolDropsAstraOnceLost = !campaignPool().includes('astra');
+
+    return out;
+  })()`);
+  assert.equal(result.randomWinAwards250, true, 'Random Draft/Choose Your Five wins must award 250 points');
+  assert.equal(result.randomLossStillAwards10, true, 'a loss must still award the unchanged 10 points');
+  assert.equal(result.campaignWinStillAwards100, true, "Campaign's own 100/20 must stay untouched");
+  assert.equal(result.mysticRivalExists, true);
+  assert.equal(result.mysticRivalRuleIsAll, true);
+  assert.equal(result.mysticRivalHandCorrect, true, 'The Mystic Vanguard must wager exactly Vaseir/Astra/Akari/Scarletta/Cinder');
+  assert.equal(result.riskResultHasFiveCardIds, true);
+  assert.equal(result.riskResultCardsRendered, true, 'the result screen must show the actual lost card faces, not just names in a sentence');
+  assert.equal(result.riskResultLostClassPresent, true);
+  assert.equal(result.riskResultReclaimedHasCardId, true);
+  assert.equal(result.riskResultReclaimedClassPresent, true);
+  assert.equal(result.cardModalOutranksBagModal, true, 'the card-info popup must always render above whichever modal it was opened from');
+  assert.equal(result.campaignPoolIncludesEarnedAstra, true, 'earned pack-exclusive cards must become pickable in Campaign');
+  assert.equal(result.campaignPoolExcludesUnearnedUmbriel, true, 'an UNearned pack-exclusive card must stay out of Campaign');
+  assert.equal(result.campaignPoolStillHasAllHeroes, true);
+  assert.equal(result.campaignDraftGridIncludesAstra, true, 'the Campaign stage picker must actually render the earned pack card, not just list its id');
+  assert.equal(result.campaignPoolDropsAstraOnceLost, true, 'campaignPool() must reflect currently-earned count live, not a one-time unlock');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 63: My Bag's card-info popup now has prev/next browsing arrows (wrapping at either end), scoped to My Bag only -- opening a card's info elsewhere (hand, board, etc.) still shows no arrows", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    playerProgress.campaignClearedOnce = true;
+    playerProgress.earnedCards = { astra: 1, umbriel: 1, jade: 1 };
+    state.showBag = true;
+    render();
+
+    const infoBtns = Array.from(document.querySelectorAll('#bag-overlay .info-btn[data-info]'));
+    const bagOrder = infoBtns.map(b => b.dataset.info);
+    infoBtns[0].click();
+    out.viewingCardListMatchesBagOrder = JSON.stringify(state.viewingCardList) === JSON.stringify(bagOrder);
+    out.navButtonsExist = !!document.getElementById('modal-nav-prev') && !!document.getElementById('modal-nav-next');
+    out.firstCardIsBagOrder0 = state.viewingCard.id === bagOrder[0];
+
+    document.getElementById('modal-nav-next').click();
+    out.nextMovesToBagOrder1 = state.viewingCard.id === bagOrder[1];
+
+    document.getElementById('modal-nav-prev').click();
+    document.getElementById('modal-nav-prev').click();
+    out.prevWrapsToLast = state.viewingCard.id === bagOrder[bagOrder.length - 1];
+
+    closeCardModal();
+    out.listClearedOnClose = state.viewingCardList === null;
+
+    // Opening a card's info from OUTSIDE My Bag (e.g. the campaign picker,
+    // simulated directly here) must show no arrows at all.
+    state.showBag = false;
+    openCardModal('bahamut');
+    out.noArrowsOutsideBag = !document.getElementById('modal-nav-prev') && !document.getElementById('modal-nav-next');
+
+    return out;
+  })()`);
+  assert.equal(result.viewingCardListMatchesBagOrder, true, "opening a card from My Bag must capture the bag's own full display order as the browse list");
+  assert.equal(result.navButtonsExist, true);
+  assert.equal(result.firstCardIsBagOrder0, true);
+  assert.equal(result.nextMovesToBagOrder1, true, 'the next arrow must move to the following card in bag order');
+  assert.equal(result.prevWrapsToLast, true, 'the prev arrow must wrap around to the last card, not dead-end at the first');
+  assert.equal(result.listClearedOnClose, true);
+  assert.equal(result.noArrowsOutsideBag, true, 'browsing arrows must only appear when the card was opened from My Bag');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
