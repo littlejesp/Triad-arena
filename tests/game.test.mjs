@@ -13105,3 +13105,51 @@ test("Fas 66: critical bug fix -- startBattle() used to silently drop any select
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 67: Rivals wager picker gets an \"Auto-Pick 5 Synergy Cards\" button -- getSmartRivalWager() prefers cards that boost each other (pairPresence/sisterAura) over unrelated high-stat singles, and the button wires state.rivalPicked correctly", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+    // Earned pool: a complete Jade/Ryuji pairPresence pair, 3 Court of
+    // Queens sisterAura members, and one unrelated card with no synergy.
+    playerProgress.campaignClearedOnce = true;
+    playerProgress.earnedCards = {
+      astra: 1, scarletta: 1, umbriel: 1,
+      jade: 1, ryuji: 1,
+      dragonlancer: 1,
+    };
+    out.smartPick = getSmartRivalWager();
+    out.pickLength = out.smartPick.length;
+    out.includesJadeAndRyuji = out.smartPick.includes('jade') && out.smartPick.includes('ryuji');
+    out.includesAtLeastTwoCourtMembers = ['astra','scarletta','umbriel'].filter(id => out.smartPick.includes(id)).length >= 2;
+    out.excludesUnrelatedDragon = !out.smartPick.includes('dragonlancer');
+
+    // Full UI wiring.
+    state.showRivals = true;
+    state.rivalView = 'gambler-rival';
+    state.rivalPicked = [];
+    render();
+    out.autopickBtnExists = !!document.getElementById('rivals-autopick-btn');
+    document.getElementById('rivals-autopick-btn').click();
+    out.rivalPickedSetAfterClick = state.rivalPicked.length === 5;
+    out.beginDuelEnabledAfterClick = !document.getElementById('rivals-begin-btn').disabled;
+    out.selectedCardsShowInGrid = document.querySelectorAll('.rivals-picker-grid .card.selected').length === 5;
+
+    // The auto-picked hand must actually be playable via beginRiskMatch.
+    document.getElementById('rivals-begin-btn').click();
+    out.playerHandAfterAutopick = state.playerHand.map(c => c.id).sort();
+
+    return out;
+  })()`);
+  assert.equal(result.pickLength, 5);
+  assert.equal(result.includesJadeAndRyuji, true, 'a complete pairPresence pair in the earned pool must both be picked');
+  assert.equal(result.includesAtLeastTwoCourtMembers, true, 'sisterAura members that boost each other must cluster together in the pick');
+  assert.equal(result.excludesUnrelatedDragon, true, 'a card with no earned synergy partner should lose out to synergy cards when slots are limited');
+  assert.equal(result.autopickBtnExists, true);
+  assert.equal(result.rivalPickedSetAfterClick, true);
+  assert.equal(result.beginDuelEnabledAfterClick, true, 'Begin Duel must enable immediately once Auto-Pick fills all 5 slots');
+  assert.equal(result.selectedCardsShowInGrid, true);
+  assert.deepEqual(result.playerHandAfterAutopick, ['astra','jade','ryuji','scarletta','umbriel'], 'the auto-picked hand must carry through into the actual battle correctly');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

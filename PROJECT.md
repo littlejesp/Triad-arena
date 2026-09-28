@@ -5971,6 +5971,40 @@ oavsett källa. Verifierat: rent pack-exklusivt val (5/5), blandat
 HEROES+pack-kort (5/5), och ren HEROES-only Random Draft (oförändrat,
 5/5). Hela testsviten grön: **200/200**.
 
+**Rapporterad "bara 4 kort i handen"-incident, inte en kodbugg.**
+Direkt efter Fas 66-fixen rapporterade användaren ett nytt fall: satsade
+5 kort mot The Gambler, fick bara 4 helt ANDRA kort i handen (kort som
+inte ens fanns i satsnings-rutnätet). En omedelbar omförsök med exakt
+samma satsning gav korrekt resultat — alla 5 rätta kort. Eftersom de
+felaktiga korten inte matchade satsningen alls (inte ens ett
+delmängdsfel, utan helt orelaterade kort) pekar det på en cachead/
+föråldrad sidladdning i webbläsaren just då, inte en kvarvarande bugg i
+koden. Ingen kodändring gjord för detta — dokumenterat här ifall
+mönstret återkommer.
+
+**Fas 67. Rivals fick en "Auto-Pick 5 Synergy Cards"-knapp.**
+("Kan vi göra en knapp när man går in på rivals som väljer ut 5 bra
+kort som är passade för varandra"). De befintliga curated presets
+(`BEGINNER_DECKS`, från "Choose Your Five") kunde inte återanvändas
+rakt av — de är fasta HEROES-listor, men en Rivals-satsning får bara
+använda kort spelaren faktiskt TJÄNAT (`earnedCardIds()`), vilket
+skiljer sig per spelare. Ny funktion `getSmartRivalWager()`: poängsätter
+varje tjänat kort efter hur många av dess EGNA synergi-partners
+(`pairPresence`s enda partner, eller `sisterAura`s hela partner-lista)
+som OCKSÅ är tjänade — kort som faktiskt boostar varandra klättrar till
+toppen tillsammans, oavsett hur höga deras egna grundstats är för sig.
+Oavgjorda poäng bryts på total stat-summa. Att bara ta topp-5 räcker för
+att kluster ihop ett komplett par/sisterAura-grupp istället för
+utspridda orelaterade enkelkort — ingen separat "hitta bästa
+kombinationen"-logik behövdes.
+
+Ny knapp `✨ Auto-Pick 5 Synergy Cards` i satsnings-vyn, fyller
+`state.rivalPicked` direkt vid klick. Testat: ett komplett Jade/Ryuji-par
++ tre Court of Queens-medlemmar (alla tjänade) plockades ALLA fem, ett
+orelaterat men högre-tier kort (Dragon) valdes bort trots inga egna
+synergier — och den auto-valda handen fungerar korrekt hela vägen genom
+`beginRiskMatch`/`startBattle()`. Hela testsviten grön: **201/201**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
