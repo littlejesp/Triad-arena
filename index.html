@@ -3869,6 +3869,9 @@ const CARD_IMAGES = {
   isolde: 'cards/card-isolde.jpg',
   wren: 'cards/card-wren.jpg',
   corvin: 'cards/card-corvin.jpg',
+  kaelan: 'cards/card-kaelan.jpg',
+  sable: 'cards/card-sable.jpg',
+  vesper: 'cards/card-vesper.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -3980,6 +3983,9 @@ const FULL_CARD_IMAGES = {
   isolde: 'card-isolde-full.jpg',
   wren: 'card-wren-full.jpg',
   corvin: 'card-corvin-full.jpg',
+  kaelan: 'card-kaelan-full.jpg',
+  sable: 'card-sable-full.jpg',
+  vesper: 'card-vesper-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -5972,6 +5978,68 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:"Guardian's Ward (Passive)", desc:'The first time Corvin would lose a battle, he refuses to fall — the loss is ignored and he keeps his position.'},
       {name:"Twilight's Toll (Passive)", desc:'Each time Corvin wins a battle, the loser permanently loses 1 Power on all sides.'},
       {name:'Special Attack: Twin Blade Requiem', desc:"Costs 3 wins. Choose an enemy card — his twin blades claim it outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Thirty-seventh through thirty-ninth pack-exclusive cards: Kaelan,
+  // Sable, and Vesper -- a new three-member Mystic trio (purple/gold
+  // frame, castle/waterfall/red-maple sunset backdrop, distinct from
+  // every earlier group despite the visual family resemblance to
+  // Damyan/Isolde and Wren/Corvin). Confirmed as a bonded trio (not a
+  // pair + a loose single) with the user via AskUserQuestion once the
+  // third image arrived; all three explicitly called "mystic" by the
+  // user across three separate messages, so all three share that tier
+  // rather than being split across tiers the way earlier pairs/trios
+  // were (the usual "don't let one pull guarantee another" facit rule
+  // only applies when the user hasn't already stated the tier). No
+  // printed nameplate on any of the three images; all names chosen by
+  // Claude and confirmed by the user via AskUserQuestion.
+  //
+  // Kaelan, The Ashen Blade (Mystic, fire element): the greatsword-
+  // wielding protector. sisterAura (3-way, this group's own shape,
+  // bonusByCount capped at +2 since a 5-card hand can hold at most 2
+  // OTHER trio members) + shield + onWinDebuffLoserPermanent
+  // (Scarletta's own field). Special "Crimson Reckoning" is a
+  // GUARANTEED capture (same shape as Scarletta/Jade/Corvin).
+  { id:'kaelan', name:'Kaelan', role:'The Ashen Blade — Pack Exclusive (Mystic)', element:'fire',
+    top:10, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#241008,#0d0b18 60%)', accent:'#c9a227', icon:'🛡️',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ sisterAura:{ partners:['sable','vesper'], bonusByCount:{1:1,2:2} }, shield:true, onWinDebuffLoserPermanent:1 },
+    special:{ name:'Crimson Reckoning', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:'Bloodkin Vow (Passive)', desc:'For every fellow member of the trio on your side of the board, Kaelan gains extra Power on all sides.'},
+      {name:'Ashen Guard (Passive)', desc:'The first time Kaelan would lose a battle, he refuses to fall — the loss is ignored and he keeps his position.'},
+      {name:"Reckoning's Toll (Passive)", desc:'Each time Kaelan wins a battle, the loser permanently loses 1 Power on all sides.'},
+      {name:'Special Attack: Crimson Reckoning', desc:"Costs 3 wins. Choose an enemy card — his greatsword claims it outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // Sable, The Silent Thorn (Mystic, shadow element): the dagger-
+  // wielding striker. sisterAura + debuffImmune (Bram/Lilith/Umbriel/
+  // Wren's own field). Special "Silent Edge" is the threshold-capture +
+  // stealPower shape (Balalajka/Arielle/Umbriel/Wren's own shape).
+  { id:'sable', name:'Sable', role:'The Silent Thorn — Pack Exclusive (Mystic)', element:'shadow',
+    top:9, right:10, bottom:9, left:10,
+    hue:'linear-gradient(160deg,#1c0d10,#0d0b18 60%)', accent:'#8b1e3f', icon:'🔪',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ sisterAura:{ partners:['kaelan','vesper'], bonusByCount:{1:1,2:2} }, debuffImmune:true },
+    special:{ name:'Silent Edge', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Bloodkin Vow (Passive)', desc:'For every fellow member of the trio on your side of the board, Sable gains extra Power on all sides.'},
+      {name:'Unshaken (Passive)', desc:"Sable's Power can never be lowered by an enemy card's ability."},
+      {name:'Special Attack: Silent Edge', desc:"Costs 2 wins. Choose an adjacent enemy card — if Sable's total Power is greater, her daggers claim it, stealing 1 Power permanently. Usable once per match."},
+    ] },
+  // Vesper, The Twilight Duelist (Mystic, void element): the dual-blade
+  // (gold + purple) duelist. sisterAura + onCaptureBonus (Growing
+  // Legend's own field). Special "Twilight Cross" is the threshold-
+  // capture + self-buff shape (Bram/Aric/Elara/Hayato's own shape).
+  { id:'vesper', name:'Vesper', role:'The Twilight Duelist — Pack Exclusive (Mystic)', element:'void',
+    top:10, right:10, bottom:9, left:9,
+    hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#a568f2', icon:'🌗',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ sisterAura:{ partners:['kaelan','sable'], bonusByCount:{1:1,2:2} }, onCaptureBonus:1 },
+    special:{ name:'Twilight Cross', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:'Bloodkin Vow (Passive)', desc:'For every fellow member of the trio on your side of the board, Vesper gains extra Power on all sides.'},
+      {name:'Growing Legend (Passive)', desc:'Each time Vesper takes control of a card, she permanently gains +1 Power on all sides.'},
+      {name:'Special Attack: Twilight Cross', desc:"Costs 2 wins. Choose an adjacent enemy card — if Vesper's total Power is greater, her twin blades claim it and she permanently gains +2 Power on all sides. Usable once per match."},
     ] },
 ];
 
@@ -12536,6 +12604,50 @@ const SPECIAL_HANDLERS = {
     targetEntry.justFlipped = true;
     checkSisterFlip(targetEntry);
     return `${name}'s Twin Blade Requiem claims ${targetEntry.card.name} outright!`;
+  },
+  // Kaelan's Crimson Reckoning: a GUARANTEED capture, same shape as
+  // Scarletta/Jade/Corvin's own Specials.
+  kaelan({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Crimson Reckoning!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name}'s Crimson Reckoning claims ${targetEntry.card.name} outright!`;
+  },
+  // Sable's Silent Edge: threshold capture + stealPower, same shape as
+  // Balalajka/Arielle/Umbriel/Wren's own Specials.
+  sable({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Silent Edge finds no purchase!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Silent Edge!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
+    return `${name}'s Silent Edge claims ${targetEntry.card.name}!`;
+  },
+  // Vesper's Twilight Cross: threshold capture + self-buff, same shape as
+  // Bram/Aric/Elara/Hayato's own Specials.
+  vesper({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Twilight Cross is turned aside!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Twilight Cross!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.attackBoost(srcEntry, 2);
+    return `${name}'s Twilight Cross claims ${targetEntry.card.name}!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all

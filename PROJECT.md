@@ -6044,6 +6044,54 @@ kort ger `'reclaimed'` och minskar `held`-räkningen, och hela
 render/klick-kedjan på riktiga resultatskärmen fungerar (inget
 "Draft Again" förrän valet är gjort). Hela testsviten grön: **202/202**.
 
+**Fas 69. Kaelan, Sable och Vesper — en ny Mystic-trio, byggd på ett
+nytt kort i taget mitt i samma batch.** Användaren skickade tre bilder
+efter varandra utan mellanliggande text, samma mönster som tidigare
+grupp-avslöjanden: först en manlig svärdsman ("Här kommer en till
+mysic"), sedan en kvinnlig dolk-användare (ingen text alls), sedan en
+kvinnlig dubbelsvärds-karaktär ("Här kommer en mystic till"). Följde
+facit-regeln att aldrig anta en relation som inte är uttryckligen
+bekräftad — frågade via `AskUserQuestion` efter bild nummer två om de
+två första bildade ett nytt par, fick "Ja, ett nytt par" och namnen
+"Kaelan & Sable"; frågade igen efter tredje bilden om hon gick in som
+en trekant med de två, fick "Trekant med Kaelan & Sable" och namnet
+"Vesper".
+
+Användaren stämplade uttryckligen alla tre som **Mystic**-tier i
+separata meddelanden, ett medvetet avsteg från den annars fasta
+regeln att dela syskon/par över olika tiers (se avsnitt C ovan) — när
+användaren själv upprepar samma tier tre gånger för samma grupp väger
+det tyngre än standardkonventionen, så alla tre landade i
+`mystic`-packen tillsammans.
+
+Kit-design, återanvänder befintliga `active`-fält enligt norm:
+- **Kaelan** (svärdsman): `shield`, `onWinDebuffLoserPermanent`
+  (permanent -1 på förloraren), Special Attack med garanterad capture
+  som ändå blockeras av motståndarens egen `grantedShield`.
+- **Sable** (dolk): `debuffImmune`, Special Attack med tröskel-krav som
+  vid lyckat utfall stjäl 1 poäng från målet (`stealPower`-mönstret)
+  och ger Sable själv +1 `captureBonus`.
+- **Vesper** (dubbelsvärd): `onCaptureBonus` (+1 vid varje egen
+  capture), Special Attack med tröskel-krav som ger Vesper +2
+  `captureBonus` vid lyckat utfall. Alla tre delar samma `sisterAura`
+  (`partners`-lista pekar på varandra), verifierat att bonusen
+  skalar korrekt 0 → 1 → 2 beroende på hur många av de andra två som
+  redan finns på brädet.
+
+Bildbeskärning följde samma "wide-crop"-teknik som tidigare batchar
+(källbilder 941×1672 den här gången, `crop_h = 1317`, `y0 = 50` för
+alla tre, slutresultat 640×418 för tumnaglarna).
+
+Som en bieffekt av att Mystic-poolen nu växte med tre kort till
+upptäcktes att det gamla "Fas 29, steg 2"-testet (packs är låsta tills
+Campaign klarats en gång) bara loopade 30 gånger när det kontrollerade
+om ett specifikt HEROES-kort någonsin drogs från Mystic-packet — med
+en större pool blev det statistiskt mer sannolikt att missa det kortet
+helt inom 30 försök, vilket gjorde testet flakigt (inte en riktig
+regression). Fixat genom att höja loopen till 150 iterationer, samma
+konvention som resten av filens `buyPack`-gatinande tester redan
+använder. Hela testsviten grön: **203/203**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
