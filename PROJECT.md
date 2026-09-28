@@ -5849,6 +5849,75 @@ diamant-formen. Pulserings- och sprick-animationerna (`packsSealPulse`/
 har en bakgrundsfärg eller en bakgrundsbild. Verifierad visuellt via
 Playwright-skärmdump innan skepp. Ingen testsvit-påverkan.
 
+**Fas 62. Fyra separata användarförfrågningar i en batch: höjda
+Random Draft-poäng, en sjätte Rival med topp-5-korten, synligt
+risk-match-resultat, och pack-exklusiva kort i Campaign.**
+
+1) **Random Draft/Choose Your Five-vinstbonusen höjdes 50 → 250**
+("typ 250 per runda"). Efter avstämning: bara vid VINST (oförändrat
+20 vid oavgjort, 10 vid förlust), Campaigns egna 100/20 lämnades
+orörda. Ett gammalt hårdkodat testvärde (`Progression (Fas 27, step
+1)`) fångade regressionen direkt vid full körning och uppdaterades.
+
+2) **Ny sjätte Rival: "The Mystic Vanguard"** — bär de 5 pack-
+exklusiva korten med högst total stat-summa (Vaseir 40, Astra 40,
+Akari 39, Scarletta 39, Cinder 39 — samtliga Mystic), bekräftat med
+användaren innan bygget. ALL 5-regel, Hard AI, samma toppnivå som
+Tiamat/Omega Weapon. `RISK_OPPONENTS` är redan helt datadrivet i
+`renderRivalsModal`, så inget annat behövde ändras för att den nya
+rivalen skulle dyka upp i listan.
+
+3) **Risk-match-resultat visar nu det faktiska kortet, inte bara
+namnet i en textrad** ("man måste kunna se vilket kort man förlorar").
+`state.riskResult` fick ett nytt `cardIds`-fält (utöver `cardNames`);
+resultatskärmen renderar nu `cardFace()` för varje förlorat/återtaget
+kort, med röd glöd vid förlust och grön vid återtag (`.risk-result-
+lost`/`.risk-result-reclaimed`). Den gamla textraden finns kvar
+parallellt.
+
+4) **Pack-exklusiva kort blev valbara i Campaign** ("man ska också
+kunna använda sina kort i campaign"). Detta var tidigare MEDVETET
+uteslutet (testat i varenda korts Fas hittills) — frågade explicit
+innan ändring eftersom det river upp ett etablerat designbeslut;
+svar: ja. `campaignPool()` inkluderar nu `earnedCardIds()` (samma
+regel Rivals redan använder — bara TJÄNADE kort, inte alla pack-
+exklusiva kort gratis) utöver hela HEROES-rostret, deduplicerat.
+Hittade OCKSÅ en dold bugg på vägen: Campaign-väljarens rutnät slog
+upp varje id via `HEROES.find(...)` istället för `findCardById(...)`,
+vilket tyst hade filtrerat bort alla pack-kort ur `poolIds` även om
+`campaignPool()` själv redan var rättad — fixad i samma veva.
+`campaignPool()` är "levande" (läser `earnedCards` varje anrop), så
+ett kort som senare förloras till en Rival försvinner ur Campaign-
+väljaren igen automatiskt, inget separat "har-någonsin-ägt"-flagga.
+
+Passade också på att fixa en riktig, oberoende bugg upptäckt av
+användaren under samma runda: **`#modal-overlay` (kortdetalj-popupen)
+kunde renderas BAKOM My Bag** när man tryckte "i" på ett kort inne i
+bagen — båda delar samma `.modal-overlay`-bas-z-index (50), och
+`render()` råkar lägga till kortdetalj-popupen TIDIGARE i DOM:en än
+My Bag, så vid lika z-index vann My Bag på källkodsordning. Fixad med
+`#modal-overlay{ z-index:60; }` (unikt id, till skillnad från övriga
+modalers `*-overlay`-id:n), så den alltid vinner oavsett DOM-ordning.
+
+Alla fyra delar + z-index-fixen verifierade visuellt via Playwright-
+skärmdumpar innan skepp. Hela testsviten grön: **196/196**.
+
+**Fas 63. My Bags kortdetalj-popup fick bläddringspilar.** Efter att
+ha öppnat ett korts info-vy från My Bag önskade användaren en pil åt
+vänster/höger för att bläddra vidare utan att stänga och öppna igen.
+`openCardModal(id, listIds)` tar nu en valfri ordnad lista med
+kort-id:n; `.info-btn`-klick-hanteraren bygger den listan från ALLA
+`.info-btn`-element inuti `#bag-overlay` i visningsordning (spänner
+över alla rarity-grupper från Fas 61:s ombyggnad) NÄR knappen klickas
+inifrån My Bag — annars (hand, bräde, campaign-väljaren, osv.) är
+listan `null` och inga pilar visas alls, exakt det avgränsade scope
+användaren själv bad om. Pilarna (`‹`/`›`) sitter som syskon till
+`.modal-poster` inuti `#modal-overlay`, positionerade i skärmens
+kanter (lightbox-stil), och wrappar runt i båda ändar så bläddringen
+aldrig tar slut. Verifierad med Playwright (ordning matchar bagens
+egen, wrap fungerar, inga pilar utanför My Bag) plus en
+skärmdumpskontroll. Hela testsviten grön: **197/197**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
