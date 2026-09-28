@@ -6558,6 +6558,7 @@ function renderRivalsModal(){
         <p class="graveyard-hint">${ruleText} Winning costs you nothing, and if ${opp.name} is currently holding any of your cards, a win lets you reclaim one.</p>
       </div>
       <div class="settings-section-label">Wager 5 cards (${picked.length}/5)</div>
+      <button class="ghost rivals-autopick-btn" id="rivals-autopick-btn">✨ Auto-Pick 5 Synergy Cards</button>
       <div class="rivals-picker-grid">
         ${earnedCardIds().map(id => {
           const card = findCardById(id);
@@ -8791,6 +8792,11 @@ function attachHandlers(){
       render();
     });
   });
+  const rivalsAutopickBtn = document.getElementById('rivals-autopick-btn');
+  if(rivalsAutopickBtn) rivalsAutopickBtn.addEventListener('click', ()=>{
+    state.rivalPicked = getSmartRivalWager();
+    render();
+  });
   const rivalsBeginBtn = document.getElementById('rivals-begin-btn');
   if(rivalsBeginBtn) rivalsBeginBtn.addEventListener('click', ()=>{
     if(state.rivalPicked.length === 5) beginRiskMatch(state.rivalView, state.rivalPicked);
@@ -10194,6 +10200,34 @@ const RISK_OPPONENTS = [
 ];
 function earnedCardIds(){
   return Object.keys(playerProgress.earnedCards).filter(id => playerProgress.earnedCards[id] > 0);
+}
+// "En knapp när man går in på rivals som väljer ut 5 bra kort som är
+// passade för varandra" -- an Auto-Pick for the Rivals wager picker. The
+// existing curated BEGINNER_DECKS presets can't be reused here: those are
+// fixed HEROES-only lists, but a Rivals wager can only ever use cards the
+// player has actually EARNED (earnedCardIds()), which differs per player.
+// Instead, this scores each earned card by how many of ITS OWN synergy
+// partners (pairPresence's single partner, or sisterAura's partner list)
+// are ALSO in the earned pool -- so cards that genuinely boost each other
+// once both are on the board rise to the top together, not just whichever
+// cards happen to have the highest raw stats. Ties broken by stat total.
+// Taking the top 5 naturally clusters a complete pair/sisterAura group
+// ahead of scattered unrelated singles, without needing separate
+// set-cover logic to force them together.
+function getSmartRivalWager(){
+  const earned = earnedCardIds();
+  const scored = earned.map(id => {
+    const card = findCardById(id);
+    let synergy = 0;
+    if(card && card.active){
+      if(card.active.pairPresence && earned.includes(card.active.pairPresence.partner)) synergy++;
+      if(card.active.sisterAura) synergy += card.active.sisterAura.partners.filter(p => earned.includes(p)).length;
+    }
+    const total = card ? card.top + card.right + card.bottom + card.left : 0;
+    return { id, synergy, total };
+  });
+  scored.sort((a, b) => b.synergy - a.synergy || b.total - a.total);
+  return scored.slice(0, 5).map(s => s.id);
 }
 function canChallengeRivals(){
   return playerProgress.campaignClearedOnce && earnedCardIds().length >= 5;
