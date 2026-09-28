@@ -10042,7 +10042,11 @@ test('Progression (Fas 29, step 2): packs are locked until Campaign is cleared o
     const cardId = HEROES[0].id;
     playerProgress = { points: 1000000, lifetimePoints: 1000000, earnedCards: { [cardId]: 10 }, campaignClearedOnce: true };
     let sawCappedDraw = false;
-    for(let i = 0; i < 30; i++){
+    // 150 iterations, matching every other buyPack-gating test's own loop
+    // count in this file -- 30 was flaky (a real chance of never drawing
+    // one specific HEROES card at all as the Mystic pool grows with more
+    // pack-exclusive cards over time), not a bug in buyPack itself.
+    for(let i = 0; i < 150; i++){
       buyPack('mystic');
       if(state.packOpenResult.drawn.some(c => c.id === cardId && c.capped)) sawCappedDraw = true;
     }
@@ -13249,6 +13253,132 @@ test("Fas 68: Rivals wins now use FF8's own \"Direct\" trade rule -- the prize p
   assert.equal(result.choiceCardsRenderedInDOM, true);
   assert.equal(result.noRematchBtnWhileChoicePending, true, 'the rematch button must not appear until a prize is actually chosen');
   assert.equal(result.rematchBtnAppearsAfterChoice, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 69: thirty-seventh through thirty-ninth pack-exclusive cards -- Kaelan, Sable, and Vesper, a new three-member Mystic trio bonded by sisterAura, all explicitly confirmed Mystic tier by the user for all three (not split across tiers like earlier pairs/trios)", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const kaelan = findCardById('kaelan');
+    const sable = findCardById('sable');
+    const vesper = findCardById('vesper');
+    out.allFindable = [kaelan, sable, vesper].every(c => c !== null);
+    out.noneInHeroes = ['kaelan','sable','vesper'].every(id => !HEROES.some(h => h.id === id));
+    out.noneInCampaignPool = ['kaelan','sable','vesper'].every(id => !campaignPool().includes(id));
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // sisterAura scaling: 0 -> 1 -> 2 other trio members present.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(kaelan, 'blue');
+    const zero = fullEffectiveValue(kaelan, 'top', null, 4, 'blue', 'attack') - kaelan.top;
+    state.board[0] = freshEntry(sable, 'blue');
+    const one = fullEffectiveValue(kaelan, 'top', null, 4, 'blue', 'attack') - kaelan.top;
+    state.board[1] = freshEntry(vesper, 'blue');
+    const two = fullEffectiveValue(kaelan, 'top', null, 4, 'blue', 'attack') - kaelan.top;
+    out.scaling = zero === 0 && one === 1 && two === 2;
+
+    // Kaelan: Ashen Guard (shield) + Reckoning's Toll (onWinDebuffLoserPermanent)
+    // via the real battle path, Special Crimson Reckoning is a GUARANTEED
+    // capture (Shield still blocks).
+    state.board = Array(9).fill(null);
+    const k1 = freshEntry(kaelan, 'blue');
+    const kfoe = freshEntry({ id:'kfoe', name:'KFoe', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = k1; state.board[1] = kfoe;
+    battleNeighbors(4, 'blue', { flipSeq:0, flips:0, shielded:0, bonusTriggered:false });
+    out.kaelanDebuffsLoser = kfoe.captureBonus === -1;
+    out.kaelanHasShield = kaelan.active.shield === true;
+
+    state.board = Array(9).fill(null);
+    const k2 = freshEntry(kaelan, 'blue');
+    const strongK = freshEntry({ id:'strongk', name:'StrongK', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = k2; state.board[5] = strongK;
+    SPECIAL_HANDLERS.kaelan({ srcEntry: k2, targetEntry: strongK, targetIndex: 5, owner: 'blue' });
+    out.kaelanGuaranteed = strongK.owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    const k3 = freshEntry(kaelan, 'blue');
+    const shieldedK = freshEntry({ id:'shk', name:'ShK', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedK.grantedShield = true;
+    state.board[4] = k3; state.board[6] = shieldedK;
+    SPECIAL_HANDLERS.kaelan({ srcEntry: k3, targetEntry: shieldedK, targetIndex: 6, owner: 'blue' });
+    out.kaelanShieldBlocks = shieldedK.owner === 'red';
+
+    // Sable: Unshaken (debuffImmune), Special Silent Edge is threshold
+    // capture + stealPower.
+    const dbg = freshEntry(sable, 'blue');
+    state.board = Array(9).fill(null);
+    state.board[4] = dbg;
+    SpecialVerbs.debuff(dbg, 5);
+    out.sableDebuffImmune = dbg.captureBonus === 0;
+
+    state.board = Array(9).fill(null);
+    const s1 = freshEntry(sable, 'blue');
+    const sw = freshEntry({ id:'sw', name:'SW', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = s1; state.board[5] = sw;
+    SPECIAL_HANDLERS.sable({ srcEntry: s1, targetEntry: sw, targetIndex: 5, owner: 'blue' });
+    out.sableSpecial = sw.owner === 'blue' && sw.captureBonus === -1 && s1.captureBonus === 1;
+
+    // Vesper: Growing Legend (onCaptureBonus) via the real battle path,
+    // Special Twilight Cross is threshold capture + self-buff.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const v1 = freshEntry(vesper, 'blue');
+    state.board[4] = v1;
+    state.board[1] = freshEntry({ id:'vw', name:'VW', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.vesperCaptureBonus = v1.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const v2 = freshEntry(vesper, 'blue');
+    const vw2 = freshEntry({ id:'vw2', name:'VW2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = v2; state.board[5] = vw2;
+    SPECIAL_HANDLERS.vesper({ srcEntry: v2, targetEntry: vw2, targetIndex: 5, owner: 'blue' });
+    out.vesperSpecial = vw2.owner === 'blue' && v2.captureBonus === 2;
+
+    // buyPack gating: all three only ever from Mystic (user's own explicit
+    // choice to keep the whole trio at the same tier, unlike earlier
+    // split-tier pairs/trios).
+    playerProgress = { points: 100000, lifetimePoints:100000, earnedCards:{}, campaignClearedOnce:true, opponentHeld:{} };
+    let sawKaelan=false, sawSable=false, sawVesper=false, sawKaelanEpic=false;
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('mystic');
+      if(playerProgress.earnedCards.kaelan) sawKaelan = true;
+      if(playerProgress.earnedCards.sable) sawSable = true;
+      if(playerProgress.earnedCards.vesper) sawVesper = true;
+    }
+    for(let i = 0; i < 150; i++){
+      playerProgress.earnedCards = {}; playerProgress.points = 100000;
+      buyPack('epic');
+      if(playerProgress.earnedCards.kaelan) sawKaelanEpic = true;
+    }
+    out.kaelanFromMystic = sawKaelan;
+    out.sableFromMystic = sawSable;
+    out.vesperFromMystic = sawVesper;
+    out.kaelanNeverFromEpic = !sawKaelanEpic;
+
+    return out;
+  })()`);
+  assert.equal(result.allFindable, true);
+  assert.equal(result.noneInHeroes, true);
+  assert.equal(result.noneInCampaignPool, true);
+  assert.equal(result.scaling, true, 'the trio sisterAura must scale +1 per member present, 0 through 2');
+  assert.equal(result.kaelanDebuffsLoser, true, "Reckoning's Toll must permanently debuff the loser of a normal battle");
+  assert.equal(result.kaelanHasShield, true);
+  assert.equal(result.kaelanGuaranteed, true, 'Crimson Reckoning must guarantee a capture regardless of stat comparison');
+  assert.equal(result.kaelanShieldBlocks, true);
+  assert.equal(result.sableDebuffImmune, true);
+  assert.equal(result.sableSpecial, true, 'Silent Edge must steal 1 Power on top of capturing the target');
+  assert.equal(result.vesperCaptureBonus, true);
+  assert.equal(result.vesperSpecial, true, 'Twilight Cross must capture AND grant +2 Power on success');
+  assert.equal(result.kaelanFromMystic, true);
+  assert.equal(result.sableFromMystic, true);
+  assert.equal(result.vesperFromMystic, true);
+  assert.equal(result.kaelanNeverFromEpic, true, 'Kaelan must only ever come from the Mystic tier');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
