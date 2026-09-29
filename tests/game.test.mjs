@@ -13448,3 +13448,94 @@ test('Fas 70: the Sisters-of-Fate cutscene plays exactly once when the player fi
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 71: Nyxara\'s solo cutscene plays on every genuine "new campaign" start -- a brand-new player\'s first view, and explicit Reset Campaign/New Game+ -- but never just from revisiting Stage 1', async () => {
+  // Scenario A: a brand-new player (no localStorage at all) sees it the
+  // very first time they view the Stage 1 screen, and it doesn't repeat on
+  // a retry or a plain re-render of that same screen.
+  {
+    const { page, pageErrors } = await newPage();
+    const result = await page.evaluate(() => {
+      const out = {};
+      out.hadNoSaveDetected = hadNoCampaignSaveAtLoad === true;
+      state.draftMode = 'campaign';
+      state.phase = 'draft';
+      render();
+      out.overlayShownForBrandNew = state.showNewCampaignIntroVideo === true;
+      const videoEl = document.getElementById('new-campaign-intro-video');
+      out.videoSrcCorrect = !!videoEl && videoEl.getAttribute('src') === NEW_CAMPAIGN_INTRO_VIDEO;
+      document.getElementById('new-campaign-intro-skip').click();
+      out.overlayGoneAfterSkip = state.showNewCampaignIntroVideo === false;
+      resetGame();
+      out.doesNotRetriggerOnRetry = state.showNewCampaignIntroVideo === false;
+      render();
+      out.doesNotRetriggerOnRerender = state.showNewCampaignIntroVideo === false;
+      return out;
+    });
+    assert.equal(result.hadNoSaveDetected, true);
+    assert.equal(result.overlayShownForBrandNew, true);
+    assert.equal(result.videoSrcCorrect, true);
+    assert.equal(result.overlayGoneAfterSkip, true);
+    assert.equal(result.doesNotRetriggerOnRetry, true);
+    assert.equal(result.doesNotRetriggerOnRerender, true);
+    assert.deepEqual(pageErrors, []);
+    await page.close();
+  }
+
+  // Scenario B: a returning player who already has a campaign save (even
+  // while still sitting at stageIndex 0, e.g. stuck retrying Stage 1
+  // without ever winning it) must NOT see the cutscene just from viewing
+  // that screen -- only the brand-new-player case above triggers on view.
+  {
+    const { page, pageErrors } = await newPage();
+    await page.evaluate(() => {
+      localStorage.setItem('triadArenaCampaign', JSON.stringify({ stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false }));
+    });
+    await page.reload();
+    await page.waitForFunction(() => typeof state !== 'undefined');
+    const result = await page.evaluate(() => {
+      const out = {};
+      out.hadNoSaveDetected = hadNoCampaignSaveAtLoad === true;
+      state.draftMode = 'campaign';
+      state.phase = 'draft';
+      render();
+      out.overlayShownForReturningPlayer = state.showNewCampaignIntroVideo === true;
+      return out;
+    });
+    assert.equal(result.hadNoSaveDetected, false, 'a player with an existing save must not be misdetected as brand-new');
+    assert.equal(result.overlayShownForReturningPlayer, false);
+    assert.deepEqual(pageErrors, []);
+    await page.close();
+  }
+
+  // Scenario C: an explicit Reset Campaign (or New Game+) click fires the
+  // cutscene directly, regardless of whether the brand-new-player check
+  // already fired once earlier in the same session.
+  {
+    const { page, pageErrors } = await newPage();
+    const result = await page.evaluate(() => {
+      const out = {};
+      state.draftMode = 'campaign';
+      state.phase = 'draft';
+      render(); // brand-new trigger already fires and is dismissed here
+      state.showNewCampaignIntroVideo = false;
+      render();
+      out.notShowingBeforeReset = state.showNewCampaignIntroVideo === false;
+
+      campaignProgress.stageIndex = 5;
+      campaignProgress.sistersVideoShown = true;
+      // Mirrors the campaign-reset-btn handler's own body exactly.
+      campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
+      saveCampaignProgress();
+      state.selected = [];
+      state.showNewCampaignIntroVideo = true;
+      render();
+      out.overlayShownAfterExplicitReset = state.showNewCampaignIntroVideo === true;
+      return out;
+    });
+    assert.equal(result.notShowingBeforeReset, true);
+    assert.equal(result.overlayShownAfterExplicitReset, true);
+    assert.deepEqual(pageErrors, []);
+    await page.close();
+  }
+});

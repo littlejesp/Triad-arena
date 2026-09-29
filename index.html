@@ -3415,19 +3415,21 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   display:flex; justify-content:center; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
   pointer-events:none;
 }
-/* Fas 70: Sisters-of-Fate one-time cutscene -- full-screen, above every
-   other overlay (including #modal-overlay's z-index:60) since it's a
-   pre-battle moment nothing else can be open behind. */
-.sisters-intro-overlay{
+/* Fas 70/71: shared full-screen video-cutscene look, used by both the
+   one-time Sisters-of-Fate reveal (checkSistersIntroTrigger) and the
+   per-campaign-start Nyxara intro (checkNewCampaignIntroTrigger) -- above
+   every other overlay (including #modal-overlay's z-index:60) since these
+   are always pre-battle moments with nothing else open behind them. */
+.campaign-cutscene-overlay{
   position:fixed; inset:0; z-index:70;
   background:#000; display:flex; align-items:center; justify-content:center;
 }
-.sisters-intro-video{ width:100%; height:100%; object-fit:contain; }
-/* button.ghost.sisters-intro-skip: tag+2-classes needed to beat the base
+.campaign-cutscene-video{ width:100%; height:100%; object-fit:contain; }
+/* button.ghost.campaign-cutscene-skip: tag+2-classes needed to beat the base
    button.ghost{width:100%} rule, same fix as button.ghost.packs-open-btn
-   etc. above (see that comment) -- a plain .sisters-intro-skip class
+   etc. above (see that comment) -- a plain .campaign-cutscene-skip class
    selector would lose the specificity fight and get stretched full-width. */
-button.ghost.sisters-intro-skip{
+button.ghost.campaign-cutscene-skip{
   position:absolute; top:calc(16px + env(safe-area-inset-top)); right:16px;
   width:auto; margin-top:0; background:rgba(4,3,9,0.7); border:1px solid var(--gold);
   color:var(--gold); padding:8px 16px; border-radius:20px; font-size:12px;
@@ -6177,6 +6179,25 @@ function checkSistersIntroTrigger(){
   }
 }
 
+// Fas 71: fires Nyxara's solo cutscene once for each of the three moments
+// that count as "starting a new campaign" -- an explicit Reset Campaign
+// click and an explicit New Game+ click both set state.showNewCampaignIntroVideo
+// directly in their own button handlers (see attachHandlers), while THIS
+// check only covers the third moment: a genuinely brand-new player's very
+// first-ever view of the Stage 1 screen (hadNoCampaignSaveAtLoad). It's a
+// plain module-level variable, not campaignProgress.*, on purpose -- unlike
+// sistersVideoShown this must NOT persist across sessions, or a returning
+// player who saved after winning Stage 1 at least once would never see it
+// again even on their actual next fresh Reset Campaign.
+function checkNewCampaignIntroTrigger(){
+  if(state.phase !== 'draft' || state.draftMode !== 'campaign') return;
+  if(hadNoCampaignSaveAtLoad && campaignProgress.stageIndex === 0){
+    hadNoCampaignSaveAtLoad = false;
+    state.showNewCampaignIntroVideo = true;
+    render();
+  }
+}
+
 /* ---------------- sound engine ---------------- */
 let soundOn = true;
 let musicOn = true;
@@ -6347,6 +6368,7 @@ let state = {
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
   showSistersIntroVideo: false, // true while the one-time Sisters-of-Fate cutscene overlay is showing -- see checkSistersIntroTrigger/renderSistersIntroOverlay (Fas 70)
+  showNewCampaignIntroVideo: false, // true while Nyxara's per-campaign-start cutscene overlay is showing -- see checkNewCampaignIntroTrigger/renderNewCampaignIntroOverlay (Fas 71)
   showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
   showLeaderboard: false, // true while the 🏆 Leaderboard modal is open
   leaderboardStatus: 'idle', // 'idle' | 'loading' | 'ready' | 'error' — see leaderboardFetchTop
@@ -6447,10 +6469,12 @@ function render(){
   html += renderChoicePicker();
   html += renderTutorialOverlay();
   html += renderSistersIntroOverlay();
+  html += renderNewCampaignIntroOverlay();
   app.innerHTML = html;
   attachHandlers();
   checkTutorialAutoAdvance();
   checkSistersIntroTrigger();
+  checkNewCampaignIntroTrigger();
 }
 
 // Tutorial banner overlaid on the real battle screen (see startTutorial()) --
@@ -6489,9 +6513,26 @@ function renderSistersIntroOverlay(){
   const stage = currentCampaignStage();
   const src = stage && stage.bannerVideo ? stage.bannerVideo : '';
   return `
-    <div class="sisters-intro-overlay" id="sisters-intro-overlay">
-      <video class="sisters-intro-video" id="sisters-intro-video" src="${src}" autoplay playsinline controls></video>
-      <button class="ghost sisters-intro-skip" id="sisters-intro-skip">Skip ▶</button>
+    <div class="campaign-cutscene-overlay" id="sisters-intro-overlay">
+      <video class="campaign-cutscene-video" id="sisters-intro-video" src="${src}" autoplay playsinline controls></video>
+      <button class="ghost campaign-cutscene-skip" id="sisters-intro-skip">Skip ▶</button>
+    </div>`;
+}
+
+// Fas 71: full-screen cutscene of Nyxara alone -- rising from her throne
+// into a three-hit scythe combo and a forward flip, landing eyes-glowing in
+// a combat stance. Unlike the Sisters cutscene (shown once ever), this one
+// is meant to replay every time the player actually STARTS a new campaign
+// run -- see checkNewCampaignIntroTrigger for the three distinct moments
+// that count as "starting a new campaign" and why a persisted
+// campaignProgress flag (like sistersVideoShown) would be the wrong tool
+// here (it would only ever fire once, not on every Reset/New Game+).
+function renderNewCampaignIntroOverlay(){
+  if(!state.showNewCampaignIntroVideo) return '';
+  return `
+    <div class="campaign-cutscene-overlay" id="new-campaign-intro-overlay">
+      <video class="campaign-cutscene-video" id="new-campaign-intro-video" src="${NEW_CAMPAIGN_INTRO_VIDEO}" autoplay playsinline controls></video>
+      <button class="ghost campaign-cutscene-skip" id="new-campaign-intro-skip">Skip ▶</button>
     </div>`;
 }
 
@@ -8736,6 +8777,16 @@ function attachHandlers(){
     state.showSistersIntroVideo = false;
     render();
   });
+  const newCampaignIntroSkip = document.getElementById('new-campaign-intro-skip');
+  if(newCampaignIntroSkip) newCampaignIntroSkip.addEventListener('click', ()=>{
+    state.showNewCampaignIntroVideo = false;
+    render();
+  });
+  const newCampaignIntroVideo = document.getElementById('new-campaign-intro-video');
+  if(newCampaignIntroVideo) newCampaignIntroVideo.addEventListener('ended', ()=>{
+    state.showNewCampaignIntroVideo = false;
+    render();
+  });
   document.querySelectorAll('.beginner-deck-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const deck = BEGINNER_DECKS.find(d => d.id === btn.dataset.deck);
@@ -9077,6 +9128,10 @@ function attachHandlers(){
         campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1, sistersVideoShown:campaignProgress.sistersVideoShown };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
+        // Fas 71: an explicit "start a new campaign run" moment -- fires
+        // Nyxara's intro directly, independent of checkNewCampaignIntroTrigger's
+        // brand-new-player check above (this player very much already has a save).
+        state.showNewCampaignIntroVideo = true;
         SFX.begin();
         render();
       });
@@ -9086,6 +9141,8 @@ function attachHandlers(){
         campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
+        // Fas 71: same explicit "new campaign run" moment as New Game+ above.
+        state.showNewCampaignIntroVideo = true;
         render();
       });
     }
@@ -10166,6 +10223,10 @@ const CAMPAIGN_STAGES = [
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['triunedesire'] },
 ];
 const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
+// Fas 71: Nyxara's solo "awakening" cutscene, played by
+// checkNewCampaignIntroTrigger every time the player actually starts a new
+// campaign run (not tied to a single stage the way bannerVideo is).
+const NEW_CAMPAIGN_INTRO_VIDEO = 'nyxara-awakening-video.mp4';
 
 function loadCampaignProgress(){
   try{
@@ -10185,6 +10246,12 @@ function loadCampaignProgress(){
 function saveCampaignProgress(){
   try{ localStorage.setItem(CAMPAIGN_SAVE_KEY, JSON.stringify(campaignProgress)); }catch(e){ /* storage unavailable — progress just won't persist */ }
 }
+// Captured before loadCampaignProgress() runs, purely to detect a genuinely
+// brand-new player (no campaign save at all yet) for checkNewCampaignIntroTrigger
+// below -- a returning player stuck retrying Stage 1 without ever winning it
+// also sits at stageIndex 0, but DOES have a save, so this stays false for them.
+let hadNoCampaignSaveAtLoad = false;
+try{ hadNoCampaignSaveAtLoad = !localStorage.getItem(CAMPAIGN_SAVE_KEY); }catch(e){ /* storage unavailable -- treat as not-fresh, harmless either way */ }
 let campaignProgress = loadCampaignProgress();
 
 // Fas 4 (design review, progression pilot): Random Draft/Choose Your Five
@@ -15340,7 +15407,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showSistersIntroVideo:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, riskWinChoice:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showSistersIntroVideo:false, showNewCampaignIntroVideo:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, riskWinChoice:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
