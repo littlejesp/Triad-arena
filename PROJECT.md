@@ -6092,6 +6092,77 @@ regression). Fixat genom att höja loopen till 150 iterationer, samma
 konvention som resten av filens `buyPack`-gatinande tester redan
 använder. Hela testsviten grön: **203/203**.
 
+**Fas 70. En AI-genererad video-cutscene av systrarna, spelas EN gång
+när man når deras boss-stage i Campaign.** Användaren hade redan fått
+Picsart Pro gratis via sitt Revolut Premium-abonnemang och ville testa
+det till något — pratade igenom Runway (gratiskontot saknade helt
+video-generering utan uppgradering) innan vi landade i att Picsart Pro
+faktiskt har en egen `AI Video Generator`/Image-to-Video-funktion
+inkluderad (15 credits per 5 sek på Wan 2.7, ~35-84 credits för
+Seedance 2.5 beroende på längd — gott om marginal med 509 credits).
+Källbilden var INTE Triune Desire (den sammansmälta bossen) utan
+`sisters-of-fate-banner.jpg`, som redan visar alla tre systrarna
+(Vaelira, Seraphine, Nyxara) tillsammans i en och samma bild — rätt val
+eftersom användaren ville se dem posera TILLSAMMANS, inte en enda
+fusion-karaktär.
+
+Iterationsprocessen (helt utanför spelkoden, i Picsart-appen):
+tre promptrundor. Första försöket blev för "vilt" (ansikten/detaljer
+riskerar bli konstiga med för många vaga stämningsord) — förenklade
+till konkreta per-karaktär-rörelser. Andra försöket fick Vaelira och
+Seraphine att posera med sina vapen men Nyxara (mitt i bild, förgrunden)
+blev nästan helt orörlig förutom att hennes korp hoppade till — klassiskt
+AI-video-problem där en karaktär som inte nämns FÖRST/tydligast nog
+blir nedprioriterad. Löste det genom att flytta Nyxara till första
+meningen i prompten och göra hennes egen instruktion lika konkret
+("tightens her grip on her scythe and lifts it") som de andra
+två. Tredje försöket godkändes.
+
+**Inbyggnad i spelet.** Ny logik, helt separat från den existerande
+statiska banner-bilden (som fortfarande visas för alla ANDRA stages):
+- `CAMPAIGN_STAGES`s Sisters-post fick ett nytt fält `bannerVideo:
+  'sisters-of-fate-video.mp4'` (video-filen, 12 sek/480p, 941×1672
+  källbild via samma wide-crop-pipeline som korten).
+- Ny persisterad flagga `campaignProgress.sistersVideoShown` (i
+  `loadCampaignProgress`/`saveCampaignProgress`) håller reda på om
+  cutscenen redan visats — explicit trädde in i ALLA tre ställen där
+  `campaignProgress` byggs om från grunden (stage-advance i
+  `finishGame()`, "Start New Game+", "Reset Campaign") eftersom vart
+  och ett av dem annars tyst skulle nollställa/tappa flaggan (New Game+
+  behåller den, Reset Campaign sätter den uttryckligen till `false` så
+  en full reset låter spelaren se cutscenen igen).
+- Ny transient `state.showSistersIntroVideo` + `checkSistersIntroTrigger()`
+  (samma "check-funktion-i-slutet-av-render()"-mönster som
+  `checkTutorialAutoAdvance()` redan använder) — kollar varje render-pass
+  om spelaren står på en stage med `bannerVideo` och flaggan ännu inte
+  är satt, sätter då båda flaggorna och triggar ett nytt render-varv som
+  visar overlayn. `resetGame()` (som körs vid varje retry/retreat/nästa
+  stage) nollställer den TRANSIENTA statusen varje match, men den
+  PERSISTERADE `campaignProgress`-flaggan skyddar mot att cutscenen
+  någonsin triggas två gånger.
+- Ny `renderSistersIntroOverlay()`: helskärms `<video autoplay playsinline
+  controls>` (ljudet spelas upp normalt, inte muted — spelaren har redan
+  interagerat med sidan långt innan de når hit så webbläsarens
+  autoplay-policy blockerar inte ljud) plus en "Skip ▶"-knapp som
+  dismissar direkt; videons eget `ended`-event dismissar den också om
+  spelaren låter den spela klart. z-index:70, högre än ALLA andra
+  overlays (inklusive `#modal-overlay`s 60) eftersom ingenting annat
+  rimligen kan vara öppet bakom en pre-battle-cutscene.
+- CSS-fälla undviken i farten: `button.ghost.sisters-intro-skip` (inte
+  bara `.sisters-intro-skip`) krävdes för att slå den befintliga
+  `button.ghost{width:100%}`-basregelns högre specificitet (tag+klass
+  vs. bara klass) — exakt samma tag+2-klasser-fix som redan används för
+  `button.ghost.leaderboard-view-btn`/`button.ghost.packs-open-btn`.
+
+Fas 70-testet täcker hela livscykeln: cutscenen visas första gången,
+Skip dismissar den, den triggas INTE om av ett nytt render-pass på
+samma skärm, `resetGame()` nollställer transient status men den
+persisterade flaggan överlever, och — den viktigaste regressionsfällan
+— flaggan överlever `finishGame()`s fullständiga ombyggnad av
+`campaignProgress` vid nästa stage-clear (annars skulle den tyst
+nollställas igen så fort spelaren vinner NÄSTA stage efter Sisters).
+Hela testsviten grön: **204/204**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

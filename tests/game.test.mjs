@@ -13382,3 +13382,69 @@ test("Fas 69: thirty-seventh through thirty-ninth pack-exclusive cards -- Kaelan
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 70: the Sisters-of-Fate cutscene plays exactly once when the player first reaches that Campaign stage, and never replays afterward', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const sistersIndex = CAMPAIGN_STAGES.findIndex(s => s.bannerVideo);
+    out.foundStage = sistersIndex >= 0;
+    out.bannerVideoPath = sistersIndex >= 0 ? CAMPAIGN_STAGES[sistersIndex].bannerVideo : null;
+
+    // First arrival: not yet shown -- checkSistersIntroTrigger must fire.
+    campaignProgress = { stageIndex: sistersIndex, unlocked: [], ngPlus: 0, sistersVideoShown: false };
+    saveCampaignProgress();
+    state.draftMode = 'campaign';
+    state.phase = 'draft';
+    render();
+    out.overlayShownFirstTime = state.showSistersIntroVideo === true;
+    out.flagPersistedAfterTrigger = campaignProgress.sistersVideoShown === true;
+    const videoEl = document.getElementById('sisters-intro-video');
+    out.videoSrcCorrect = !!videoEl && videoEl.getAttribute('src') === CAMPAIGN_STAGES[sistersIndex].bannerVideo;
+    out.skipBtnExists = !!document.getElementById('sisters-intro-skip');
+
+    // Skip dismisses it immediately.
+    document.getElementById('sisters-intro-skip').click();
+    out.overlayGoneAfterSkip = state.showSistersIntroVideo === false;
+    out.noOverlayInDom = !document.getElementById('sisters-intro-overlay');
+
+    // Viewing the same stage screen again must NOT retrigger it.
+    render();
+    out.doesNotRetriggerOnRerender = state.showSistersIntroVideo === false;
+
+    // resetGame() (the retry/retreat/next-stage path) wipes transient state
+    // every match -- the persisted flag must survive that wipe.
+    resetGame();
+    out.survivesResetGame = state.showSistersIntroVideo === false && campaignProgress.sistersVideoShown === true;
+
+    // Regression guard: finishGame()'s campaign-win path rebuilds
+    // campaignProgress from scratch on every stage clear (see its
+    // `campaignProgress = { stageIndex: newStageIndex, ... }` line) -- it
+    // must explicitly carry sistersVideoShown forward, or the flag would
+    // silently reset to falsy on the very next stage win after this one.
+    campaignProgress = { stageIndex: sistersIndex, unlocked: [], ngPlus: 0, sistersVideoShown: true };
+    state.board = Array(9).fill(null);
+    for(let i=0;i<5;i++) state.board[i] = { card: findCardById('vaelira'), owner:'blue' };
+    for(let i=5;i<9;i++) state.board[i] = { card: findCardById('shadowking'), owner:'red' };
+    finishGame();
+    out.preservedAcrossStageAdvance = campaignProgress.sistersVideoShown === true;
+    out.stageAdvancedCorrectly = campaignProgress.stageIndex === sistersIndex + 1;
+
+    return out;
+  });
+
+  assert.equal(result.foundStage, true, 'a stage with bannerVideo must exist (the Sisters stage)');
+  assert.equal(result.bannerVideoPath, 'sisters-of-fate-video.mp4');
+  assert.equal(result.overlayShownFirstTime, true);
+  assert.equal(result.flagPersistedAfterTrigger, true);
+  assert.equal(result.videoSrcCorrect, true);
+  assert.equal(result.skipBtnExists, true);
+  assert.equal(result.overlayGoneAfterSkip, true);
+  assert.equal(result.noOverlayInDom, true);
+  assert.equal(result.doesNotRetriggerOnRerender, true);
+  assert.equal(result.survivesResetGame, true);
+  assert.equal(result.preservedAcrossStageAdvance, true, 'sistersVideoShown must survive finishGame()\'s campaignProgress rebuild on every later stage win');
+  assert.equal(result.stageAdvancedCorrectly, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});

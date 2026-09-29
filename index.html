@@ -3415,6 +3415,23 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   display:flex; justify-content:center; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
   pointer-events:none;
 }
+/* Fas 70: Sisters-of-Fate one-time cutscene -- full-screen, above every
+   other overlay (including #modal-overlay's z-index:60) since it's a
+   pre-battle moment nothing else can be open behind. */
+.sisters-intro-overlay{
+  position:fixed; inset:0; z-index:70;
+  background:#000; display:flex; align-items:center; justify-content:center;
+}
+.sisters-intro-video{ width:100%; height:100%; object-fit:contain; }
+/* button.ghost.sisters-intro-skip: tag+2-classes needed to beat the base
+   button.ghost{width:100%} rule, same fix as button.ghost.packs-open-btn
+   etc. above (see that comment) -- a plain .sisters-intro-skip class
+   selector would lose the specificity fight and get stretched full-width. */
+button.ghost.sisters-intro-skip{
+  position:absolute; top:calc(16px + env(safe-area-inset-top)); right:16px;
+  width:auto; margin-top:0; background:rgba(4,3,9,0.7); border:1px solid var(--gold);
+  color:var(--gold); padding:8px 16px; border-radius:20px; font-size:12px;
+}
 .tutorial-panel{
   pointer-events:auto;
   width:100%; max-width:460px; background:var(--void-2); border:1px solid var(--gold);
@@ -6144,6 +6161,22 @@ function checkTutorialAutoAdvance(){
   }
 }
 
+// Fas 70: fires the Sisters-of-Fate cutscene exactly once, the first time
+// the player views the Campaign picker for that stage -- gated on the
+// persisted campaignProgress.sistersVideoShown (not the transient
+// state.showSistersIntroVideo) so it survives resetGame()'s per-match
+// state wipe and never replays on retry/retreat/next-stage.
+function checkSistersIntroTrigger(){
+  if(state.phase !== 'draft' || state.draftMode !== 'campaign') return;
+  const stage = currentCampaignStage();
+  if(stage && stage.bannerVideo && !campaignProgress.sistersVideoShown){
+    campaignProgress.sistersVideoShown = true;
+    saveCampaignProgress();
+    state.showSistersIntroVideo = true;
+    render();
+  }
+}
+
 /* ---------------- sound engine ---------------- */
 let soundOn = true;
 let musicOn = true;
@@ -6313,6 +6346,7 @@ let state = {
   showRulebook: false,    // true while the 📖 rulebook modal is open
   rulebookPage: 0,        // index into RULEBOOK_PAGES currently shown
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
+  showSistersIntroVideo: false, // true while the one-time Sisters-of-Fate cutscene overlay is showing -- see checkSistersIntroTrigger/renderSistersIntroOverlay (Fas 70)
   showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
   showLeaderboard: false, // true while the 🏆 Leaderboard modal is open
   leaderboardStatus: 'idle', // 'idle' | 'loading' | 'ready' | 'error' — see leaderboardFetchTop
@@ -6412,9 +6446,11 @@ function render(){
   html += renderBagModal();
   html += renderChoicePicker();
   html += renderTutorialOverlay();
+  html += renderSistersIntroOverlay();
   app.innerHTML = html;
   attachHandlers();
   checkTutorialAutoAdvance();
+  checkSistersIntroTrigger();
 }
 
 // Tutorial banner overlaid on the real battle screen (see startTutorial()) --
@@ -6439,6 +6475,23 @@ function renderTutorialOverlay(){
           <button class="cta" id="${step.isLast ? 'tutorial-finish' : 'tutorial-next'}">${step.isLast ? 'Finish' : 'Next'}</button>
         </div>
       </div>
+    </div>`;
+}
+
+// Fas 70: full-screen one-time cutscene, played by checkSistersIntroTrigger
+// the first time the player reaches the Sisters stage in Campaign. Both a
+// Skip button and the video's own 'ended' event dismiss it (see
+// attachHandlers) -- autoplay works unmuted here because the player has
+// always already interacted with the page (clicking through the draft
+// screen) well before reaching this stage.
+function renderSistersIntroOverlay(){
+  if(!state.showSistersIntroVideo) return '';
+  const stage = currentCampaignStage();
+  const src = stage && stage.bannerVideo ? stage.bannerVideo : '';
+  return `
+    <div class="sisters-intro-overlay" id="sisters-intro-overlay">
+      <video class="sisters-intro-video" id="sisters-intro-video" src="${src}" autoplay playsinline controls></video>
+      <button class="ghost sisters-intro-skip" id="sisters-intro-skip">Skip ▶</button>
     </div>`;
 }
 
@@ -8673,6 +8726,16 @@ function attachHandlers(){
   if(tutorialSkip) tutorialSkip.addEventListener('click', endTutorial);
   const tutorialFinish = document.getElementById('tutorial-finish');
   if(tutorialFinish) tutorialFinish.addEventListener('click', endTutorial);
+  const sistersIntroSkip = document.getElementById('sisters-intro-skip');
+  if(sistersIntroSkip) sistersIntroSkip.addEventListener('click', ()=>{
+    state.showSistersIntroVideo = false;
+    render();
+  });
+  const sistersIntroVideo = document.getElementById('sisters-intro-video');
+  if(sistersIntroVideo) sistersIntroVideo.addEventListener('ended', ()=>{
+    state.showSistersIntroVideo = false;
+    render();
+  });
   document.querySelectorAll('.beginner-deck-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const deck = BEGINNER_DECKS.find(d => d.id === btn.dataset.deck);
@@ -9011,7 +9074,7 @@ function attachHandlers(){
       });
       const campaignNgPlus = document.getElementById('campaign-ngplus-btn');
       if(campaignNgPlus) campaignNgPlus.addEventListener('click', ()=>{
-        campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1 };
+        campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1, sistersVideoShown:campaignProgress.sistersVideoShown };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
         SFX.begin();
@@ -9020,7 +9083,7 @@ function attachHandlers(){
       const campaignReset = document.getElementById('campaign-reset-btn');
       if(campaignReset) campaignReset.addEventListener('click', ()=>{
         if(!confirm('Reset all campaign progress? This cannot be undone.')) return;
-        campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0 };
+        campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
         render();
@@ -10079,7 +10142,12 @@ const CAMPAIGN_STAGES = [
   // hands out all three here: clearing this is what lets you play as them.
   { name:'The Triple Triad Sisters', enemyIds:['vaelira','seraphine','nyxara','shadowking','voidqueen'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['vaelira','seraphine','nyxara'],
-    banner:'sisters-of-fate-banner.jpg', lore:SISTER_LORE },
+    banner:'sisters-of-fate-banner.jpg', lore:SISTER_LORE,
+    // Fas 70: a one-time AI-animated cutscene of the three sisters posing
+    // together, played the very first time the player reaches this stage
+    // (see checkSistersIntroTrigger/renderSistersIntroOverlay) -- never
+    // replayed afterward, tracked via campaignProgress.sistersVideoShown.
+    bannerVideo:'sisters-of-fate-video.mp4' },
   // Stage 20 — the new TRUE final boss: Triune Desire ("Boss, Triple Triad
   // Sisters IV", the three sisters fused into one) was already fully built
   // as a card (see her own definition/comment above) but never wired into
@@ -10102,15 +10170,16 @@ const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
 function loadCampaignProgress(){
   try{
     const raw = localStorage.getItem(CAMPAIGN_SAVE_KEY);
-    if(!raw) return { stageIndex:0, unlocked:[], ngPlus:0 };
+    if(!raw) return { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
     const parsed = JSON.parse(raw);
     return {
       stageIndex: parsed.stageIndex||0,
       unlocked: Array.isArray(parsed.unlocked) ? parsed.unlocked : [],
       ngPlus: parsed.ngPlus||0,
+      sistersVideoShown: !!parsed.sistersVideoShown,
     };
   }catch(e){
-    return { stageIndex:0, unlocked:[], ngPlus:0 };
+    return { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
   }
 }
 function saveCampaignProgress(){
@@ -15222,7 +15291,7 @@ function finishGame(){
     if(stage){
       const newly = stage.unlockIds.filter(id => !campaignProgress.unlocked.includes(id));
       const newStageIndex = campaignProgress.stageIndex + 1;
-      campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus };
+      campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus, sistersVideoShown: campaignProgress.sistersVideoShown };
       saveCampaignProgress();
       state.campaignUnlocked = newly;
       // The big clear bonus. campaignClearedOnce itself still only flips
@@ -15271,7 +15340,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, riskWinChoice:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showSistersIntroVideo:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, riskWinChoice:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
