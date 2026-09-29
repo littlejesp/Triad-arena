@@ -6163,6 +6163,67 @@ persisterade flaggan överlever, och — den viktigaste regressionsfällan
 nollställas igen så fort spelaren vinner NÄSTA stage efter Sisters).
 Hela testsviten grön: **204/204**.
 
+**Fas 71. En andra cutscene, Nyxara ensam, som spelas varje gång man
+FAKTISKT startar en ny campaign-omgång — inte bara en gång totalt som
+Sisters-videon.** Direkt uppföljare till Fas 70, samma Picsart Pro-
+pipeline men med en ny, egen källbild (en fristående Nyxara-tronbild,
+inte den delade `sisters-of-fate-banner.jpg`). Användarens idé var
+betydligt mer ambitiös än sisters-klippet: hon skulle resa sig ur sin
+tillbakalutade sittande pose, göra en 3-slags lie-combo (ner/diagonalt
+höger/upp), en framåtvolt, och landa i stridsställning med lysande
+ögon — flaggade tydligt innan vi körde att "stå upp från en sittande
+pose" är precis den typen av stor kroppsomritning AI-video ofta
+trasslar till (smältande ben, vapen som glitchar), men användaren körde
+ändå och resultatet blev — enligt användaren själv — "skit coolt".
+Prompten byggdes som tydliga beats (resa sig → tre namngivna hugg med
+glödande lila energi + motion blur som visuell markör för varje separat
+träff → volt → stridsställning) med kameran medvetet hållen enkel, för
+att inte lägga ännu mer att hålla reda på ovanpå en redan ambitiös
+kroppsanimation.
+
+**Skillnaden mot Fas 70 som drev hela designet:** användaren ville
+uttryckligen att den här ska synas "det första man gör när man startar
+ett nytt campaign" — dvs. VARJE gång en ny omgång börjar, inte bara en
+gång för alltid. En `campaignProgress`-flagga (som `sistersVideoShown`)
+hade varit fel verktyg här — den hade bara triggat en enda gång totalt.
+Löst med tre separata trigger-punkter istället:
+- **En helt ny spelare** (ingen sparfil alls) ser den automatiskt första
+  gången de tittar på Stage 1-skärmen. Avgörs av en ny modul-variabel
+  `hadNoCampaignSaveAtLoad` (läst en gång vid sidladdning, INTE en del
+  av `state` eller `campaignProgress` — den får uttryckligen inte
+  persisteras, annars skulle en spelare som sparat efter att ha klarat
+  Stage 1 en gång aldrig se den igen ens vid en riktig ny Reset).
+  `checkNewCampaignIntroTrigger()` (samma check-i-slutet-av-render()-
+  mönster som Fas 70/tutorial) nollställer variabeln efter första
+  triggningen så den inte upprepas vid varje omstart av Stage 1 under
+  samma session.
+- **"Reset Campaign"-knappen** sätter `state.showNewCampaignIntroVideo`
+  direkt i sin egen click-handler, oavsett om den nya spelar-kollen
+  redan triggat tidigare samma session.
+- **"Start New Game+"-knappen** gör samma sak i sin egen handler.
+
+En återvändande spelare som bara råkar sitta kvar på stageIndex 0 (t.ex.
+fast på Stage 1 efter flera förluster, utan att någonsin ha vunnit och
+därmed sparat) triggar INTE cutscenen bara av att titta på skärmen —
+bara en genuint ny spelare (ingen sparfil alls) eller en explicit
+Reset/New Game+-knapptryckning räknas som "startar en ny campaign".
+
+**Delad kod med Fas 70:** CSS-klasserna döptes om från `sisters-intro-*`
+till generiska `campaign-cutscene-*` (overlay/video/skip-knapp) så båda
+cutscenerna återanvänder samma visuella stil utan duplicerad CSS — de
+två kan aldrig visas samtidigt eftersom de är knutna till olika
+stage-index (0 för Nyxara, Sisters-stagen för den andra). Ny konstant
+`NEW_CAMPAIGN_INTRO_VIDEO = 'nyxara-awakening-video.mp4'` (fristående
+fil, inte kopplad till någon `CAMPAIGN_STAGES`-post som `bannerVideo`
+är, eftersom den inte hör till en specifik stage utan till själva
+campaign-starten).
+
+Fas 71-testet täcker alla tre scenarier separat: en helt ny spelare ser
+den och den upprepas inte vid retry/re-render, en återvändande spelare
+med sparfil på stageIndex 0 ser den INTE bara av att titta på skärmen,
+och en explicit Reset-knapptryckning triggar den oavsett tidigare
+sessionshistorik. Hela testsviten grön: **205/205**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
