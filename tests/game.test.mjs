@@ -10758,12 +10758,14 @@ test('Fas 41: fourth pack-exclusive card -- Zidane (Mystic), a momentum/combo ki
     }
     out.cappedAtThree = src.captureBonus === 3;
 
-    // Special Attack: Trance -- a pure +4 permanent self-buff, no target.
+    // Special Attack: Trance -- a permanent +4 self-buff (Fas 80 added a
+    // real attack on every adjacent enemy too, see the dedicated Fas 80
+    // test; with no enemies on the board here, only the buff applies).
     state.board = Array(9).fill(null);
     const src2 = freshEntry(zidane, 'blue');
     state.board[4] = src2;
     state.wins = { blue: 5, red: 5 };
-    SPECIAL_HANDLERS.zidane({ srcEntry: src2, owner: 'blue' });
+    SPECIAL_HANDLERS.zidane({ srcEntry: src2, sourceIndex: 4, owner: 'blue' });
     out.tranceBuff = src2.captureBonus === 4;
 
     // buyPack: mystic tier only.
@@ -13653,20 +13655,17 @@ test('Fas 73: forty-second and forty-third pack-exclusive cards -- LittleAngel a
     const even = fullEffectiveValue(angel, 'top', null, 4, 'blue', 'attack') - angel.top;
     out.angelUnderdogBonus = behind === 2 && even === 0;
 
-    // LittleAngel: Special guaranteed capture + shield block.
+    // LittleAngel: Special AOE guaranteed capture + shield block (Fas 80
+    // reworked her from single-target to whole-board AOE, same shape as
+    // Gambler's Ultima/Seraphine's Silver Judgment).
     state.board = Array(9).fill(null);
     const a1 = freshEntry(angel, 'blue');
     const strongFoe = freshEntry({ id:'sf', name:'SF', top:30,right:30,bottom:30,left:30 }, 'red');
-    state.board[4] = a1; state.board[5] = strongFoe;
-    SPECIAL_HANDLERS.littleangel({ srcEntry:a1, targetEntry:strongFoe, targetIndex:5, owner:'blue' });
-    out.angelGuaranteed = strongFoe.owner === 'blue';
-
-    state.board = Array(9).fill(null);
-    const a2 = freshEntry(angel, 'blue');
     const shieldedFoe = freshEntry({ id:'shf', name:'SHF', top:1,right:1,bottom:1,left:1 }, 'red');
     shieldedFoe.grantedShield = true;
-    state.board[4] = a2; state.board[6] = shieldedFoe;
-    SPECIAL_HANDLERS.littleangel({ srcEntry:a2, targetEntry:shieldedFoe, targetIndex:6, owner:'blue' });
+    state.board[4] = a1; state.board[5] = strongFoe; state.board[6] = shieldedFoe;
+    SPECIAL_HANDLERS.littleangel({ srcEntry:a1, owner:'blue' });
+    out.angelGuaranteed = strongFoe.owner === 'blue';
     out.angelShieldBlocks = shieldedFoe.owner === 'red';
 
     // LittleDeath: onCaptureBonus -- her relentless-onslaught theme.
@@ -13772,6 +13771,73 @@ test('Fas 73: forty-second and forty-third pack-exclusive cards -- LittleAngel a
   assert.equal(result.sistersVideoSrcCorrect, true);
   assert.equal(result.bothFlagsSetIndependently, true);
   assert.equal(result.wildHuntDoesNotRetrigger, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 80: LittleAngel\'s Descending Judgment now claims every enemy card on the board (was single-target only) -- user\'s own request ("Hon borde ju kuna erövra fler en ett kort? Eller? Med sin ultimate"), same AOE-capture shape as Gambler\'s Ultima and Seraphine\'s Silver Judgment', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const angel = findCardById('littleangel');
+    out.targetsIsAoe = angel.special.targets === 'aoe';
+
+    // Basic AOE: both enemies captured, ally spared.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(angel, 'blue');
+    const ally = freshEntry({id:'ally',name:'Ally',top:1,right:1,bottom:1,left:1}, 'blue');
+    const foe1 = freshEntry({id:'foe1',name:'Foe1',top:1,right:1,bottom:1,left:1}, 'red');
+    const foe2 = freshEntry({id:'foe2',name:'Foe2',top:1,right:1,bottom:1,left:1}, 'red');
+    state.board[4] = src; state.board[0] = ally; state.board[1] = foe1; state.board[2] = foe2;
+    const msg = SPECIAL_HANDLERS.littleangel({ srcEntry: src, owner: 'blue' });
+    out.bothFoesCaptured = foe1.owner === 'blue' && foe2.owner === 'blue';
+    out.allyUntouched = ally.owner === 'blue' && ally.justFlipped !== true;
+    out.msgMentionsTwo = msg.includes('2 enemy cards');
+
+    // A Shield still protects its owner -- the other enemy still falls.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(angel, 'blue');
+    const shielded = freshEntry({id:'sh',name:'SH',top:1,right:1,bottom:1,left:1}, 'red');
+    shielded.grantedShield = true;
+    const weak = freshEntry({id:'w',name:'W',top:1,right:1,bottom:1,left:1}, 'red');
+    state.board[4] = src2; state.board[1] = shielded; state.board[2] = weak;
+    const msg2 = SPECIAL_HANDLERS.littleangel({ srcEntry: src2, owner: 'blue' });
+    out.shieldedStaysRed = shielded.owner === 'red';
+    out.weakCaptured = weak.owner === 'blue';
+    out.msg2MentionsShieldHeld = msg2.includes('1 shield held');
+
+    // No enemies anywhere on the board.
+    state.board = Array(9).fill(null);
+    const src3 = freshEntry(angel, 'blue');
+    state.board[4] = src3;
+    const msg3 = SPECIAL_HANDLERS.littleangel({ srcEntry: src3, owner: 'blue' });
+    out.noEnemiesMsg = msg3.includes('finds no enemies');
+
+    // executeSpecial must route 'aoe' straight through, with no
+    // target-picking UI ever opened (same dispatch every other AOE special uses).
+    state.board = Array(9).fill(null);
+    const src4 = freshEntry(angel, 'blue');
+    const foe4 = freshEntry({id:'f4',name:'F4',top:1,right:1,bottom:1,left:1}, 'red');
+    state.board[4] = src4; state.board[1] = foe4;
+    state.wins = { blue: 5, red: 5 };
+    state.specialUsed = {};
+    state.turn = 'blue';
+    state.phase = 'battle';
+    executeSpecial(4);
+    out.executeSpecialQueuedNoTargetUI = state.specialMode === null;
+
+    return out;
+  })()`);
+  assert.equal(result.targetsIsAoe, true, "LittleAngel's special must now be an AOE target type, not single-target");
+  assert.equal(result.bothFoesCaptured, true);
+  assert.equal(result.allyUntouched, true, 'her own ally must never be touched by the sweep');
+  assert.equal(result.msgMentionsTwo, true);
+  assert.equal(result.shieldedStaysRed, true, 'a Shield must still block the capture, same as every other capture-style effect');
+  assert.equal(result.weakCaptured, true);
+  assert.equal(result.msg2MentionsShieldHeld, true);
+  assert.equal(result.noEnemiesMsg, true);
+  assert.equal(result.executeSpecialQueuedNoTargetUI, true, 'aoe targets must never open the single-target picker UI');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -14006,6 +14072,79 @@ test("Fas 79: Auto-Pick (Campaign and Rivals) now weighs Elemental Clash matchup
   assert.equal(result.rivalPickMatchesManualElementalCall, true, 'getSmartRivalWager(opponentId) must be exactly pickSmartSynergyFive(earnedCardIds(), that opponent\'s enemy elements) when Elemental Clash is on');
   assert.equal(result.rivalStillUnchangedWithNoOpponentIdEvenWithElementalOn, true, 'no opponentId means no elemental weighting at all, even with the rule toggled on');
   assert.equal(result.buttonWiredWithCurrentOpponent, true, 'the Rivals Auto-Pick button must pass state.rivalView through to getSmartRivalWager');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 80: Zidane's Trance now battles every actual adjacent enemy with his newfound strength (was a pure self-buff with no combat) -- user's own request after seeing him in a board corner (\"exempelvis är han längst ner i hörnet får han 14 i varje side och attackerar då upp och till vänster\")", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const zidane = findCardById('zidane');
+
+    // Bottom-left corner (index 6): only 2 real neighbors exist (index 3
+    // "up" and index 7 "right") -- the other two directions are off-board,
+    // proving the attack naturally scopes to wherever he's actually
+    // standing, exactly the corner scenario the user described.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(zidane, 'blue');
+    state.board[6] = src;
+    const weakUp = freshEntry({ id:'wu', name:'WU', top:5,right:5,bottom:5,left:5 }, 'red');
+    const weakRight = freshEntry({ id:'wr', name:'WR', top:5,right:5,bottom:5,left:5 }, 'red');
+    state.board[3] = weakUp;
+    state.board[7] = weakRight;
+    const msg = SPECIAL_HANDLERS.zidane({ srcEntry: src, sourceIndex: 6, owner: 'blue' });
+    out.bothCaptured = weakUp.owner === 'blue' && weakRight.owner === 'blue';
+    out.bothFlipped = weakUp.justFlipped === true && weakRight.justFlipped === true;
+    out.msgMentionsTwo = msg.includes('2 enemies');
+    out.onlyRealNeighborsTouched = state.board.filter((e,i) => i!==6 && e && e.owner==='blue').length === 2;
+    // Twin Blade Fury (his own onWinCappedBoost passive, +1 per win up to
+    // 3x) naturally stacks with these two real wins on top of Trance's own
+    // flat +4 -- 4 + 2 = 6, a genuine emergent synergy from reusing the
+    // real battle engine rather than a bug to work around.
+    out.buffPlusTwinBladeFury = src.captureBonus === 6;
+
+    // A Shield still protects its owner (the one thing that can stop this,
+    // same as every other capture-style effect) -- the OTHER direction
+    // still gets captured normally.
+    state.board = Array(9).fill(null);
+    const src2 = freshEntry(zidane, 'blue');
+    state.board[6] = src2;
+    const shielded = freshEntry({ id:'sh', name:'SH', top:1,right:1,bottom:1,left:1 }, 'red');
+    shielded.grantedShield = true;
+    const weak2 = freshEntry({ id:'w2', name:'W2', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[3] = shielded;
+    state.board[7] = weak2;
+    const msg2 = SPECIAL_HANDLERS.zidane({ srcEntry: src2, sourceIndex: 6, owner: 'blue' });
+    out.shieldedEnemyStaysEnemy = shielded.owner === 'red';
+    out.otherDirectionStillCaptured = weak2.owner === 'blue';
+    out.shieldedMsgMentionsShield = shielded.owner === 'red' && weak2.owner === 'blue' && msg2.includes('1 enemy');
+    // Buff still applies even when every capture is blocked/partial --
+    // Trance's self-buff is unconditional, only the attack part can whiff.
+    out.buffAppliedEvenWithAShieldPresent = src2.captureBonus === 4 + 1; // +4 Trance, +1 Twin Blade Fury for the one real win
+
+    // No enemies anywhere nearby -- buff still applies, attack is just a no-op.
+    state.board = Array(9).fill(null);
+    const src3 = freshEntry(zidane, 'blue');
+    state.board[4] = src3;
+    const msg3 = SPECIAL_HANDLERS.zidane({ srcEntry: src3, sourceIndex: 4, owner: 'blue' });
+    out.noEnemiesMsg = msg3.includes('no enemies stand within reach');
+    out.buffStillAppliedWithNoEnemies = src3.captureBonus === 4;
+
+    return out;
+  })()`);
+  assert.equal(result.bothCaptured, true);
+  assert.equal(result.bothFlipped, true);
+  assert.equal(result.msgMentionsTwo, true);
+  assert.equal(result.onlyRealNeighborsTouched, true, 'only the 2 real board neighbors get attacked, never phantom off-board directions');
+  assert.equal(result.buffPlusTwinBladeFury, true, "Trance's flat +4 plus Twin Blade Fury's own +1-per-win passive must both apply from these real battles");
+  assert.equal(result.shieldedEnemyStaysEnemy, true, 'a Shield must still block the capture, same as every other capture-style effect');
+  assert.equal(result.otherDirectionStillCaptured, true);
+  assert.equal(result.shieldedMsgMentionsShield, true);
+  assert.equal(result.buffAppliedEvenWithAShieldPresent, true);
+  assert.equal(result.noEnemiesMsg, true);
+  assert.equal(result.buffStillAppliedWithNoEnemies, true, "Trance's self-buff is unconditional even when there is nothing to attack");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
