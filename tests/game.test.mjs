@@ -687,6 +687,11 @@ test('Campaign: retrying a stage keeps the same five champions pre-checked', asy
   const { page, pageErrors } = await newPage();
 
   await page.evaluate(() => {
+    // Fas 72's title-intro overlay shows on every fresh page load and would
+    // otherwise intercept the real page.click() below (see its full-screen
+    // pointer-events -- every other test either doesn't click real DOM
+    // elements post-load or dismisses it too, e.g. the Fas 70/71 tests).
+    state.showTitleIntroVideo = false;
     campaignProgress = { stageIndex: 1, unlocked: ['templaren'], ngPlus: 0 };
     saveCampaignProgress();
     state.draftMode = 'campaign';
@@ -13538,4 +13543,42 @@ test('Fas 71: Nyxara\'s solo cutscene plays on every genuine "new campaign" star
     assert.deepEqual(pageErrors, []);
     await page.close();
   }
+});
+
+test('Fas 72: the title-screen duel cutscene shows on every fresh page load regardless of mode, is skippable, and never reappears for the rest of that session', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    out.shownImmediatelyOnLoad = state.showTitleIntroVideo === true;
+    const videoEl = document.getElementById('title-intro-video');
+    out.videoSrcCorrect = !!videoEl && videoEl.getAttribute('src') === TITLE_INTRO_VIDEO;
+    out.skipBtnExists = !!document.getElementById('title-intro-skip');
+
+    document.getElementById('title-intro-skip').click();
+    out.overlayGoneAfterSkip = !state.showTitleIntroVideo;
+    out.noOverlayInDom = !document.getElementById('title-intro-overlay');
+
+    render();
+    out.doesNotReappearOnRerender = !state.showTitleIntroVideo;
+
+    // resetGame() (the retry/retreat/next-stage path, run after the very
+    // first match of a session) must not resurrect it either -- it's
+    // deliberately left out of resetGame()'s reset object, so this also
+    // guards against someone re-adding it there by mistake.
+    resetGame();
+    out.doesNotReappearAfterResetGame = !state.showTitleIntroVideo;
+    out.noOverlayInDomAfterReset = !document.getElementById('title-intro-overlay');
+
+    return out;
+  });
+  assert.equal(result.shownImmediatelyOnLoad, true);
+  assert.equal(result.videoSrcCorrect, true);
+  assert.equal(result.skipBtnExists, true);
+  assert.equal(result.overlayGoneAfterSkip, true);
+  assert.equal(result.noOverlayInDom, true);
+  assert.equal(result.doesNotReappearOnRerender, true);
+  assert.equal(result.doesNotReappearAfterResetGame, true);
+  assert.equal(result.noOverlayInDomAfterReset, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
 });
