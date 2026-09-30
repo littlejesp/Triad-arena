@@ -6485,6 +6485,40 @@ tillbaka till första spåret, och — separat sidladdning — ett tidigare
 sparat val återställs korrekt redan vid sidstart, innan någon
 interaktion alls. Hela testsviten grön: **210/210**.
 
+**Fas 78 (uppföljning). "Eternal Dawn" klipptes ihop med en andra del
+till en dubbelt så lång låt** ("kan man klippa ihop den musik filen med
+denna så det blir längre spelning?"). Användaren skickade en till
+ElevenLabs-fil (döpt "...V2", en uppenbar fortsättning på samma låt).
+
+**Verktygsproblem löst på vägen:** sandboxens förinstallerade,
+Playwright-egna ffmpeg-binär (`/opt/pw-browsers/ffmpeg-1011/`) är
+kraftigt beskuren (byggd med `--disable-everything`, bara de kodekar
+Playwrights egen skärminspelning behöver) — kunde inte ens läsa
+metadata från ljudfilerna. Ett `apt-get install ffmpeg`-försök
+misslyckades först på några 404:or mot paketspegeln (troligen tillfällig
+synk-lucka), men en ren `apt-get update` följt av samma
+installationskommando gick igenom helt utan vidare åtgärd.
+
+Båda källfilerna var Opus-i-MP4 (48kHz stereo), 213.3s respektive
+208.7s. Ett första försök att slå ihop dem rakt av (`-c copy`, ingen
+omkodning) till en `.m4a`-utfil misslyckades — ffmpegs `ipod`/MP4-
+muxer stödjer inte att skriva rå Opus-data i den containern. Löste det
+genom att omkoda till MP3 istället för AAC/M4A: MP3 är den enda kodek
+jag kunde verifiera FAKTISKT spelar upp i den här sandbox-miljöns
+Playwright-Chromium (samma `ancient-mysteries.mp3` som redan fungerar
+i spelet) — ett första AAC-försök såg tekniskt korrekt ut men floppade
+tyst i den strippade Chromium-byggen (`DEMUXER_ERROR_NO_SUPPORTED_STREAMS`,
+ett känt Playwright-Chromium-utan-proprietära-kodekar-fenomen, INTE
+nödvändigtvis ett tecken på att riktiga användares webbläsare skulle
+haft samma problem — men MP3 undviker frågan helt och kan verifieras
+här och nu). Resultatet: en sammanslagen `eternal-dawn.mp3` (bytt från
+`.m4a`), 422 sekunder (~7:02), verifierad att faktiskt spela upp
+korrekt (`loadedmetadata` + rätt `duration`) innan den ersatte den
+gamla filen i repot. `MUSIC_TRACKS`s `src`-fält och Fas 78-testets egen
+`.endsWith('eternal-dawn.m4a')`-assertion uppdaterades båda till
+`.mp3`. Hela testsviten grön: fortsatt **210/210** (ingen ny permanent
+test behövdes — samma spår, bara längre).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
