@@ -7436,6 +7436,7 @@ function renderCampaignPanel(){
     ${stageStatNote}
     <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
     <button class="cta" id="campaign-begin-btn" ${chosen === 5 ? '' : 'disabled'}>Begin Stage ${stageNum}</button>
+    <button class="ghost campaign-autopick-btn" id="campaign-autopick-btn">✨ Auto-Pick 5 Synergy Cards</button>
     <div class="section-label">Choose exactly five champions</div>
     <div class="draft-grid">
       ${poolIds.map(id => findCardById(id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true, unlocked: campaignProgress.unlocked.includes(h.id) })).join('')}
@@ -9106,6 +9107,11 @@ function attachHandlers(){
     state.rivalPicked = getSmartRivalWager();
     render();
   });
+  const campaignAutopickBtn = document.getElementById('campaign-autopick-btn');
+  if(campaignAutopickBtn) campaignAutopickBtn.addEventListener('click', ()=>{
+    state.selected = getSmartCampaignPick();
+    render();
+  });
   const rivalsBeginBtn = document.getElementById('rivals-begin-btn');
   if(rivalsBeginBtn) rivalsBeginBtn.addEventListener('click', ()=>{
     if(state.rivalPicked.length === 5) beginRiskMatch(state.rivalView, state.rivalPicked);
@@ -10583,20 +10589,31 @@ function earnedCardIds(){
 // Taking the top 5 naturally clusters a complete pair/sisterAura group
 // ahead of scattered unrelated singles, without needing separate
 // set-cover logic to force them together.
-function getSmartRivalWager(){
-  const earned = earnedCardIds();
-  const scored = earned.map(id => {
+// Fas 77: shared by getSmartRivalWager (pool = earnedCardIds()) and
+// getSmartCampaignPick (pool = campaignPool()) below -- same synergy-first,
+// then-highest-stats scoring either way, just over a different pool of ids.
+function pickSmartSynergyFive(pool){
+  const scored = pool.map(id => {
     const card = findCardById(id);
     let synergy = 0;
     if(card && card.active){
-      if(card.active.pairPresence && earned.includes(card.active.pairPresence.partner)) synergy++;
-      if(card.active.sisterAura) synergy += card.active.sisterAura.partners.filter(p => earned.includes(p)).length;
+      if(card.active.pairPresence && pool.includes(card.active.pairPresence.partner)) synergy++;
+      if(card.active.sisterAura) synergy += card.active.sisterAura.partners.filter(p => pool.includes(p)).length;
     }
     const total = card ? card.top + card.right + card.bottom + card.left : 0;
     return { id, synergy, total };
   });
   scored.sort((a, b) => b.synergy - a.synergy || b.total - a.total);
   return scored.slice(0, 5).map(s => s.id);
+}
+function getSmartRivalWager(){
+  return pickSmartSynergyFive(earnedCardIds());
+}
+// Campaign's own picker pool (HEROES + earned pack-exclusive cards, see
+// campaignPool()) differs from Rivals' earnedCardIds()-only pool, so this
+// needs its own entry point even though the underlying scoring is shared.
+function getSmartCampaignPick(){
+  return pickSmartSynergyFive(campaignPool());
 }
 function canChallengeRivals(){
   return playerProgress.campaignClearedOnce && earnedCardIds().length >= 5;

@@ -13821,3 +13821,62 @@ test('Fas 75: the Mystic pack dropped its Level 9 requirement (user\'s own reque
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 77: Campaign\'s champion picker (stage 2+) gets its own "Auto-Pick 5 Synergy Cards" button -- getSmartCampaignPick() reuses Rivals\' own scoring shared via pickSmartSynergyFive, but over campaignPool() instead of earnedCardIds()', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    const out = {};
+
+    // The underlying scoring logic itself is already proven by the Fas 67
+    // Rivals test (same shared pickSmartSynergyFive after this refactor) --
+    // this test focuses on what's actually NEW: getSmartCampaignPick()
+    // pulling from campaignPool() (HEROES + earned extras) instead of
+    // earnedCardIds() alone, and the Campaign-side button wiring.
+    const pool = campaignPool();
+    out.smartPick = getSmartCampaignPick();
+    out.pickLength = out.smartPick.length;
+    out.allFromCampaignPool = out.smartPick.every(id => pool.includes(id));
+    out.matchesSharedHelper = JSON.stringify(out.smartPick) === JSON.stringify(pickSmartSynergyFive(pool));
+
+    // A small, fully controlled pool proves pickSmartSynergyFive itself
+    // still clusters a real earned pairPresence pair correctly when fed
+    // campaignPool()-shaped ids directly (not just earnedCardIds()-shaped
+    // ones, confirming the shared helper doesn't secretly assume anything
+    // about which function produced its input pool).
+    out.smallPoolPick = pickSmartSynergyFive(['darien','elara','ogre','wendigo','harpy']);
+    out.smallPoolPrioritizesPair = out.smallPoolPick.includes('darien') && out.smallPoolPick.includes('elara');
+
+    // UI wiring: the button only exists on stage 2+ (stage 1 has no free
+    // picker at all, fixed CAMPAIGN_STARTERS instead).
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0, stageVideosShown: {} };
+    state.draftMode = 'campaign';
+    state.phase = 'draft';
+    state.showTitleIntroVideo = false;
+    render();
+    out.noAutopickBtnOnStage1 = !document.getElementById('campaign-autopick-btn');
+
+    campaignProgress = { stageIndex: 1, unlocked: [], ngPlus: 0, stageVideosShown: {} };
+    state.selected = [];
+    render();
+    out.autopickBtnExistsStage2Plus = !!document.getElementById('campaign-autopick-btn');
+    document.getElementById('campaign-autopick-btn').click();
+    out.selectedSetAfterClick = state.selected.length === 5;
+    out.selectedMatchesDirectCall = JSON.stringify(state.selected.slice().sort()) === JSON.stringify(getSmartCampaignPick().slice().sort());
+    out.beginStageEnabledAfterClick = !document.getElementById('campaign-begin-btn').disabled;
+    out.selectedCardsShowInGrid = document.querySelectorAll('.draft-grid .card.selected').length === 5;
+
+    return out;
+  })()`);
+  assert.equal(result.pickLength, 5);
+  assert.equal(result.allFromCampaignPool, true, 'every auto-picked id must actually be in campaignPool()');
+  assert.equal(result.matchesSharedHelper, true, 'getSmartCampaignPick must just be pickSmartSynergyFive(campaignPool())');
+  assert.equal(result.smallPoolPrioritizesPair, true, 'the shared scoring helper must still cluster a real pairPresence pair when fed a small controlled pool');
+  assert.equal(result.noAutopickBtnOnStage1, true, 'Stage 1 has no free picker (fixed CAMPAIGN_STARTERS), so no Auto-Pick button should render there');
+  assert.equal(result.autopickBtnExistsStage2Plus, true);
+  assert.equal(result.selectedSetAfterClick, true);
+  assert.equal(result.selectedMatchesDirectCall, true);
+  assert.equal(result.beginStageEnabledAfterClick, true, "Begin Stage must become clickable immediately after Auto-Pick fills all 5 slots");
+  assert.equal(result.selectedCardsShowInGrid, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
