@@ -6634,6 +6634,23 @@ alls) utan att motsäga ett enda tidigare bekräftat faktum — bland annat
 respekteras Sunny/Pains uttryckliga "ingen koppling till varandra"
 fullt ut. Ren dokumentation, ingen kod/mekanik/teständring.
 
+**Fas 81. Packs/Rivals/My Bag fick en snyggare stil i Progression-raden**
+— användaren skickade en skärmdump av mobilvyn där emoji-ikonerna
+("🎁 Packs" osv.) radbröt fult inuti smala `button.ghost`-piller, klämda
+ihop bredvid hint-texten ("vi måste göra snyggare stil på rutorna").
+Byggde om dem till samma ikon-ovanför-text-rutor som redan används för
+Random Draft/Choose Your Five/Campaign (`.mode-btn`/`.mode-icon`) —
+en ny `.progression-tile`/`.progression-tile-row`-klass med samma
+panel-bakgrund, kantlinje och hover-guldglöd, så hela inställnings-
+panelen delar ett enda visuellt språk istället för två. Hint-texten
+fick en egen rad ovanför istället för att dela rad med knapparna.
+Lade även till en `.locked`-modifier (opacity 0.55) som dämpar rutorna
+innan Campaign är klarad en gång — knapparna förblir klickbara (modalen
+förklarar låset), bara det visuella intrycket ändras. Verifierat med
+Playwright-skärmdumpar i båda lägena (låst och upplåst). Ren CSS/
+markup, inga nya testfall behövdes (ingen befintlig test refererar
+klassnamnen). Hela testsviten grön: **213/213**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
