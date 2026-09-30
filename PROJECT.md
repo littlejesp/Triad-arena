@@ -6567,6 +6567,59 @@ Fas 74:s befintliga permanenta test utökades med Astra istället för att
 skriva ett nytt test, samma konvention som redan användes för Gambler
 själv.
 
+**Fas 80. Zidanes "Trance" attackerar nu på riktigt, och LittleAngels
+"Descending Judgment" kan ta fler än ett kort — två separata Ultimate-
+omgörningar från samma meddelandeomgång.**
+
+Zidane (skärmdump av kortet, "hans ultimate borde också attackera i alla
+riktningar han står emot — exempelvis är han längst ner i hörnet får han
+14 i varje sida och attackerar då upp och till vänster"): Trance var
+tidigare en ren, kampfri självbuff (+4 Power på alla sidor, `SpecialVerbs.
+attackBoost(srcEntry, 4)`, inget mer). Nya `SPECIAL_HANDLERS.zidane({
+srcEntry, sourceIndex, owner })` behåller den permanenta buffen men
+låter Zidane sedan direkt slåss mot varje verklig granne genom att
+återanvända `battleNeighbors(sourceIndex, owner, result)` — samma delade
+strid-motor som `resolveFlips`/`placeCard` redan använder för normala
+placeringar. `getEnemyNeighbors()` (som `battleNeighbors` läser internt)
+returnerar bara riktiga, inombords, fiendeockuperade rutor, så ett
+hörn-kort automatiskt bara attackerar de 2 riktningar som faktiskt
+existerar där — exakt användarens egen hörn-beskrivning, helt utan
+specialkod för att känna av bräda-kanter. Eftersom det är den RIKTIGA
+strid-motorn får vi på köpet: Shield blockerar precis som varje annan
+strid, `checkSisterFlip` triggas på varje verklig vinst, och — en äkta
+emergent synergi, inte en bugg — Zidanes egen redan existerande "Twin
+Blade Fury" (`onWinCappedBoost`, +1 Power per vinst upp till 3x) triggar
+också på dessa nya strider, så en dubbel-vinst ger `captureBonus = 4 + 2
+= 6`, inte bara 4. Flavourtexten uppdaterad för att beskriva båda delarna.
+
+LittleAngel (skärmdump av kortet, "hon borde ju kunna erövra fler än ett
+kort? Eller? Med sin ultimate"): "Descending Judgment" var tidigare
+single-target (garanterad erövring av EXAKT ett valt kort). Kortets
+`special.targets` ändrat från `'single'` till `'aoe'` — samma dispatch-
+mekanism som redan dirigerar Gambler/Seraphine korrekt utan extra UI-
+kod (`executeSpecial` hoppar helt över target-väljaren för `'aoe'`).
+`SPECIAL_HANDLERS.littleangel` skrevs om från `{ srcEntry, targetEntry,
+targetIndex, owner }` till `{ srcEntry, owner }` och sveper nu hela
+brädan: varje fiendekort byter ägare (Shield blockerar fortfarande sin
+ägare), exakt samma ovillkorliga flip-primitiv som Gamblers "Ultima" och
+Seraphines (Fas 76) "Silver Judgment" redan använder.
+
+Fas 73:s befintliga permanenta test hade två scenarier som direkt
+byggde på LittleAngels gamla single-target-signatur
+(`angelGuaranteed`/`angelShieldBlocks`, med `targetEntry`/`targetIndex`)
+— dessa skrevs om till ETT AOE-anrop med både ett starkt och ett
+shieldat fiendekort på brädan samtidigt, samma mönster som de tre
+Seraphine-testerna som fixades i Fas 76. Två helt nya, separata Fas
+80-tester skrevs (en per kort, eftersom båda ombyggnaderna är
+oberoende och konceptuellt olika): Zidane-testet täcker hörn-scenariot
+(2 av 4 riktningar existerar), Twin Blade Fury-synergin, ett
+shield-blockerar-en-riktning-scenario, och att buffen alltid appliceras
+även utan fiender i närheten. LittleAngel-testet täcker grundfallet
+(två fiender erövrade, egen allierad orörd), Shield-blockering (ett
+kort faller, ett håller), inga fiender alls, och att `executeSpecial`
+verkligen dirigerar `'aoe'` utan att öppna target-UI. Hela testsviten
+grön: **213/213**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

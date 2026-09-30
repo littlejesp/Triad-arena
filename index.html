@@ -5136,7 +5136,7 @@ const PACK_EXCLUSIVE_CARDS = [
     skills: [
       {name:'Twin Blade Fury (Passive)', desc:'Each time Zidane wins a battle, he gains +1 Power on all sides, up to 3 times per match.'},
       {name:"Hero's Charisma (Passive)", desc:'While at least 2 of your other cards are adjacent to Zidane, he gains +1 Power on all sides — everyone wants to fight beside him, whatever he himself is still trying to figure out.'},
-      {name:'Special Attack: Trance', desc:'Costs 3 wins. Zidane\'s true power awakens — he permanently gains +4 Power on all sides. Usable once per match.'},
+      {name:'Special Attack: Trance', desc:'Costs 3 wins. Zidane\'s true power awakens — he permanently gains +4 Power on all sides, then immediately battles every adjacent enemy with his newfound strength (a Shield still protects its owner). Usable once per match.'},
     ] },
   // Fifth pack-exclusive card, closing the love-square the user built
   // across these four cards: Ruby, a summoner who can call forth gods
@@ -6096,11 +6096,11 @@ const PACK_EXCLUSIVE_CARDS = [
     hue:'linear-gradient(160deg,#241c08,#0d0b18 60%)', accent:'#f2d675', icon:'⚡',
     packTier:'mystic', exclusiveGlow:true,
     active:{ pairPresence:{partner:'littledeath', amount:2}, boardUnderdogAttackBonus:2 },
-    special:{ name:'Descending Judgment', cost:3, once:true, targets:'single' },
+    special:{ name:'Descending Judgment', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:"Sovereign's Bond (Passive)", desc:'While LittleDeath is also on your side of the board, LittleAngel gains extra Power on all sides.'},
       {name:'Comeback Storm (Passive)', desc:'While your side holds fewer squares than the enemy, LittleAngel strikes harder.'},
-      {name:'Special Attack: Descending Judgment', desc:"Costs 3 wins. Choose an enemy card — her diving lightning strike claims it outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
+      {name:'Special Attack: Descending Judgment', desc:"Costs 3 wins. Her diving lightning strike claims EVERY enemy card on the board outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
     ] },
   // LittleDeath, The Midnight Blade (Mystic, dark element): the duel's
   // early aggressor, overwhelming her opponent before the tide turns.
@@ -12493,9 +12493,30 @@ const SPECIAL_HANDLERS = {
   // effect on anyone else -- special.targets:'aoe' just means "no target
   // selection UI", same convention as Freya's/Reaper's own AOE specials
   // above, even though this one only ever touches the caster himself.
-  zidane({ srcEntry, owner }){
+  // Fas 80 (user's own request, "hans ultimate borde också attackera i
+  // alla riktningar han står emot"): Trance used to be a pure self-buff
+  // with no combat at all -- now it applies the permanent +4 first, then
+  // immediately battles every ACTUAL adjacent enemy with his newfound
+  // strength via battleNeighbors, the same real combat-resolution engine
+  // a normal placement uses (shields, checkSisterFlip, bonusFlash, etc.
+  // all apply exactly as they would for a real attack). Naturally attacks
+  // only in the directions where an enemy actually stands -- a corner
+  // placement only has 2 neighbors, battleNeighbors already only visits
+  // real, in-bounds, enemy-occupied cells (see getEnemyNeighbors). Sets
+  // justFlipped on anything captured, so runSpecialResolution's own
+  // generic capturedCount>=3 chainShake gate picks this up automatically,
+  // no separate opt-in needed (same reasoning as Fas 76's Seraphine rework).
+  zidane({ srcEntry, sourceIndex, owner }){
     SpecialVerbs.attackBoost(srcEntry, 4);
-    return `${srcEntry.card.name} enters Trance — his true power awakens!`;
+    const result = { flipSeq: 0, flips: 0, shielded: 0, bonusTriggered: false };
+    battleNeighbors(sourceIndex, owner, result);
+    if(result.flips === 0 && result.shielded === 0){
+      return `${srcEntry.card.name} enters Trance — his true power awakens, but no enemies stand within reach!`;
+    }
+    if(result.flips === 0){
+      return `${srcEntry.card.name} enters Trance — his true power awakens, but every shield holds firm!`;
+    }
+    return `${srcEntry.card.name} enters Trance — his true power awakens, striking down ${result.flips} enem${result.flips>1?'ies':'y'}!`;
   },
   // Ruby's Godsfall: a GUARANTEED capture, no totalPower comparison at
   // all -- every other single-target special in this file checks a
@@ -13018,15 +13039,27 @@ const SPECIAL_HANDLERS = {
   // LittleAngel's Descending Judgment: a GUARANTEED capture, same shape as
   // Kaelan/Scarletta/Jade/Corvin's own Specials -- her video's own diving
   // finisher lands clean, no contest of strength.
-  littleangel({ srcEntry, targetEntry, targetIndex, owner }){
+  // Fas 80 (user's own request, "hon borde ju kuna erövra fler en ett
+  // kort... med sin ultimate"): upgraded from a single-target guaranteed
+  // capture into a whole-board AOE guaranteed capture -- same unconditional
+  // flip primitive as Gambler's Ultima / Seraphine's Silver Judgment
+  // (Fas 76), just for LittleAngel's own Special. Shields are the one
+  // thing that can still stop it, same as those two.
+  littleangel({ srcEntry, owner }){
     const name = srcEntry.card.name;
-    if(specialBlockedByShield(targetEntry, targetIndex)){
-      return `${targetEntry.card.name}'s shield holds against Descending Judgment!`;
-    }
-    targetEntry.owner = owner;
-    targetEntry.justFlipped = true;
-    checkSisterFlip(targetEntry);
-    return `${name}'s Descending Judgment claims ${targetEntry.card.name} outright!`;
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    let flipped = 0, shielded = 0;
+    state.board.forEach((e, i) => {
+      if(!e || e.owner !== enemyOwner) return;
+      if(specialBlockedByShield(e, i)){ shielded++; return; }
+      e.owner = owner;
+      e.justFlipped = true;
+      checkSisterFlip(e);
+      flipped++;
+    });
+    if(flipped === 0 && shielded === 0) return `${name}'s Descending Judgment finds no enemies in its line!`;
+    if(flipped === 0) return `${name}'s Descending Judgment strikes down, but every shield holds firm!`;
+    return `${name}'s Descending Judgment claims ${flipped} enemy card${flipped>1?'s':''} outright${shielded>0?`, ${shielded} shield${shielded>1?'s':''} held`:''}!`;
   },
   // LittleDeath's Verdict of Night: threshold capture + stealPower, same
   // shape as Sable/Balalajka/Wren's own Specials.
