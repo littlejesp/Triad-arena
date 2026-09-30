@@ -6620,6 +6620,20 @@ kort faller, ett håller), inga fiender alls, och att `executeSpecial`
 verkligen dirigerar `'aoe'` utan att öppna target-UI. Hela testsviten
 grön: **213/213**.
 
+**Fas 80 (lore-uppföljning, inget kodändring).** Användaren frågade
+rakt av om det fanns lore skrivet för de senaste korten (Gambler, Astra,
+Zidane, LittleAngel) och fick veta att flera hörn i lore-bibeln (avsnitt
+11) var glesa eller helt tomma — sen bad direkt: "fyll luckorna och
+hitta på historia om alla kort som det inte finns något om. allt är
+samankopplat." Hela svaret finns i avsnitt 11: en ny bakgrundsmyt,
+**Gudafallet**, skriven för att koppla samman ALLA tidigare isolerade
+hörn (Tidewalkers, Court of Queens, Crimson Dynasty, Blossom,
+Damyan/Isolde, Wren/Corvin, Kaelan/Sable/Vesper, LittleAngel/LittleDeath,
+Sunny/Pain, och framförallt Gambler, som tidigare inte hade NÅGON lore
+alls) utan att motsäga ett enda tidigare bekräftat faktum — bland annat
+respekteras Sunny/Pains uttryckliga "ingen koppling till varandra"
+fullt ut. Ren dokumentation, ingen kod/mekanik/teständring.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
@@ -10330,24 +10344,158 @@ användaren bekräftade explicit "Dom är helt olika personer").
   samma `sisterAura`-bindning (skalar med hur många syskon som är på
   brädet). Ingen kopplad lore-tråd till övriga karaktärer ännu — ett
   eget litet hörn av världen, inte forcerat ihop med de andra.
-- **Court of Queens** — sju medlemmar (blandat kön trots namnet):
+- **Court of Queens** — nio medlemmar (blandat kön trots namnet):
   **Scarletta** (The Thorned Countess), **Cinder** (The Ashen Queen),
   **Lilith** (The Veiled Oracle), **Vex** (The Hollow Whisper),
   **Elara** (The Frostbound Archer — internt id `elaraqueen` för att
   inte krocka med den redan existerande HEROES-`elara`), **Oni** (The
-  Blood Oni), och **Ren** (The Frostblade, den enda mannen). Alla sju
-  delar samma triquetra-hörnram och en gemensam `sisterAura`-bindning.
-  Ingen individuell familjerelation (syskon/kärlekspar) bekräftad inom
-  gruppen — bara en delad "hov"-identitet.
+  Blood Oni), **Ren** (The Frostblade, den enda mannen), samt **Astra**
+  (The Starbound Sovereign) och **Umbriel** (The Waning Reaper), som
+  gick med senare (Fas 58). Alla nio delar samma triquetra-hörnram och
+  en gemensam `sisterAura`-bindning. Ingen individuell familjerelation
+  (syskon/kärlekspar) bekräftad inom gruppen — bara en delad
+  "hov"-identitet. Se **Gudafallet** nedan för varför just nio kronor
+  delar samma bindning.
+- **LittleAngel** (The Storm Sovereign, ljus) och **LittleDeath** (The
+  Midnight Blade, mörker) — ett bundet par, fött ur en colosseum-duell
+  (Fas 73). Bandet är EFTERSPELET till duellen — LittleAngel vann från
+  underläge, LittleDeath var den tidiga aggressorn. Se **Gudafallet**
+  nedan för vad ett sånt bundet par egentligen är.
+- **Arielle** (Epic), **Aric** (Rare) och **Mira** (Legendary) —
+  "Tidewalker"-besättningen, tre sjömän/-kvinnor ur samma
+  solnedgångshamn (Fas 51/52). Ingen egen kärleks-/syskonbindning
+  bekräftad mellan just dem tre — en delad besättning, inget mer.
+- **Sunny** (The Warm Harvest) och **Pain** — två HELT fristående
+  figurer (Fas 53/54), uttryckligen bekräftat att INTE ha någon
+  koppling till varandra eller till någon annan karaktär. Denna
+  frånvaro av koppling förblir sann — se **Gudafallet** för den enda
+  tråd som ändå rör dem båda, utan att göra dem till ett par.
+- **Jade** och **Ryuji** — "Crimson Dynasty", ett bundet par (Fas 58).
+- **Hayato** och **Hanami** — "Blossom", ett bundet par, samurai och
+  körsbärsblom-geisha (Fas 58/59).
+- **Damyan** och **Isolde** — ett bundet par (Fas 59).
+- **Wren** och **Corvin** — ett bundet par (Fas 60).
+- **Kaelan**, **Sable** och **Vesper** — en Mystic-trio, en egen
+  kärlekstriangel (Fas 69).
+- **The Gambler** ("Trickster Card — Herald of Chaos") — hade INGEN
+  lore alls före denna post; se **Gudafallet** nedan, där han visar sig
+  vara själva den tråd som binder resten av världen samman.
 
-**Tre narrativa "kluster" hittills** (per användarens egen taxonomi):
-krigare (Dragon, Zidane, Kade), gudomliga krafter (Faragon, Ruby, Freya),
-mörka väktare (Vaseir, Balalajka) — plus en andra kärleks-/relationsnivå
-ovanpå (Freya→Zidane→Ruby-triangeln; Kade↔Selene "vi mot världen";
-Vaseir↔Balalajka som bröder). Framtida kort bör fortsätta koppla an hit
-istället för att starta ett helt nytt, orelaterat hörn av världen —
-fråga användaren om ett nytt kort ska koppla till en EXISTERANDE tråd
-om det inte är uppenbart.
+### Gudafallet — myten som binder alla hörn samman
+
+**Direkt användarbegäran, verbatim**: "fyll luckorna och hitta på
+historia om alla kort som det inte finns något om. allt är
+samankopplat." Fram tills nu hade varje ny grupp (Tidewalkers, Court of
+Queens, Crimson Dynasty, Blossom, Damyan/Isolde, Wren/Corvin,
+Kaelan/Sable/Vesper, LittleAngel/LittleDeath, Sunny/Pain, Gambler)
+byggts som sitt eget isolerade hörn, medvetet ("inget pekar dit, så vi
+tvingar inte ihop det" — avsnitt D:s gamla regel). Den regeln gäller
+inte längre: användaren vill nu ha EN sammanhängande väv, inte tolv
+öar. Lösningen som valdes: en enda bakgrundsmyt, gammal nog att
+förklara varenda existerande mekanik (`pairPresence`, `sisterAura`,
+Vaseirs skatt, Rubys/Faragons/Astras gudomliga signaler) utan att
+motsäga ett enda tidigare bekräftat faktum — och en enda vandrande
+figur (Gambler) som är den fysiska länken mellan hörnen, snarare än
+att uppfinna falska syskon-/kärleksband mellan grupper som redan
+uttryckligen bekräftats vara obesläktade (Sunny/Pain framförallt).
+
+**Myten, i korthet:** Länge före allt annat fanns bara gudarna, och den
+kraft de delade kallades **Kronan** — inte en plats, utan en enda,
+odelad kraft som allt gudomligt en gång vilade i. Gudarna gick i krig
+med varandra om vem som skulle bära den. Kronan klarade inte kriget.
+Den brast. Det ögonblicket kallas **Gudafallet**, och det är det enda
+gemensamma ursprunget bakom varje tråd i den här världen — inte genom
+att göra alla karaktärer till släkt, utan genom att förklara VARFÖR
+vissa av dem bär de krafter, band och föremål de bär.
+
+Kronans brustna kraft spreds ut över världen på tre sätt, och varje sätt
+motsvarar en mekanik som redan fanns i koden innan denna myt skrevs:
+
+1. **Blodslinjer** — vissa föddes med en gnutta gudomlig kraft kvar i
+   blodet. Det är detta `role`-taggen "Mythic Card"/"Mystic Card"
+   redan pekar på: **Faragon** (halvgud, Dragons bror), **Ruby** (kan
+   kalla på gudarna, för att hennes blod minns dem), och de nya
+   himmelska kronorna i Court of Queens, **Astra** och **Umbriel** —
+   de kände natten Kronan brast som en rörelse i själva stjärnhimlen
+   och månen, och gick med i hovet just därför. De sju äldre
+   medlemmarna bär var sin skärva av en annan, äldre, jordbunden krona
+   (sju söndersplittrade riken, en per medlem) — det är varför alla
+   nio delar samma triquetra-ram trots att ingen av dem är släkt: de
+   bär inte varandras blod, de bär varandras BRUTNA KRONA.
+2. **Sammanflätning** (det spelet redan kallar `pairPresence`) — där
+   Kronan brast i två, i stället för att sprida ut sig, band den ihop
+   sig igen i två hjärtan istället för ett. Det är den enda gemensamma
+   förklaringen till VARJE bundet par i spelet, oavsett hur olika deras
+   egna historier är: **Kade & Selene** ("vi mot världen" är ordagrant
+   sant — två halvor av samma brustna helhet, mot allt annat), **Jade
+   & Ryuji**, **Hayato & Hanami**, **Damyan & Isolde**, **Wren &
+   Corvin**, **Kaelan/Sable/Vesper**s triangel, och **LittleAngel &
+   LittleDeath** — vars band föddes just i det ögonblick deras duell
+   avgjordes, för Sammanflätningen slår ner där två krafter möts med
+   fullständig avsikt, kärlek såväl som strid. Ingen av dessa par
+   VETER om varför de kändes dragna till varandra. De kallar det
+   kärlek, öde, rivalitet — aldrig myten. Bara ett fåtal (Ruby, kanske)
+   anar den sanna anledningen.
+3. **Sammanhållna ätter** (det spelet redan kallar `sisterAura`) — där
+   en hel familj eller ett helt hov delade EN skärva istället för att
+   splittras i par. Det förklarar **Bram/Brommi/Sakura/Akaris**
+   berusade familj (en skärva som stannade helt inom en blodslinje,
+   även när en av dem — Akari — vände sig mot resten) och **Court of
+   Queens'** niohövdade krona (en skärva som stannade inom en
+   institution, ett hov, snarare än ett blod).
+4. **Kvarlämningar** — föremål som bar en bit av Kronan rakt av, utan
+   att gå igenom något blod eller band alls. **Vaseirs** legendariska
+   skatt är en sådan kvarlämning — det är VARFÖR den äter alla som
+   försöker ta den: den försvarar sig själv, med samma instinkt som en
+   gud en gång försvarade Kronan i sin helhet. Vaseir vaktar den inte
+   åt någon. Han vaktar den FÖR den.
+
+**The Gambler — den som delar ut det som blev kvar.** Herald of Chaos,
+Void-element, utanför hela elementcykeln: han fanns redan i koden som
+en spelare utan hem, utan lag, utan förklaring. Nu är han myten själv,
+i mänsklig (eller inte helt mänsklig) form. Den natt Kronan brast gick
+en spricka upp genom världen, och ur den steg en gestalt utan ansikte
+förrän den valde ett. Sedan den natten har han vandrat från krog till
+krog, arena till arena, och "delat ut" det som blev kvar av Kronan —
+inte som en gud, utan som en dealer som lägger korten och sen går
+vidare, likgiltig för om handen blir en gåva eller ett straff. Det är
+varför hans egen Special heter **Ultima** och tar hela bordet rakt av
+utan strid — han spelar inte FÖR att vinna, han spelar för att se vad
+korten avslöjar om alla andra.
+
+Han har synts, obemärkt, i utkanten av nästan varje historia i denna
+bibel: han köpte den sista rundan drinkar kvällen Bram svor sin "Last
+Toast" (ingen i familjen minns hans ansikte efteråt); han satt tyst
+längst bak i solnedgångskrogen där Tidewalker-besättningen la till för
+natten, och la en enda kortlek på bordet innan han gick sin väg utan
+ett ord; han satt omärkt i tronsalen kvällen Astra och Umbriel svor sina
+eder till hovet; och — det enda som binder dem utan att göra dem till
+ett par, precis som `Sunny & Pain`s uttryckliga frånvaro av koppling
+kräver — han mötte **Sunny** och **Pain** var för sig, samma natt, vid
+samma vägskäl, och gav var sin en helt annan hand: Sunny fick en skärva
+som läker, Pain fick en som straffar den som redan är stark. De for åt
+olika håll. De har aldrig träffats. Det är fortfarande sant. Bara
+dealern var densamme.
+
+Det ryktas också — aldrig bekräftat, aldrig förnekat — att det var han
+som en gång la ut reglerna för själva Triad Arena, som en sista, evig
+runda av det spel Kronan startade den natt den brast.
+
+**Uppdaterad kluster-karta** (ersätter de gamla "tre klustren" — nu är
+allt en väv med Gudafallet som gemensam rot, inte separata öar):
+krigare (Dragon, Zidane, Kade), gudomliga blodslinjer (Faragon, Ruby,
+Freya, Astra, Umbriel), mörka väktare/kvarlämningar (Vaseir, Balalajka),
+den berusade ätten (Bram, Brommi, Sakura, Akari), Court of Queens (nio
+kronor), Tidewalker-besättningen (Arielle, Aric, Mira), och sju
+Sammanflätade par/trianglar (Kade↔Selene, Jade↔Ryuji, Hayato↔Hanami,
+Damyan↔Isolde, Wren↔Corvin, Kaelan/Sable/Vesper, LittleAngel↔LittleDeath)
+— plus Sunny och Pain, som förblir fristående från allt utom en enda
+gemensam natt med Gambler, som själv står utanför alla kluster och rör
+sig fritt mellan dem alla. Framtida kort bör fortsätta koppla an hit
+(antingen via blod, Sammanflätning, en Sammanhållen ätt, en Kvarlämning,
+eller ett kort möte med Gambler) istället för att starta ett helt nytt,
+orelaterat hörn av världen — fråga användaren om ett nytt kort ska
+koppla till en EXISTERANDE tråd om det inte är uppenbart.
 
 ## 12. Facit: så här bygger vi ett nytt pack-exklusivt kort
 
