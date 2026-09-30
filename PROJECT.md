@@ -6457,6 +6457,34 @@ testar `getSmartCampaignPick()`s egen pool-källa (campaignPool, inte
 earnedCardIds) samt hela knapp-till-Begin-Stage-kedjan separat. Hela
 testsviten grön: **209/209**.
 
+**Fas 78. En andra bakgrundsmusik-låt, valbar via en ny knapp i
+mastheaden** ("man kan välja antingen den befintliga eller denna nya
+låten som bakgrund Musik"). Användaren skickade en egen .m4a-fil,
+sparad som `eternal-dawn.m4a` (döpt av mig, ingen låttitel angiven —
+kan bytas om användaren vill). Ny `MUSIC_TRACKS`-array (id/namn/
+filnamn per spår) samt `musicTrackIndex`, persisterad i localStorage
+med samma `loadX`/`saveX`-mönster som `aiDifficulty`/`fastMode` redan
+använder, så valet ligger kvar mellan sessioner.
+
+Bytte `<audio id="bgm">`-taggen från en nästlad `<source>`-tagg till
+en direkt `src`-attribut (enklare för JS att byta ut live via
+`bgm.src = ...; bgm.load();` i den nya `cycleMusicTrack()`-funktionen,
+som respekterar om musiken redan spelades — startar om automatiskt på
+det nya spåret om den gjorde det, förblir tyst annars, precis som
+`toggleMusic()` redan gör för av/på). Ny knapp `🎼` i mastheaden,
+`left:80px` (näst ur den vänstra knapp-kolumnen, samma
+korner-ikon-mönster som `music-toggle`/`book-toggle` osv.), med en
+tooltip som visar både aktuellt spår och vilket spår ett klick byter
+till. Klick cyklar mellan spåren och loopar runt.
+
+Fas 78-testet täcker hela kedjan: knappen finns, standardspåret är det
+befintliga (`ancient-mysteries`) för en helt ny spelare, ett klick
+byter både `musicTrackIndex` OCH `<audio>`-elementets faktiska `src`,
+valet sparas omedelbart till localStorage, ett andra klick loopar
+tillbaka till första spåret, och — separat sidladdning — ett tidigare
+sparat val återställs korrekt redan vid sidstart, innan någon
+interaktion alls. Hela testsviten grön: **210/210**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
