@@ -9157,7 +9157,7 @@ function attachHandlers(){
   });
   const rivalsAutopickBtn = document.getElementById('rivals-autopick-btn');
   if(rivalsAutopickBtn) rivalsAutopickBtn.addEventListener('click', ()=>{
-    state.rivalPicked = getSmartRivalWager();
+    state.rivalPicked = getSmartRivalWager(state.rivalView);
     render();
   });
   const campaignAutopickBtn = document.getElementById('campaign-autopick-btn');
@@ -10645,7 +10645,19 @@ function earnedCardIds(){
 // Fas 77: shared by getSmartRivalWager (pool = earnedCardIds()) and
 // getSmartCampaignPick (pool = campaignPool()) below -- same synergy-first,
 // then-highest-stats scoring either way, just over a different pool of ids.
-function pickSmartSynergyFive(pool){
+// Fas 79 (user's own follow-up, "det är ju alltid samma kort... är dom
+// bäst eller?"): the pick used to be a pure function of the player's own
+// collection, completely blind to which enemies it'll actually face --
+// same 5 cards every time regardless of the stage/opponent, even though
+// Elemental Clash means a card's element can be worth a real +1 against
+// specific enemies. enemyElements (optional, defaults to none so callers
+// that don't know/care about elemental matchups -- or matches where
+// Elemental Clash is off -- get IDENTICAL behavior to before) is one
+// element string per enemy actually faced; each favorable matchup
+// (elementBeats) counts the same as one point of synergy, since both
+// represent a real +1-or-more Power swing in an actual battle.
+function pickSmartSynergyFive(pool, enemyElements){
+  enemyElements = enemyElements || [];
   const scored = pool.map(id => {
     const card = findCardById(id);
     let synergy = 0;
@@ -10653,20 +10665,41 @@ function pickSmartSynergyFive(pool){
       if(card.active.pairPresence && pool.includes(card.active.pairPresence.partner)) synergy++;
       if(card.active.sisterAura) synergy += card.active.sisterAura.partners.filter(p => pool.includes(p)).length;
     }
+    const elementalAdvantage = (card && card.element)
+      ? enemyElements.filter(e => elementBeats(card.element, e)).length
+      : 0;
     const total = card ? card.top + card.right + card.bottom + card.left : 0;
-    return { id, synergy, total };
+    return { id, synergy, elementalAdvantage, total };
   });
-  scored.sort((a, b) => b.synergy - a.synergy || b.total - a.total);
+  scored.sort((a, b) => (b.synergy + b.elementalAdvantage) - (a.synergy + a.elementalAdvantage) || b.total - a.total);
   return scored.slice(0, 5).map(s => s.id);
 }
-function getSmartRivalWager(){
-  return pickSmartSynergyFive(earnedCardIds());
+// Fas 79: opponentId is optional (existing direct callers that don't pass
+// one keep the exact old behavior, since state.rules.elemental gates this
+// to a no-op whenever it's false anyway -- the default). When known, uses
+// state.rules.elemental (whatever the player currently has toggled --
+// RISK_OPPONENTS has no fixed ruleset of its own, unlike CAMPAIGN_STAGES,
+// so this IS the actual rule a risk match will be played under) and that
+// opponent's own fixed enemyIds to weight elemental counter-picks.
+function getSmartRivalWager(opponentId){
+  const opp = opponentId ? RISK_OPPONENTS.find(o => o.id === opponentId) : null;
+  const enemyElements = (state.rules.elemental && opp)
+    ? opp.enemyIds.map(id => findCardById(id)).filter(Boolean).map(c => c.element)
+    : [];
+  return pickSmartSynergyFive(earnedCardIds(), enemyElements);
 }
 // Campaign's own picker pool (HEROES + earned pack-exclusive cards, see
 // campaignPool()) differs from Rivals' earnedCardIds()-only pool, so this
 // needs its own entry point even though the underlying scoring is shared.
+// Fas 79: also weights elemental matchups against the CURRENT stage's own
+// fixed enemyIds, gated on that stage's own rules.elemental (unlike
+// Rivals, every Campaign stage already carries its own fixed ruleset).
 function getSmartCampaignPick(){
-  return pickSmartSynergyFive(campaignPool());
+  const stage = currentCampaignStage();
+  const enemyElements = (stage && stage.rules && stage.rules.elemental)
+    ? stage.enemyIds.map(id => findCardById(id)).filter(Boolean).map(c => c.element)
+    : [];
+  return pickSmartSynergyFive(campaignPool(), enemyElements);
 }
 function canChallengeRivals(){
   return playerProgress.campaignClearedOnce && earnedCardIds().length >= 5;
@@ -14217,6 +14250,7 @@ const ULTIMATE_HITSTOP_MS = 220;
 // keeps the silent windup it already had, no per-card code needed.
 const ULTIMATE_VOICE_LINES = {
   gambler: 'voices/gambler.mp3',
+  astra: 'voices/astra.mp3',
   ifrit: 'voices/ifrit.mp3',
   nyxara: 'voices/nyxara.mp3',
   vaelira: 'voices/vaelira.mp3',
