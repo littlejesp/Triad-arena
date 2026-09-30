@@ -3891,6 +3891,8 @@ const CARD_IMAGES = {
   kaelan: 'cards/card-kaelan.jpg',
   sable: 'cards/card-sable.jpg',
   vesper: 'cards/card-vesper.jpg',
+  littleangel: 'cards/card-littleangel.jpg',
+  littledeath: 'cards/card-littledeath.jpg',
   gambler: 'cards/card-gambler.jpg',
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
@@ -4005,6 +4007,8 @@ const FULL_CARD_IMAGES = {
   kaelan: 'card-kaelan-full.jpg',
   sable: 'card-sable-full.jpg',
   vesper: 'card-vesper-full.jpg',
+  littleangel: 'card-littleangel-full.jpg',
+  littledeath: 'card-littledeath-full.jpg',
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg',
@@ -6060,6 +6064,54 @@ const PACK_EXCLUSIVE_CARDS = [
       {name:'Growing Legend (Passive)', desc:'Each time Vesper takes control of a card, she permanently gains +1 Power on all sides.'},
       {name:'Special Attack: Twilight Cross', desc:"Costs 2 wins. Choose an adjacent enemy card — if Vesper's total Power is greater, her twin blades claim it and she permanently gains +2 Power on all sides. Usable once per match."},
     ] },
+  // Fortieth and forty-first pack-exclusive cards: LittleAngel and
+  // LittleDeath -- a bonded pair whose origin is a colosseum duel (an AI
+  // video the user generated in Picsart -- see PROJECT.md Fas 73), rather
+  // than the usual sibling/lover framing. Named directly by the user
+  // ("LittleDeath och LittleAngel"), both explicitly confirmed Mystic
+  // tier and a bonded pairPresence duo (not just rivals) via
+  // AskUserQuestion, despite the duel narrative itself ending with
+  // LittleAngel winning and LittleDeath kneeling in defeat -- the bond
+  // is the AFTERMATH of that duel, not a contradiction of it.
+  //
+  // LittleAngel, The Storm Sovereign (Mystic, light element, golden
+  // lightning): wins the duel from behind with a diving aerial finisher.
+  // boardUnderdogAttackBonus (Sylvarion's own field) mirrors that
+  // comeback narrative directly -- she hits hardest when behind on the
+  // board. Special "Descending Judgment" is the guaranteed-capture shape
+  // (Kaelan/Scarletta/Jade/Corvin's own shape), reusing that shape
+  // specifically because it matches her video's own finishing blow: no
+  // contest of strength, just a decisive strike landing clean.
+  { id:'littleangel', name:'LittleAngel', role:'The Storm Sovereign — Pack Exclusive (Mystic)', element:'light',
+    top:10, right:9, bottom:10, left:9,
+    hue:'linear-gradient(160deg,#241c08,#0d0b18 60%)', accent:'#f2d675', icon:'⚡',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'littledeath', amount:2}, boardUnderdogAttackBonus:2 },
+    special:{ name:'Descending Judgment', cost:3, once:true, targets:'single' },
+    skills: [
+      {name:"Sovereign's Bond (Passive)", desc:'While LittleDeath is also on your side of the board, LittleAngel gains extra Power on all sides.'},
+      {name:'Comeback Storm (Passive)', desc:'While your side holds fewer squares than the enemy, LittleAngel strikes harder.'},
+      {name:'Special Attack: Descending Judgment', desc:"Costs 3 wins. Choose an enemy card — her diving lightning strike claims it outright, no contest of strength (a Shield still protects its owner). Usable once per match."},
+    ] },
+  // LittleDeath, The Midnight Blade (Mystic, dark element): the duel's
+  // early aggressor, overwhelming her opponent before the tide turns.
+  // onCaptureBonus (Vesper/Vayra's own field) mirrors her own relentless,
+  // snowballing offense. Special "Verdict of Night" is the
+  // threshold-capture + stealPower shape (Sable/Balalajka/Wren's own
+  // shape) -- a blade duelist's kit, distinct from LittleAngel's
+  // guaranteed-capture finisher the same way Sable's kit differs from
+  // Kaelan's.
+  { id:'littledeath', name:'LittleDeath', role:'The Midnight Blade — Pack Exclusive (Mystic)', element:'dark',
+    top:9, right:10, bottom:9, left:10,
+    hue:'linear-gradient(160deg,#1c1030,#0d0b18 60%)', accent:'#7a1fa0', icon:'🗡️',
+    packTier:'mystic', exclusiveGlow:true,
+    active:{ pairPresence:{partner:'littleangel', amount:2}, onCaptureBonus:1 },
+    special:{ name:'Verdict of Night', cost:2, once:true, targets:'single' },
+    skills: [
+      {name:"Sovereign's Bond (Passive)", desc:'While LittleAngel is also on your side of the board, LittleDeath gains extra Power on all sides.'},
+      {name:'Relentless Onslaught (Passive)', desc:'Each time LittleDeath takes control of a card, she permanently gains +1 Power on all sides.'},
+      {name:'Special Attack: Verdict of Night', desc:"Costs 2 wins. Choose an adjacent enemy card — if LittleDeath's total Power is greater, her blade claims it, stealing 1 Power permanently. Usable once per match."},
+    ] },
 ];
 
 function drawEnemyHand(){
@@ -6163,16 +6215,20 @@ function checkTutorialAutoAdvance(){
   }
 }
 
-// Fas 70: fires the Sisters-of-Fate cutscene exactly once, the first time
-// the player views the Campaign picker for that stage -- gated on the
-// persisted campaignProgress.sistersVideoShown (not the transient
-// state.showSistersIntroVideo) so it survives resetGame()'s per-match
-// state wipe and never replays on retry/retreat/next-stage.
+// Fas 70 (generalized in Fas 73): fires a stage's bannerVideo cutscene
+// exactly once, the first time the player views the Campaign picker for
+// THAT stage -- gated on the persisted campaignProgress.stageVideosShown
+// map, keyed per stage index (not the transient state.showSistersIntroVideo)
+// so it survives resetGame()'s per-match state wipe, never replays on
+// retry/retreat/next-stage, and -- since Fas 73 -- showing one stage's
+// cutscene no longer blocks a DIFFERENT stage's from ever playing. Name
+// kept as-is (originally Sisters-only) to avoid an unnecessary rename
+// across already-shipped, tested code now that it's shared by two stages.
 function checkSistersIntroTrigger(){
   if(state.phase !== 'draft' || state.draftMode !== 'campaign') return;
   const stage = currentCampaignStage();
-  if(stage && stage.bannerVideo && !campaignProgress.sistersVideoShown){
-    campaignProgress.sistersVideoShown = true;
+  if(stage && stage.bannerVideo && !campaignProgress.stageVideosShown[campaignProgress.stageIndex]){
+    campaignProgress.stageVideosShown[campaignProgress.stageIndex] = true;
     saveCampaignProgress();
     state.showSistersIntroVideo = true;
     render();
@@ -6186,7 +6242,7 @@ function checkSistersIntroTrigger(){
 // check only covers the third moment: a genuinely brand-new player's very
 // first-ever view of the Stage 1 screen (hadNoCampaignSaveAtLoad). It's a
 // plain module-level variable, not campaignProgress.*, on purpose -- unlike
-// sistersVideoShown this must NOT persist across sessions, or a returning
+// stageVideosShown this must NOT persist across sessions, or a returning
 // player who saved after winning Stage 1 at least once would never see it
 // again even on their actual next fresh Reset Campaign.
 function checkNewCampaignIntroTrigger(){
@@ -6536,7 +6592,7 @@ function renderSistersIntroOverlay(){
 // is meant to replay every time the player actually STARTS a new campaign
 // run -- see checkNewCampaignIntroTrigger for the three distinct moments
 // that count as "starting a new campaign" and why a persisted
-// campaignProgress flag (like sistersVideoShown) would be the wrong tool
+// campaignProgress flag (like stageVideosShown) would be the wrong tool
 // here (it would only ever fire once, not on every Reset/New Game+).
 function renderNewCampaignIntroOverlay(){
   if(!state.showNewCampaignIntroVideo) return '';
@@ -9160,7 +9216,7 @@ function attachHandlers(){
       });
       const campaignNgPlus = document.getElementById('campaign-ngplus-btn');
       if(campaignNgPlus) campaignNgPlus.addEventListener('click', ()=>{
-        campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1, sistersVideoShown:campaignProgress.sistersVideoShown };
+        campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1, stageVideosShown:campaignProgress.stageVideosShown };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
         // Fas 71: an explicit "start a new campaign run" moment -- fires
@@ -9173,7 +9229,7 @@ function attachHandlers(){
       const campaignReset = document.getElementById('campaign-reset-btn');
       if(campaignReset) campaignReset.addEventListener('click', ()=>{
         if(!confirm('Reset all campaign progress? This cannot be undone.')) return;
-        campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
+        campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
         // Fas 71: same explicit "new campaign run" moment as New Game+ above.
@@ -10184,8 +10240,17 @@ const CAMPAIGN_STAGES = [
   // no such guaranteed pair and simulated fine, so it keeps its statBoost.
   { name:"Hunter's Pact", enemyIds:['daron','aurelian','vorlix','tahabata','ifrit'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['sylvarion','torn'] },
+  // Fas 73: LittleAngel and LittleDeath's own one-time bannerVideo cutscene
+  // (the colosseum duel that forged their bond -- see PACK_EXCLUSIVE_CARDS'
+  // own comment on the pair), the second stage to carry one after Sisters-
+  // of-Fate. User's own placement choice ("lägga till videon när man når
+  // nivå 10 i campaign"). Reuses checkSistersIntroTrigger/
+  // renderSistersIntroOverlay unchanged -- see loadCampaignProgress's
+  // comment for why the persisted gating flag had to become a per-stage
+  // map instead of a single boolean once a second stage needed one.
   { name:"The Wild Hunt's Bond", enemyIds:['bahamut','dragon','shadowking','voidqueen','fenrir'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['pallispell','pallis'], statBoost:1 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['pallispell','pallis'], statBoost:1,
+    bannerVideo:'littleangel-littledeath-video.mp4' },
   { name:'The Twin Storm', enemyIds:['eviltwistyang','eviltwistyin','ifrit','bahamut','tahabata'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['twinbrothers','twinsisters'] },
   // Fas 33 follow-up: a second, separate user report -- "det går inte
@@ -10238,7 +10303,7 @@ const CAMPAIGN_STAGES = [
     // Fas 70: a one-time AI-animated cutscene of the three sisters posing
     // together, played the very first time the player reaches this stage
     // (see checkSistersIntroTrigger/renderSistersIntroOverlay) -- never
-    // replayed afterward, tracked via campaignProgress.sistersVideoShown.
+    // replayed afterward, tracked via campaignProgress.stageVideosShown[19].
     bannerVideo:'sisters-of-fate-video.mp4' },
   // Stage 20 — the new TRUE final boss: Triune Desire ("Boss, Triple Triad
   // Sisters IV", the three sisters fused into one) was already fully built
@@ -10268,18 +10333,26 @@ const NEW_CAMPAIGN_INTRO_VIDEO = 'nyxara-awakening-video.mp4';
 const TITLE_INTRO_VIDEO = 'title-duel-video.mp4';
 
 function loadCampaignProgress(){
+  // Fas 73: stageVideosShown generalizes what used to be a single
+  // sistersVideoShown boolean into a { [stageIndex]: true } map, now that
+  // a SECOND stage (The Wild Hunt's Bond, LittleAngel/LittleDeath) also
+  // carries its own one-time bannerVideo cutscene -- a shared boolean would
+  // have meant showing one cutscene silently blocked the other from ever
+  // playing. See checkSistersIntroTrigger, which is otherwise unchanged
+  // (it already read stage.bannerVideo generically; only the persisted
+  // gating flag needed to become per-stage).
   try{
     const raw = localStorage.getItem(CAMPAIGN_SAVE_KEY);
-    if(!raw) return { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
+    if(!raw) return { stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} };
     const parsed = JSON.parse(raw);
     return {
       stageIndex: parsed.stageIndex||0,
       unlocked: Array.isArray(parsed.unlocked) ? parsed.unlocked : [],
       ngPlus: parsed.ngPlus||0,
-      sistersVideoShown: !!parsed.sistersVideoShown,
+      stageVideosShown: (parsed.stageVideosShown && typeof parsed.stageVideosShown === 'object') ? parsed.stageVideosShown : {},
     };
   }catch(e){
-    return { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
+    return { stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} };
   }
 }
 function saveCampaignProgress(){
@@ -12823,6 +12896,35 @@ const SPECIAL_HANDLERS = {
     checkSisterFlip(targetEntry);
     SpecialVerbs.attackBoost(srcEntry, 2);
     return `${name}'s Twilight Cross claims ${targetEntry.card.name}!`;
+  },
+  // LittleAngel's Descending Judgment: a GUARANTEED capture, same shape as
+  // Kaelan/Scarletta/Jade/Corvin's own Specials -- her video's own diving
+  // finisher lands clean, no contest of strength.
+  littleangel({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Descending Judgment!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    return `${name}'s Descending Judgment claims ${targetEntry.card.name} outright!`;
+  },
+  // LittleDeath's Verdict of Night: threshold capture + stealPower, same
+  // shape as Sable/Balalajka/Wren's own Specials.
+  littledeath({ srcEntry, targetEntry, targetIndex, owner }){
+    const name = srcEntry.card.name;
+    if(totalPower(srcEntry) <= totalPower(targetEntry)){
+      return `${name}'s Verdict of Night finds no purchase!`;
+    }
+    if(specialBlockedByShield(targetEntry, targetIndex)){
+      return `${targetEntry.card.name}'s shield holds against Verdict of Night!`;
+    }
+    targetEntry.owner = owner;
+    targetEntry.justFlipped = true;
+    checkSisterFlip(targetEntry);
+    SpecialVerbs.stealPower(srcEntry, targetEntry, 1);
+    return `${name}'s Verdict of Night claims ${targetEntry.card.name}!`;
   },
   // Reaper's Judgment Descent: same board-wide "this round" debuff shape
   // as Evil Twist's Yin/Yang Resonance above -- no target picking at all
@@ -15397,7 +15499,7 @@ function finishGame(){
     if(stage){
       const newly = stage.unlockIds.filter(id => !campaignProgress.unlocked.includes(id));
       const newStageIndex = campaignProgress.stageIndex + 1;
-      campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus, sistersVideoShown: campaignProgress.sistersVideoShown };
+      campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus, stageVideosShown: campaignProgress.stageVideosShown };
       saveCampaignProgress();
       state.campaignUnlocked = newly;
       // The big clear bonus. campaignClearedOnce itself still only flips

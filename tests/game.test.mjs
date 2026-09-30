@@ -10437,7 +10437,7 @@ test('Bug fix: the Sisters stage lore panel must not be crushed by flexbox when 
     // for the two new pre-finale stages) -- find it by name rather than
     // hardcoding the index, so this test survives any future reordering.
     const stageIndex = CAMPAIGN_STAGES.findIndex(s => s.name === 'The Triple Triad Sisters');
-    campaignProgress = { stageIndex, unlocked: [], ngPlus: 0 };
+    campaignProgress = { stageIndex, unlocked: [], ngPlus: 0, stageVideosShown: { [stageIndex]: true } };
     state.showSisterLore = true;
     render();
     const panel = document.querySelector('.lore-panel');
@@ -13392,18 +13392,21 @@ test('Fas 70: the Sisters-of-Fate cutscene plays exactly once when the player fi
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(() => {
     const out = {};
-    const sistersIndex = CAMPAIGN_STAGES.findIndex(s => s.bannerVideo);
+    // Fas 73 note: findIndex by NAME, not just "first stage with a
+    // bannerVideo" -- Stage 10 (The Wild Hunt's Bond) got its own
+    // bannerVideo in Fas 73 and comes before this stage in the array.
+    const sistersIndex = CAMPAIGN_STAGES.findIndex(s => s.name === 'The Triple Triad Sisters');
     out.foundStage = sistersIndex >= 0;
     out.bannerVideoPath = sistersIndex >= 0 ? CAMPAIGN_STAGES[sistersIndex].bannerVideo : null;
 
     // First arrival: not yet shown -- checkSistersIntroTrigger must fire.
-    campaignProgress = { stageIndex: sistersIndex, unlocked: [], ngPlus: 0, sistersVideoShown: false };
+    campaignProgress = { stageIndex: sistersIndex, unlocked: [], ngPlus: 0, stageVideosShown: {} };
     saveCampaignProgress();
     state.draftMode = 'campaign';
     state.phase = 'draft';
     render();
     out.overlayShownFirstTime = state.showSistersIntroVideo === true;
-    out.flagPersistedAfterTrigger = campaignProgress.sistersVideoShown === true;
+    out.flagPersistedAfterTrigger = campaignProgress.stageVideosShown[sistersIndex] === true;
     const videoEl = document.getElementById('sisters-intro-video');
     out.videoSrcCorrect = !!videoEl && videoEl.getAttribute('src') === CAMPAIGN_STAGES[sistersIndex].bannerVideo;
     out.skipBtnExists = !!document.getElementById('sisters-intro-skip');
@@ -13420,19 +13423,19 @@ test('Fas 70: the Sisters-of-Fate cutscene plays exactly once when the player fi
     // resetGame() (the retry/retreat/next-stage path) wipes transient state
     // every match -- the persisted flag must survive that wipe.
     resetGame();
-    out.survivesResetGame = state.showSistersIntroVideo === false && campaignProgress.sistersVideoShown === true;
+    out.survivesResetGame = state.showSistersIntroVideo === false && campaignProgress.stageVideosShown[sistersIndex] === true;
 
     // Regression guard: finishGame()'s campaign-win path rebuilds
     // campaignProgress from scratch on every stage clear (see its
     // `campaignProgress = { stageIndex: newStageIndex, ... }` line) -- it
-    // must explicitly carry sistersVideoShown forward, or the flag would
+    // must explicitly carry stageVideosShown forward, or the flag would
     // silently reset to falsy on the very next stage win after this one.
-    campaignProgress = { stageIndex: sistersIndex, unlocked: [], ngPlus: 0, sistersVideoShown: true };
+    campaignProgress = { stageIndex: sistersIndex, unlocked: [], ngPlus: 0, stageVideosShown: { [sistersIndex]: true } };
     state.board = Array(9).fill(null);
     for(let i=0;i<5;i++) state.board[i] = { card: findCardById('vaelira'), owner:'blue' };
     for(let i=5;i<9;i++) state.board[i] = { card: findCardById('shadowking'), owner:'red' };
     finishGame();
-    out.preservedAcrossStageAdvance = campaignProgress.sistersVideoShown === true;
+    out.preservedAcrossStageAdvance = campaignProgress.stageVideosShown[sistersIndex] === true;
     out.stageAdvancedCorrectly = campaignProgress.stageIndex === sistersIndex + 1;
 
     return out;
@@ -13448,7 +13451,7 @@ test('Fas 70: the Sisters-of-Fate cutscene plays exactly once when the player fi
   assert.equal(result.noOverlayInDom, true);
   assert.equal(result.doesNotRetriggerOnRerender, true);
   assert.equal(result.survivesResetGame, true);
-  assert.equal(result.preservedAcrossStageAdvance, true, 'sistersVideoShown must survive finishGame()\'s campaignProgress rebuild on every later stage win');
+  assert.equal(result.preservedAcrossStageAdvance, true, 'stageVideosShown must survive finishGame()\'s campaignProgress rebuild on every later stage win');
   assert.equal(result.stageAdvancedCorrectly, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
@@ -13494,7 +13497,7 @@ test('Fas 71: Nyxara\'s solo cutscene plays on every genuine "new campaign" star
   {
     const { page, pageErrors } = await newPage();
     await page.evaluate(() => {
-      localStorage.setItem('triadArenaCampaign', JSON.stringify({ stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false }));
+      localStorage.setItem('triadArenaCampaign', JSON.stringify({ stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} }));
     });
     await page.reload();
     await page.waitForFunction(() => typeof state !== 'undefined');
@@ -13528,9 +13531,9 @@ test('Fas 71: Nyxara\'s solo cutscene plays on every genuine "new campaign" star
       out.notShowingBeforeReset = state.showNewCampaignIntroVideo === false;
 
       campaignProgress.stageIndex = 5;
-      campaignProgress.sistersVideoShown = true;
+      campaignProgress.stageVideosShown = { 5: true };
       // Mirrors the campaign-reset-btn handler's own body exactly.
-      campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, sistersVideoShown:false };
+      campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} };
       saveCampaignProgress();
       state.selected = [];
       state.showNewCampaignIntroVideo = true;
@@ -13579,6 +13582,168 @@ test('Fas 72: the title-screen duel cutscene shows on every fresh page load rega
   assert.equal(result.doesNotReappearOnRerender, true);
   assert.equal(result.doesNotReappearAfterResetGame, true);
   assert.equal(result.noOverlayInDomAfterReset, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 73: forty-second and forty-third pack-exclusive cards -- LittleAngel and LittleDeath, a bonded pair born from a colosseum duel, plus their own Stage 10 cutscene proving stageVideosShown works per-stage (not a single shared flag)', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(() => {
+    ${freshEntrySnippet()}
+    const out = {};
+    const angel = findCardById('littleangel');
+    const death = findCardById('littledeath');
+    out.bothFindable = !!angel && !!death;
+    out.noneInHeroes = !HEROES.some(h => h.id==='littleangel') && !HEROES.some(h => h.id==='littledeath');
+    out.noneInCampaignPool = !campaignPool().includes('littleangel') && !campaignPool().includes('littledeath');
+
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // pairPresence bonus, both directions.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(angel, 'blue');
+    const angelAlone = fullEffectiveValue(angel, 'top', null, 4, 'blue', 'attack') - angel.top;
+    state.board[0] = freshEntry(death, 'blue');
+    const angelWithDeath = fullEffectiveValue(angel, 'top', null, 4, 'blue', 'attack') - angel.top;
+    out.pairBonusAngel = angelAlone === 0 && angelWithDeath === 2;
+
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(death, 'blue');
+    const deathAlone = fullEffectiveValue(death, 'top', null, 4, 'blue', 'attack') - death.top;
+    state.board[0] = freshEntry(angel, 'blue');
+    const deathWithAngel = fullEffectiveValue(death, 'top', null, 4, 'blue', 'attack') - death.top;
+    out.pairBonusDeath = deathAlone === 0 && deathWithAngel === 2;
+
+    // LittleAngel: boardUnderdogAttackBonus -- her comeback-from-behind theme.
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(angel, 'blue');
+    state.board[0] = freshEntry({id:'r1',name:'R1',top:1,right:1,bottom:1,left:1}, 'red');
+    state.board[1] = freshEntry({id:'r2',name:'R2',top:1,right:1,bottom:1,left:1}, 'red');
+    const behind = fullEffectiveValue(angel, 'top', null, 4, 'blue', 'attack') - angel.top;
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(angel, 'blue');
+    const even = fullEffectiveValue(angel, 'top', null, 4, 'blue', 'attack') - angel.top;
+    out.angelUnderdogBonus = behind === 2 && even === 0;
+
+    // LittleAngel: Special guaranteed capture + shield block.
+    state.board = Array(9).fill(null);
+    const a1 = freshEntry(angel, 'blue');
+    const strongFoe = freshEntry({ id:'sf', name:'SF', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = a1; state.board[5] = strongFoe;
+    SPECIAL_HANDLERS.littleangel({ srcEntry:a1, targetEntry:strongFoe, targetIndex:5, owner:'blue' });
+    out.angelGuaranteed = strongFoe.owner === 'blue';
+
+    state.board = Array(9).fill(null);
+    const a2 = freshEntry(angel, 'blue');
+    const shieldedFoe = freshEntry({ id:'shf', name:'SHF', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedFoe.grantedShield = true;
+    state.board[4] = a2; state.board[6] = shieldedFoe;
+    SPECIAL_HANDLERS.littleangel({ srcEntry:a2, targetEntry:shieldedFoe, targetIndex:6, owner:'blue' });
+    out.angelShieldBlocks = shieldedFoe.owner === 'red';
+
+    // LittleDeath: onCaptureBonus -- her relentless-onslaught theme.
+    state.board = Array(9).fill(null);
+    state.wins = { blue: 0, red: 0 };
+    const d3 = freshEntry(death, 'blue');
+    state.board[4] = d3;
+    state.board[1] = freshEntry({ id:'vw', name:'VW', top:1,right:1,bottom:1,left:1 }, 'red');
+    resolveFlips(4, 'blue');
+    out.deathCaptureBonus = d3.captureBonus === 1;
+
+    // LittleDeath: Special threshold + steal, fails vs stronger, shield block.
+    state.board = Array(9).fill(null);
+    const d1 = freshEntry(death, 'blue');
+    const weakFoe = freshEntry({ id:'wf', name:'WF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[4] = d1; state.board[5] = weakFoe;
+    SPECIAL_HANDLERS.littledeath({ srcEntry:d1, targetEntry:weakFoe, targetIndex:5, owner:'blue' });
+    out.deathSpecial = weakFoe.owner === 'blue' && weakFoe.captureBonus === -1 && d1.captureBonus === 1;
+
+    state.board = Array(9).fill(null);
+    const d2 = freshEntry(death, 'blue');
+    const strongFoe2 = freshEntry({ id:'sf2', name:'SF2', top:30,right:30,bottom:30,left:30 }, 'red');
+    state.board[4] = d2; state.board[5] = strongFoe2;
+    SPECIAL_HANDLERS.littledeath({ srcEntry:d2, targetEntry:strongFoe2, targetIndex:5, owner:'blue' });
+    out.deathFailsVsStronger = strongFoe2.owner === 'red';
+
+    // buyPack gating: both only from Mystic.
+    playerProgress.campaignClearedOnce = true;
+    playerProgress.lifetimePoints = 1000000;
+    let sawAngel=false, sawDeath=false, sawAngelEpic=false;
+    for(let i=0;i<150;i++){
+      playerProgress.points=1000000; playerProgress.earnedCards={};
+      buyPack('mystic');
+      if(playerProgress.earnedCards.littleangel) sawAngel=true;
+      if(playerProgress.earnedCards.littledeath) sawDeath=true;
+    }
+    for(let i=0;i<150;i++){
+      playerProgress.points=1000000; playerProgress.earnedCards={};
+      buyPack('epic');
+      if(playerProgress.earnedCards.littleangel) sawAngelEpic=true;
+    }
+    out.angelFromMystic = sawAngel;
+    out.deathFromMystic = sawDeath;
+    out.angelNeverFromEpic = !sawAngelEpic;
+
+    // Stage 10 ("The Wild Hunt's Bond") carries their own bannerVideo, and
+    // -- the actual regression this test exists to pin down -- triggering
+    // it must NOT consume the shared gate that Sisters-of-Fate (stage 19)
+    // also depends on. Before Fas 73, campaignProgress.sistersVideoShown
+    // was a single boolean; viewing either stage's cutscene would have
+    // silently blocked the other from ever playing.
+    const wildHuntIndex = CAMPAIGN_STAGES.findIndex(s => s.name === "The Wild Hunt's Bond");
+    const sistersIndex = CAMPAIGN_STAGES.findIndex(s => s.name === 'The Triple Triad Sisters');
+    out.wildHuntIsStage10 = wildHuntIndex === 9;
+    out.wildHuntHasVideo = CAMPAIGN_STAGES[wildHuntIndex].bannerVideo === 'littleangel-littledeath-video.mp4';
+
+    campaignProgress = { stageIndex: wildHuntIndex, unlocked: [], ngPlus: 0, stageVideosShown: {} };
+    saveCampaignProgress();
+    state.draftMode = 'campaign'; state.phase = 'draft';
+    render();
+    out.wildHuntVideoShown = state.showSistersIntroVideo === true;
+    const videoEl = document.getElementById('sisters-intro-video');
+    out.wildHuntVideoSrcCorrect = !!videoEl && videoEl.getAttribute('src') === CAMPAIGN_STAGES[wildHuntIndex].bannerVideo;
+    document.getElementById('sisters-intro-skip').click();
+
+    // Jump straight to the Sisters stage -- must ALSO trigger, independently.
+    campaignProgress.stageIndex = sistersIndex;
+    render();
+    out.sistersVideoStillShownAfterWildHunt = state.showSistersIntroVideo === true;
+    const videoEl2 = document.getElementById('sisters-intro-video');
+    out.sistersVideoSrcCorrect = !!videoEl2 && videoEl2.getAttribute('src') === CAMPAIGN_STAGES[sistersIndex].bannerVideo;
+    document.getElementById('sisters-intro-skip').click();
+
+    out.bothFlagsSetIndependently = campaignProgress.stageVideosShown[wildHuntIndex] === true && campaignProgress.stageVideosShown[sistersIndex] === true;
+
+    // Re-viewing Wild Hunt's Bond again must NOT retrigger (already shown).
+    campaignProgress.stageIndex = wildHuntIndex;
+    render();
+    out.wildHuntDoesNotRetrigger = state.showSistersIntroVideo === false;
+
+    return out;
+  })()`);
+
+  assert.equal(result.bothFindable, true);
+  assert.equal(result.noneInHeroes, true);
+  assert.equal(result.noneInCampaignPool, true);
+  assert.equal(result.pairBonusAngel, true);
+  assert.equal(result.pairBonusDeath, true);
+  assert.equal(result.angelUnderdogBonus, true);
+  assert.equal(result.angelGuaranteed, true);
+  assert.equal(result.angelShieldBlocks, true);
+  assert.equal(result.deathCaptureBonus, true);
+  assert.equal(result.deathSpecial, true);
+  assert.equal(result.deathFailsVsStronger, true);
+  assert.equal(result.angelFromMystic, true);
+  assert.equal(result.deathFromMystic, true);
+  assert.equal(result.angelNeverFromEpic, true, 'LittleAngel must only ever come from the Mystic tier');
+  assert.equal(result.wildHuntIsStage10, true);
+  assert.equal(result.wildHuntHasVideo, true);
+  assert.equal(result.wildHuntVideoShown, true);
+  assert.equal(result.wildHuntVideoSrcCorrect, true);
+  assert.equal(result.sistersVideoStillShownAfterWildHunt, true, 'reaching a SECOND bannerVideo stage must still trigger its own cutscene');
+  assert.equal(result.sistersVideoSrcCorrect, true);
+  assert.equal(result.bothFlagsSetIndependently, true);
+  assert.equal(result.wildHuntDoesNotRetrigger, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

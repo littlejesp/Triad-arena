@@ -6279,6 +6279,69 @@ ingen hit-testing), så bara detta enda test drabbades. Fixat genom att
 explicit sätta `state.showTitleIntroVideo = false` i testets egen setup
 innan den riktiga klick-sekvensen körs.
 
+**Fas 73. LittleAngel och LittleDeath — ett fjärde par, fött ur en
+Picsart-duellvideo, plus en generalisering av cutscene-mekaniken till
+FLERA stages.** Användaren skickade en fjärde AI-video (två kvinnliga
+krigare i colosseum-duell) utan text, sen två egna kortbilder av samma
+två karaktärer i samma guld/lila Mystic-ram som Kaelan/Sable/Vesper.
+Fråga via `AskUserQuestion` bekräftade: **bundet par** (som Kaelan &
+Sable) trots att duellen visar en tydlig vinnare/förlorare — bandet är
+EFTERSPELET till duellen, inte en motsägelse — och **Mystic**-tier.
+Namnen ("LittleAngel" och "LittleDeath") gavs direkt av användaren i ett
+enda meddelande efter att jag föreslagit egna (Kyrenna/Morvaine) och
+fått "du kan döpa om dom" — användarens egna namn användes istället.
+
+**Kit-design, samma återanvändnings-princip som alltid:** LittleAngel
+("The Storm Sovereign", ljus-element, guldljus) vinner duellen från ett
+underläge med en dykande final-attack — `boardUnderdogAttackBonus`
+(Sylvarions eget fält) speglar precis den comeback-berättelsen direkt.
+Special "Descending Judgment" är samma garanterad-capture-form som
+Kaelan. LittleDeath ("The Midnight Blade", dark-element) är duellens
+tidiga aggressor — `onCaptureBonus` (Vespers/Vayras eget fält) speglar
+hennes eskalerande offensiv. Special "Verdict of Night" är samma
+tröskel-capture-plus-stealPower-form som Sable. `pairPresence` binder
+dem ömsesidigt (`amount:2`, samma konvention som Kaelan/Sable/Vesper).
+
+**Placering av videon — användarens eget beslut ("Vi kan väll lägga
+till videon när man når nivå 10 i campaign"):** Stage 10 (index 9, "The
+Wild Hunt's Bond") fick ett eget `bannerVideo`. Det här är den ANDRA
+stagen med en sådan cutscene efter Sisters-of-Fate (stage 20/index 19) —
+och avslöjade direkt en riktig bugg i Fas 70/72:s design: den
+persisterade spärren hette `campaignProgress.sistersVideoShown`, en
+ENDA delad boolean. Hade jag bara återanvänt den rakt av hade den första
+stagen som visade sin video permanent blockerat den ANDRA stagens video
+från att någonsin spelas (eller tvärtom, beroende på ordning).
+
+**Generaliserad till `campaignProgress.stageVideosShown`**, en
+`{ [stageIndex]: true }`-karta istället för en enda boolean — varje
+stage håller nu sin egen shown-flagga. `checkSistersIntroTrigger`
+(namnet behölls trots att den nu delas av två stages, för att undvika
+en onödig omdöpning av redan skeppad/testad kod) behövde bara byta sin
+villkorskoll och sättning till att indexera kartan med
+`campaignProgress.stageIndex`. Alla tre ställen där `campaignProgress`
+byggs om från grunden (finishGame()s stage-advance, New Game+, Reset
+Campaign) uppdaterades att bära/nollställa hela kartan istället för en
+enda boolean.
+
+**Bieffekt: två äldre tester kraschade av samma anledning.** Två
+befintliga tester byggde `campaignProgress`-objekt utan det nya
+`stageVideosShown`-fältet alls (ett gammalt mönster från innan Fas 70
+ens fanns) — så fort de körde `render()` i Campaign-läge på exakt
+stageIndex 9 eller 19 kraschade `checkSistersIntroTrigger` med
+"Cannot read properties of undefined". Fixat genom att lägga till
+`stageVideosShown` i båda testens egna `campaignProgress`-konstruktion.
+En tredje separat testkörning råkade också träffa en helt orelaterad,
+äkta miljö-flakighet (en timing-känslig Bahamut Megaflare VFX-test) —
+bekräftad flakig genom att köras isolerat och passera direkt, ingen
+kodändring gjord för den.
+
+Fas 73-testet täcker hela paret (findable/synergibonus/underdog-bonus/
+capture-bonus/Specials/tier-gating) OCH den faktiska regressionen detta
+jobb avslöjade: att nå Stage 10 triggar sin egen video, att sen nå
+Sisters-stagen OCKSÅ triggar sin (inte blockerad av att Stage 10:s
+redan visats), och att båda flaggorna sätts oberoende i den nya kartan.
+Hela testsviten grön: **207/207**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
