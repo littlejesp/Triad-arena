@@ -6426,6 +6426,37 @@ bara på `enemyIndices` beräknat vid cast-tillfället. Inga nya
 permanenta tester tillkom (tre befintliga skrevs om istället), så
 totalen stannar på samma **208/208** som Fas 75 redan nådde.
 
+**Fas 77. Campaigns egen kort-väljare fick samma "Auto-Pick 5 Synergy
+Cards"-knapp som Rivals redan har** ("under campaign borde det vara en
+knapp också välj 5 med synergier. Lättare så"). Rivals fick sin egen
+auto-pick-knapp redan i Fas 67 (`getSmartRivalWager()`), men den
+funktionen kan inte återanvändas rakt av för Campaign — Rivals väljer
+bara bland `earnedCardIds()` (dragna pack-kort), medan Campaigns
+väljare istället använder `campaignPool()` (alla HEROES plus dragna
+pack-kort). Löst genom att bryta ut själva synergi-poängsättningen
+(pairPresence/sisterAura-räkning + total-stat-tiebreak) till en delad
+`pickSmartSynergyFive(pool)`-hjälpfunktion, som `getSmartRivalWager()`
+nu bara anropar med `earnedCardIds()` och den nya
+`getSmartCampaignPick()` anropar med `campaignPool()` — ingen
+dubblerad logik, och Fas 67:s befintliga Rivals-test fortsatte passera
+oförändrat efter omstruktureringen (samma beteende, bara delad kod).
+
+Ny knapp `✨ Auto-Pick 5 Synergy Cards` i Campaigns egen väljar-vy,
+renderas bara för Stage 2 och uppåt (Stage 1 har ingen fri väljare
+alls — där används de fasta `CAMPAIGN_STARTERS`). Ett kul upptäckt
+under testandet: med en trio pack-kort (Kaelan/Sable/Vesper) intjänade
+plockade auto-pick INTE dem framför den inbyggda Vaelira/Nyxara/
+Seraphine-systra-trion — inte en bugg, utan algoritmen korrekt
+identifierade att den alltid-tillgängliga HEROES-trion har exakt samma
+synergipoäng (2 vardera) men HÖGRE total-stats (39-40 mot 38), så den
+vinner tie-breaken helt rättmätigt. Fas 77-testet undviker den fällan
+genom att testa själva poängsättningslogiken separat med en liten,
+kontrollerad pool (Darien/Elara-paret mot orelaterade FOREST_FOES) för
+att bevisa att parprioriteringen fortfarande fungerar identiskt, och
+testar `getSmartCampaignPick()`s egen pool-källa (campaignPool, inte
+earnedCardIds) samt hela knapp-till-Begin-Stage-kedjan separat. Hela
+testsviten grön: **209/209**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
