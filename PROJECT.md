@@ -6224,6 +6224,61 @@ med sparfil på stageIndex 0 ser den INTE bara av att titta på skärmen,
 och en explicit Reset-knapptryckning triggar den oavsett tidigare
 sessionshistorik. Hela testsviten grön: **205/205**.
 
+**Fas 72. En tredje cutscene — en episk duell mellan två nya
+svärdsman-karaktärer — som titelskärm, spelas VARJE gång man öppnar/
+laddar om appen.** Tredje och mest ambitiösa Picsart-videon hittills:
+två karaktärer (mörkhårig med vitt svärd, blond med rött) som slåss
+samtidigt, med luftvolter, marknära strider, och en final som slutar
+oavgjort. Flaggade tydligt för användaren innan generering att
+två-karaktärsstrider är betydligt svårare för AI-video än enskilda
+karaktärers rörelser (sammansmältning i närkontakt, vapen som glitchar
+genom kroppar) — skrev promten som fyra tydliga faser (närstrid →
+luft-clash → markstrid → final-clash) med färgkodade svärd (vit/röd)
+för att hjälpa modellen hålla isär vem som är vem genom hela klippet,
+och löste "oavgjort"-kravet med ett medvetet trick: ett bländande
+ljussken vid den sista kollisionen döljer det svåraste fysik-ögonblicket,
+följt av en lugn "blades locked"-stillbild som visuellt SÄGER oavgjort
+utan att kräva perfekt symmetrisk simulering. Resultatet blev godkänt
+direkt.
+
+**Tredje distinkt trigger-typ, enklare än de två föregående.** Till
+skillnad från Sisters (en gång totalt, `campaignProgress`-flagga) och
+Nyxara (en gång per ny campaign-start, tre separata trigger-punkter)
+ska den här synas på **varje sidladdning, oavsett läge/fas** — närmast
+en riktig titelskärm/studio-logga. Det gjorde implementationen faktiskt
+enklare än de två andra: `state.showTitleIntroVideo` sätts till `true`
+direkt i state-deklarationen (syns alltså omedelbart vid första
+`render()`-anropet, oavsett vilket läge spelaren råkar landa i), och
+lämnas medvetet UTANFÖR `resetGame()`s reset-objekt — eftersom
+`resetGame()` bara någonsin körs EFTER att sessionens första match redan
+påbörjats (då cutscenen redan hunnit stängas), faller fältet tillbaka
+till `undefined` därefter, vilket renderas identiskt med `false` i
+`renderTitleIntroOverlay()`s `if(!state.showTitleIntroVideo)`-koll. Ingen
+egen check-funktion behövdes alls (till skillnad från
+`checkSistersIntroTrigger`/`checkNewCampaignIntroTrigger`) eftersom
+detta inte beror på något externt tillstånd att kontrollera — bara på
+att sidan just laddats.
+
+Delar samma `campaign-cutscene-*`-CSS som de två andra (overlay/video/
+skip-knapp), ny konstant `TITLE_INTRO_VIDEO = 'title-duel-video.mp4'`.
+Fas 72-testet bekräftar: syns omedelbart vid sidladdning oavsett läge,
+Skip dismissar den, den återkommer INTE vid ett nytt render-pass eller
+efter `resetGame()` (skyddar uttryckligen mot att någon råkar lägga
+till fältet i resetGame()s reset-objekt av misstag senare). Hela
+testsviten grön: **206/206**.
+
+**Bieffekt: ett äkta regressionsfynd, inte bara flakighet den här
+gången.** Eftersom titel-videon nu täcker HELA skärmen på varje
+sidladdning (`pointer-events` fångar allt), timeoutade det enda
+befintliga testet i hela filen som använder ett riktigt Playwright-
+`page.click()` på en DOM-knapp ("Campaign: retrying a stage keeps the
+same five champions pre-checked") — Playwright vägrade klicka igenom
+den osynligt "på väg att laddas"-videoöverlayn. Alla andra tester i
+filen kör klick via `element.click()` INUTI `page.evaluate()` (ren JS,
+ingen hit-testing), så bara detta enda test drabbades. Fixat genom att
+explicit sätta `state.showTitleIntroVideo = false` i testets egen setup
+innan den riktiga klick-sekvensen körs.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

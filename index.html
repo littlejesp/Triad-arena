@@ -6369,6 +6369,16 @@ let state = {
   showSisterLore: false,  // true while the Triple Triad Sisters' backstory panel is expanded (Campaign stage 17 only)
   showSistersIntroVideo: false, // true while the one-time Sisters-of-Fate cutscene overlay is showing -- see checkSistersIntroTrigger/renderSistersIntroOverlay (Fas 70)
   showNewCampaignIntroVideo: false, // true while Nyxara's per-campaign-start cutscene overlay is showing -- see checkNewCampaignIntroTrigger/renderNewCampaignIntroOverlay (Fas 71)
+  // Fas 72: the title-screen duel cutscene. Starts true (shown on every
+  // fresh page load, whatever mode/phase the player lands on) and is
+  // deliberately left OUT of resetGame()'s reset object below -- resetGame()
+  // only ever runs after the very first match of a session has already
+  // begun, by which point this has already been dismissed, so omitting it
+  // there (letting it fall back to undefined, which renders exactly like
+  // false) is what makes it a true "once per page load" flag with no
+  // separate check-function needed, unlike showSistersIntroVideo/
+  // showNewCampaignIntroVideo which depend on external state.
+  showTitleIntroVideo: true,
   showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
   showLeaderboard: false, // true while the 🏆 Leaderboard modal is open
   leaderboardStatus: 'idle', // 'idle' | 'loading' | 'ready' | 'error' — see leaderboardFetchTop
@@ -6470,6 +6480,7 @@ function render(){
   html += renderTutorialOverlay();
   html += renderSistersIntroOverlay();
   html += renderNewCampaignIntroOverlay();
+  html += renderTitleIntroOverlay();
   app.innerHTML = html;
   attachHandlers();
   checkTutorialAutoAdvance();
@@ -6533,6 +6544,20 @@ function renderNewCampaignIntroOverlay(){
     <div class="campaign-cutscene-overlay" id="new-campaign-intro-overlay">
       <video class="campaign-cutscene-video" id="new-campaign-intro-video" src="${NEW_CAMPAIGN_INTRO_VIDEO}" autoplay playsinline controls></video>
       <button class="ghost campaign-cutscene-skip" id="new-campaign-intro-skip">Skip ▶</button>
+    </div>`;
+}
+
+// Fas 72: the app's title-screen duel cutscene -- unlike the two Campaign
+// cutscenes above, this needs no trigger-check function at all. It's simply
+// true from the moment `state` is first constructed (see its own comment)
+// and stays that way until Skip/'ended' clears it, so a plain state check
+// here is the whole story.
+function renderTitleIntroOverlay(){
+  if(!state.showTitleIntroVideo) return '';
+  return `
+    <div class="campaign-cutscene-overlay" id="title-intro-overlay">
+      <video class="campaign-cutscene-video" id="title-intro-video" src="${TITLE_INTRO_VIDEO}" autoplay playsinline controls></video>
+      <button class="ghost campaign-cutscene-skip" id="title-intro-skip">Skip ▶</button>
     </div>`;
 }
 
@@ -8787,6 +8812,16 @@ function attachHandlers(){
     state.showNewCampaignIntroVideo = false;
     render();
   });
+  const titleIntroSkip = document.getElementById('title-intro-skip');
+  if(titleIntroSkip) titleIntroSkip.addEventListener('click', ()=>{
+    state.showTitleIntroVideo = false;
+    render();
+  });
+  const titleIntroVideo = document.getElementById('title-intro-video');
+  if(titleIntroVideo) titleIntroVideo.addEventListener('ended', ()=>{
+    state.showTitleIntroVideo = false;
+    render();
+  });
   document.querySelectorAll('.beginner-deck-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const deck = BEGINNER_DECKS.find(d => d.id === btn.dataset.deck);
@@ -10227,6 +10262,10 @@ const CAMPAIGN_SAVE_KEY = 'triadArenaCampaign';
 // checkNewCampaignIntroTrigger every time the player actually starts a new
 // campaign run (not tied to a single stage the way bannerVideo is).
 const NEW_CAMPAIGN_INTRO_VIDEO = 'nyxara-awakening-video.mp4';
+// Fas 72: the app's own title-screen duel cutscene, shown on every fresh
+// page load (see state.showTitleIntroVideo's own comment for why no
+// campaignProgress/session tracking is needed here at all).
+const TITLE_INTRO_VIDEO = 'title-duel-video.mp4';
 
 function loadCampaignProgress(){
   try{
