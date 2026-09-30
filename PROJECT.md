@@ -6342,6 +6342,90 @@ Sisters-stagen OCKSÅ triggar sin (inte blockerad av att Stage 10:s
 redan visats), och att båda flaggorna sätts oberoende i den nya kartan.
 Hela testsviten grön: **207/207**.
 
+**Fas 74. Gambler fick en riktig röst-line vid sin Ultimate.** Användaren
+skickade en ElevenLabs-genererad ljudfil (filnamnet råkade säga "Ifrit",
+troligen bara vilken röst-preset som användes i ElevenLabs — inte en
+felskickning) med instruktionen "till the gambler när han lägger sin
+ultimate". Infrastrukturen fanns redan helt färdig sedan tidigare
+(`ULTIMATE_VOICE_LINES`, en karta kort-id → ljudfil, spelas automatiskt
+av den generiska Ultimate-cast-sekvensen) — Gambler hade bara aldrig
+fått en egen post där. Filen sparades som `voices/gambler.mp3`, en rad
+lades till i kartan, klart — ingen annan kodändring behövdes eftersom
+mekaniken redan var helt kort-agnostisk. Det befintliga "Game feel phase
+4c"-testet (som redan täckte tolv andra kort på exakt samma sätt)
+utökades med Gambler istället för att skriva ett helt nytt test. Hela
+testsviten grön: **207/207**.
+
+**Fas 75. Mystic-packet tappade sitt Level 9-krav (användarens egen
+begäran).** Skickade en skärmdump av Packs-modalen där Mystic visade
+"requires Level 9" trots att Rare/Epic/Legendary redan var öppningsbara
+— ville att Mystic istället skulle "vara upplåst efter man klarat
+campaign stage 2+". Viktig avvägning som klargjordes via
+`AskUserQuestion` innan kodning: ALLA packs kräver redan
+`playerProgress.campaignClearedOnce` (en fullständig 20-stage-clear)
+innan något per-tier-krav ens kollas — och den flaggan kan bara
+någonsin bli sann EFTER att ha klarat stage 2 på vägen, så den bevisar
+redan permanent "har klarat stage 2+" i samma ögonblick den sätts.
+Användaren valde alternativet att ERSÄTTA Level 9-kravet (inte lägga
+till ett nytt, separat stage-krav ovanpå campaignClearedOnce).
+
+Implementerades DELIBERAT inte som en ny live-kontroll av
+`campaignProgress.stageIndex >= 2` — den varianten byggdes faktiskt
+först, men kasserades efter att jag själv hittade en regressionsfälla
+innan den ens hann skickas till test: både "Reset Campaign" och "Start
+New Game+" nollställer `stageIndex` till 0 rakt av, MEN lämnar
+`campaignClearedOnce` opåverkad (permanent sann). En spelare som precis
+klarat hela spelet en gång och trycker New Game+ (eller Reset Campaign)
+skulle med en live-koll tillfälligt tappa Mystic-åtkomst igen tills de
+klarat stage 2 på nytt — låser precis de spelare som redan bevisat sig.
+Löst genom att helt enkelt ta bort `minLevel` från Mystic-tiern i
+`PACK_TIERS` utan att ersätta det med något nytt live-kollat fält alls
+— `campaignClearedOnce` är redan den korrekta, permanenta signalen.
+Rare/Epic/Legendary rördes inte, behåller sina egna `minLevel`-krav
+precis som förut. Fas 75-testet täcker båda scenarierna explicit:
+Mystic köpbart på Level 1 så fort Campaign är klarad, OCH fortfarande
+köpbart precis efter en New Game+/Reset Campaign-nollställning (den
+faktiska regressionen som undveks). Hela testsviten grön: **208/208**.
+
+**Fas 76. Seraphines Silver Judgment byggdes om från förstörelse till
+erövring (användarens egen begäran): "hon tar över korten istället för
+att ta sönder dom".** Tidigare identisk med sina systrars
+"förstör-allt"-Ultimates (Vaelira/Nyxara/Triune Desire), nu istället en
+äkta AOE-CAPTURE — samma ovillkorliga flip-primitiv som Gamblers Ultima
+redan använder (`owner`-byte + `justFlipped` + `checkSisterFlip`, i en
+loop över hela brädet), bara applicerad på varje fiende istället för
+Gamblers enda mål. Ett Shield (`specialBlockedByShield`) är nu det enda
+som kan stoppa den, exakt som alla andra erövrings-Specials —
+`protectedByInfiniteSeraph`/`isDestroyImmune` togs bort helt, eftersom
+The Infinite Seraphs "Eternal Presence" specifikt blockerar
+FÖRSTÖRELSE-effekter, inte erövringar. Vaelira/Nyxara/Triune Desires
+egna Ultimates rördes inte — ändringen är avgränsad till Seraphine.
+
+**En finess som annars hade blivit inkonsekvent:** `runSpecialResolution`s
+chainShake-logik hade ett explicit opt-in för "Silver Judgment" (eftersom
+den förut ALDRIG satte `justFlipped`, så det normala
+`capturedCount >= 3`-spåret aldrig kunde trigga den). Nu när hon är en
+äkta erövring hade det opt-in:et gjort chainShake ovillkorlig igen (även
+vid en enda erövrad fiende) — inkonsekvent med hur riktiga erövringar
+annars beter sig. Tog bort "Silver Judgment" ur den listan helt, samma
+mönster som Gambler (som aldrig behövde stå där) — hon får nu samma
+magnitud-spärrade skärmskakning som alla andra riktiga erövringar.
+
+Tre befintliga tester byggde uttryckligen på den gamla
+förstörelse-mekaniken och behövde skrivas om: grönt-gravplats-testet tog
+bort Seraphine helt (erövrade kort hamnar aldrig i graveyarden, bara
+riktigt förstörda gör); "Seraphine: new Celestial Mark..."-testet bytte
+sina destroy-antaganden mot capture-antaganden och lade till ett nytt
+Shield-blockerar-scenario samt ett explicit "INTE längre blockerad av
+Infinite Seraph"-scenario; identitets-VFX-testet fick en tredje
+fiende tillagd i sitt scenario specifikt för att nå det nya
+`capturedCount >= 3`-tröskelvärdet (chainShake-täckningen var annars
+tappad, inte bara omskriven). VFX:en själv (strålar/gnistor/våg/flash)
+rördes inte alls — helt oberoende av destroy-vs-capture, siktar redan
+bara på `enemyIndices` beräknat vid cast-tillfället. Inga nya
+permanenta tester tillkom (tre befintliga skrevs om istället), så
+totalen stannar på samma **208/208** som Fas 75 redan nådde.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
