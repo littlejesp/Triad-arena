@@ -6519,6 +6519,54 @@ gamla filen i repot. `MUSIC_TRACKS`s `src`-fält och Fas 78-testets egen
 `.mp3`. Hela testsviten grön: fortsatt **210/210** (ingen ny permanent
 test behövdes — samma spår, bara längre).
 
+**Fas 79. Auto-Pick (Campaign OCH Rivals) blev matchup-medveten — vägar
+Elemental Clash mot de FAKTISKA fienderna, inte bara synergi+stats.**
+Användaren la märke till något riktigt: "det är ju alltid samma kort
+som kommer, är dom bäst eller?" — helt rätt, `getSmartCampaignPick()`/
+`getSmartRivalWager()` var rena funktioner av spelarens egen samling,
+helt blinda för vilken stage/motståndare man faktiskt skulle möta.
+Följdes upp med "jag är lite fast på stage 10, New Game+2" som konkret
+bevis, och sen "Gör det även i rivals" när jag först tänkte begränsa
+fixen till Campaign.
+
+`pickSmartSynergyFive(pool, enemyElements)` fick ett nytt, valfritt
+andra argument — en lista element (ett per fiende faktiskt mött), där
+varje gynnsam matchning (`elementBeats`) räknas lika mycket som en
+synergipoäng i sorteringen (`synergy + elementalAdvantage`,
+total-stats som sista tiebreak). Tomt/utelämnat argument = exakt samma
+beteende som innan (ingen regression för befintliga anrop).
+`getSmartCampaignPick()` läser nu `currentCampaignStage().enemyIds`s
+element, men BARA om den stagens `rules.elemental` är på (Campaign har
+sin egen fasta regeluppsättning per stage). `getSmartRivalWager()`
+fick istället en ny valfri `opponentId`-parameter — Rivals har INGEN
+fast regeluppsättning per motståndare (till skillnad från Campaign),
+så den läser istället `state.rules.elemental` (vad spelaren råkar ha
+ibockat just nu) plus den namngivna `RISK_OPPONENTS`-postens egna
+`enemyIds`. Rivals-knappens klick-handler uppdaterades att skicka med
+`state.rivalView` (den motståndare man faktiskt tittar på).
+
+Verifierat konkret på Stage 10 (The Wild Hunt's Bond, NG+2 — precis där
+användaren satt fast): fienderna är 2× wind (Bahamut/Fenrir), 2× water
+(Shadowking/Voidqueen), 1× earth (Dragon). Den gamla blinda auto-pick:en
+gav alltid Kaelan/Nyxara/Sable/Seraphine/Vaelira oavsett stage; den nya
+ger istället en hand som faktiskt utnyttjar elementcykeln mot just den
+här fiendetruppen. Fas 79-testet bekräftar mekanismen isolerat (ett
+eld-kort som slår wind måste gå om ett water-kort så fort wind-fiender
+finns i bilden), att `getSmartCampaignPick()`/`getSmartRivalWager()` är
+EXAKT `pickSmartSynergyFive(pool, rätt element)` (inte bara "ger ett
+annorlunda svar av misstag"), att båda faller tillbaka till 100% gamla
+beteendet när elementregeln är av eller ingen motståndare är känd (Fas
+67:s egna no-argument-anrop måste förbli byte-identiskt), och att
+knapp-till-`state.rivalPicked`-kedjan verkligen skickar med rätt
+motståndare. Hela testsviten grön: **211/211**.
+
+**Fas 79 (uppföljning). Astra fick en röst-line vid sin Ultimate** —
+samma mönster som Gambler i Fas 74 (`ULTIMATE_VOICE_LINES.astra =
+'voices/astra.mp3'`, sparad från en ny ElevenLabs-fil, "Till Astra").
+Fas 74:s befintliga permanenta test utökades med Astra istället för att
+skriva ett nytt test, samma konvention som redan användes för Gambler
+själv.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

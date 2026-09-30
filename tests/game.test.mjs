@@ -5701,7 +5701,7 @@ test('Bug fix (reported: "numbers didn\'t go down, couldn\'t press end turn"): a
   await page.close();
 });
 
-test('Game feel phase 4c (Fas 74 added Gambler): Gambler, Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon, Omega Weapon, Shiva, Odin, and Morvath\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c (Fas 74 added Gambler, Fas 79 added Astra): Gambler, Astra, Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon, Omega Weapon, Shiva, Odin, and Morvath\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5717,6 +5717,10 @@ test('Game feel phase 4c (Fas 74 added Gambler): Gambler, Ifrit, Nyxara, Vaelira
 
     playUltimateVoiceLine('gambler');
     out.gamblerCall = playCalls.slice();
+
+    playCalls.length = 0;
+    playUltimateVoiceLine('astra');
+    out.astraCall = playCalls.slice();
 
     playCalls.length = 0;
     playUltimateVoiceLine('ifrit');
@@ -5780,6 +5784,7 @@ test('Game feel phase 4c (Fas 74 added Gambler): Gambler, Ifrit, Nyxara, Vaelira
     return out;
   })()`);
   assert.deepEqual(result.gamblerCall, ['voices/gambler.mp3'], "Gambler's Ultimate cast should play his voice-line file");
+  assert.deepEqual(result.astraCall, ['voices/astra.mp3'], "Astra's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.ifritCall, ['voices/ifrit.mp3'], "Ifrit's Ultimate cast should play his voice-line file");
   assert.deepEqual(result.nyxaraCall, ['voices/nyxara.mp3'], "Nyxara's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.vaeliraCall, ['voices/vaelira.mp3'], "Vaelira's Ultimate cast should play her voice-line file");
@@ -13924,4 +13929,83 @@ test("Fas 78: a second background music track can be picked via a new masthead b
   assert.ok(restored.bgmSrc.endsWith('eternal-dawn.mp3'), "the <audio> element's src must already point at the restored track before any interaction");
   assert.deepEqual(pageErrors2, []);
   await page2.close();
+});
+
+test("Fas 79: Auto-Pick (Campaign and Rivals) now weighs Elemental Clash matchups against the ACTUAL enemies faced, not just synergy+stats -- user's own follow-up (\"det är ju alltid samma kort... jag är lite fast på stage 10\") after noticing the pick never changed", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+
+    // 1. Core mechanism, isolated: two elementless-synergy heroes (one
+    // fire, one water) with identical stats-based ranking otherwise --
+    // introducing wind enemies must flip the fire card (which beats wind)
+    // above the water card (which doesn't), proving elementalAdvantage
+    // genuinely participates in the sort, not just decoration.
+    const fireCard = HEROES.find(h => h.element === 'fire' && !(h.active && h.active.pairPresence) && !(h.active && h.active.sisterAura));
+    const waterCard = HEROES.find(h => h.element === 'water' && !(h.active && h.active.pairPresence) && !(h.active && h.active.sisterAura));
+    out.testCardsFound = !!fireCard && !!waterCard;
+    const smallPool = [fireCard.id, waterCard.id];
+    out.noContextOrder = pickSmartSynergyFive(smallPool);
+    out.windEnemiesFlipsOrder = pickSmartSynergyFive(smallPool, ['wind', 'wind'])[0] === fireCard.id
+      && out.noContextOrder[0] !== fireCard.id;
+
+    // 2. getSmartCampaignPick(): Stage 10 (The Wild Hunt's Bond, index 9)
+    // has Elemental Clash on and a fixed, known enemy roster -- the pick
+    // must be EXACTLY pickSmartSynergyFive(campaignPool(), those enemies'
+    // elements), proving the wiring (not just the underlying math).
+    campaignProgress = { stageIndex: 9, unlocked: [], ngPlus: 0, stageVideosShown: {} };
+    const stage10 = currentCampaignStage();
+    out.stage10ElementalOn = stage10.rules.elemental;
+    const stage10EnemyElements = stage10.enemyIds.map(id => findCardById(id).element);
+    out.campaignPickMatchesManualElementalCall = JSON.stringify(getSmartCampaignPick()) === JSON.stringify(pickSmartSynergyFive(campaignPool(), stage10EnemyElements));
+
+    // A stage with Elemental Clash OFF must fall back to the exact old
+    // pure-synergy behavior (no enemyElements at all) -- total non-regression
+    // for every stage that isn't using the rule.
+    const noElementalStageIndex = CAMPAIGN_STAGES.findIndex(s => !s.rules.elemental);
+    out.foundNoElementalStage = noElementalStageIndex >= 0;
+    campaignProgress.stageIndex = noElementalStageIndex;
+    out.campaignPickUnchangedWhenElementalOff = JSON.stringify(getSmartCampaignPick()) === JSON.stringify(pickSmartSynergyFive(campaignPool()));
+
+    // 3. getSmartRivalWager(opponentId): gated on state.rules.elemental
+    // (Rivals has no fixed per-opponent ruleset like Campaign does -- it's
+    // whatever the player currently has toggled) plus that opponent's own
+    // fixed enemyIds. Calling with no opponentId (existing callers, and
+    // the exact call shape Fas 67's own test already uses) must stay
+    // byte-identical to the pre-Fas-79 behavior.
+    state.rules.elemental = false;
+    out.rivalUnchangedWhenElementalOff = JSON.stringify(getSmartRivalWager('gambler-rival')) === JSON.stringify(pickSmartSynergyFive(earnedCardIds()));
+    out.rivalUnchangedWithNoOpponentId = JSON.stringify(getSmartRivalWager()) === JSON.stringify(pickSmartSynergyFive(earnedCardIds()));
+
+    state.rules.elemental = true;
+    const gamblerRivalElements = RISK_OPPONENTS.find(o => o.id === 'gambler-rival').enemyIds.map(id => findCardById(id).element);
+    out.rivalPickMatchesManualElementalCall = JSON.stringify(getSmartRivalWager('gambler-rival')) === JSON.stringify(pickSmartSynergyFive(earnedCardIds(), gamblerRivalElements));
+    out.rivalStillUnchangedWithNoOpponentIdEvenWithElementalOn = JSON.stringify(getSmartRivalWager()) === JSON.stringify(pickSmartSynergyFive(earnedCardIds()));
+
+    // 4. Full UI wiring: the Rivals autopick button must pass the CURRENT
+    // opponent (state.rivalView), not call the function blind.
+    playerProgress.campaignClearedOnce = true;
+    playerProgress.earnedCards = { [fireCard.id]: 1, [waterCard.id]: 1, gambler: 1, vaelira: 1 };
+    state.showRivals = true;
+    state.rivalView = 'gambler-rival';
+    state.rivalPicked = [];
+    render();
+    document.getElementById('rivals-autopick-btn').click();
+    out.buttonWiredWithCurrentOpponent = JSON.stringify(state.rivalPicked) === JSON.stringify(getSmartRivalWager('gambler-rival'));
+
+    return out;
+  });
+  assert.equal(result.testCardsFound, true);
+  assert.equal(result.windEnemiesFlipsOrder, true, 'a fire card beating wind enemies must rank above a water card that does not, once wind enemies are in play');
+  assert.equal(result.stage10ElementalOn, true);
+  assert.equal(result.campaignPickMatchesManualElementalCall, true, 'getSmartCampaignPick must be exactly pickSmartSynergyFive(campaignPool(), currentStage enemy elements)');
+  assert.equal(result.foundNoElementalStage, true);
+  assert.equal(result.campaignPickUnchangedWhenElementalOff, true, 'a stage without Elemental Clash must behave exactly like the pre-Fas-79 pure-synergy pick');
+  assert.equal(result.rivalUnchangedWhenElementalOff, true);
+  assert.equal(result.rivalUnchangedWithNoOpponentId, true, 'Fas 67\'s own no-argument call shape must stay byte-identical');
+  assert.equal(result.rivalPickMatchesManualElementalCall, true, 'getSmartRivalWager(opponentId) must be exactly pickSmartSynergyFive(earnedCardIds(), that opponent\'s enemy elements) when Elemental Clash is on');
+  assert.equal(result.rivalStillUnchangedWithNoOpponentIdEvenWithElementalOn, true, 'no opponentId means no elemental weighting at all, even with the rule toggled on');
+  assert.equal(result.buttonWiredWithCurrentOpponent, true, 'the Rivals Auto-Pick button must pass state.rivalView through to getSmartRivalWager');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
 });
