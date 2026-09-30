@@ -13921,7 +13921,7 @@ test("Fas 78: a second background music track can be picked via a new masthead b
     bgmSrc: getBgm().src,
   }));
   assert.equal(restored.trackId, 'eternal-dawn', 'a saved track preference must be restored on the next page load');
-  assert.ok(restored.bgmSrc.endsWith('eternal-dawn.m4a'), "the <audio> element's src must already point at the restored track before any interaction");
+  assert.ok(restored.bgmSrc.endsWith('eternal-dawn.mp3'), "the <audio> element's src must already point at the restored track before any interaction");
   assert.deepEqual(pageErrors2, []);
   await page2.close();
 });
