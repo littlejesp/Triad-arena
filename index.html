@@ -4501,7 +4501,7 @@ const HEROES = [
       {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
       {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
-      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Destroys every enemy card on the board. Usable once per match.'},
+      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Takes control of every enemy card on the board (a Shield still protects its owner). Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
     top:10, right:9, bottom:10, left:10,
@@ -4853,7 +4853,7 @@ const FOREST_FOES = [
       {name:'Silver Sight (Passive)', desc:'If Seraphine attacks an enemy card with higher total Power than her own, she gets +2 Power on the attacking side.'},
       {name:"Sister's Bond (Passive)", desc:"While at least one of Seraphine's sisters (Vaelira, Nyxara) is on the board, she gets +2 Power on all sides — +3 Power if both are present."},
       {name:'Weakness — Broken Focus (Passive)', desc:'If Seraphine is captured by the enemy and later recaptured back to her own side, she permanently loses 3 Power.'},
-      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Destroys every enemy card on the board. Usable once per match.'},
+      {name:'Special Attack: Silver Judgment', desc:'Costs 2 wins. Takes control of every enemy card on the board (a Shield still protects its owner). Usable once per match.'},
     ] },
   { id:'nyxara', name:'Nyxara', role:'The Void Empress — Boss, Triple Triad Sisters III', element:'water',
     top:10, right:9, bottom:10, left:10,
@@ -6771,11 +6771,12 @@ function renderPacksModal(){
       <div class="packs-tier-list">
         ${PACK_TIERS.map(t => {
           const affordable = canBuyPack(t);
-          const levelLocked = playerLevel() < t.minLevel;
+          const levelLocked = typeof t.minLevel === 'number' && playerLevel() < t.minLevel;
+          const lockText = levelLocked ? ` · requires Level ${t.minLevel}` : '';
           return `
           <div class="packs-tier ${affordable ? '' : 'packs-tier-locked'}">
             <div class="packs-tier-name">${t.name}</div>
-            <div class="packs-tier-info">${t.cost.toLocaleString()} points${levelLocked ? ` · requires Level ${t.minLevel}` : ''}</div>
+            <div class="packs-tier-info">${t.cost.toLocaleString()} points${lockText}</div>
             <button class="ghost packs-buy-btn" data-tier="${t.id}" ${affordable ? '' : 'disabled'}>Open</button>
           </div>`;
         }).join('')}
@@ -10483,17 +10484,31 @@ function awardPoints(amount){
 // currently draws from the same pool (see buyPack's own comment), this
 // colors by which PACK was opened, not a per-card rarity that doesn't
 // exist yet. Common TCG convention: blue/purple/gold/red climbing tiers.
+// Fas 75: Mystic dropped its Level 9 requirement entirely (the user's own
+// request, framed as "unlocked after clearing Campaign Stage 2+"). Every
+// tier already requires playerProgress.campaignClearedOnce (a full,
+// all-20-stage clear) before ANY per-tier check even runs -- and that can
+// only ever become true after clearing stage 2 along the way, so it
+// already permanently proves "cleared stage 2+" the moment it's set.
+// Deliberately NOT implemented as a live campaignProgress.stageIndex >= 2
+// check instead: stageIndex is NOT permanent the way campaignClearedOnce
+// is -- both "Reset Campaign" and "Start New Game+" reset it straight back
+// to 0 while leaving campaignClearedOnce true (a proven veteran player,
+// mid-replay), which would have re-locked Mystic for exactly the players
+// who've already earned it. campaignClearedOnce is the correct, sticky
+// signal for "has this player ever cleared stage 2" -- Mystic just no
+// longer needs anything ABOVE that baseline, unlike the other three tiers.
 const PACK_TIERS = [
   { id:'rare', name:'Rare Pack', cost:5000, minLevel:1, count:10, glow:'94,200,242' },
   { id:'epic', name:'Epic Pack', cost:10000, minLevel:3, count:10, glow:'181,101,242' },
   { id:'legendary', name:'Legendary Pack', cost:15000, minLevel:6, count:10, glow:'224,161,47' },
-  { id:'mystic', name:'Mystic Pack', cost:20000, minLevel:9, count:10, glow:'224,48,79' },
+  { id:'mystic', name:'Mystic Pack', cost:20000, count:10, glow:'224,48,79' },
 ];
 const EARNED_CARD_CAP = 10; // user's own rule: max 10 copies of any one card in the bag
 function canBuyPack(tier){
   if(!tier) return false;
   if(!playerProgress.campaignClearedOnce) return false;
-  if(playerLevel() < tier.minLevel) return false;
+  if(typeof tier.minLevel === 'number' && playerLevel() < tier.minLevel) return false;
   if(playerProgress.points < tier.cost) return false;
   return true;
 }
@@ -13473,21 +13488,32 @@ const SPECIAL_HANDLERS = {
     SpecialVerbs.extraTurn(owner);
     return `${name}'s Infernal Pact consumes ${destroyed} enemy card${destroyed>1?'s':''} in crimson flame!`;
   },
+  // Fas 76 (user's own request, "hon tar över korten istället för att ta
+  // sönder dom"): Silver Judgment reworked from an AOE destroy into an AOE
+  // CAPTURE -- same unconditional whole-board flip primitive as Gambler's
+  // Ultima above (owner flip + justFlipped + checkSisterFlip), just looped
+  // over every enemy instead of Gambler's single target. Shields
+  // (specialBlockedByShield) are now the one thing that can stop it,
+  // exactly like every other capture-style Special -- protectedByInfiniteSeraph/
+  // isDestroyImmune no longer apply at all, since this isn't a destroy
+  // effect anymore (The Infinite Seraph's Eternal Presence specifically
+  // blocks DESTROY effects, not captures). Vaelira/Nyxara/Triune Desire's
+  // own Ultimates are untouched -- this change is scoped to Seraphine only.
   seraphine({ srcEntry, owner }){
     const name = srcEntry.card.name;
-    if(protectedByInfiniteSeraph(owner === 'blue' ? 'red' : 'blue')){
-      return `${name}'s Silver Judgment shatters against The Infinite Seraph's Eternal Presence!`;
-    }
-    let destroyed = 0;
-    state.board.forEach((entry, i) => {
-      if(entry && entry.owner !== owner && !isDestroyImmune(entry)){
-        destroyCard(i); destroyed++;
-      }
+    const enemyOwner = owner === 'blue' ? 'red' : 'blue';
+    let flipped = 0, shielded = 0;
+    state.board.forEach((e, i) => {
+      if(!e || e.owner !== enemyOwner) return;
+      if(specialBlockedByShield(e, i)){ shielded++; return; }
+      e.owner = owner;
+      e.justFlipped = true;
+      checkSisterFlip(e);
+      flipped++;
     });
-    if(destroyed === 0){
-      return `${name}'s Silver Judgment finds no enemies in its line!`;
-    }
-    return `${name}'s Silver Judgment burns ${destroyed} enemy card${destroyed>1?'s':''} away with pure light!`;
+    if(flipped === 0 && shielded === 0) return `${name}'s Silver Judgment finds no enemies in its line!`;
+    if(flipped === 0) return `${name}'s Silver Judgment shines brightly, but every shield holds firm!`;
+    return `${name}'s Silver Judgment claims ${flipped} enemy card${flipped>1?'s':''} with pure light${shielded>0?`, ${shielded} shield${shielded>1?'s':''} held`:''}!`;
   },
   nyxara({ srcEntry, owner }){
     const name = srcEntry.card.name;
@@ -14120,6 +14146,7 @@ const ULTIMATE_HITSTOP_MS = 220;
 // here whenever a real voice line exists for a card; every other card just
 // keeps the silent windup it already had, no per-card code needed.
 const ULTIMATE_VOICE_LINES = {
+  gambler: 'voices/gambler.mp3',
   ifrit: 'voices/ifrit.mp3',
   nyxara: 'voices/nyxara.mp3',
   vaelira: 'voices/vaelira.mp3',
@@ -14393,11 +14420,16 @@ function playUltimateSequence(job){
       // Ifrit's Hellfire is single-target, so capturedCount is realistically
       // never >= 3 either — same explicit opt-in as Void Dominion above, for
       // the same reason (her one-off VFX test's screen-shake request).
-      // Vaelira's Infernal Pact and Seraphine's Silver Judgment are the same
-      // destroy-based shape as Void Dominion (destroyCard, never
-      // justFlipped) — same opt-in, same reason. Omega Weapon's Omega
-      // Protocol also destroys via destroyCard (just conditionally, only the
-      // weak enemies) — same opt-in either way.
+      // Vaelira's Infernal Pact is the same destroy-based shape as Void
+      // Dominion (destroyCard, never justFlipped) — same opt-in, same
+      // reason. Omega Weapon's Omega Protocol also destroys via destroyCard
+      // (just conditionally, only the weak enemies) — same opt-in either way.
+      // Seraphine's Silver Judgment is deliberately NOT on this list as of
+      // Fas 76 (reworked from destroy into a real AOE capture, matching
+      // Gambler's Ultima) — it sets justFlipped like any other capture now,
+      // so it naturally gets the magnitude-gated capturedCount >= 3 shake
+      // instead of an unconditional one, same as Gambler (also not on this
+      // list, for the same reason).
       // Shiva's Diamond Storm never flips anything either (a plain AOE
       // debuff, not a capture or a destroy) so capturedCount is always 0
       // here too -- same explicit opt-in as every other card in this list,
@@ -14418,7 +14450,7 @@ function playUltimateSequence(job){
       // opt-in reasoning as every other destroy-only card in this list,
       // and arguably the single biggest "impact" moment in the game
       // (destroys EVERY enemy on the board at once).
-      if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Silver Judgment' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony' || special.name === 'The Falling World' || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending') state.chainShake = true;
+      if(capturedCount >= 3 || special.name === 'Void Dominion' || special.name === 'Hellfire' || special.name === 'Infernal Pact' || special.name === 'Omega Protocol' || special.name === 'Diamond Storm' || special.name === 'Megaflare' || special.name === "Gorgon's Dominion" || special.name === 'Ragnarök' || special.name === 'Eternal Verdict' || special.name === 'Forbidden Harmony' || special.name === 'The Falling World' || special.name === 'Yang Resonance' || special.name === 'Yin Resonance' || special.name === 'The Ending') state.chainShake = true;
       // Game-feel review follow-up: unlike chainShake above (magnitude-
       // gated), EVERY Ultimate gets this small camera punch right at its
       // actual resolve moment — see .board.impact-punch.

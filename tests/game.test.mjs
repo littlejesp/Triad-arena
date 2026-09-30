@@ -1022,14 +1022,10 @@ test('Graveyard optional rule: every destroy-capable Special routes through dest
     SPECIAL_HANDLERS.nyxara({ srcEntry: nSrc, owner: 'blue' });
     const nyxara = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'ogre';
 
-    // Seraphine's Silver Judgment (aoe destroy-all, reworked from a debuff)
-    state.board = Array(9).fill(null);
-    state.graveyard = { blue: [], red: [] };
-    const sSrc = freshEntry(findCardById('seraphine'), 'blue');
-    state.board[0] = sSrc;
-    state.board[1] = freshEntry(findCardById('ogre'), 'red');
-    SPECIAL_HANDLERS.seraphine({ srcEntry: sSrc, owner: 'blue' });
-    const seraphine = state.graveyard.red.length === 1 && state.graveyard.red[0].id === 'ogre';
+    // Seraphine's Silver Judgment is no longer destroy-based as of Fas 76
+    // (reworked into an AOE capture, user's own request) -- she no longer
+    // belongs in this destroy/graveyard test at all; see the dedicated
+    // Seraphine capture test instead.
 
     // Triune Desire's Forbidden Harmony (directional adjacent destroy)
     state.board = Array(9).fill(null);
@@ -1046,11 +1042,10 @@ test('Graveyard optional rule: every destroy-capable Special routes through dest
     resetGame();
     const resetClears = state.graveyard.blue.length === 0 && state.graveyard.red.length === 0;
 
-    return { vaelira, nyxara, seraphine, triunedesire, resetClears };
+    return { vaelira, nyxara, triunedesire, resetClears };
   })()`);
   assert.equal(result.vaelira, true, "Vaelira's Infernal Pact kills land in the graveyard");
   assert.equal(result.nyxara, true, "Nyxara's Void Dominion kills land in the graveyard");
-  assert.equal(result.seraphine, true, "Seraphine's Silver Judgment kills land in the graveyard");
   assert.equal(result.triunedesire, true, "Triune Desire's Forbidden Harmony kills land in the graveyard");
   assert.equal(result.resetClears, true, 'resetGame() clears the graveyard for the next match');
   assert.deepEqual(pageErrors, []);
@@ -1566,7 +1561,7 @@ test('Vaelira: new capped Crimson Surge, all other mechanics (Undying Flame/Sist
   await page.close();
 });
 
-test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specific entry), Silver Sight replaced by vsStrongerTotalPowerBoost, Silver Judgment reworked from a debuff into a destroy-all (matching her sisters)', async () => {
+test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specific entry), Silver Sight replaced by vsStrongerTotalPowerBoost, Silver Judgment reworked into an AOE capture (Fas 76 -- was a destroy-all matching her sisters, now takes control instead)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -1614,29 +1609,44 @@ test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specif
     out.noBonusVsWeaker = fullEffectiveValue(seraphine, 'top', weakerFoe, 0, 'blue', 'attack') - seraphine.top;
     out.bonusVsStronger = fullEffectiveValue(seraphine, 'top', strongerFoe, 0, 'blue', 'attack') - seraphine.top;
 
-    // Silver Judgment: previously stripped bonuses and hit every enemy for
-    // -2 Power; now destroys every enemy outright, mirroring Vaelira's
-    // Infernal Pact and Nyxara's Void Dominion (same protectedByInfiniteSeraph
-    // guard, same isDestroyImmune check, same destroyCard() routing).
+    // Fas 76 (user's own request, "hon tar över korten istället för att ta
+    // sönder dom"): Silver Judgment no longer destroys -- it now CAPTURES
+    // every enemy card outright, same unconditional flip primitive as
+    // Gambler's Ultima (owner flip + justFlipped + checkSisterFlip), just
+    // looped over every enemy instead of one target.
     state.board = Array(9).fill(null);
     const judgeSrc = freshEntry(seraphine, 'blue');
     const ally = freshEntry({ id:'sj-ally', name:'Ally', top:1,right:1,bottom:1,left:1 }, 'blue');
     const enemy1 = freshEntry({ id:'sj-enemy1', name:'Enemy1', top:1,right:1,bottom:1,left:1 }, 'red');
     state.board[4] = judgeSrc; state.board[0] = ally; state.board[1] = enemy1;
     const judgmentMsg = SPECIAL_HANDLERS.seraphine({ srcEntry: judgeSrc, owner: 'blue' });
-    out.judgmentSparedAlly = state.board[0] !== null;
-    out.judgmentDestroyedEnemy = state.board[1] === null;
-    out.judgmentMsgMentionsDestruction = /burns|destroy/i.test(judgmentMsg);
+    out.judgmentSparedAlly = ally.owner === 'blue' && ally.justFlipped !== true;
+    out.judgmentCapturedEnemy = enemy1.owner === 'blue' && enemy1.justFlipped === true;
+    out.judgmentMsgMentionsClaim = /claims/i.test(judgmentMsg);
 
-    // Blocked by The Infinite Seraph's Eternal Presence, same as her sisters.
+    // A Shield blocks the capture -- the one thing that can stop it now,
+    // same as every other capture-style Special.
+    state.board = Array(9).fill(null);
+    const shieldSrc = freshEntry(seraphine, 'blue');
+    const shieldedEnemy = freshEntry({ id:'sj-shielded', name:'Shielded', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedEnemy.grantedShield = true;
+    state.board[4] = shieldSrc; state.board[1] = shieldedEnemy;
+    const shieldedMsg = SPECIAL_HANDLERS.seraphine({ srcEntry: shieldSrc, owner: 'blue' });
+    out.shieldBlocksCapture = shieldedEnemy.owner === 'red';
+    out.shieldedMsgMentionsShield = shieldedMsg.includes('shield holds firm');
+
+    // No longer blocked by The Infinite Seraph's Eternal Presence -- that
+    // guard is specifically anti-DESTROY, and this isn't a destroy effect
+    // anymore (unlike Vaelira/Nyxara, who are untouched by this change).
     state.board = Array(9).fill(null);
     const guardedSrc = freshEntry(seraphine, 'blue');
     state.board[0] = guardedSrc;
-    state.board[1] = freshEntry(findCardById('ogre'), 'red');
+    const guardedEnemy = freshEntry(findCardById('ogre'), 'red');
+    state.board[1] = guardedEnemy;
     state.board[2] = freshEntry(findCardById('infiniteseraph'), 'red');
     const guardedMsg = SPECIAL_HANDLERS.seraphine({ srcEntry: guardedSrc, owner: 'blue' });
-    out.blockedByInfiniteSeraph = state.board[1] !== null;
-    out.blockedMsgMentionsSeraph = guardedMsg.includes('Eternal Presence');
+    out.noLongerBlockedByInfiniteSeraph = guardedEnemy.owner === 'blue';
+    out.guardedMsgDoesNotMentionSeraph = !guardedMsg.includes('Eternal Presence');
 
     return out;
   })()`);
@@ -1649,10 +1659,12 @@ test('Seraphine: new Celestial Mark (on-place mark + hardcoded +2 vs that specif
   assert.equal(result.noBonusVsWeaker, 0);
   assert.equal(result.bonusVsStronger, 2);
   assert.equal(result.judgmentSparedAlly, true, 'Silver Judgment only hits enemies, never the caster\'s own side');
-  assert.equal(result.judgmentDestroyedEnemy, true, 'Silver Judgment now destroys enemy cards instead of just debuffing them');
-  assert.equal(result.judgmentMsgMentionsDestruction, true);
-  assert.equal(result.blockedByInfiniteSeraph, true, "The Infinite Seraph's Eternal Presence blocks Silver Judgment the same way it blocks Vaelira/Nyxara");
-  assert.equal(result.blockedMsgMentionsSeraph, true);
+  assert.equal(result.judgmentCapturedEnemy, true, 'Silver Judgment now captures enemy cards outright instead of destroying them');
+  assert.equal(result.judgmentMsgMentionsClaim, true);
+  assert.equal(result.shieldBlocksCapture, true, 'a Shield must block the capture, the one thing that can stop it now');
+  assert.equal(result.shieldedMsgMentionsShield, true);
+  assert.equal(result.noLongerBlockedByInfiniteSeraph, true, "The Infinite Seraph's Eternal Presence is an anti-DESTROY guard and must no longer block Silver Judgment now that it's a capture");
+  assert.equal(result.guardedMsgDoesNotMentionSeraph, true);
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -5689,7 +5701,7 @@ test('Bug fix (reported: "numbers didn\'t go down, couldn\'t press end turn"): a
   await page.close();
 });
 
-test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon, Omega Weapon, Shiva, Odin, and Morvath\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
+test('Game feel phase 4c (Fas 74 added Gambler): Gambler, Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Bahamut, Tiamat, Three Head Dragon, Omega Weapon, Shiva, Odin, and Morvath\'s Ultimates play their real voice-line audio files on cast, other cards stay silent, and sound-off suppresses it', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(() => {
@@ -5703,6 +5715,10 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
       return { volume: 1, play: () => Promise.resolve() };
     };
 
+    playUltimateVoiceLine('gambler');
+    out.gamblerCall = playCalls.slice();
+
+    playCalls.length = 0;
     playUltimateVoiceLine('ifrit');
     out.ifritCall = playCalls.slice();
 
@@ -5763,6 +5779,7 @@ test('Game feel phase 4c: Ifrit, Nyxara, Vaelira, Seraphine, Triune Desire, Baha
     window.Audio = OrigAudio;
     return out;
   })()`);
+  assert.deepEqual(result.gamblerCall, ['voices/gambler.mp3'], "Gambler's Ultimate cast should play his voice-line file");
   assert.deepEqual(result.ifritCall, ['voices/ifrit.mp3'], "Ifrit's Ultimate cast should play his voice-line file");
   assert.deepEqual(result.nyxaraCall, ['voices/nyxara.mp3'], "Nyxara's Ultimate cast should play her voice-line file");
   assert.deepEqual(result.vaeliraCall, ['voices/vaelira.mp3'], "Vaelira's Ultimate cast should play her voice-line file");
@@ -6297,7 +6314,7 @@ test('Vaelira Infernal Pact identity VFX (one-off test): card aura/sigil/wave/pe
   await page.close();
 });
 
-test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/sparkles/per-enemy hits/wave/flash ride the existing cast->impact->cleanup lifecycle, beam angles point at the correct cells, chainShake fires despite destroy never setting justFlipped, synced with her impact SFX, other cards are unaffected', async () => {
+test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/sparkles/per-enemy hits/wave/flash ride the existing cast->impact->cleanup lifecycle, beam angles point at the correct cells, chainShake fires via the normal capturedCount>=3 path now that Fas 76 made her a real capture, synced with her impact SFX, other cards are unaffected', async () => {
   const { page, pageErrors } = await newPage();
 
   const result = await page.evaluate(`(async () => {
@@ -6317,6 +6334,11 @@ test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/spa
     state.board[4] = src; // center cell -> --sj-x/--sj-y should be ~50%/50%
     state.board[0] = freshEntry(findCardById('ogre'), 'red'); // top-left
     state.board[7] = freshEntry(findCardById('ogre'), 'red'); // bottom-middle, straight down from center
+    // A third enemy, purely so capturedCount reaches the normal
+    // magnitude-gated chainShake threshold (>=3) post-Fas-76 -- Silver
+    // Judgment is no longer explicitly opted into an unconditional shake
+    // now that it's a real capture (see runSpecialResolution's own comment).
+    state.board[2] = freshEntry(findCardById('ogre'), 'red');
     state.wins = { blue: 5, red: 5 };
     state.specialUsed = {};
     state.turn = 'blue';
@@ -6336,21 +6358,22 @@ test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/spa
     // element exist" check would miss.
     const beams = [...document.querySelectorAll('.silver-judgment-beam')];
     out.oneBeamPointsStraightDown = beams.some(b => b.style.transform.includes('90deg') && !b.style.transform.includes('-90deg'));
-    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red';
+    out.boardUntouchedDuringCast = state.board[0].owner === 'red' && state.board[7].owner === 'red' && state.board[2].owner === 'red';
 
     await new Promise(r => setTimeout(r, ULTIMATE_WINDUP_MS + ULTIMATE_HITSTOP_MS + 50));
 
     // Impact phase: hit count matches the enemy count, wave and flash both
-    // appear, both enemies destroyed, chainShake fires despite a
-    // destroy-based AOE never setting justFlipped, and the impact SFX
-    // fires in the same beat -- the brief's "synka med ljudet" requirement.
+    // appear, all three enemies CAPTURED (Fas 76: no longer destroyed),
+    // chainShake fires via the normal capturedCount>=3 magnitude gate, and
+    // the impact SFX fires in the same beat -- the brief's "synka med
+    // ljudet" requirement.
     const fx2 = document.querySelector('.silver-judgment-fx');
     out.fxPresentDuringImpact = fx2 !== null && fx2.classList.contains('phase-impact');
-    out.hitCountMatchesEnemyCount = document.querySelectorAll('.silver-judgment-hit').length === 2;
+    out.hitCountMatchesEnemyCount = document.querySelectorAll('.silver-judgment-hit').length === 3;
     out.wavePresent = document.querySelector('.silver-judgment-wave') !== null;
     out.flashPresent = document.querySelector('.silver-judgment-flash.phase-impact') !== null;
-    out.effectLanded = state.board[0] === null && state.board[7] === null;
-    out.chainShakeFiredDespiteDestroy = state.chainShake === true;
+    out.effectLanded = state.board[0].owner === 'blue' && state.board[7].owner === 'blue' && state.board[2].owner === 'blue';
+    out.chainShakeFiredViaCapturedCount = state.chainShake === true;
     out.impactSfxSyncedWithVfx = playCalls.includes('sfx/seraphine.mp3');
 
     await new Promise(r => setTimeout(r, ULTIMATE_CLEANUP_MS + 100));
@@ -6382,15 +6405,15 @@ test('Seraphine Silver Judgment identity VFX (one-off test): card aura/beams/spa
   assert.equal(result.cardHasAura, true, "Seraphine's own card should get the silver-judgment-casting class (and its rings) during her windup");
   assert.equal(result.fxPresentDuringCast, true, 'the beam/sparkle wrapper should appear during the cast/windup phase');
   assert.equal(result.fxOriginMatchesCell4, true, "the effect's origin should match Seraphine's actual board cell (index 4, center -> ~50%/50%)");
-  assert.equal(result.beamCount, 2, 'one beam per enemy actually present at cast time');
+  assert.equal(result.beamCount, 3, 'one beam per enemy actually present at cast time');
   assert.equal(result.oneBeamPointsStraightDown, true, 'the beam toward the straight-down enemy (same X as Seraphine) should compute exactly 90deg -- catches an axis/sign error in the angle math');
   assert.equal(result.boardUntouchedDuringCast, true, 'the board must stay untouched during the windup, same guarantee every Ultimate already has');
   assert.equal(result.fxPresentDuringImpact, true, 'the fx wrapper switches to its impact-phase burst');
   assert.equal(result.hitCountMatchesEnemyCount, true, 'exactly one hit-flash per enemy actually present at cast time, not a fixed count');
   assert.equal(result.wavePresent, true, 'the final board-wide wave should appear at impact');
   assert.equal(result.flashPresent, true, 'the soft full-frame flash should appear at impact');
-  assert.equal(result.effectLanded, true, 'Silver Judgment destroys both enemy cards once the windup elapses');
-  assert.equal(result.chainShakeFiredDespiteDestroy, true, 'chainShake must fire for Silver Judgment even though destroy-based AOE never sets justFlipped (capturedCount stays 0)');
+  assert.equal(result.effectLanded, true, 'Silver Judgment captures all three enemy cards once the windup elapses (Fas 76: no longer destroys them)');
+  assert.equal(result.chainShakeFiredViaCapturedCount, true, 'chainShake must fire once 3+ enemies are actually captured, the same magnitude gate every other real capture uses');
   assert.equal(result.impactSfxSyncedWithVfx, true, "the impact SFX (sfx/seraphine.mp3) must fire in the SAME beat as the visual impact, per the brief's sync requirement");
   assert.equal(result.fxGoneAfterCleanup, true);
   assert.equal(result.flashGoneAfterCleanup, true);
@@ -13744,6 +13767,57 @@ test('Fas 73: forty-second and forty-third pack-exclusive cards -- LittleAngel a
   assert.equal(result.sistersVideoSrcCorrect, true);
   assert.equal(result.bothFlagsSetIndependently, true);
   assert.equal(result.wildHuntDoesNotRetrigger, true);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Fas 75: the Mystic pack dropped its Level 9 requirement (user\'s own request) -- campaignClearedOnce alone gates it now, and it stays unlocked even right after a New Game+/Reset Campaign snaps campaignProgress.stageIndex back to 0', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    const mystic = PACK_TIERS.find(t => t.id === 'mystic');
+    const rare = PACK_TIERS.find(t => t.id === 'rare');
+    const epic = PACK_TIERS.find(t => t.id === 'epic');
+    const legendary = PACK_TIERS.find(t => t.id === 'legendary');
+    out.mysticHasNoMinLevel = typeof mystic.minLevel === 'undefined';
+    out.othersStillLevelGated = rare.minLevel === 1 && epic.minLevel === 3 && legendary.minLevel === 6;
+
+    // Level 1 (the lowest possible), but campaign cleared and enough points --
+    // Mystic must now be buyable with no level requirement at all.
+    playerProgress = { points: 20000, lifetimePoints: 0, earnedCards: {}, campaignClearedOnce: true };
+    out.lowLevelMysticBuyable = canBuyPack(mystic);
+    out.levelWasActuallyLow = playerLevel() === 1;
+
+    // Not cleared at all -- still locked regardless of level/points, same
+    // base gate every tier shares.
+    playerProgress = { points: 999999, lifetimePoints: 999999, earnedCards: {}, campaignClearedOnce: false };
+    out.notClearedStillLocked = canBuyPack(mystic);
+
+    // The actual regression this design avoids: a proven veteran
+    // (campaignClearedOnce permanently true) right after New Game+ or
+    // Reset Campaign, both of which snap campaignProgress.stageIndex back
+    // to 0 -- a live "stageIndex >= 2" check would have re-locked Mystic
+    // for exactly the players who already earned it.
+    playerProgress = { points: 20000, lifetimePoints: 0, earnedCards: {}, campaignClearedOnce: true };
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 1, stageVideosShown: {} };
+    out.buyableRightAfterNgPlusReset = canBuyPack(mystic);
+    campaignProgress = { stageIndex: 0, unlocked: [], ngPlus: 0, stageVideosShown: {} };
+    out.buyableRightAfterCampaignReset = canBuyPack(mystic);
+
+    // Still respects its points cost, same as every other tier.
+    playerProgress = { points: 0, lifetimePoints: 0, earnedCards: {}, campaignClearedOnce: true };
+    out.stillBlockedByPointsCost = canBuyPack(mystic);
+
+    return out;
+  });
+  assert.equal(result.mysticHasNoMinLevel, true);
+  assert.equal(result.othersStillLevelGated, true, 'only Mystic dropped its level gate -- Rare/Epic/Legendary are unchanged');
+  assert.equal(result.levelWasActuallyLow, true, 'sanity check: this scenario is genuinely Level 1, not accidentally high');
+  assert.equal(result.lowLevelMysticBuyable, true, "Mystic must be buyable at Level 1 once Campaign is cleared -- no level requirement left");
+  assert.equal(result.notClearedStillLocked, false, 'the shared campaignClearedOnce base gate still applies to Mystic');
+  assert.equal(result.buyableRightAfterNgPlusReset, true, 'campaignClearedOnce alone must be enough -- New Game+ resetting stageIndex must not re-lock Mystic');
+  assert.equal(result.buyableRightAfterCampaignReset, true, 'Reset Campaign resetting stageIndex must not re-lock Mystic either');
+  assert.equal(result.stillBlockedByPointsCost, false, 'Mystic must still respect its points cost like every other tier');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
