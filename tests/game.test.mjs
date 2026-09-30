@@ -13880,3 +13880,48 @@ test('Fas 77: Campaign\'s champion picker (stage 2+) gets its own "Auto-Pick 5 S
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test("Fas 78: a second background music track can be picked via a new masthead button -- cycles MUSIC_TRACKS, swaps the <audio> element's src live, and persists the choice across a reload", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+    out.btnExists = !!document.getElementById('music-track-toggle');
+    out.initialTrack = MUSIC_TRACKS[musicTrackIndex].id;
+    out.initialIsDefault = out.initialTrack === 'ancient-mysteries';
+    out.bgmInitialSrc = getBgm().getAttribute('src');
+
+    document.getElementById('music-track-toggle').click();
+    out.trackAfterOneClick = MUSIC_TRACKS[musicTrackIndex].id;
+    out.bgmSrcUpdatedAfterClick = getBgm().src.endsWith(MUSIC_TRACKS[musicTrackIndex].src);
+    out.persistedIdMatchesChoice = localStorage.getItem('triadArenaMusicTrack') === MUSIC_TRACKS[musicTrackIndex].id;
+
+    document.getElementById('music-track-toggle').click();
+    out.wrapsBackToFirstTrack = MUSIC_TRACKS[musicTrackIndex].id === 'ancient-mysteries';
+
+    return out;
+  });
+  assert.equal(result.btnExists, true);
+  assert.equal(result.initialIsDefault, true, 'a fresh session with no saved preference defaults to the first track');
+  assert.equal(result.bgmInitialSrc, 'ancient-mysteries.mp3');
+  assert.notEqual(result.trackAfterOneClick, 'ancient-mysteries', 'clicking must switch to a different track');
+  assert.equal(result.bgmSrcUpdatedAfterClick, true, "the <audio id=bgm> element's src must actually update to the new track");
+  assert.equal(result.persistedIdMatchesChoice, true, 'the choice must be saved to localStorage immediately');
+  assert.equal(result.wrapsBackToFirstTrack, true, 'a second click must wrap back around to the first track');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+
+  // Separate page load: confirms the saved choice is actually restored on
+  // startup, not just held in memory for the rest of the same session.
+  const { page: page2, pageErrors: pageErrors2 } = await newPage();
+  await page2.evaluate(() => { localStorage.setItem('triadArenaMusicTrack', 'eternal-dawn'); });
+  await page2.reload();
+  await page2.waitForFunction(() => typeof state !== 'undefined');
+  const restored = await page2.evaluate(() => ({
+    trackId: MUSIC_TRACKS[musicTrackIndex].id,
+    bgmSrc: getBgm().src,
+  }));
+  assert.equal(restored.trackId, 'eternal-dawn', 'a saved track preference must be restored on the next page load');
+  assert.ok(restored.bgmSrc.endsWith('eternal-dawn.m4a'), "the <audio> element's src must already point at the restored track before any interaction");
+  assert.deepEqual(pageErrors2, []);
+  await page2.close();
+});

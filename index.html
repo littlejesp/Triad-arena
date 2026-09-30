@@ -166,6 +166,17 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
 .masthead.compact .book-toggle{ width:24px; height:24px; font-size:11px; left:28px; }
 .book-toggle:hover{ color:var(--gold); border-color:var(--gold); }
 
+/* Fas 78: a second music-track picker button, same corner-icon shape as
+   music-toggle/book-toggle/etc, one slot further left (left:80px mirrors
+   fast-toggle's right:80px on the opposite side). */
+.music-track-toggle{
+  position:absolute; top:0; left:80px; width:34px; height:34px; border-radius:50%;
+  border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
+  display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer;
+}
+.masthead.compact .music-track-toggle{ width:24px; height:24px; font-size:10px; left:56px; }
+.music-track-toggle:hover{ color:var(--gold); border-color:var(--gold); }
+
 .music-toggle{
   position:absolute; top:0; left:0; width:34px; height:34px; border-radius:50%;
   border:1px solid var(--line); background:var(--panel); color:var(--text-dim);
@@ -3667,9 +3678,7 @@ button.ghost.campaign-cutscene-skip{
 </style>
 </head>
 <body>
-<audio id="bgm" loop preload="auto">
-  <source src="ancient-mysteries.mp3" type="audio/mpeg">
-</audio>
+<audio id="bgm" loop preload="auto" src="ancient-mysteries.mp3"></audio>
 <div class="stage">
   <div class="stage-ambient" aria-hidden="true">
     <span class="stage-mote"></span>
@@ -6259,6 +6268,27 @@ let soundOn = true;
 let musicOn = true;
 let isFullscreen = false;
 
+// Fas 78: a second background music track the player can switch to, per
+// their own request ("man kan välja antingen den befintliga eller denna
+// nya låten som bakgrund Musik"). Persisted the same way as
+// aiDifficulty/fastMode (loadX/saveX around a plain localStorage key) so
+// the choice sticks across sessions.
+const MUSIC_TRACKS = [
+  { id:'ancient-mysteries', name:'Ancient Mysteries', src:'ancient-mysteries.mp3' },
+  { id:'eternal-dawn', name:'Eternal Dawn', src:'eternal-dawn.m4a' },
+];
+let musicTrackIndex = 0;
+function loadMusicTrackIndex(){
+  try{
+    const raw = localStorage.getItem('triadArenaMusicTrack');
+    const idx = MUSIC_TRACKS.findIndex(t => t.id === raw);
+    return idx >= 0 ? idx : 0;
+  }catch(e){ return 0; }
+}
+function saveMusicTrackIndex(idx){
+  try{ localStorage.setItem('triadArenaMusicTrack', MUSIC_TRACKS[idx].id); }catch(e){ /* storage unavailable -- choice just won't persist */ }
+}
+
 /* ---------------- tester counter ---------------- */
 let testerCount = null;
 function loadTesterCount(){
@@ -6307,6 +6337,26 @@ function toggleMusic(){
   if(bgm){
     if(musicOn){ musicStarted = false; tryStartMusic(); }
     else { bgm.pause(); }
+  }
+  render();
+}
+
+// Fas 78: switches to the next track in MUSIC_TRACKS (wraps around), swaps
+// the <audio> element's src live, and keeps playing (or stays paused) --
+// mirrors whatever state musicOn was already in, same as toggleMusic()
+// does for on/off. Persisted so the choice survives a page reload.
+function cycleMusicTrack(){
+  musicTrackIndex = (musicTrackIndex + 1) % MUSIC_TRACKS.length;
+  saveMusicTrackIndex(musicTrackIndex);
+  const bgm = getBgm();
+  if(bgm){
+    const wasPlaying = musicOn && musicStarted;
+    bgm.src = MUSIC_TRACKS[musicTrackIndex].src;
+    bgm.load();
+    if(wasPlaying){
+      musicStarted = false;
+      tryStartMusic();
+    }
   }
   render();
 }
@@ -6393,6 +6443,7 @@ function masthead(compact){
       <div class="corner-flame left" aria-hidden="true"><span class="flame-icon">\uD83D\uDD25</span></div>
       <div class="corner-flame right" aria-hidden="true"><span class="flame-icon">\uD83D\uDD25</span></div>
       <button class="music-toggle ${musicOn ? 'on':''}" id="music-toggle" title="${musicOn ? 'Mute music' : 'Unmute music'}">${musicOn ? '\u266B' : '\u266B\u0338'}</button>
+      <button class="music-track-toggle" id="music-track-toggle" title="Switch music track (current: ${MUSIC_TRACKS[musicTrackIndex].name} \u2014 tap for ${MUSIC_TRACKS[(musicTrackIndex + 1) % MUSIC_TRACKS.length].name})">\uD83C\uDFBC</button>
       <button class="book-toggle" id="book-toggle" title="Rulebook">📖</button>
       <button class="fullscreen-toggle ${isFullscreen ? 'on':''}" id="fullscreen-toggle" title="${isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}">⛶</button>
       <button class="fast-toggle ${state.fastMode ? 'on':''}" id="fast-toggle" title="${state.fastMode ? 'Fast Mode: on (shorter flip/turn animations)' : 'Fast Mode: off'}">⏩</button>
@@ -8832,6 +8883,8 @@ function attachHandlers(){
   if(soundBtn) soundBtn.addEventListener('click', toggleSound);
   const musicBtn = document.getElementById('music-toggle');
   if(musicBtn) musicBtn.addEventListener('click', toggleMusic);
+  const musicTrackBtn = document.getElementById('music-track-toggle');
+  if(musicTrackBtn) musicTrackBtn.addEventListener('click', cycleMusicTrack);
   const fsBtn = document.getElementById('fullscreen-toggle');
   if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
   const fastBtn = document.getElementById('fast-toggle');
@@ -15607,6 +15660,11 @@ function resetGame(){
 
 state.aiDifficulty = loadAIDifficulty();
 state.fastMode = loadFastMode();
+musicTrackIndex = loadMusicTrackIndex();
+if(musicTrackIndex !== 0){
+  const bgmEl = getBgm();
+  if(bgmEl) bgmEl.src = MUSIC_TRACKS[musicTrackIndex].src;
+}
 render();
 loadTesterCount();
 
