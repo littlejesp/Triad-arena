@@ -585,6 +585,25 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   box-shadow:0 0 6px rgba(165,104,242,0.5);
 }
 
+/* Picked-for-your-five checkmark (Fas 83): the existing .card.selected
+   border glow alone was too subtle to tell which cards were picked at a
+   glance across a big grid ("svårt att avkryssa och veta vilka som är
+   valt" -- user's own screenshot of Choose Your Five). Only rendered in
+   picker contexts (selected without an owner -- the battle hand's own
+   "card picked up to place" use of .selected never sets owner-less, see
+   cardFace's own comment), bottom-right corner, free in every picker
+   context since neither petrified-badge nor special-diamond ever appear
+   there. Solid green rather than the card's usual gold/purple badges so
+   it reads unmistakably as "yes, this one" even in bad lighting/photos. */
+.picked-badge{
+  position:absolute; bottom:4px; right:4px; z-index:7;
+  width:clamp(16px,20cqw,22px); height:clamp(16px,20cqw,22px);
+  border-radius:50%; background:#2f9e52; border:2px solid #d9f5e2;
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:clamp(10px,13cqw,14px); font-weight:700; line-height:1;
+  box-shadow:0 0 8px rgba(47,158,82,0.7), 0 1px 3px rgba(0,0,0,0.5);
+}
+
 .count-badge{
   position:absolute; bottom:4px; left:4px; z-index:6;
   padding:1px 6px; border-radius:9px; background:rgba(4,3,9,0.78); border:1px solid #c9a227;
@@ -4405,11 +4424,10 @@ const HEROES = [
       {name:'Special Attack: Abyssal Deluge', desc:'Costs 3 wins. All enemy cards get -2 Power on all sides this round. Every enemy card adjacent to Leviathan gets an additional -1 Power on all sides. Leviathan gets +3 Power on all sides this round. If Leviathan wins a battle this round after the Special Attack, he gets +1 Power permanently on all sides. Usable once per match.'},
     ] },
   { id:'omegaweapon', name:'Omega Weapon', role:'The Ultimate Destroyer — Mythic Card', top:10, right:10, bottom:10, left:9, hue:'linear-gradient(160deg,#1a0808,#0d0b18 60%)', accent:'#e03030', icon:'⚙️',
-    active:{ debuffImmune:true, onWinDebuffLoserThisRound:2, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
+    active:{ debuffImmune:true, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
     special:{ name:'Omega Protocol', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Omega Core (Passive)', desc:"Omega Weapon's Power can't be lowered by enemy Card Skills or Special Attacks."},
-      {name:'Hyper Pulse', desc:'When Omega Weapon wins a battle, the defeated card gets -2 Power on all sides this round.'},
       {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
       {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
       {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
@@ -4755,11 +4773,10 @@ const FOREST_FOES = [
       {name:'Special Attack: Abyssal Deluge', desc:'Costs 3 wins. All enemy cards get -2 Power on all sides this round. Every enemy card adjacent to Leviathan gets an additional -1 Power on all sides. Leviathan gets +3 Power on all sides this round. If Leviathan wins a battle this round after the Special Attack, he gets +1 Power permanently on all sides. Usable once per match.'},
     ] },
   { id:'omegaweapon', name:'Omega Weapon', role:'The Ultimate Destroyer — Mythic Card', top:10, right:10, bottom:10, left:9, hue:'linear-gradient(160deg,#1a0808,#0d0b18 60%)', accent:'#e03030', icon:'⚙️',
-    active:{ debuffImmune:true, onWinDebuffLoserThisRound:2, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
+    active:{ debuffImmune:true, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
     special:{ name:'Omega Protocol', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Omega Core (Passive)', desc:"Omega Weapon's Power can't be lowered by enemy Card Skills or Special Attacks."},
-      {name:'Hyper Pulse', desc:'When Omega Weapon wins a battle, the defeated card gets -2 Power on all sides this round.'},
       {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
       {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
       {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
@@ -7265,6 +7282,7 @@ function cardFace(card, opts={}){
       ${opts.owner ? `<div class="owner-tint tint-${opts.owner}"></div>` : ''}
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
       ${card.element ? `<div class="element-badge" title="${card.element}${ELEMENT_BEATS[card.element] ? '' : ' (outside the Elemental Clash cycle)'}">${ELEMENT_ICONS[card.element]}</div>` : ''}
+      ${(opts.selected && !opts.owner) ? `<div class="picked-badge" title="Picked">✓</div>` : ''}
       ${opts.petrified ? `<div class="petrified-badge" title="Petrified — can't use its Special Attack">🗿</div>` : ''}
       ${opts.countBadge ? `<div class="count-badge" title="You own ${opts.countBadge} of this card">×${opts.countBadge}</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}

@@ -2677,7 +2677,7 @@ test('Leviathan: Abyssal Presence on-place, Crushing Tide/Maelstrom/Abyssal Armo
   await page.close();
 });
 
-test('Omega Weapon: Omega Core debuffImmune, Anti-Matter Cannon (once/match), Absolute Defense (resets each round), Destroyer Protocol, Omega Protocol ultimate', async () => {
+test('Omega Weapon: Omega Core debuffImmune, Anti-Matter Cannon (once/match), Absolute Defense (resets each round), Destroyer Protocol, Omega Protocol ultimate (Fas 83: Hyper Pulse dropped to fit the new 4-passive gold-foil art template)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -2693,16 +2693,13 @@ test('Omega Weapon: Omega Core debuffImmune, Anti-Matter Cannon (once/match), Ab
       return o.captureBonus === 0;
     })();
 
+    // Anti-Matter Cannon: +4 vs a stronger total-Power foe, but only once ever.
+    // Needs a real (non-null) board[4] entry for the once-per-match check to
+    // even look at, and a non-empty playerHand, or lastStandBonus's own
+    // unrelated +2 (empty-hand "last card" bonus) would contaminate this diff.
     state.board = Array(9).fill(null);
     state.playerHand = [1,2]; state.enemyHand = [1,2];
-    const omegaWinner = freshEntry(omega, 'blue');
-    state.board[4] = omegaWinner;
-    const omegaLoser = freshEntry({ id:'ol', name:'OL', top:1,right:1,bottom:1,left:1 }, 'red');
-    state.board[1] = omegaLoser;
-    resolveFlips(4, 'blue');
-    out.hyperPulse = omegaLoser.captureBonus === -2;
-
-    // Anti-Matter Cannon: +4 vs a stronger total-Power foe, but only once ever
+    state.board[4] = freshEntry(omega, 'blue');
     out.antiMatterVsStronger = fullEffectiveValue(omega, 'top', {top:10,right:10,bottom:10,left:10}, 4, 'blue', 'attack') - omega.top === 4;
     out.antiMatterNotVsWeaker = fullEffectiveValue(omega, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - omega.top === 0;
     state.board = Array(9).fill(null);
@@ -2757,7 +2754,6 @@ test('Omega Weapon: Omega Core debuffImmune, Anti-Matter Cannon (once/match), Ab
   })()`);
   assert.equal(result.playableAndEnemy, true);
   assert.equal(result.debuffImmune, true);
-  assert.equal(result.hyperPulse, true);
   assert.equal(result.antiMatterVsStronger, true);
   assert.equal(result.antiMatterNotVsWeaker, true);
   assert.equal(result.antiMatterConsumedAfterRealAttack, true);

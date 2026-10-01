@@ -6690,6 +6690,55 @@ i den fulla körningen försvann vid en isolerad omkörning — samma
 flakiness-mönster som tidigare sessioners Bahamut Megaflare-fall, ingen
 kodändring gjord för det).
 
+**Fas 83. Tydlig bock-markering på valda kort i "Choose Your Five"/
+Rivals-plockaren, plus Omega Weapons kit trimmat till fyra passiver.**
+
+Användaren skickade en skärmdump av "Choose Exactly Five Champions"
+(dåligt ljus, många kort i rutnät) och påpekade att det var svårt att
+se vilka kort som faktiskt var valda — den befintliga `.card.selected`-
+stilen (guldkant + pulserande glöd + lätt uppskalning) räckte inte för
+att synas tydligt på avstånd/i dåligt ljus. Lade till en solid grön
+bock-badge (`.picked-badge`, nedre högra hörnet) som bara renderas när
+`opts.selected && !opts.owner` — dvs. bara i de tre "plocka-kort"-
+sammanhangen (Random Draft/Choose Your Five, Campaign-plockaren,
+Rivals-plockaren) där `selected` betyder "valt till din femma", INTE i
+stridshandens egen användning av samma klass (där `selected` istället
+betyder "upplockat för att placeras just nu" — fel semantik för en
+bock). Nedre högra hörnet var ledigt i just dessa sammanhang (varken
+`petrified-badge` eller `special-diamond` visas där). Verifierat med
+Playwright-skärmdumpar: tre valda kort (Darien/Zaevir/Sarah) fick
+tydliga gröna bockar, tre ovalda (Elara/Vayra/Ysara) fick inga.
+
+Samtidigt: Omega Weapons nya kit (se nedan) trimmades från fem till
+fyra passiver för att få plats i den nya guldfolierade 2×2-mallen
+(samma som Bahamut/Tiamat/Three Head Dragon fick, se Fas-anteckningarna
+ovan om "guldfolierad kortmall"). "Hyper Pulse" (generisk `onWinDebuff-
+LoserThisRound`-sänkning, samma fält flera andra kort redan delar) togs
+bort — mest utbytbara av de fem, och minst särpräglad jämfört med
+Destroyer Protocol (som redan fångar "växer starkare av att vinna/
+förstöra"-temat bättre). Kvar: Omega Core (debuffImmune), Anti-Matter
+Cannon (oncePerMatchVsStrongerBoost), Absolute Defense (shield +
+shieldResetsEachRound), Destroyer Protocol (buffOnEnemyDestroyedCapped).
+Special Attack Omega Protocol orört — redan en väldesignad, korrekt
+kopplad ultimate, ingen anledning att röra mekaniken bara för att
+bildmallen byts. Skrev en ny bildprompt i gold-foil-mallens format
+(stat-kors, 2×2 ability-rutor, en Ultimate-ruta, 4-kolumners fotrad
+Faktion/Rarity/Typ/Alignment) med den slutgiltiga, korrekta texten
+inbakad — väntar på att användaren kör den genom ChatGPT och skickar
+tillbaka bilden.
+
+Fixade samtidigt Omega Weapons befintliga test: tog bort hyperPulse-
+scenariot (döda fältet finns inte längre), och hittade en riktig,
+självorsakad bugg under tiden — att ta bort det scenariot råkade också
+ta bort en `state.playerHand = [1,2]`-rad som (oavsiktligt) höll
+`lastStandBonus` på 0 för nästa kontroll (Anti-Matter Cannon), så
+`antiMatterVsStronger` plötsligt floppade med fel diff (2 istället för
+4) — inte en speldesign-bugg, bara en test-ordningsbugg jag själv
+införde. Fixad genom att explicit sätta `playerHand`/ett riktigt
+`board[4]`-kort direkt innan den kontrollen, istället för att förlita
+sig på en tidigare, nu borttagen, scenarios bieffekt. Hela testsviten
+grön efter fixen.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
