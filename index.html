@@ -4158,6 +4158,7 @@ const HEROES = [
   { id:'sarah', name:"Sarah", role:"Legendary Ranger — Aion's Last Light", top:10, right:10, bottom:10, left:10, element:'wind', hue:'linear-gradient(160deg,#101c3a,#0d0b18 60%)', accent:'#6ea8f2', active:{shield:true, vsStrongerTotalPowerBoost:{amount:3}}, special:{ name:"Aion's Last Light", cost:2, once:true, targets:'single' }, skills:[
     {name:'Light Shield (Passive)', desc:'The first time Sarah would lose a battle, the loss is ignored.'},
     {name:'Feared Huntress (Passive)', desc:'If Sarah attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
+    {name:'Piercing Volley (Passive)', desc:'When Sarah is placed, every adjacent enemy card gets -1 Power on all sides this round.'},
     {name:"Special Attack: Aion's Last Light", desc:"Costs 2 wins. Choose an enemy card — Sarah gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently, and a random ally on the board is shielded."},
   ]},
   { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', active: {onWinCleanseAlly:true, marginShieldThreshold:2, pairPresence:{partner:'darien', amount:2}}, special:{ name:'Requiem of Light', cost:2, once:true, targets:'aoe' }, skills:[
@@ -11579,6 +11580,15 @@ const ON_PLACE_HANDLERS = {
     adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner !== owner) SpecialVerbs.debuffThisRound(n, 1); });
   },
   leviathan(entry, owner, cellIndex){
+    adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner !== owner) SpecialVerbs.debuffThisRound(n, 1); });
+  },
+  // Sarah's Piercing Volley (Fas 82, user's own request): same shape as
+  // Shiva/Leviathan above -- a starter card, so this runs before
+  // resolveFlips in placeCard(), meaning a tied matchup she's adjacent to
+  // at the moment she's placed already tips in her favor and flips, same
+  // turn, no extra wiring needed ("if Sarah lower it by one... Sarah wins
+  // those cards").
+  sarah(entry, owner, cellIndex){
     adjacentEntries(cellIndex).forEach(({ entry: n }) => { if(n.owner !== owner) SpecialVerbs.debuffThisRound(n, 1); });
   },
   // The Gambler's Flare: "a burst of chaotic energy, light area damage" —

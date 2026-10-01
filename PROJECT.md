@@ -6651,6 +6651,45 @@ Playwright-skärmdumpar i båda lägena (låst och upplåst). Ren CSS/
 markup, inga nya testfall behövdes (ingen befintlig test refererar
 klassnamnen). Hela testsviten grön: **213/213**.
 
+**Fas 82. Sarah fick en ny passiv, Piercing Volley** — användaren
+beskrev ett scenario ("if Sarah... lower it by one, so they have one,
+Sarah wins those cards") som visade sig vara en fråga om hon redan hade
+en sådan debuff-mekanik. Det hade hon inte (hennes kit var bara Light
+Shield + Feared Huntress + Aion's Last Light) — verifierade först att
+MEKANISMEN i sig redan funkar korrekt för kort som Shiva/Leviathan/
+Gambler (en debuff som sänker en angränsande fiende TILL ELLER UNDER
+det egna kortets siffra flippar den direkt, eftersom `ON_PLACE_HANDLERS`
+körs innan `resolveFlips` för samma placering), innan jag lade till
+något. Efter bekräftelse via `AskUserQuestion` ("Ja, lägg till den") —
+en TREDJE passiv, inte en ersättning, eftersom Sarah är ett av de fem
+grundstartkorten (Graff/Elara/Sarah/Zaevir/Ragnar) som används i varje
+Random Draft/Choose Your Five från start — lades `ON_PLACE_HANDLERS.sarah`
+till, bokstavligen identisk kropp som Shiva/Leviathan ("när Sarah
+placeras, -1 Power på alla angränsande fiendekort denna runda").
+
+Användaren följde upp med en bredare fråga: borde ALLA kort som sänker
+fiendens siffror (t.ex. Omega Weapons Omega Protocol, som redan
+sänker HELA brädet -3 och dessutom förstör allt ≤5) också retroaktivt
+kolla om en redan stående, obesläktad granne nu borde flippas? Svarade
+att detta är ett betydligt större grepp — över 15 ställen i koden sänker
+redan fiendens siffror på olika sätt (passiver, splash-effekter på
+Special Attacks, m.fl.), och flera (som Omega Weapon) har redan en egen
+avsiktlig sekundäreffekt kopplad till sin debuff som en automatisk
+flip skulle stapla ovanpå och göra betydligt starkare, inte bara mer
+"logisk". Föreslog att bygga en liten återanvändbar hjälpfunktion och
+pilottesta den på ETT namngivet kort (Omega Weapon) innan ett bredare
+beslut tas — inget implementerat än, väntar på svar.
+
+Nytt permanent test: utökade Sarahs befintliga test med Piercing
+Volley-täckning (endast angränsande fiender träffas, inte hela brädet)
+PLUS exakt användarens egna scenario via en riktig `placeCard()`-
+placering: en oavgjord 10–10-match mot en redan stående granne flippar
+samma drag Sarah placeras. Hela testsviten grön: **213/213** (en
+orelaterad, miljöberoende flakiness i Twin Brothers/Twin Sisters-testet
+i den fulla körningen försvann vid en isolerad omkörning — samma
+flakiness-mönster som tidigare sessioners Bahamut Megaflare-fall, ingen
+kodändring gjord för det).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan

@@ -5100,7 +5100,7 @@ test('Voidqueen (renamed The Hungering Void): title collision with Nyxara resolv
   await page.close();
 });
 
-test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, and her first-ever Ultimate Aion's Last Light", async () => {
+test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, Piercing Volley on-place (Fas 82), and her first-ever Ultimate Aion's Last Light", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -5111,6 +5111,32 @@ test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, and her 
     out.hasFearedHuntress = sarah.active.vsStrongerTotalPowerBoost && sarah.active.vsStrongerTotalPowerBoost.amount === 3;
     out.specialName = sarah.special.name === "Aion's Last Light";
     out.specialCost = sarah.special.cost === 2;
+    state.playerHand = [1,2]; state.enemyHand = [1,2];
+
+    // Fas 82: Piercing Volley -- same ON_PLACE_HANDLERS shape as Shiva's
+    // Frost Aura/Leviathan's Abyssal Presence, user's own request after
+    // noticing debuff-on-place cards already flip a just-tipped neighbor
+    // ("if Sarah lower it by one... Sarah wins those cards"). Only ADJACENT
+    // enemies get hit, not the whole board.
+    state.board = Array(9).fill(null);
+    const sarahEntry = freshEntry(sarah, 'blue');
+    state.board[4] = sarahEntry;
+    const adjFoe = freshEntry({ id:'af', name:'AF', top:1,right:1,bottom:1,left:1 }, 'red');
+    const farFoe = freshEntry({ id:'ff', name:'FF', top:1,right:1,bottom:1,left:1 }, 'red');
+    state.board[1] = adjFoe; state.board[0] = farFoe;
+    ON_PLACE_HANDLERS.sarah(sarahEntry, 'blue', 4);
+    out.volleyAdjacentOnly = adjFoe.captureBonus === -1 && farFoe.captureBonus === 0;
+
+    // The real-placement scenario the user described: a tied 10-10 matchup
+    // against a card already standing adjacent must flip the SAME turn
+    // Sarah is placed, since ON_PLACE_HANDLERS runs before resolveFlips.
+    state.board = Array(9).fill(null);
+    const tiedFoe = freshEntry({ id:'tf', name:'TF', top:1,right:1,bottom:1,left:10 }, 'red');
+    state.board[1] = tiedFoe;
+    state.playerHand = [sarah, {id:'filler1'}];
+    placeCard(4, 'sarah', 'blue');
+    out.tiedNeighborFlipsOnPlacement = state.board[1].owner === 'blue';
+
     state.playerHand = [1,2]; state.enemyHand = [1,2];
 
     // Feared Huntress: +3 attacking a stronger-total-power foe, nothing vs a weaker one.
@@ -5143,6 +5169,8 @@ test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, and her 
   assert.equal(result.hasFearedHuntress, true);
   assert.equal(result.specialName, true);
   assert.equal(result.specialCost, true);
+  assert.equal(result.volleyAdjacentOnly, true, 'Piercing Volley must only hit adjacent enemies, not the whole board');
+  assert.equal(result.tiedNeighborFlipsOnPlacement, true, 'a tied neighbor must flip the same turn Sarah is placed next to it');
   assert.equal(result.fearedVsStronger, true, 'Feared Huntress grants +3 when attacking a card with higher total Power');
   assert.equal(result.fearedVsWeaker, true, 'Feared Huntress grants nothing against an equal-or-weaker foe');
   assert.equal(result.capturedAndBuffed, true, "Aion's Last Light captures and grants +1 permanent on a win");
