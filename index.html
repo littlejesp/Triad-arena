@@ -3944,6 +3944,7 @@ const CARD_IMAGES = {
   shiva: 'cards/card-shiva.jpg',
   leviathan: 'cards/card-leviathan.jpg',
   omegaweapon: 'cards/card-omegaweapon.jpg?v=2',
+  ultimaweapon: 'cards/card-ultimaweapon.jpg',
   yojimbo: 'cards/card-yojimbo.jpg',
   chocoboking: 'cards/card-chocoboking.jpg',
   odin: 'cards/card-odin.jpg',
@@ -4059,6 +4060,7 @@ const FULL_CARD_IMAGES = {
   shiva: 'card-shiva-full.jpg',
   leviathan: 'card-leviathan-full.jpg',
   omegaweapon: 'card-omegaweapon-full.jpg?v=2',
+  ultimaweapon: 'card-ultimaweapon-full.jpg',
   yojimbo: 'card-yojimbo-full.jpg',
   chocoboking: 'card-chocoboking-full.jpg',
   odin: 'card-odin-full.jpg',
@@ -4424,14 +4426,31 @@ const HEROES = [
       {name:'Special Attack: Abyssal Deluge', desc:'Costs 3 wins. All enemy cards get -2 Power on all sides this round. Every enemy card adjacent to Leviathan gets an additional -1 Power on all sides. Leviathan gets +3 Power on all sides this round. If Leviathan wins a battle this round after the Special Attack, he gets +1 Power permanently on all sides. Usable once per match.'},
     ] },
   { id:'omegaweapon', name:'Omega Weapon', role:'The Ultimate Destroyer — Mythic Card', top:10, right:10, bottom:10, left:9, hue:'linear-gradient(160deg,#1a0808,#0d0b18 60%)', accent:'#e03030', icon:'⚙️',
-    active:{ debuffImmune:true, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
+    active:{ debuffImmune:true, pairPresence:{partner:'ultimaweapon', amount:2}, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
     special:{ name:'Omega Protocol', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Omega Core (Passive)', desc:"Omega Weapon's Power can't be lowered by enemy Card Skills or Special Attacks."},
       {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
       {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
       {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
+      {name:'Alpha & Omega (Passive)', desc:'While Ultima Weapon is on your board, Omega Weapon gets +2 Power on all sides.'},
       {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). Usable once per match."},
+    ] },
+  // Ultima Weapon: the light/creation counterpart to Omega Weapon (user
+  // asked for the two to be linked). Same 39 total Power and 4-passive +
+  // Special layout as Omega. Kit reuses existing engine keys only:
+  // pairPresence (both directions, see Omega's own entry), shield,
+  // onWinCleanseAlly, vsStrongerTotalPowerBoost. Genesis Protocol is the
+  // mirror of Omega Protocol: heals/buffs your side instead of destroying.
+  { id:'ultimaweapon', name:'Ultima Weapon', role:'The Ultimate Creator — Mythic Card', top:10, right:9, bottom:10, left:10, hue:'linear-gradient(160deg,#1a1230,#0d0b18 60%)', accent:'#e8d9b0', icon:'✨',
+    active:{ pairPresence:{partner:'omegaweapon', amount:2}, shield:true, onWinCleanseAlly:true, vsStrongerTotalPowerBoost:{amount:2} },
+    special:{ name:'Genesis Protocol', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Alpha & Omega (Passive)', desc:'While Omega Weapon is on your board, Ultima Weapon gets +2 Power on all sides.'},
+      {name:'Divine Carapace', desc:'The first time Ultima Weapon would lose a battle, the loss is ignored.'},
+      {name:'Halo of Renewal', desc:'When Ultima Weapon wins a battle, a random allied card is cleansed of negative effects and gets +1 Power.'},
+      {name:'Judgment from Above', desc:'When Ultima Weapon attacks a card with higher total Power, he gets +2 Power on the attacking side.'},
+      {name:'Special Attack: Genesis Protocol', desc:'Costs 3 wins. All your cards are cleansed of negative effects and get +2 Power on all sides this round. Ultima Weapon gets +3 Power on all sides this round. One card from your Graveyard returns to an empty square with 6 Power on all sides and can\'t be destroyed this round. If Omega Weapon is on your board, he gets an extra +2 Power on all sides this round. Usable once per match.'},
     ] },
   { id:'yojimbo', name:'Yojimbo', role:'The Silent Mercenary — Legendary Card', top:9, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#200a10,#0d0b18 60%)', accent:'#c23b3b', icon:'🗡️',
     active:{ onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:3}, oncePerMatchAttackBoost:{amount:2}, onCaptureBonus:1 },
@@ -4773,14 +4792,31 @@ const FOREST_FOES = [
       {name:'Special Attack: Abyssal Deluge', desc:'Costs 3 wins. All enemy cards get -2 Power on all sides this round. Every enemy card adjacent to Leviathan gets an additional -1 Power on all sides. Leviathan gets +3 Power on all sides this round. If Leviathan wins a battle this round after the Special Attack, he gets +1 Power permanently on all sides. Usable once per match.'},
     ] },
   { id:'omegaweapon', name:'Omega Weapon', role:'The Ultimate Destroyer — Mythic Card', top:10, right:10, bottom:10, left:9, hue:'linear-gradient(160deg,#1a0808,#0d0b18 60%)', accent:'#e03030', icon:'⚙️',
-    active:{ debuffImmune:true, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
+    active:{ debuffImmune:true, pairPresence:{partner:'ultimaweapon', amount:2}, oncePerMatchVsStrongerBoost:{amount:4}, shield:true, shieldResetsEachRound:true, buffOnEnemyDestroyedCapped:{amount:1, max:3} },
     special:{ name:'Omega Protocol', cost:3, once:true, targets:'aoe' },
     skills: [
       {name:'Omega Core (Passive)', desc:"Omega Weapon's Power can't be lowered by enemy Card Skills or Special Attacks."},
       {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
       {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
       {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
+      {name:'Alpha & Omega (Passive)', desc:'While Ultima Weapon is on your board, Omega Weapon gets +2 Power on all sides.'},
       {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). Usable once per match."},
+    ] },
+  // Ultima Weapon: the light/creation counterpart to Omega Weapon (user
+  // asked for the two to be linked). Same 39 total Power and 4-passive +
+  // Special layout as Omega. Kit reuses existing engine keys only:
+  // pairPresence (both directions, see Omega's own entry), shield,
+  // onWinCleanseAlly, vsStrongerTotalPowerBoost. Genesis Protocol is the
+  // mirror of Omega Protocol: heals/buffs your side instead of destroying.
+  { id:'ultimaweapon', name:'Ultima Weapon', role:'The Ultimate Creator — Mythic Card', top:10, right:9, bottom:10, left:10, hue:'linear-gradient(160deg,#1a1230,#0d0b18 60%)', accent:'#e8d9b0', icon:'✨',
+    active:{ pairPresence:{partner:'omegaweapon', amount:2}, shield:true, onWinCleanseAlly:true, vsStrongerTotalPowerBoost:{amount:2} },
+    special:{ name:'Genesis Protocol', cost:3, once:true, targets:'aoe' },
+    skills: [
+      {name:'Alpha & Omega (Passive)', desc:'While Omega Weapon is on your board, Ultima Weapon gets +2 Power on all sides.'},
+      {name:'Divine Carapace', desc:'The first time Ultima Weapon would lose a battle, the loss is ignored.'},
+      {name:'Halo of Renewal', desc:'When Ultima Weapon wins a battle, a random allied card is cleansed of negative effects and gets +1 Power.'},
+      {name:'Judgment from Above', desc:'When Ultima Weapon attacks a card with higher total Power, he gets +2 Power on the attacking side.'},
+      {name:'Special Attack: Genesis Protocol', desc:'Costs 3 wins. All your cards are cleansed of negative effects and get +2 Power on all sides this round. Ultima Weapon gets +3 Power on all sides this round. One card from your Graveyard returns to an empty square with 6 Power on all sides and can\'t be destroyed this round. If Omega Weapon is on your board, he gets an extra +2 Power on all sides this round. Usable once per match.'},
     ] },
   { id:'yojimbo', name:'Yojimbo', role:'The Silent Mercenary — Legendary Card', top:9, right:10, bottom:8, left:9, hue:'linear-gradient(160deg,#200a10,#0d0b18 60%)', accent:'#c23b3b', icon:'🗡️',
     active:{ onWinDebuffLoserPermanent:1, vsStrongerTotalPowerBoost:{amount:3}, oncePerMatchAttackBoost:{amount:2}, onCaptureBonus:1 },
@@ -13926,6 +13962,37 @@ const SPECIAL_HANDLERS = {
     return destroyed > 0
       ? `${name}'s Omega Protocol shatters ${destroyed} weakened card${destroyed>1?'s':''}!`
       : `${name}'s Omega Protocol devastates the battlefield!`;
+  },
+  // Genesis Protocol (Ultima Weapon): the mirror of Omega Protocol above.
+  // Cleanse first (undo only NEGATIVE round-scoped tempEffects and zero a
+  // negative captureBonus, leaving existing buffs and their expiry intact),
+  // then +2 this round to every ally, +3 to Ultima himself, revive one card
+  // from the caster's own Graveyard at 6 Power with one round of destroy
+  // immunity, and an extra +2 this round to Omega Weapon if he's on the
+  // caster's side.
+  ultimaweapon({ srcEntry, owner }){
+    const name = srcEntry.card.name;
+    state.board.forEach(e => {
+      if(!e || e.owner !== owner) return;
+      if(e.tempEffects && e.tempEffects.length){
+        e.tempEffects = e.tempEffects.filter(t => {
+          if(t.captureDelta < 0){ e.captureBonus -= t.captureDelta; return false; }
+          return true;
+        });
+      }
+      if(e.captureBonus < 0) e.captureBonus = 0;
+    });
+    state.board.forEach(e => { if(e && e.owner === owner && e !== srcEntry) SpecialVerbs.buffThisRound(e, 2); });
+    SpecialVerbs.buffThisRound(srcEntry, 3);
+    const before = state.graveyard[owner].length;
+    reviveFromOwnGraveyardAtFixedPower(owner, 1, 6, 4);
+    const revived = before - state.graveyard[owner].length;
+    const omega = state.board.find(e => e && e.owner === owner && e.card.id === 'omegaweapon');
+    if(omega) SpecialVerbs.buffThisRound(omega, 2);
+    let msg = `${name}'s Genesis Protocol restores your side`;
+    if(revived > 0) msg += ' and raises a fallen champion';
+    if(omega) msg += ' — Omega Weapon answers the call';
+    return msg + '!';
   },
   // Zanmato: a single-target strike, following the same "compare printed
   // totalPower, THEN apply the reward on a win" shape every other
