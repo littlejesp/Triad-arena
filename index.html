@@ -4511,8 +4511,8 @@ const HEROES = [
       {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
       {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
       {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
-      {name:'Alpha & Omega (Passive)', desc:'While Ultima Weapon is on your board, Omega Weapon gets +2 Power on all sides.'},
-      {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). Usable once per match."},
+      {name:'Alpha & Omega (Passive)', desc:'While Ultima Weapon is on your board, Omega Weapon gets +2 Power on all sides (+1 more when they are adjacent).'},
+      {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). If Ultima Weapon is on your board, cards with 6 or lower are destroyed instead and Ultima Weapon gets +2 Power on all sides this round. Usable once per match."},
     ] },
   // Ultima Weapon: the light/creation counterpart to Omega Weapon (user
   // asked for the two to be linked). Same 39 total Power and 4-passive +
@@ -4524,7 +4524,7 @@ const HEROES = [
     active:{ pairPresence:{partner:'omegaweapon', amount:2}, shield:true, onWinCleanseAlly:true, vsStrongerTotalPowerBoost:{amount:2} },
     special:{ name:'Genesis Protocol', cost:3, once:true, targets:'aoe' },
     skills: [
-      {name:'Alpha & Omega (Passive)', desc:'While Omega Weapon is on your board, Ultima Weapon gets +2 Power on all sides.'},
+      {name:'Alpha & Omega (Passive)', desc:'While Omega Weapon is on your board, Ultima Weapon gets +2 Power on all sides (+1 more when they are adjacent).'},
       {name:'Divine Carapace', desc:'The first time Ultima Weapon would lose a battle, the loss is ignored.'},
       {name:'Halo of Renewal', desc:'When Ultima Weapon wins a battle, a random allied card is cleansed of negative effects and gets +1 Power.'},
       {name:'Judgment from Above', desc:'When Ultima Weapon attacks a card with higher total Power, he gets +2 Power on the attacking side.'},
@@ -4877,8 +4877,8 @@ const FOREST_FOES = [
       {name:'Anti-Matter Cannon', desc:'Once per match, when Omega Weapon attacks a card with higher total Power, he gets +4 Power on the attacking side.'},
       {name:'Absolute Defense', desc:'The first time Omega Weapon would lose a battle each round, the loss is ignored.'},
       {name:'Destroyer Protocol', desc:'Every time an enemy card is destroyed during the match, Omega Weapon gets +1 Power on all sides (max +3).'},
-      {name:'Alpha & Omega (Passive)', desc:'While Ultima Weapon is on your board, Omega Weapon gets +2 Power on all sides.'},
-      {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). Usable once per match."},
+      {name:'Alpha & Omega (Passive)', desc:'While Ultima Weapon is on your board, Omega Weapon gets +2 Power on all sides (+1 more when they are adjacent).'},
+      {name:'Special Attack: Omega Protocol', desc:"Costs 3 wins. All enemy cards get -3 Power on all sides this round. Omega Weapon gets +3 Power on all sides this round. The enemy's defensive skills can't be activated. Every enemy card with 5 Power or lower on its weakest side is destroyed. Omega Weapon gets +1 permanent Power on all sides for each card destroyed (max +3). If Ultima Weapon is on your board, cards with 6 or lower are destroyed instead and Ultima Weapon gets +2 Power on all sides this round. Usable once per match."},
     ] },
   // Ultima Weapon: the light/creation counterpart to Omega Weapon (user
   // asked for the two to be linked). Same 39 total Power and 4-passive +
@@ -4890,7 +4890,7 @@ const FOREST_FOES = [
     active:{ pairPresence:{partner:'omegaweapon', amount:2}, shield:true, onWinCleanseAlly:true, vsStrongerTotalPowerBoost:{amount:2} },
     special:{ name:'Genesis Protocol', cost:3, once:true, targets:'aoe' },
     skills: [
-      {name:'Alpha & Omega (Passive)', desc:'While Omega Weapon is on your board, Ultima Weapon gets +2 Power on all sides.'},
+      {name:'Alpha & Omega (Passive)', desc:'While Omega Weapon is on your board, Ultima Weapon gets +2 Power on all sides (+1 more when they are adjacent).'},
       {name:'Divine Carapace', desc:'The first time Ultima Weapon would lose a battle, the loss is ignored.'},
       {name:'Halo of Renewal', desc:'When Ultima Weapon wins a battle, a random allied card is cleansed of negative effects and gets +1 Power.'},
       {name:'Judgment from Above', desc:'When Ultima Weapon attacks a card with higher total Power, he gets +2 Power on the attacking side.'},
@@ -6311,6 +6311,7 @@ const BEGINNER_DECKS = [
   { id:'skyvoid', name:'Sky & Void', desc:'Aurelian and Vorlix both get +2 Power on all sides while the other is anywhere on your board.', cardIds:['aurelian','vorlix','bahamut','shiva','leviathan'] },
   { id:'twinblades', name:'Twin Blades', desc:'Twin Brothers and Twin Sisters both get +2 Power on all sides while their sibling is on the board.', cardIds:['twinbrothers','twinsisters','omegaweapon','zaevir','sarah'] },
   { id:'reunited', name:'Reunited Pack', desc:'Pallis and Pallis & Pell both get +1 Power on all sides when placed ADJACENT to each other — position them side by side to trigger it.', cardIds:['pallis','pallispell','graff','deathblade','maximus'] },
+  { id:'alphaomega', name:'Alpha & Omega', desc:'Omega Weapon and Ultima Weapon both get +2 Power on all sides while the other is on your board (+1 more side by side), and each one\'s Ultimate powers up the other.', cardIds:['omegaweapon','ultimaweapon','shiva','leviathan','odin'] },
   { id:'shadowpact', name:'Shadow Pact', desc:'Torn and Vayra both get +1 Power on all sides while the other is anywhere on your board.', cardIds:['torn','vayra','lyrith','aurelia','twistedgipsy'] },
 ];
 
@@ -9848,6 +9849,7 @@ function effectiveValue(card, edgeKey, opponentCard){
 const RIVALRY_PAIRS = [
   ['darien', 'elara'],       // The Shadowarden & the Light's Grace
   ['pallis', 'pallispell'],  // Reunited with Pell's pack
+  ['omegaweapon', 'ultimaweapon'], // Alpha & Omega
 ];
 // Naline's two "Order of the Radiance" rivalries (with Ragnar and
 // Deathblade) were dropped when she was fully redesigned into The Soul
@@ -10523,7 +10525,7 @@ const CAMPAIGN_STAGES = [
   // already showed about compounding. Simulated same as every stage
   // touched this session (see PROJECT.md).
   { name:'Sovereigns of the Deep', enemyIds:['shiva','leviathan','omegaweapon','chocoboking','yojimbo'],
-    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['shiva','leviathan','omegaweapon'], statBoost:2 },
+    rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['shiva','leviathan','omegaweapon','ultimaweapon'], statBoost:2 },
   { name:'The Silent Reckoning', enemyIds:['odin','gambler','astrael','ysara','ferea'],
     rules:{same:true,plus:true,combo:true,elemental:true}, unlockIds:['odin','gambler','yojimbo','chocoboking'], statBoost:2 },
   // Stage 19 (was stage 17) — the dedicated boss stage for the Triple
@@ -10791,7 +10793,9 @@ const RISK_OPPONENTS = [
   { id:'wyrmking-rival', name:'Ancient Wyrmking', rule:'one', aiDifficulty:'normal', enemyIds:['dragon','tahabata','ifrit','bahamut','shiva'] },
   { id:'hollow-crown', name:'The Hollow Crown', rule:'one', aiDifficulty:'hard', enemyIds:['shadowking','deathblade','lyrith','graff','voidqueen'] },
   { id:'tiamat-rival', name:'Tiamat', rule:'all', aiDifficulty:'hard', enemyIds:['tiamat','elyrion','celestialjudgment','infiniteseraph','fenrir'] },
-  { id:'omega-rival', name:'Omega Weapon', rule:'all', aiDifficulty:'hard', enemyIds:['omegaweapon','leviathan','yojimbo','chocoboking','concord'] },
+  // Omega + Ultima fielded together as a paired boss (user request). id
+  // kept as 'omega-rival' so existing saves that reference it stay valid.
+  { id:'omega-rival', name:'Alpha & Omega', rule:'all', aiDifficulty:'hard', enemyIds:['omegaweapon','ultimaweapon','leviathan','yojimbo','concord'] },
   // Sixth rival, user's own request ("de nya korten vi har gjort... top 5
   // bästa ska man kunna vinna"): a hand built from the 5 highest-total-stat
   // pack-exclusive cards across all of PACK_EXCLUSIVE_CARDS (Vaseir/Astra
@@ -14052,13 +14056,19 @@ const SPECIAL_HANDLERS = {
     const enemyOwner = owner === 'blue' ? 'red' : 'blue';
     state.board.forEach(e => { if(e && e.owner === enemyOwner) SpecialVerbs.debuffThisRound(e, 3); });
     SpecialVerbs.buffThisRound(srcEntry, 3);
+    // Alpha & Omega synergy: with Ultima Weapon on the caster's side, the
+    // execute threshold rises from 5 to 6 and Ultima gets +2 this round --
+    // the mirror of Genesis Protocol's own +2 to Omega.
+    const ultima = state.board.find(e => e && e.owner === owner && e.card.id === 'ultimaweapon');
+    if(ultima) SpecialVerbs.buffThisRound(ultima, 2);
+    const threshold = ultima ? 6 : 5;
     let destroyed = 0;
     state.board.forEach((e, i) => {
       if(!e || e.owner !== enemyOwner) return;
       if(isDestroyImmune(e)) return;
       const sb = e.sideBonus || {};
       const sides = ['top','right','bottom','left'].map(s => e.card[s] + (e.captureBonus||0) + (sb[s]||0));
-      if(Math.min(...sides) <= 5){ destroyCard(i); destroyed++; }
+      if(Math.min(...sides) <= threshold){ destroyCard(i); destroyed++; }
     });
     return destroyed > 0
       ? `${name}'s Omega Protocol shatters ${destroyed} weakened card${destroyed>1?'s':''}!`
