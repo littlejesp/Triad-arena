@@ -2084,6 +2084,84 @@ button.end-turn:hover{ background:linear-gradient(180deg, rgba(139,110,242,0.3),
   100%{ opacity:0; }
 }
 
+/* Ultima Weapon's Genesis Protocol — the light/creation mirror of Omega
+   Protocol right above. Gold/white instead of orange/red, and it targets
+   the caster's OWN cards instead of enemies: a slow-rising thorned halo
+   during the windup, then a soft golden wave plus a pillar of light on
+   every allied card at impact (cards revived by the Ultimate included,
+   since the ally list is read live at render time). No screen shake —
+   deliberately calm where Omega is violent. */
+.card.genesis-protocol-casting{ animation: genesisCardAura 0.95s ease-in forwards; }
+@keyframes genesisCardAura{
+  0%{ box-shadow:0 0 0 0 rgba(255,236,180,0); }
+  100%{ box-shadow:0 0 26px 8px rgba(255,236,180,0.85), 0 0 60px 18px rgba(255,210,120,0.35); }
+}
+.genesis-protocol-fx{
+  position:absolute; z-index:8; pointer-events:none;
+  top:26.7%; left:17%; right:17%; aspect-ratio:5/7;
+}
+.genesis-protocol-halo{
+  position:absolute; left:var(--gp-x,50%); top:var(--gp-y,50%);
+  width:70px; height:70px; margin:-35px 0 0 -35px; border-radius:50%;
+  border:2px dashed rgba(255,232,170,0.95);
+  box-shadow:0 0 18px 4px rgba(255,220,140,0.6), inset 0 0 14px rgba(255,245,215,0.55);
+  opacity:0;
+}
+.genesis-protocol-fx.phase-cast .genesis-protocol-halo{ animation: genesisHaloRise 0.95s ease-out both; }
+@keyframes genesisHaloRise{
+  0%{ opacity:0; transform:translateY(18px) scale(0.4) rotate(0deg); }
+  50%{ opacity:1; }
+  100%{ opacity:1; transform:translateY(-14px) scale(1.15) rotate(90deg); }
+}
+.genesis-protocol-wave{
+  position:absolute; left:var(--gp-x,50%); top:var(--gp-y,50%);
+  width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,250,230,0.55) 0%, rgba(255,220,140,0.25) 50%, transparent 72%);
+  border:2px solid rgba(255,240,200,0.9);
+  opacity:0;
+}
+.genesis-protocol-fx.phase-impact .genesis-protocol-wave{ animation: genesisWave 0.9s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes genesisWave{
+  0%{ opacity:1; transform:scale(0.3); }
+  60%{ opacity:0.6; transform:scale(12); }
+  100%{ opacity:0; transform:scale(16); }
+}
+.genesis-protocol-pillar{
+  position:absolute; width:22%; height:30%; transform:translate(-50%,-60%) scaleY(0);
+  transform-origin:50% 100%;
+  background:linear-gradient(to top, rgba(255,240,200,0) 0%, rgba(255,240,200,0.85) 35%, rgba(255,255,255,0.95) 55%, rgba(255,240,200,0) 100%);
+  filter:blur(1px);
+  opacity:0;
+}
+.genesis-protocol-fx.phase-impact .genesis-protocol-pillar{ animation: genesisPillar 0.8s ease-out both; }
+@keyframes genesisPillar{
+  0%{ opacity:0; transform:translate(-50%,-60%) scaleY(0); }
+  35%{ opacity:1; transform:translate(-50%,-60%) scaleY(1); }
+  100%{ opacity:0; transform:translate(-50%,-75%) scaleY(1.15); }
+}
+.genesis-protocol-spark{
+  position:absolute; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%;
+  background:#fff8e0; box-shadow:0 0 8px 3px rgba(255,220,140,0.9);
+  opacity:0;
+}
+.genesis-protocol-fx.phase-impact .genesis-protocol-spark{ animation: genesisSpark 0.9s ease-out both; }
+@keyframes genesisSpark{
+  0%{ opacity:0; transform:translateY(10px); }
+  30%{ opacity:1; }
+  100%{ opacity:0; transform:translateY(-34px); }
+}
+.genesis-protocol-flash{
+  position:absolute; inset:0; z-index:9; pointer-events:none; border-radius:inherit;
+  background:radial-gradient(circle at 50% 45%, rgba(255,250,235,0.6) 0%, rgba(255,225,150,0.2) 45%, rgba(255,225,150,0) 72%);
+  opacity:0;
+}
+.genesis-protocol-flash.phase-impact{ animation: genesisFlash 0.6s ease-out 0.2s both; }
+@keyframes genesisFlash{
+  0%{ opacity:0; }
+  40%{ opacity:1; }
+  100%{ opacity:0; }
+}
+
 /* Shiva's Diamond Storm — a sixth one-off identity VFX (see the user's
    Diamond Storm VFX request), icy white/blue/silver. Same .board-matching
    wrapper as the others. Two NEW-ish pieces reused/recombined from prior
@@ -7284,6 +7362,8 @@ function cardFace(card, opts={}){
   // Omega Weapon's Omega Protocol identity VFX (see the omega-protocol-*
   // CSS block) — same additive pattern as void-dominion-casting above.
   const omegaProtocolCastingClass = (opts.ultimateCasting && card.id === 'omegaweapon') ? 'omega-protocol-casting' : '';
+  // Ultima Weapon's Genesis Protocol identity VFX (see genesis-protocol-*).
+  const genesisProtocolCastingClass = (opts.ultimateCasting && card.id === 'ultimaweapon') ? 'genesis-protocol-casting' : '';
   // Shiva's Diamond Storm identity VFX (see the diamond-storm-* CSS
   // block) — same additive pattern as void-dominion-casting above.
   const diamondStormCastingClass = (opts.ultimateCasting && card.id === 'shiva') ? 'diamond-storm-casting' : '';
@@ -7311,7 +7391,7 @@ function cardFace(card, opts={}){
   // <img>, which would otherwise double up two frames on one card.
   const exclusiveClass = (card.exclusiveFrame || card.exclusiveGlow) ? 'exclusive-card' : '';
   return `
-    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${flareClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${unlockedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass} ${exclusiveClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
+    <div class="card ${ownerClass} ${selClass} ${disClass} ${inplayClass} ${flipClass} ${placeClass} ${clickable} ${shieldClass} ${bonusClass} ${flareClass} ${specialActiveClass} ${specialReadyClass} ${destroyedClass} ${unlockedClass} ${ultimateCastingClass} ${voidDominionCastingClass} ${hellfireCastingClass} ${infernalPactCastingClass} ${silverJudgmentCastingClass} ${omegaProtocolCastingClass} ${genesisProtocolCastingClass} ${diamondStormCastingClass} ${megaflareCastingClass} ${exclusiveClass}" data-cardid="${card.id}"${cardTitle}${fxDelayStyle} ${opts.dataAttr||''}>
       ${CARD_IMAGES[card.id]
         ? `<div class="card-art" style="background-image:url('${CARD_IMAGES[card.id]}')"></div>`
         : `<div class="card-glow" style="background:${card.hue}">${card.icon ? `<div class="foe-icon">${card.icon}</div>` : ''}</div>`}
@@ -7782,6 +7862,18 @@ function renderBattle(){
       lockDelay: n * 0.05,
       hitDelay: 0.25 + n * 0.04,
     }));
+  }
+
+  // Ultima Weapon's Genesis Protocol identity VFX: targets the caster's
+  // OWN cards, read live from the board so cards the Ultimate revives
+  // get a pillar of light at impact too.
+  const genesisProtocolActive = state.ultimateBanner && state.ultimateBanner.name === 'Genesis Protocol';
+  let genesisOriginX = 50, genesisOriginY = 50, genesisAllies = [];
+  if(genesisProtocolActive){
+    ({ x: genesisOriginX, y: genesisOriginY } = cellCenterPercent(state.ultimateBanner.sourceIndex));
+    genesisAllies = state.board.map((e,i) => (e && e.owner === state.ultimateBanner.owner) ? i : null)
+      .filter(i => i !== null)
+      .map((i, n) => ({ ...cellCenterPercent(i), delay: 0.1 + n * 0.06 }));
   }
 
   // Shiva's Diamond Storm identity VFX -- same enemyIndices + angle/length
@@ -8648,6 +8740,15 @@ function renderBattle(){
           ${omegaProtocolTargets.map(t => `<div class="omega-protocol-hit" style="left:${t.x}%; top:${t.y}%; animation-delay:${t.hitDelay}s;"></div>`).join('')}
         </div>
         <div class="omega-protocol-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
+      ` : ''}
+      ${genesisProtocolActive ? `
+        <div class="genesis-protocol-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--gp-x:${genesisOriginX}%; --gp-y:${genesisOriginY}%;">
+          <div class="genesis-protocol-halo"></div>
+          <div class="genesis-protocol-wave"></div>
+          ${genesisAllies.map(a => `<div class="genesis-protocol-pillar" style="left:${a.x}%; top:${a.y}%; animation-delay:${a.delay}s;"></div>`).join('')}
+          ${genesisAllies.map(a => [-8,0,8].map((dx,k) => `<div class="genesis-protocol-spark" style="left:calc(${a.x}% + ${dx}px); top:${a.y}%; animation-delay:${(a.delay + 0.15 + k*0.08).toFixed(2)}s;"></div>`).join('')).join('')}
+        </div>
+        <div class="genesis-protocol-flash phase-${state.ultimateBanner.phase}" aria-hidden="true"></div>
       ` : ''}
       ${diamondStormActive ? `
         <div class="diamond-storm-fx phase-${state.ultimateBanner.phase}" aria-hidden="true" style="--ds-x:${diamondStormOriginX}%; --ds-y:${diamondStormOriginY}%;">
@@ -14407,6 +14508,7 @@ const ULTIMATE_VOICE_LINES = {
   tiamat: 'voices/tiamat.mp3',
   threeheaddragon: 'voices/threeheaddragon.mp3',
   omegaweapon: 'voices/omegaweapon.mp3',
+  ultimaweapon: 'voices/ultimaweapon.mp3',
   shiva: 'voices/shiva.mp3',
   odin: 'voices/odin.mp3',
   morvath: 'voices/morvath.mp3',
