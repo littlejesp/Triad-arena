@@ -4381,9 +4381,9 @@ const HEROES = [
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, adjacentAlliesBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, grantsAdjacentAllyBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
     {name:'Astral Aegis (Passive)', desc:'The first time Bahamut would lose a battle, the loss is ignored.'},
-    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, he gets +1 Power on all sides.'},
+    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, each of those allies gets +1 Power on all sides.'},
     {name:'Special Attack: Megaflare', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Bahamut permanently gains +1 Power per card destroyed. Usable once per match.'},
   ] },
   { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
@@ -4782,9 +4782,9 @@ const FOREST_FOES = [
     {name:'Burning Dominion', desc:'If Ifrit controls at least 2 adjacent cards he has defeated, he gets +1 on all sides.'},
     {name:'Special Attack: Hellfire', desc:'Costs 2 wins. Choose an adjacent enemy card - Ifrit gets +3 Power on that side, and +1 on all sides this round if he wins. Usable once per match.'},
   ] },
-  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, adjacentAlliesBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
+  { id:'bahamut', name:'The Celestial Bahamut', role:'Mystic Card — King of the Astral Dragons', element:'wind', top:10, right:9, bottom:9, left:10, hue:'linear-gradient(160deg,#0a1030,#0d0b18 60%)', accent:'#6ea8f2', active: {onCaptureBonus:1, shield:true, grantsAdjacentAllyBoost:{minCount:2, amount:1}}, special:{ name:'Megaflare', cost:3, once:true, targets:'aoe' }, skills: [    {name:"Dragon King's Majesty (Passive)", desc:'Each time Bahamut captures a card, he gains +1 Power (applies to future battles).'},
     {name:'Astral Aegis (Passive)', desc:'The first time Bahamut would lose a battle, the loss is ignored.'},
-    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, he gets +1 Power on all sides.'},
+    {name:'Celestial Sovereign (Passive)', desc:'While Bahamut has at least 2 allied cards adjacent to him, each of those allies gets +1 Power on all sides.'},
     {name:'Special Attack: Megaflare', desc:'Costs 3 wins. Destroys every enemy card on the board — cannot be revived. Bahamut permanently gains +1 Power per card destroyed. Usable once per match.'},
   ] },
   { id:'tiamat', name:'Tiamat', role:'Legendary Card — Queen of the Fivefold Apocalypse', element:'fire', top:10, right:9, bottom:10, left:9, hue:'linear-gradient(160deg,#1c1024,#0d0b18 60%)', accent:'#a568f2', active:{ onPlaceBoost:2, onWinDirectionalBoost:1, boardLeadBonus:{amount:1, orEqual:false}, adjacentEnemiesBoost:{minCount:2, amount:1} }, special:{ name:'The Fivefold Apocalypse', cost:2, once:true, targets:'single' }, skills: [    {name:'Fivefold Catastrophe (Passive)', desc:"When Tiamat is placed, she gains +2 Power on a random side for the rest of the match. (Source text lets you choose the direction — simplified to random, same as Astrael's Starborn, since no on-placement direction-choice UI exists.)"},
@@ -11246,6 +11246,25 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
   {
     const auraGiver = state.board.find((e, i) => i !== cellIndex && e && e.owner === owner && e.card.active && e.card.active.allyAuraFlat);
     if(auraGiver) v += auraGiver.card.active.allyAuraFlat;
+  }
+  // Grants a Power bonus to its ADJACENT ALLIES (not itself) once at
+  // least minCount of ITS OWN neighbors are allies too -- the mirror
+  // image of adjacentAlliesBoost above (which buffs the card carrying
+  // it). Generic field, not hardcoded to one card: Bahamut's Celestial
+  // Sovereign needed this exact shape per its own approved art text
+  // ("allies gain Power"), corrected here from an earlier compromise
+  // that reused the self-buff adjacentAlliesBoost field instead since
+  // this ally-targeting shape didn't exist yet (see PROJECT.md Fas 38
+  // and the Fas 85 follow-up) -- adjacentAlliesBoost itself is left
+  // untouched since Medusa/other cards still use the self-buff version.
+  if(cellIndex != null){
+    adjacentEntries(cellIndex).forEach(({ index: nIdx, entry: neighbor }) => {
+      if(!neighbor || neighbor.owner !== owner) return;
+      const gb = neighbor.card.active && neighbor.card.active.grantsAdjacentAllyBoost;
+      if(!gb) return;
+      const neighborAllyCount = adjacentEntries(nIdx).filter(({ entry: e2 }) => e2 && e2.owner === owner).length;
+      if(neighborAllyCount >= gb.minCount) v += gb.amount;
+    });
   }
   // Ruby's Godly Kinship: "if a god -- Shiva, Bahamut, or some -- is on
   // the board, she becomes super dangerous, because they're her best

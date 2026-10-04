@@ -1186,7 +1186,7 @@ test('Kaeldryx: reworked per approved art — Dragon Hunter +2, uncapped Hunter\
   await page.close();
 });
 
-test('Bahamut: Astral Aegis shield and Celestial Sovereign added, Dragon King\'s Majesty text synced, Megaflare rebuilt into an AOE destroy-all', async () => {
+test('Bahamut: Astral Aegis shield and Celestial Sovereign added, Dragon King\'s Majesty text synced, Megaflare rebuilt into an AOE destroy-all (Fas 85: Celestial Sovereign corrected from a self-buff into a buff for ITS adjacent allies, matching the approved art text -- Megaflare untouched per the user\'s own request)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -1195,7 +1195,8 @@ test('Bahamut: Astral Aegis shield and Celestial Sovereign added, Dragon King\'s
     out.statsUnchanged = bahamut.top === 10 && bahamut.right === 9 && bahamut.bottom === 9 && bahamut.left === 10;
     out.hasDragonKingsMajesty = bahamut.active.onCaptureBonus === 1;
     out.hasAstralAegis = bahamut.active.shield === true;
-    out.hasCelestialSovereign = bahamut.active.adjacentAlliesBoost && bahamut.active.adjacentAlliesBoost.minCount === 2 && bahamut.active.adjacentAlliesBoost.amount === 1;
+    out.hasCelestialSovereign = bahamut.active.grantsAdjacentAllyBoost && bahamut.active.grantsAdjacentAllyBoost.minCount === 2 && bahamut.active.grantsAdjacentAllyBoost.amount === 1;
+    out.oldSelfBuffFieldGone = !bahamut.active.adjacentAlliesBoost;
     out.skillCount = bahamut.skills.length;
     state.playerHand = [1,2]; state.enemyHand = [1,2];
 
@@ -1208,14 +1209,37 @@ test('Bahamut: Astral Aegis shield and Celestial Sovereign added, Dragon King\'s
     resolveFlips(1, 'red');
     out.shieldBlockedFirstLoss = state.board[4].owner === 'blue';
 
-    // Celestial Sovereign: +1 all sides while 2+ allies are adjacent.
+    // Celestial Sovereign (Fas 85): Bahamut himself gets NOTHING anymore --
+    // his two ADJACENT ALLIES each get +1 instead, matching the printed
+    // card's own text ("they gain +1 Power").
     state.board = Array(9).fill(null);
     state.board[4] = freshEntry(bahamut, 'blue');
-    state.board[1] = freshEntry({ id:'ally1', name:'Ally1', top:1,right:1,bottom:1,left:1 }, 'blue');
-    state.board[3] = freshEntry({ id:'ally2', name:'Ally2', top:1,right:1,bottom:1,left:1 }, 'blue');
-    out.sovereignBonusWithTwoAllies = fullEffectiveValue(bahamut, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - bahamut.top;
+    const ally1 = { id:'ally1', name:'Ally1', top:1,right:1,bottom:1,left:1 };
+    const ally2 = { id:'ally2', name:'Ally2', top:1,right:1,bottom:1,left:1 };
+    state.board[1] = freshEntry(ally1, 'blue');
+    state.board[3] = freshEntry(ally2, 'blue');
+    out.bahamutSelfGetsNothing = fullEffectiveValue(bahamut, 'top', null, 4, 'blue', 'attack') - bahamut.top;
+    out.ally1Buffed = fullEffectiveValue(ally1, 'top', null, 1, 'blue', 'attack') - ally1.top;
+    out.ally2Buffed = fullEffectiveValue(ally2, 'top', null, 3, 'blue', 'attack') - ally2.top;
+
+    // Only 1 ally adjacent (minCount:2 unmet) -- that ally gets nothing.
     state.board[3] = null;
-    out.noSovereignBonusWithOneAlly = fullEffectiveValue(bahamut, 'top', {top:1,right:1,bottom:1,left:1}, 4, 'blue', 'attack') - bahamut.top;
+    out.noBonusWithOnlyOneAlly = fullEffectiveValue(ally1, 'top', null, 1, 'blue', 'attack') - ally1.top;
+
+    // A non-adjacent allied card never gets it, even with 2+ allies near Bahamut.
+    state.board[3] = freshEntry(ally2, 'blue');
+    const farAlly = { id:'far', name:'Far', top:1,right:1,bottom:1,left:1 };
+    state.board[8] = freshEntry(farAlly, 'blue');
+    out.farAllyUnaffected = fullEffectiveValue(farAlly, 'top', null, 8, 'blue', 'attack') - farAlly.top;
+
+    // Medusa's own adjacentAlliesBoost (the shared self-buff field) must
+    // still work exactly as before -- this fix only touches Bahamut's field.
+    const medusa = findCardById('medusa');
+    state.board = Array(9).fill(null);
+    state.board[4] = freshEntry(medusa, 'blue');
+    state.board[1] = freshEntry({ id:'m1', name:'M1', top:1,right:1,bottom:1,left:1 }, 'blue');
+    state.board[3] = freshEntry({ id:'m2', name:'M2', top:1,right:1,bottom:1,left:1 }, 'blue');
+    out.medusaSelfBuffUnaffectedByFix = fullEffectiveValue(medusa, 'top', null, 4, 'blue', 'attack') - medusa.top === medusa.active.adjacentAlliesBoost.amount;
 
     // Megaflare, rebuilt into an AOE: destroys every enemy (no revive),
     // spares allies, respects destroyImmune, and grants +1 Power per card destroyed.
@@ -1240,10 +1264,15 @@ test('Bahamut: Astral Aegis shield and Celestial Sovereign added, Dragon King\'s
   assert.equal(result.hasDragonKingsMajesty, true);
   assert.equal(result.hasAstralAegis, true);
   assert.equal(result.hasCelestialSovereign, true);
+  assert.equal(result.oldSelfBuffFieldGone, true, 'the old self-buff field must be fully replaced, not left alongside the fix');
   assert.equal(result.skillCount, 4, "the printed card carries Dragon King's Majesty, Astral Aegis, Celestial Sovereign, and Megaflare");
   assert.equal(result.shieldBlockedFirstLoss, true);
-  assert.equal(result.sovereignBonusWithTwoAllies, 1);
-  assert.equal(result.noSovereignBonusWithOneAlly, 0);
+  assert.equal(result.bahamutSelfGetsNothing, 0, 'Bahamut himself must no longer benefit from his own Celestial Sovereign');
+  assert.equal(result.ally1Buffed, 1);
+  assert.equal(result.ally2Buffed, 1);
+  assert.equal(result.noBonusWithOnlyOneAlly, 0);
+  assert.equal(result.farAllyUnaffected, 0);
+  assert.equal(result.medusaSelfBuffUnaffectedByFix, true, "Medusa's own self-buff adjacentAlliesBoost must be untouched by Bahamut's fix");
   assert.equal(result.megaflareSparedAlly, true);
   assert.equal(result.megaflareDestroyedEnemy, true);
   assert.equal(result.megaflareRespectsDestroyImmune, true);
@@ -10902,19 +10931,24 @@ test('Fas 42: fifth pack-exclusive card -- Ruby (Mystic), a guardian/summoner ki
     // Godly Kinship: +2 per allied Mythic/Mystic-flavored god, capped at 3
     // gods (+6 max) -- NOT capped-count-times-amount overshoot (the bug
     // this session caught: max used to be 6, which meant up to 4 present
-    // gods gave +8, not the intended +6 ceiling).
+    // gods gave +8, not the intended +6 ceiling). Placed on the four
+    // CORNERS (0/2/6/8), none adjacent to Ruby's own cell (4) or to each
+    // other -- keeps this isolated from Bahamut's own unrelated
+    // Celestial Sovereign (Fas 85: now buffs ITS adjacent allies, so an
+    // adjacent Bahamut here would silently add +1 on top of Godly
+    // Kinship's own, deliberately exact, +2-per-god math).
     const gods = ['shiva','bahamut','odin','leviathan'].map(id => findCardById(id));
     state.board = Array(9).fill(null);
     state.board[4] = freshEntry(ruby, 'blue');
     out.noBonusAlone = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 0;
     state.board[0] = freshEntry(gods[0], 'blue');
     out.bonusWithOneGod = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 2;
-    state.board[1] = freshEntry(gods[1], 'blue');
+    state.board[6] = freshEntry(gods[1], 'blue');
     out.bonusWithTwoGods = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 4;
     state.board[2] = freshEntry(gods[2], 'red'); // enemy god must not count
     out.enemyGodDoesNotCount = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 4;
     state.board[2] = freshEntry(gods[2], 'blue');
-    state.board[3] = freshEntry(gods[3], 'blue'); // 4th allied god present
+    state.board[8] = freshEntry(gods[3], 'blue'); // 4th allied god present
     out.cappedAtSix = fullEffectiveValue(ruby, 'top', null, 4, 'blue', 'attack') - ruby.top === 6;
 
     // Special Attack: Godsfall -- a GUARANTEED capture regardless of stats,

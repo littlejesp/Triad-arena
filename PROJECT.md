@@ -6786,6 +6786,56 @@ Omega ELLER Ultima var för sig, båda tillsammans ger fortfarande bara
 +4 (inte +7), en vanlig fiende ger ingetdera, och Forbidden Harmony
 förstör Omega trots hans sköld. Hela testsviten grön: **213/213**.
 
+**Fas 85. Bahamut fick ny konst och Celestial Sovereign korrigerad —
+en känd, dokumenterad kompromiss från Fas 38 äntligen löst.** Användaren
+skickade en ny drakbild och bad: "Ta bort gamla bahamut kortet med
+detta istället och fixa iordning skillsen men ändra inte ultimate
+megaflare." Bildbytet rakt av (948×1659, nytt beskärningsfönster
+`crop((0,280)-(948,899))` → 640×418 för tumnageln, visar drakhuvudet
+tydligt).
+
+"Fixa iordning skillsen" pekade på ett hål som redan stod dokumenterat
+i Fas 38: Celestial Sovereigns GODKÄNDA bildtext säger att Bahamuts
+angränsande ALLIERADE får +1 Power ("they gain +1 Power"), men kodad
+version gav bonusen till BAHAMUT SJÄLV istället (återanvände det redan
+existerande `adjacentAlliesBoost`-fältet, samma som Medusas Throne of
+Stone) — en medveten kompromiss vid den tiden eftersom den riktiga
+allierad-varianten hade krävt ny, bespoke grannskapskod. Den koden
+fanns inte än då; den finns nu (Freyas Grace of the Sanctuary/Triune
+Desires Divine Temptation-mönster från senare sessioner).
+
+Löste det med ett NYTT, generiskt fält — `grantsAdjacentAllyBoost` —
+istället för att skriva om det delade `adjacentAlliesBoost` (som
+fortfarande används av Medusa och minst två till kort som self-buff;
+ändras INTE). Ny kod i `fullEffectiveValue`: för kortet som utvärderas,
+kolla varje angränsande granne; om grannen är en allierad MED
+`grantsAdjacentAllyBoost` på sitt eget `active`-fält, och den grannen
+i sin tur har minst `minCount` egna angränsande allierade (symmetrisk
+koll — det utvärderade kortet räknas självt in i grannens egen
+allierad-räkning) → `+amount`. Helt generiskt fält, inte hårdkodat till
+Bahamuts id, i linje med projektets princip att återanvända/generalisera
+hellre än att hårdkoda — även om det bara är Bahamut som använder det
+just nu. Megaflare rördes inte alls, exakt som efterfrågat.
+
+Fixade det befintliga Bahamut-testet: Celestial Sovereign-scenariot
+skrivet om från "Bahamut själv får +1 med 2 allierade granne" till
+"Bahamut själv får INGET, var och en av hans två allierade grannar
+får +1 var för sig", plus nya kontroller (ingen bonus med bara 1
+allierad, ingen bonus på en icke-angränsande allierad långt bort) och
+en explicit regressionskoll att Medusas egen self-buff-variant av
+`adjacentAlliesBoost` förblir helt opåverkad.
+
+**Hittade en till, genuin testkollision under den fulla körningen**:
+Rubys Godly Kinship-test (Fas 42) placerade av ren slump Bahamut
+intill Ruby (index 1/3, angränsande till hennes index 4) för att testa
+EN HELT ANNAN mekanik (`allyGodBoost`, räknar "gudar" var som helst på
+brädet, oberoende av angränsning). Med Bahamuts nya grannbuff fick Ruby
+plötsligt +1 extra FRÅN Bahamut ovanpå sin egen +4 Godly Kinship — inte
+en bugg i själva fixen, bara en testlayout som aldrig behövde bry sig
+om angränsning förut. Flyttade gudarna till de fyra hörnen (0/2/6/8,
+inga av dem angränsande till index 4 eller varandra) så testet isolerar
+Godly Kinship rent igen. Hela testsviten grön: **213/213**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
