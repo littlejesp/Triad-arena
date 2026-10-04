@@ -887,7 +887,7 @@ test('Triune Desire: Void Embrace buffs the whole team on any win, capped at +3'
   await page.close();
 });
 
-test('Triune Desire: Divine Temptation buffs your side and debuffs enemies (except debuffImmune)', async () => {
+test('Triune Desire: Divine Temptation buffs your side and debuffs enemies (except debuffImmune), plus Corrupted Seal/Broken Seal vs the Omega/Ultima Weapon duality (Fas 84, user\'s own request)', async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -900,15 +900,64 @@ test('Triune Desire: Divine Temptation buffs your side and debuffs enemies (exce
     state.playerHand = [1,2]; state.enemyHand = [1,2];
     const fenrirCard = findCardById('fenrir');
     state.board[3] = freshEntry(fenrirCard, 'red');
-    return {
+    const out = {
       ownBoost: fullEffectiveValue(ownCard, 'top', null, 1, 'blue', 'attack') - ownCard.top,
       enemyDebuff: fullEffectiveValue(enemyCard, 'top', null, 2, 'red', 'attack') - enemyCard.top,
       fenrirUnaffected: fullEffectiveValue(fenrirCard, 'top', null, 3, 'red', 'attack') - fenrirCard.top,
     };
+
+    // Corrupted Seal: a debuffImmune enemy (Fenrir, no Omega/Ultima on
+    // board yet) grants Triune Desire +1 per such enemy instead of just
+    // wasting Divine Temptation's -1.
+    const triune = findCardById('triunedesire');
+    out.corruptedSealVsFenrirOnly = fullEffectiveValue(triune, 'top', null, 0, 'blue', 'attack') - triune.top;
+
+    // Broken Seal: +3 flat while Omega Weapon is on the enemy board
+    // (debuffImmune too, so Corrupted Seal's +1 also applies: +4 total).
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(triune, 'blue');
+    state.board[1] = freshEntry(findCardById('omegaweapon'), 'red');
+    out.vsOmega = fullEffectiveValue(triune, 'top', null, 0, 'blue', 'attack') - triune.top;
+
+    // Ultima Weapon is NOT debuffImmune -- Broken Seal's +3 only, no Corrupted Seal.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(triune, 'blue');
+    state.board[1] = freshEntry(findCardById('ultimaweapon'), 'red');
+    out.vsUltima = fullEffectiveValue(triune, 'top', null, 0, 'blue', 'attack') - triune.top;
+
+    // Broken Seal never stacks even with both present at once.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(triune, 'blue');
+    state.board[1] = freshEntry(findCardById('omegaweapon'), 'red');
+    state.board[2] = freshEntry(findCardById('ultimaweapon'), 'red');
+    out.vsBothNotDoubled = fullEffectiveValue(triune, 'top', null, 0, 'blue', 'attack') - triune.top;
+
+    // A plain enemy with neither trait grants neither bonus.
+    state.board = Array(9).fill(null);
+    state.board[0] = freshEntry(triune, 'blue');
+    state.board[1] = freshEntry({ id:'plain', name:'Plain', top:5,right:5,bottom:5,left:5 }, 'red');
+    out.vsPlainFoeNoBonus = fullEffectiveValue(triune, 'top', null, 0, 'blue', 'attack') - triune.top;
+
+    // Forbidden Harmony still destroys Omega Weapon outright despite his
+    // shield -- the special's own destroy path never checked shields.
+    state.board = Array(9).fill(null);
+    const src = freshEntry(triune, 'blue');
+    state.board[4] = src;
+    state.board[1] = freshEntry(findCardById('omegaweapon'), 'red');
+    SPECIAL_HANDLERS.triunedesire({ srcEntry: src, sourceIndex: 4, owner: 'blue' });
+    out.forbiddenHarmonyBypassesOmegaShield = state.board[1] === null;
+
+    return out;
   })()`);
   assert.equal(result.ownBoost, 1);
   assert.equal(result.enemyDebuff, -1);
   assert.equal(result.fenrirUnaffected, 0, 'Eternal Loyalty should block the aura debuff too');
+  assert.equal(result.corruptedSealVsFenrirOnly, 1, 'a debuffImmune enemy must grant Triune Desire +1 instead of wasting the debuff');
+  assert.equal(result.vsOmega, 4, 'Corrupted Seal (+1, Omega is debuffImmune) plus Broken Seal (+3) against Omega Weapon');
+  assert.equal(result.vsUltima, 3, 'only Broken Seal (+3) against Ultima Weapon, who is not debuffImmune');
+  assert.equal(result.vsBothNotDoubled, 4, 'Broken Seal must not stack even with both Omega and Ultima Weapon present');
+  assert.equal(result.vsPlainFoeNoBonus, 0, 'neither bonus should apply against an ordinary enemy');
+  assert.equal(result.forbiddenHarmonyBypassesOmegaShield, true, "Forbidden Harmony's destroy must still bypass Omega Weapon's shield entirely");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });

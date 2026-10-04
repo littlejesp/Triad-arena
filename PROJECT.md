@@ -6739,6 +6739,53 @@ införde. Fixad genom att explicit sätta `playerHand`/ett riktigt
 sig på en tidigare, nu borttagen, scenarios bieffekt. Hela testsviten
 grön efter fixen.
 
+**Fas 84. Triune Desire fick ny konst och ett kit riktat specifikt mot
+Omega/Ultima Weapon-duon.** (Sidoanteckning: Omega Weapon hade redan
+fått ett femte skill, "Alpha & Omega", och en ny syskon-make, **Ultima
+Weapon** — "The Ultimate Creator", ljus/skapelse-motsvarigheten till
+Omega, kopplade via ömsesidig `pairPresence` — någon gång mellan Fas 83
+och den här posten, utan egen PROJECT.md-post. Dokumenteras inte i
+detalj här, bara nämnt för kontinuitetens skull: koden är redan skeppad
+och fungerande.)
+
+Användaren skickade en ny bild och bad: "Triune desire byt ut kortet
+mot detta kort. Sen gör om skillsen så att dom är effektiva mot omega
+weapon och Ultima weapon." Bildbytet var rakt av — nya filen var redan
+941×1672, exakt samma mått som den gamla `card-triunedesire-full.jpg`,
+så samma beskärningslogik återanvändes för tumnageln (`crop((0,780)-
+(941,1394))` → 640×418, visar alla tre systrarna tydligt).
+
+**Kit-analysen avslöjade en redan existerande, verklig lucka** innan
+något nytt byggdes: Divine Temptation (hennes -1-aura mot fiender)
+respekterar redan `debuffImmune` explicit (`!(card.active &&
+card.active.debuffImmune)` i `fullEffectiveValue`) — vilket betyder att
+en TREDJEDEL av hennes kit redan var helt verkningslöst mot Omega
+Weapon specifikt (han har `debuffImmune:true`), utan att vara
+verkningslöst mot Ultima (som saknar det fältet). Hennes Special,
+Forbidden Harmony, destroyer redan OVILLKORLIGT (ingen `specialBlocked
+ByShield`-koll alls i `SPECIAL_HANDLERS.triunedesire`) — så Omega/Ultimas
+`shield`/`shieldResetsEachRound`/Divine Carapace stoppar den inte
+alls, redan innan några ändringar. Verifierat explicit med ett
+engångs-Playwright-skript innan något kodades.
+
+Byggde två nya, hårdkodade-per-id passiver (samma mönster som Divine
+Temptation/Alpha & Omega redan använder, i `fullEffectiveValue`):
+- **Corrupted Seal** — när en `debuffImmune`-fiende finns på brädet
+  omvandlas Divine Temptations annars bortkastade -1 till +1 på Triune
+  Desire SJÄLV istället, en gång per sådan fiende. Löser den upptäckta
+  luckan rakt av utan att röra Divine Temptations egen text/kod.
+- **Broken Seal** — flat +3 Power på Triune Desire medan Omega Weapon
+  ELLER Ultima Weapon finns på fiendens bräde (hårdkodat till båda
+  id:n, staplar INTE om båda finns samtidigt — en enda "duon är
+  närvarande"-flagga, inte två separata bonusar).
+
+Nytt permanent test (utökade det befintliga Divine Temptation-testet):
+bekräftar ownBoost/enemyDebuff/fenrirUnaffected oförändrade, Corrupted
+Seal ger exakt +1 mot en debuffImmune-fiende, Broken Seal ger +3 mot
+Omega ELLER Ultima var för sig, båda tillsammans ger fortfarande bara
++4 (inte +7), en vanlig fiende ger ingetdera, och Forbidden Harmony
+förstör Omega trots hans sköld. Hela testsviten grön: **213/213**.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
