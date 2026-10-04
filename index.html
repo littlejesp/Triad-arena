@@ -4676,7 +4676,8 @@ const HEROES = [
     skills: [
       {name:'Crimson Allure', desc:"When this card is placed, a random enemy card is chosen — it can't use its Special Attack next round. (Source text lets you choose the target; simplified to random, same as Vaelira/Nyxara's own on-place effects — no on-placement target-choice UI exists.)"},
       {name:'Void Embrace', desc:"When this card's side wins a battle, every one of your cards on the board gets +1 Power for the rest of the match (max +3 total). (Card draw is flavor only — no deck/draw system exists in the engine.)"},
-      {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power.'},
+      {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power (an enemy immune to Power loss grants Triune Desire +1 Power instead, once per such enemy).'},
+      {name:'Broken Seal (Passive)', desc:'Triune Desire gets +3 Power on all sides while Omega Weapon or Ultima Weapon is on the enemy board.'},
       {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
       {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
     ] },
@@ -5036,7 +5037,8 @@ const FOREST_FOES = [
     skills: [
       {name:'Crimson Allure', desc:"When this card is placed, a random enemy card is chosen — it can't use its Special Attack next round. (Source text lets you choose the target; simplified to random, same as Vaelira/Nyxara's own on-place effects — no on-placement target-choice UI exists.)"},
       {name:'Void Embrace', desc:"When this card's side wins a battle, every one of your cards on the board gets +1 Power for the rest of the match (max +3 total). (Card draw is flavor only — no deck/draw system exists in the engine.)"},
-      {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power.'},
+      {name:'Divine Temptation (Passive)', desc:'While this card is on the board, all your other cards get +1 Power and every enemy card gets -1 Power (an enemy immune to Power loss grants Triune Desire +1 Power instead, once per such enemy).'},
+      {name:'Broken Seal (Passive)', desc:'Triune Desire gets +3 Power on all sides while Omega Weapon or Ultima Weapon is on the enemy board.'},
       {name:"Sister's Will", desc:"If one of the three sisters (Vaelira, Nyxara, Seraphine) is on the board, this card's Ultimate can be used without meeting the Wins requirement."},
       {name:'Special Attack: Forbidden Harmony', desc:"Costs 4 wins — free if one of the three sisters is on the board. The three sisters unite: destroys every adjacent enemy card (up to 4, one per direction) and silences every enemy card's Special Attack for the rest of the round. Usable once per match."},
     ] },
@@ -11503,6 +11505,22 @@ function fullEffectiveValue(card, edgeKey, opponentCard, cellIndex, owner, role)
     if(state.board.some(e => e && e.owner === owner && e.card.id === 'triunedesire')) v += 1;
     const enemyTriune = state.board.some(e => e && e.owner !== owner && e.card.id === 'triunedesire');
     if(enemyTriune && !(card.active && card.active.debuffImmune)) v -= 1;
+  }
+  // Triune Desire vs the Omega/Ultima Weapon duality (Fas 84, user's own
+  // request): Divine Temptation's -1 above already skips any debuffImmune
+  // foe (Omega Weapon), silently wasting a third of her kit against him.
+  // Corrupted Seal redirects that waste into +1 on HERSELF per debuffImmune
+  // enemy present instead of just doing nothing. Broken Seal is a second,
+  // separate +3 hardcoded specifically to the Omega/Ultima pair (same
+  // by-id pattern as Divine Temptation, and as their own mutual "Alpha &
+  // Omega" bonus) -- she's the one force built to unmake that duality.
+  // Both read live off state.board, same no-stored-state shape as Divine
+  // Temptation, and both stack with each other and with Divine Temptation.
+  if(card.id === 'triunedesire'){
+    const debuffImmuneFoeCount = state.board.filter(e => e && e.owner !== owner && e.card.active && e.card.active.debuffImmune).length;
+    if(debuffImmuneFoeCount > 0) v += debuffImmuneFoeCount;
+    const sealedFoePresent = state.board.some(e => e && e.owner !== owner && (e.card.id === 'omegaweapon' || e.card.id === 'ultimaweapon'));
+    if(sealedFoePresent) v += 3;
   }
   return v;
 }
