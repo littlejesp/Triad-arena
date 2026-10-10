@@ -6836,6 +6836,76 @@ om angränsning förut. Flyttade gudarna till de fyra hörnen (0/2/6/8,
 inga av dem angränsande till index 4 eller varandra) så testet isolerar
 Godly Kinship rent igen. Hela testsviten grön: **213/213**.
 
+**Fas 86. Bugg: New Game+ kunde hoppa två steg på en gång (ett
+kompis-rapporterat "fusk" som visade sig vara en riktig bugg).**
+Användaren rapporterade: "Tjejen klarade campaign plus 1 och hon kom
+direkt till 3." Misstänkte först fusk (se de två föregående
+konversationerna om en kompis som manipulerar `localStorage`/Firestore)
+men detta var ett helt annat, oberoende fall — ren klientsidig
+spelprogression, inget delat/nätverksrelaterat alls.
+
+**Rotorsak hittad och reproducerad direkt**: `campaign-ngplus-btn`s
+klick-handler hade inget skydd mot att fyras av två gånger — ett snabbt
+dubbelklick (eller dubbeltryck på mobil, väldigt troligt om skärmen
+inte hinner synas byta innan andra trycket) kunde köra hela
+`campaignProgress.ngPlus++`-blocket två gånger innan `render()` bytte
+bort knappen till stage-1-vyn (som inte har någon New Game+-knapp
+alls). Verifierat med ett Playwright-skript FÖRE någon kodändring:
+`ngPlus:1` → tre snabba klick i rad → `ngPlus:3`, exakt det rapporterade
+mönstret.
+
+**Fix**: samma "inaktivera direkt"-mönster som redan finns naturligt på
+Reset Campaign-knappen (dess `confirm()`-dialog blockerar ett andra
+klick helt naturligt) — satte `campaignNgPlus.disabled = true` som
+ALLRA FÖRSTA rad i handlern, plus en explicit `if(disabled) return;`
+som extra skydd. En inaktiverad knapp triggar inte ens `click` från en
+riktig webbläsarhändelse, så det täcker både det riktiga dubbelklicks-
+scenariot och even mer exotiska (köade event-)fall. Ingen kvarvarande
+låsning — nästa gång spelaren når en ny "campaign complete"-skärm är
+knappen en helt ny, oinaktiverad DOM-nod (hela panelen byggs om från
+grunden varje `render()`).
+
+Nytt permanent test (riktig `.click()` på den faktiska DOM-knappen,
+inte bara ett direkt anrop av någon delad funktion — detta var en
+lucka inga befintliga tester täckte, eftersom de alla byggde
+`campaignProgress` direkt istället för att trycka på knappen): tre
+snabba klick ger bara +1, ett enda riktigt klick fungerar fortfarande
+helt normalt (inkl. att `stageIndex`/`state.selected` återställs
+korrekt), och knappen fastnar inte i låst läge till nästa cykel. Hela
+testsviten grön: **214/214**.
+
+**Fas 87. Sarahs Ultimate (Aion's Last Light) bränner nu igenom Shield
+— en medveten designändring, inte en bugg.** Användaren bad explicit:
+"Sarah ultimate ska ta över ett kort även om motståndet har sköjd."
+
+Fram till nu hade `SPECIAL_HANDLERS.sarah` en
+`specialBlockedByShield`-kontroll precis som nästan varje annat
+enkelmåls-Special i spelet — ett skyddat mål stoppade erövringen helt
+och visade bara "...sköldet håller...". Det mönstret har hela sessionen
+behandlats som en universell regel för capture-specials, men
+användarens formulering lämnade ingen tvekan: det här är ett avsiktligt
+undantag för just Sarah, inte ett misstag att ifrågasätta. Motorn hade
+redan exakt detta undantag på en annan plats att spegla — Vayras
+Eclipse (`SPECIAL_HANDLERS.vayra`) har sedan tidigare noll
+`specialBlockedByShield`-anrop alls, med kommentaren att hennes
+skuggklinga "ignores defensive skills outright".
+
+**Fix**: tog bort hela `if(specialBlockedByShield(...))`-blocket ur
+`SPECIAL_HANDLERS.sarah`. Inget annat i handlern rördes — +3-tröskeln
+mot totalt Power, permanent +1 alla sidor på vinst
+(`SpecialVerbs.attackBoost`) och den slumpade ally-shield-bonusen är
+alla oförändrade. Segermeddelandet uppdaterat till "...falls, shields
+and all!" (samma formulering som Vayras egen "...claims X, shields and
+all!"), och kortets Special-beskrivning nämner nu explicit att den
+ignorerar målets sköld.
+
+Nytt test i Sarahs befintliga testblock (samma mönster som Vayras eget
+`eclipseIgnoredTheShield`-test): ett mål med `grantedShield:true`
+erövras av Aion's Last Light precis som ett oskyddat mål skulle, och
+Sarah får sin vanliga permanenta +1. Hela testsviten grön: **214/214**
+(ingen ny `test()`-post, bara en ny assertion i en befintlig — precis
+som Fas 82–85).
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
