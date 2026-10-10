@@ -4258,7 +4258,7 @@ const HEROES = [
     {name:'Light Shield (Passive)', desc:'The first time Sarah would lose a battle, the loss is ignored.'},
     {name:'Feared Huntress (Passive)', desc:'If Sarah attacks an enemy card with higher total Power than her own, she gets +3 Power on the attacking side.'},
     {name:'Piercing Volley (Passive)', desc:'When Sarah is placed, every adjacent enemy card gets -1 Power on all sides this round.'},
-    {name:"Special Attack: Aion's Last Light", desc:"Costs 2 wins. Choose an enemy card — Sarah gains +3 Power for this attack only. If the attack wins, she keeps +1 Power on all directions permanently, and a random ally on the board is shielded."},
+    {name:"Special Attack: Aion's Last Light", desc:"Costs 2 wins. Choose an enemy card — Sarah gains +3 Power for this attack only, ignoring any shield the target holds. If the attack wins, she keeps +1 Power on all directions permanently, and a random ally on the board is shielded."},
   ]},
   { id:'elara', name:"Elara", role:"Healer of the Frozen Light", top:8, right:8, bottom:8, left:10, element:'water', hue:'linear-gradient(160deg,#123244,#0d0b18 60%)', accent:'#8fe0ff', active: {onWinCleanseAlly:true, marginShieldThreshold:2, pairPresence:{partner:'darien', amount:2}}, special:{ name:'Requiem of Light', cost:2, once:true, targets:'aoe' }, skills:[
     {name:'Frostbloom (Passive)', desc:'Whenever Elara wins a round, a random allied card is cleansed of negative effects and gains +1 Power (permanent).'},
@@ -9454,6 +9454,16 @@ function attachHandlers(){
       });
       const campaignNgPlus = document.getElementById('campaign-ngplus-btn');
       if(campaignNgPlus) campaignNgPlus.addEventListener('click', ()=>{
+        // Bug fix (reported: a player's ngPlus jumped from 1 straight to 3
+        // after one click): a fast double-click/double-tap could fire this
+        // handler twice before render() below replaces the button with the
+        // stage-1 screen (which has no New Game+ button at all) -- each
+        // firing incremented ngPlus by 1 with nothing to stop a second one.
+        // Disabling the button as the very first thing blocks a second
+        // dispatch to this exact node outright (disabled elements don't
+        // fire click), and the explicit guard covers it too either way.
+        if(campaignNgPlus.disabled) return;
+        campaignNgPlus.disabled = true;
         campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1, stageVideosShown:campaignProgress.stageVideosShown };
         saveCampaignProgress();
         state.selected = CAMPAIGN_STARTERS.slice();
@@ -13648,14 +13658,13 @@ const SPECIAL_HANDLERS = {
   // full before/after rationale per card.
   //
   // Sarah, "Aion's Last Light": on a win, ALSO shields a random ally —
-  // she's the team's last light, not just an attacker.
+  // she's the team's last light, not just an attacker. Fas 87: no
+  // specialBlockedByShield check -- like Vayra's Eclipse, her light
+  // burns through any shield the target holds outright.
   sarah({ srcEntry, targetEntry, targetIndex, owner }){
     const name = srcEntry.card.name;
     if(totalPower(srcEntry) + 3 <= totalPower(targetEntry)){
       return `${name}'s Aion's Last Light fades before it can land — ${targetEntry.card.name} holds firm!`;
-    }
-    if(specialBlockedByShield(targetEntry, targetIndex)){
-      return `${targetEntry.card.name}'s shield holds against Aion's Last Light!`;
     }
     targetEntry.owner = owner;
     targetEntry.justFlipped = true;
@@ -13672,7 +13681,7 @@ const SPECIAL_HANDLERS = {
       SpecialVerbs.grantShield(ally);
       shieldMsg = ` — its glow shields ${ally.card.name}!`;
     }
-    return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls!${shieldMsg}`;
+    return `${name}'s Aion's Last Light finds its mark — ${targetEntry.card.name} falls, shields and all!${shieldMsg}`;
   },
   // Tilda, "Nightfall": weakens the TARGET first instead of buffing
   // herself — the attack roll happens against an already-sapped enemy,

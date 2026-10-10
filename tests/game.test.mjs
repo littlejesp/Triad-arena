@@ -5174,7 +5174,7 @@ test('Voidqueen (renamed The Hungering Void): title collision with Nyxara resolv
   await page.close();
 });
 
-test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, Piercing Volley on-place (Fas 82), and her first-ever Ultimate Aion's Last Light", async () => {
+test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, Piercing Volley on-place (Fas 82), her first-ever Ultimate Aion's Last Light, and Aion's Last Light now ignoring shields (Fas 87)", async () => {
   const { page, pageErrors } = await newPage();
   const result = await page.evaluate(`(() => {
     ${freshEntrySnippet()}
@@ -5236,6 +5236,18 @@ test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, Piercing
     SPECIAL_HANDLERS.sarah({ srcEntry: src2, targetEntry: strongTarget, targetIndex: 1, owner: 'blue' });
     out.noEffectVsMuchStronger = strongTarget.owner === 'red' && src2.captureBonus === 0;
 
+    // Fas 87: Aion's Last Light now burns through a shield outright, same
+    // as Vayra's Eclipse -- user's own request ("ta över ett kort även om
+    // motståndet har sköld").
+    state.board = Array(9).fill(null);
+    const src3 = freshEntry(sarah, 'blue');
+    state.board[4] = src3;
+    const shieldedTarget = freshEntry({ id:'sh', name:'Shielded', top:1,right:1,bottom:1,left:1 }, 'red');
+    shieldedTarget.grantedShield = true;
+    state.board[1] = shieldedTarget;
+    SPECIAL_HANDLERS.sarah({ srcEntry: src3, targetEntry: shieldedTarget, targetIndex: 1, owner: 'blue' });
+    out.ignoresShield = shieldedTarget.owner === 'blue' && src3.captureBonus === 1;
+
     return out;
   })()`);
   assert.equal(result.statsUnchanged, true, 'stats and element must be untouched by the rework');
@@ -5249,6 +5261,7 @@ test("Sarah: Light Shield unchanged, Feared Huntress vs a stronger foe, Piercing
   assert.equal(result.fearedVsWeaker, true, 'Feared Huntress grants nothing against an equal-or-weaker foe');
   assert.equal(result.capturedAndBuffed, true, "Aion's Last Light captures and grants +1 permanent on a win");
   assert.equal(result.noEffectVsMuchStronger, true, "Aion's Last Light fails against a target whose total power exceeds the +3 threshold");
+  assert.equal(result.ignoresShield, true, "Aion's Last Light must capture through a shield, same as Vayra's Eclipse (Fas 87)");
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
@@ -13996,6 +14009,54 @@ test('Fas 75: the Mystic pack dropped its Level 9 requirement (user\'s own reque
   assert.equal(result.buyableRightAfterNgPlusReset, true, 'campaignClearedOnce alone must be enough -- New Game+ resetting stageIndex must not re-lock Mystic');
   assert.equal(result.buyableRightAfterCampaignReset, true, 'Reset Campaign resetting stageIndex must not re-lock Mystic either');
   assert.equal(result.stillBlockedByPointsCost, false, 'Mystic must still respect its points cost like every other tier');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test('Bug fix (reported: a player\'s New Game+ jumped from 1 straight to 3 after what looked like one click): the real campaign-ngplus-btn click handler must survive a fast double/triple-click and only increment ngPlus once', async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(() => {
+    const out = {};
+
+    // The actual bug: a captured reference to the button, clicked rapidly
+    // more than once -- exactly the race a fast double-tap produces before
+    // render() swaps this screen out for the stage-1 picker (which has no
+    // New Game+ button at all). Must land on exactly +1, never +2 or +3.
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length, unlocked: [], ngPlus: 1, stageVideosShown: {} };
+    state.phase = 'draft'; state.draftMode = 'campaign'; state.selected = [];
+    render();
+    const btn = document.getElementById('campaign-ngplus-btn');
+    btn.click();
+    btn.click();
+    btn.click();
+    out.rapidMultiClickOnlyIncrementsOnce = campaignProgress.ngPlus === 2;
+
+    // A genuine single click must still work completely normally (the fix
+    // must not accidentally eat the one real click a player actually makes).
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length, unlocked: [], ngPlus: 4, stageVideosShown: {} };
+    state.selected = [];
+    render();
+    document.getElementById('campaign-ngplus-btn').click();
+    out.singleClickStillWorks = campaignProgress.ngPlus === 5;
+    out.singleClickResetsStage = campaignProgress.stageIndex === 0;
+    out.singleClickRefillsStarters = JSON.stringify(state.selected) === JSON.stringify(CAMPAIGN_STARTERS);
+
+    // The guard must not leave the button permanently stuck disabled --
+    // the NEXT time a player reaches a fresh "campaign complete" screen,
+    // its button is a brand-new DOM node (render() rebuilds the HTML from
+    // scratch) and must be clickable again.
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length, unlocked: [], ngPlus: 9, stageVideosShown: {} };
+    state.selected = [];
+    render();
+    out.freshButtonNotStuckDisabled = document.getElementById('campaign-ngplus-btn').disabled === false;
+
+    return out;
+  });
+  assert.equal(result.rapidMultiClickOnlyIncrementsOnce, true, 'a fast multi-click must only ever increment ngPlus by 1, never 2 or more');
+  assert.equal(result.singleClickStillWorks, true);
+  assert.equal(result.singleClickResetsStage, true);
+  assert.equal(result.singleClickRefillsStarters, true);
+  assert.equal(result.freshButtonNotStuckDisabled, true, 'the disabled guard must not persist onto the next campaign-complete screen');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
