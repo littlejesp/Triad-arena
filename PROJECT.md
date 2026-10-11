@@ -8053,6 +8053,38 @@ ORÖRD genom hela sessionen — allt nytt är additiva lager.
 avsnitt 5b, egen underrubrik) — användaren vill bygga ut spelet mer
 (innehåll/balans) innan nätverkskomplexitet läggs till. Ingen kod skriven.
 
+**Fas 89. Campaign-veterankort — kort man vinner med blir starkare.**
+Användarens egen begäran (2026-10-11): "Korten man vinner med i
+campaign, just dom man spelar och vinner med, borde få ökad attack".
+Användarens egna designval (frågades explicit): **+1 Power på alla
+sidor per 3 vunna stages, max +3**, och **bonusen behålls genom New
+Game+** (bara knappen "Reset Campaign" nollställer den).
+
+- Ny egen localStorage-nyckel `triadArenaCampaignVeterans`
+  (`{kortId: antalVinster}`), medvetet INTE inuti `campaignProgress`
+  eftersom NG+-knappen bygger om det objektet från noll.
+- `veteranBonus(id)`, `recordCampaignVeteranWin(ids)` (anropas i
+  `finishGame` vid vunnen campaign-stage, alla fem korten i handen får
+  +1 vinst; returnerar vilka som just gick upp en nivå).
+- `startBattle()` applicerar bonusen på spelarens hand ENDAST i
+  Campaign, via samma ytliga kopia `campaignStatBoost` som fiendesidan
+  redan använder — delade HEROES-objekt muteras aldrig, Random
+  Draft/Rivals/Risk orörda.
+- UI: guldbadge "+N" uppe i mitten på kortet i campaign-väljaren
+  (korten visar även de boostade värdena), en förklarande rad ovanför
+  väljaren, och "X (+N) grew stronger!" på vinstskärmen.
+- Simulering (samma Monte Carlo-metod som Fas 33, motorn i jsdom
+  eftersom Playwright-Chromium inte gick att ladda ner i sessionen):
+  stage 13 (The Forgotten Legion) på NG+2 är fortfarande ~50 % även med
+  +3 på den bästa handen (Ferea/Omega Weapon/Odin/Leviathan/Zaevir) —
+  skölden och Plus avgör mer än råa siffror där. En starkare "rå" hand
+  (Sarah/Seraphine/Gambler/Triune Desire/Nyxara) gick 10 %→25 % med +3.
+  Bonusen hjälper alltså, men löser inte ensam NG+2-stapelproblemet på
+  stage 13 (tvillingparet + NG+ +4 + statBoost 1).
+- Nytt regressionstest i `tests/game.test.mjs` (kunde inte köras i
+  sessionen utan Chromium; motsvarande kontroller kördes i jsdom, 13/13
+  gröna).
+
 **Ovaliderat, värt att fråga om näst:** NG+-svårighetsgraden (+2/cykel) är
 en gissning, aldrig speltestad av en människa — fråga användaren hur det
 kändes om de nämner att ha spelat det. Detsamma gäller balansen på The
