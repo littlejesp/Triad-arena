@@ -9991,7 +9991,7 @@ test('Leaderboard (Fas 26): degrades gracefully with no Firebase loaded (this te
   })()`);
   assert.equal(partB.syncCallCount, 1, 'syncLeaderboardScore must call window.leaderboardSyncScore exactly once');
   assert.equal(partB.syncUsedRealPlayerId, true, "must sync under this browser's own stable playerId, not a fresh/random one");
-  assert.deepEqual(partB.syncPayload, { name: 'MockMe', wins: 7, losses: 2, draws: 1, matchesPlayed: 10, updatedAt: partB.syncPayload.updatedAt }, 'the synced payload must mirror matchStats exactly, field for field');
+  assert.deepEqual(partB.syncPayload, { name: 'MockMe', wins: 7, losses: 2, draws: 1, matchesPlayed: 10, campaignStageIndex: 0, campaignNgPlus: 0, campaignScore: 0, updatedAt: partB.syncPayload.updatedAt }, 'the synced payload must mirror matchStats AND campaignProgress exactly, field for field (Fas 88: a fresh page has default campaignProgress, so these are all 0)');
   assert.equal(partB.fetchCalledWithCount, 20, 'the leaderboard should request a reasonable top-N, not the entire collection');
   assert.equal(partB.statusAfterFetch, 'ready');
   assert.equal(partB.rowCount, 2);
@@ -10035,6 +10035,110 @@ test('Leaderboard (Fas 26): player names are HTML-escaped before rendering, both
   assert.equal(result.inputHtmlEscaped, true, "a malicious player name must be escaped before landing in the name input's value attribute");
   assert.equal(result.rowHtmlEscaped, true, "a malicious name coming back from Firestore must be escaped before rendering in the leaderboard list");
   assert.equal(result.xssDidNotFire, true, 'the escaped markup must never actually execute as HTML/JS');
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
+
+test("Fas 88: a second leaderboard ranking, Campaign Progress, shares the Fas 26 modal via a tab toggle -- syncLeaderboardScore now always carries campaignStageIndex/campaignNgPlus/campaignScore too, synced from all three places campaignProgress changes (stage clear, New Game+, Reset Campaign)", async () => {
+  const { page, pageErrors } = await newPage();
+  const result = await page.evaluate(`(async () => {
+    const out = {};
+    const syncCalls = [];
+    window.leaderboardSyncScore = async (pid, data) => { syncCalls.push(data); };
+    window.leaderboardFetchTop = async (count, orderByField) => {
+      out.lastFetchOrderByField = orderByField;
+      return [
+        { id: playerId, name: 'MockMe', wins: 1, losses: 0, draws: 0, campaignStageIndex: 7, campaignNgPlus: 1, campaignScore: 27 },
+        { id: 'rival', name: 'MockRival', wins: 9, losses: 0, draws: 0, campaignStageIndex: 3, campaignNgPlus: 0, campaignScore: 3 },
+      ];
+    };
+    playerName = 'MockMe';
+    savePlayerName('MockMe');
+
+    // 1. The payload shape itself, with real non-zero campaign progress --
+    // campaignScore must be ngPlus*CAMPAIGN_STAGES.length + stageIndex, so
+    // any NG+ cycle always outranks any amount of progress in a lower one.
+    campaignProgress = { stageIndex: 7, unlocked: [], ngPlus: 1, stageVideosShown: {} };
+    syncLeaderboardScore();
+    out.payloadHasCampaignFields = syncCalls.length === 1
+      && syncCalls[0].campaignStageIndex === 7
+      && syncCalls[0].campaignNgPlus === 1
+      && syncCalls[0].campaignScore === (1 * CAMPAIGN_STAGES.length + 7);
+
+    // 2. Stage clear (inside finishGame's campaign-win branch) syncs too.
+    syncCalls.length = 0;
+    campaignProgress = { stageIndex: 2, unlocked: [], ngPlus: 0, stageVideosShown: {} };
+    state.draftMode = 'campaign';
+    state.board = Array(9).fill({ card: HEROES[0], owner: 'blue' });
+    finishGame();
+    out.stageClearSynced = syncCalls.length === 1 && syncCalls[0].campaignStageIndex === 3;
+
+    // 3. The real New Game+ button click (same DOM node the Fas 86 test
+    // drives) syncs too.
+    syncCalls.length = 0;
+    campaignProgress = { stageIndex: CAMPAIGN_STAGES.length, unlocked: [], ngPlus: 0, stageVideosShown: {} };
+    state.phase = 'draft'; state.selected = [];
+    render();
+    document.getElementById('campaign-ngplus-btn').click();
+    out.ngPlusSynced = syncCalls.length === 1 && syncCalls[0].campaignNgPlus === 1 && syncCalls[0].campaignStageIndex === 0;
+
+    // 4. Reset Campaign also syncs -- mirrors the handler's own body
+    // directly (same approach the existing Fas-34-era reset test already
+    // uses) rather than driving the real confirm() dialog.
+    syncCalls.length = 0;
+    campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} };
+    saveCampaignProgress();
+    syncLeaderboardScore();
+    out.resetSynced = syncCalls.length === 1 && syncCalls[0].campaignStageIndex === 0 && syncCalls[0].campaignNgPlus === 0;
+
+    // 5. The modal itself: defaults to the Wins tab, and both tab buttons
+    // are present with the right active state.
+    state.leaderboardTab = 'wins';
+    state.showLeaderboard = true;
+    state.leaderboardEntries = [{ id: playerId, name: 'MockMe', wins: 7, losses: 1, draws: 0 }];
+    state.leaderboardStatus = 'ready';
+    render();
+    out.winsTabActiveByDefault = document.getElementById('leaderboard-tab-wins').classList.contains('active')
+      && !document.getElementById('leaderboard-tab-campaign').classList.contains('active');
+    out.showsWinLossRecord = document.querySelector('.leaderboard-row').textContent.includes('7W') && document.querySelector('.leaderboard-row').textContent.includes('1L');
+
+    // 6. Switching to the Campaign Progress tab (mirroring attachHandlers'
+    // own leaderboard-tab-campaign click handler) re-fetches with
+    // 'campaignScore' and renders stage/NG+ text instead of W/L/D.
+    state.leaderboardTab = 'campaign';
+    state.leaderboardStatus = 'loading';
+    state.leaderboardEntries = null;
+    render();
+    const rows = await window.leaderboardFetchTop(20, 'campaignScore');
+    state.leaderboardEntries = rows;
+    state.leaderboardStatus = 'ready';
+    render();
+    out.fetchedWithCampaignScore = out.lastFetchOrderByField === 'campaignScore';
+    out.showsStageProgress = document.querySelector('.leaderboard-row').textContent.includes('7 of ' + CAMPAIGN_STAGES.length + ' stages');
+    out.showsNgPlusTag = document.querySelector('.leaderboard-row').textContent.includes('NG+1');
+    out.secondRowNoNgTag = !document.querySelectorAll('.leaderboard-row')[1].textContent.includes('NG+');
+    state.showLeaderboard = false;
+
+    // 7. resetGame() must preserve leaderboardTab across a retry/rematch,
+    // not silently reset it back to 'wins' (it fully replaces state with a
+    // literal object, easy to forget a field in).
+    state.leaderboardTab = 'campaign';
+    resetGame();
+    out.tabSurvivesReset = state.leaderboardTab === 'campaign';
+
+    return out;
+  })()`);
+  assert.equal(result.payloadHasCampaignFields, true, 'syncLeaderboardScore must include campaignStageIndex/campaignNgPlus/campaignScore, computed correctly');
+  assert.equal(result.stageClearSynced, true, 'clearing a Campaign stage must sync the new campaignStageIndex to the leaderboard');
+  assert.equal(result.ngPlusSynced, true, 'pressing New Game+ must sync the reset stageIndex and incremented ngPlus');
+  assert.equal(result.resetSynced, true, 'Reset Campaign must sync the leaderboard back down too, not leave a stale higher score');
+  assert.ok(result.winsTabActiveByDefault, 'the Most Wins tab must be the default active one');
+  assert.equal(result.showsWinLossRecord, true);
+  assert.equal(result.fetchedWithCampaignScore, true, 'switching tabs must re-fetch ordered by campaignScore, not re-sort the wins page client-side');
+  assert.equal(result.showsStageProgress, true);
+  assert.equal(result.showsNgPlusTag, true, 'a player with ngPlus > 0 must show an NG+ tag');
+  assert.equal(result.secondRowNoNgTag, true, 'a player with ngPlus === 0 must show no NG+ tag at all');
+  assert.equal(result.tabSurvivesReset, true, 'resetGame() must not silently drop leaderboardTab back to the default');
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
