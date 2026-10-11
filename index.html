@@ -564,6 +564,15 @@ h1,h2,.display{ font-family:'Cinzel', serif; letter-spacing:0.04em; }
   text-shadow:0 1px 2px rgba(0,0,0,0.9);
 }
 
+/* Fas 89: Campaign veteran bonus, top-centre so it clears the level
+   stars (top-left) and the info button (top-right). */
+.veteran-badge{
+  position:absolute; top:4px; left:50%; transform:translateX(-50%); z-index:6;
+  padding:0 6px; border-radius:9px; background:rgba(4,3,9,0.8); border:1px solid #c9a227;
+  color:#f2d675; font-family:'Cinzel',serif; font-weight:700;
+  font-size:clamp(8px,11cqw,11px); line-height:1.6; pointer-events:none;
+  box-shadow:0 0 6px rgba(201,162,39,0.45);
+}
 .element-badge{
   position:absolute; bottom:4px; left:4px; z-index:6;
   width:clamp(14px,18cqw,20px); height:clamp(14px,18cqw,20px);
@@ -7424,6 +7433,7 @@ function cardFace(card, opts={}){
       <div class="level-stars">${'★'.repeat(cardLevel(card))}</div>
       ${card.element ? `<div class="element-badge" title="${card.element}${ELEMENT_BEATS[card.element] ? '' : ' (outside the Elemental Clash cycle)'}">${ELEMENT_ICONS[card.element]}</div>` : ''}
       ${(opts.selected && !opts.owner) ? `<div class="picked-badge" title="Picked">✓</div>` : ''}
+      ${opts.veteran ? `<div class="veteran-badge" title="Veteran: +${opts.veteran} Power on all sides (${opts.veteranWins} Campaign wins)">+${opts.veteran}</div>` : ''}
       ${opts.petrified ? `<div class="petrified-badge" title="Petrified — can't use its Special Attack">🗿</div>` : ''}
       ${opts.countBadge ? `<div class="count-badge" title="You own ${opts.countBadge} of this card">×${opts.countBadge}</div>` : ''}
       ${opts.noInfo ? '' : `<button class="info-btn" data-info="${card.id}" title="View card skills">i</button>`}
@@ -7661,7 +7671,7 @@ function renderCampaignPanel(){
     ${banner}
     ${loreToggle}
     ${lorePanel}
-    <div class="rules">Choose five champions to carry this stage.</div>
+    <div class="rules">Choose five champions to carry this stage. Veterans grow stronger: every ${VETERAN_WINS_PER_LEVEL} stages won with a card gives it +1 Power on all sides (max +${VETERAN_MAX_BONUS}, kept through New Game+).</div>
     ${stageAINote}
     ${stageStatNote}
     <div class="count-row"><span>Champions chosen</span><span><b>${chosen}</b> / 5</span></div>
@@ -7669,7 +7679,7 @@ function renderCampaignPanel(){
     <button class="ghost campaign-autopick-btn" id="campaign-autopick-btn">✨ Auto-Pick 5 Synergy Cards</button>
     <div class="section-label">Choose exactly five champions</div>
     <div class="draft-grid">
-      ${poolIds.map(id => findCardById(id)).filter(Boolean).map(h => cardFace(h, { selected: state.selected.includes(h.id), clickable:true, unlocked: campaignProgress.unlocked.includes(h.id) })).join('')}
+      ${poolIds.map(id => findCardById(id)).filter(Boolean).map(h => { const vb = veteranBonus(h.id); return cardFace(vb ? campaignStatBoost(h, vb) : h, { selected: state.selected.includes(h.id), clickable:true, unlocked: campaignProgress.unlocked.includes(h.id), veteran: vb, veteranWins: Number(campaignVeterans[h.id]) || 0 }); }).join('')}
     </div>
     <button class="ghost" id="campaign-reset-btn">Reset Campaign</button>
   `;
@@ -8567,10 +8577,15 @@ function renderBattle(){
     if(state.draftMode === 'campaign' && state.winner === 'blue'){
       const unlockedNames = (state.campaignUnlocked||[]).map(id => (HEROES.find(h=>h.id===id)||{}).name).filter(Boolean);
       const complete = !currentCampaignStage();
+      // Fas 89: which of this hand's cards just gained a veteran level.
+      const veteranHtml = (state.campaignVeteranLeveled||[]).length
+        ? `<p class="veteran-levelup">⚔️ ${(state.campaignVeteranLeveled).map(id => { const c = findCardById(id); return `${c ? c.name : id} (+${veteranBonus(id)})`; }).join(', ')} grew stronger!</p>`
+        : '';
       resultHtml = `
         <div class="result-banner">
           <h2>${complete ? 'Campaign Complete!' : 'Stage Cleared!'}</h2>
           <p>${sub}${unlockedNames.length ? ` ${unlockedNames.join(' and ')} join${unlockedNames.length===1?'s':''} your banner!` : ''}</p>
+          ${veteranHtml}
         </div>
         <button class="cta" id="campaign-next-btn">${complete ? 'Return to Campaign' : 'Next Stage'}</button>
       `;
@@ -9522,6 +9537,9 @@ function attachHandlers(){
         if(!confirm('Reset all campaign progress? This cannot be undone.')) return;
         campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} };
         saveCampaignProgress();
+        // Fas 89: a full reset also wipes veteran growth (New Game+ keeps it).
+        campaignVeterans = {};
+        saveCampaignVeterans();
         syncLeaderboardScore();
         state.selected = CAMPAIGN_STARTERS.slice();
         // Fas 71: same explicit "new campaign run" moment as New Game+ above.
@@ -9671,9 +9689,11 @@ function startBattle(){
   // findCardById resolves HEROES/FOREST_FOES/PACK_EXCLUSIVE_CARDS alike,
   // and .map+.filter(Boolean) preserves state.selected's own ids (order
   // doesn't matter either way since the very next line shuffles it).
-  const chosenHeroes = state.selected.map(id => findCardById(id)).filter(Boolean);
-  state.playerHand = shuffle(chosenHeroes.slice());
   const campaignStage = state.draftMode === 'campaign' ? currentCampaignStage() : null;
+  // Fas 89: veteran bonus (see veteranBonus) -- Campaign only.
+  const chosenHeroes = state.selected.map(id => findCardById(id)).filter(Boolean)
+    .map(c => campaignStage ? campaignStatBoost(c, veteranBonus(c.id)) : c);
+  state.playerHand = shuffle(chosenHeroes.slice());
   const riskOpponent = state.riskMatch ? RISK_OPPONENTS.find(o => o.id === state.riskMatch.opponentId) : null;
   state.enemyHand = campaignStage
     ? campaignStage.enemyIds.map(id => FOREST_FOES.find(f=>f.id===id)).filter(Boolean).map(c => campaignStatBoost(ngPlusBoostCard(c, campaignProgress.ngPlus), campaignStage.statBoost))
@@ -10658,6 +10678,49 @@ function saveCampaignProgress(){
 let hadNoCampaignSaveAtLoad = false;
 try{ hadNoCampaignSaveAtLoad = !localStorage.getItem(CAMPAIGN_SAVE_KEY); }catch(e){ /* storage unavailable -- treat as not-fresh, harmless either way */ }
 let campaignProgress = loadCampaignProgress();
+
+// Fas 89: Campaign veteran cards. User's own request: "korten man vinner
+// med i campaign ... borde få ökad attack". Every Campaign stage WON counts
+// one win for each of the five cards in the hand; every
+// VETERAN_WINS_PER_LEVEL wins = +1 Power on all four sides, capped at
+// VETERAN_MAX_BONUS (user's choice: "+1 per 3 wins, max +3"). Stored under
+// its OWN key rather than inside campaignProgress, because it must survive
+// New Game+ (user's choice: "Keep it") -- the NG+ button rebuilds
+// campaignProgress from scratch. Only the explicit "Reset Campaign" button
+// wipes it. Applied only to the player's hand in Campaign battles (see
+// startBattle), via the same shallow-copy campaignStatBoost the enemy side
+// already uses, so shared HEROES objects are never mutated and other modes
+// (Random Draft, Rivals, Risk) are untouched.
+const CAMPAIGN_VETERAN_KEY = 'triadArenaCampaignVeterans';
+const VETERAN_WINS_PER_LEVEL = 3;
+const VETERAN_MAX_BONUS = 3;
+function loadCampaignVeterans(){
+  try{
+    const raw = localStorage.getItem(CAMPAIGN_VETERAN_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+  }catch(e){ return {}; }
+}
+function saveCampaignVeterans(){
+  try{ localStorage.setItem(CAMPAIGN_VETERAN_KEY, JSON.stringify(campaignVeterans)); }catch(e){ /* storage unavailable */ }
+}
+function veteranBonus(cardId){
+  const wins = Math.max(0, Number(campaignVeterans[cardId]) || 0);
+  return Math.min(VETERAN_MAX_BONUS, Math.floor(wins / VETERAN_WINS_PER_LEVEL));
+}
+// Records a won Campaign stage for every card in the hand. Returns the ids
+// whose bonus just went UP, for the result screen.
+function recordCampaignVeteranWin(cardIds){
+  const leveled = [];
+  cardIds.forEach(id => {
+    const before = veteranBonus(id);
+    campaignVeterans[id] = (Number(campaignVeterans[id]) || 0) + 1;
+    if(veteranBonus(id) > before) leveled.push(id);
+  });
+  saveCampaignVeterans();
+  return leveled;
+}
+let campaignVeterans = loadCampaignVeterans();
 
 // Fas 4 (design review, progression pilot): Random Draft/Choose Your Five
 // had zero persistence at all — no record of wins, losses, streaks, or
@@ -15974,6 +16037,7 @@ function finishGame(){
   state.winner = blueCount > redCount ? 'blue' : redCount > blueCount ? 'red' : 'draw';
   state.phase = 'result';
   state.campaignUnlocked = null;
+  state.campaignVeteranLeveled = null;
   // A draw doesn't clear the stage — only a clean win advances campaign
   // progress. Unlocking + persisting happens right here (not deferred to
   // the result screen's button) so progress is saved the instant the
@@ -16000,6 +16064,7 @@ function finishGame(){
       saveCampaignProgress();
       syncLeaderboardScore();
       state.campaignUnlocked = newly;
+      state.campaignVeteranLeveled = recordCampaignVeteranWin(state.selected);
       // The big clear bonus. campaignClearedOnce itself still only flips
       // ONCE (it's the permanent gate for the packs/Rivals system) --
       // but per the user's own request ("man får ännu mer poäng när man

@@ -14420,3 +14420,35 @@ test("Fas 80: Zidane's Trance now battles every actual adjacent enemy with his n
   assert.deepEqual(pageErrors, []);
   await page.close();
 });
+
+test('Fas 89: Campaign veteran bonus (+1 per 3 stage wins, max +3, Campaign only, survives NG+)', async () => {
+  const { page, pageErrors } = await newPage();
+  const r = await page.evaluate(() => {
+    const out = {};
+    campaignVeterans = { odin:2, ferea:3, sarah:8, zaevir:99 };
+    out.levels = ['odin','ferea','sarah','zaevir'].map(veteranBonus);
+    campaignProgress = { stageIndex:12, unlocked:[], ngPlus:2, stageVideosShown:{} };
+    state.draftMode = 'campaign';
+    state.selected = ['odin','ferea','sarah','zaevir','leviathan'];
+    startCampaignBattle();
+    out.zaevirTop = state.playerHand.find(c => c.id === 'zaevir').top;
+    out.sharedTop = findCardById('zaevir').top;
+    state.draftMode = 'random';
+    startBattle();
+    out.randomTop = state.playerHand.find(c => c.id === 'zaevir').top;
+    state.draftMode = 'campaign';
+    campaignProgress = { stageIndex:12, unlocked:[], ngPlus:2, stageVideosShown:{} };
+    state.board = Array(9).fill(null).map((_, i) => ({ card: findCardById('odin'), owner: i < 5 ? 'blue' : 'red' }));
+    finishGame();
+    out.odinWins = campaignVeterans.odin;
+    out.leveled = state.campaignVeteranLeveled;
+    return out;
+  });
+  assert.deepEqual(r.levels, [0, 1, 2, 3]);
+  assert.equal(r.zaevirTop, r.sharedTop + 3);
+  assert.equal(r.randomTop, r.sharedTop);
+  assert.equal(r.odinWins, 3);
+  assert.deepEqual(r.leveled, ['odin']);
+  assert.deepEqual(pageErrors, []);
+  await page.close();
+});
