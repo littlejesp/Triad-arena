@@ -8085,6 +8085,15 @@ Game+** (bara knappen "Reset Campaign" nollställer den).
   sessionen utan Chromium; motsvarande kontroller kördes i jsdom, 13/13
   gröna).
 
+**Fas 90. Ny kortkonst för Seraphine.** Användaren laddade upp en ny
+bild (941×1672, vit/guld helgon-krigare med två pistoler och
+törnekrona) och bad "Byt ut Seraphine till detta kort". Ersatte
+`card-seraphine-full.jpg` rakt av och skar ut en ny tumnagel
+`cards/card-seraphine.jpg` med `crop((45,140)-(895,695))` → 640×418
+(innanför ramen, ansikte+krona centrerat). `?v=2` lades till på båda
+sökvägarna i `CARD_IMAGES`/fullbildstabellen så att webbläsarens cache
+inte visar den gamla bilden. Inga stats/skills ändrade.
+
 **Ovaliderat, värt att fråga om näst:** NG+-svårighetsgraden (+2/cykel) är
 en gissning, aldrig speltestad av en människa — fråga användaren hur det
 kändes om de nämner att ha spelat det. Detsamma gäller balansen på The
