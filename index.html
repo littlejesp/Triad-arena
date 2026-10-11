@@ -1122,6 +1122,18 @@ button.ghost.leaderboard-view-btn{ width:auto; flex:0 0 auto; margin-top:0; padd
 .leaderboard-rank{ flex:0 0 22px; text-align:center; font-family:'Cinzel',serif; font-weight:700; color:var(--gold-bright); font-size:12.5px; }
 .leaderboard-player-name{ flex:1; min-width:0; font-size:12.5px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .leaderboard-record{ flex:0 0 auto; font-size:11px; color:var(--text-dim); }
+/* Fas 88: two rankings share one modal -- Most Wins (Fas 26, unchanged)
+   and Campaign Progress (new). A plain two-button toggle row, same
+   gold-accent language as the rest of the modal rather than a new
+   widget type. */
+.leaderboard-tab-row{ display:flex; gap:6px; margin-bottom:10px; }
+.leaderboard-tab-btn{
+  flex:1; padding:7px 10px; font-size:12px; font-family:'Cinzel',serif;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(201,162,39,0.25);
+  border-radius:6px; color:var(--text-dim); cursor:pointer; transition:border-color 0.15s, color 0.15s, background 0.15s;
+}
+.leaderboard-tab-btn:hover{ border-color:rgba(201,162,39,0.5); color:var(--text); }
+.leaderboard-tab-btn.active{ background:rgba(201,162,39,0.16); border-color:var(--gold); color:var(--gold-bright); }
 
 /* Progression step 2/3: Packs/Rivals/My Bag -- redesigned from plain
    ghost pills crammed next to the hint text into the same icon-over-
@@ -6643,7 +6655,8 @@ let state = {
   showGraveyard: false,   // true while the Graveyard panel (optional rule) is expanded
   showLeaderboard: false, // true while the 🏆 Leaderboard modal is open
   leaderboardStatus: 'idle', // 'idle' | 'loading' | 'ready' | 'error' — see leaderboardFetchTop
-  leaderboardEntries: null,  // array of {id, name, wins, losses, draws, matchesPlayed} once loaded, or null before the first fetch
+  leaderboardEntries: null,  // array of {id, name, wins, losses, draws, matchesPlayed, campaignStageIndex, campaignNgPlus, campaignScore} once loaded, or null before the first fetch
+  leaderboardTab: 'wins',    // 'wins' | 'campaign' (Fas 88) — which ranking the modal currently shows; switching re-fetches
   showPacks: false,       // true while the 🎁 Packs modal is open
   packOpenResult: null,   // { tierId, tierName, drawn:[{id,name,wasNew,capped}] } — the last-opened pack's reveal, or null when browsing tiers
   showRivals: false,      // true while the ⚔️ Rivals modal is open
@@ -6895,6 +6908,7 @@ function renderGraveyardModal(){
 // itself (render() must stay a pure reflection of state, no side effects).
 function renderLeaderboardModal(){
   if(!state.showLeaderboard) return '';
+  const isCampaign = state.leaderboardTab === 'campaign';
   let body;
   if(state.leaderboardStatus === 'loading'){
     body = `<div class="leaderboard-status">Loading the leaderboard…</div>`;
@@ -6909,7 +6923,9 @@ function renderLeaderboardModal(){
           <div class="leaderboard-row ${entry.id === playerId ? 'leaderboard-you' : ''}">
             <span class="leaderboard-rank">${i + 1}</span>
             <span class="leaderboard-player-name">${escapeHtml(entry.name || '???')}</span>
-            <span class="leaderboard-record">${entry.wins||0}W · ${entry.losses||0}L · ${entry.draws||0}D</span>
+            <span class="leaderboard-record">${isCampaign
+              ? `${entry.campaignStageIndex||0} of ${CAMPAIGN_STAGES.length} stages${entry.campaignNgPlus ? ` · NG+${entry.campaignNgPlus}` : ''}`
+              : `${entry.wins||0}W · ${entry.losses||0}L · ${entry.draws||0}D`}</span>
           </div>
         `).join('')}
       </div>`;
@@ -6919,7 +6935,13 @@ function renderLeaderboardModal(){
       <div class="modal-poster leaderboard-modal">
         <button class="modal-close" id="leaderboard-close">✕</button>
         <h3>🏆 Leaderboard</h3>
-        <p class="graveyard-hint">Top players across every device, ranked by total wins in Random Draft/Choose Your Five (Campaign progress isn't counted here).</p>
+        <div class="leaderboard-tab-row">
+          <button class="leaderboard-tab-btn ${isCampaign ? '' : 'active'}" id="leaderboard-tab-wins" data-tab="wins">Most Wins</button>
+          <button class="leaderboard-tab-btn ${isCampaign ? 'active' : ''}" id="leaderboard-tab-campaign" data-tab="campaign">Campaign Progress</button>
+        </div>
+        <p class="graveyard-hint">${isCampaign
+          ? 'Top players across every device, ranked by how far they\'ve gotten in Campaign (stages cleared, then New Game+ cycle).'
+          : 'Top players across every device, ranked by total wins in Random Draft/Choose Your Five (Campaign progress isn\'t counted here).'}</p>
         ${body}
       </div>
     </div>`;
@@ -9213,14 +9235,17 @@ function attachHandlers(){
       render();
     });
   }
-  const leaderboardOpenBtn = document.getElementById('leaderboard-open-btn');
-  if(leaderboardOpenBtn) leaderboardOpenBtn.addEventListener('click', ()=>{
-    state.showLeaderboard = true;
+  // Fas 88: shared by the open button and both tab buttons below --
+  // whichever one fires, it's always "load whatever state.leaderboardTab
+  // currently says" so switching tabs re-fetches with the right ordering
+  // instead of re-sorting the already-fetched 'wins' page client-side
+  // (that page may not even contain the top Campaign Progress rows).
+  function fetchLeaderboardTab(){
     state.leaderboardStatus = 'loading';
     state.leaderboardEntries = null;
     render();
     if(window.leaderboardFetchTop){
-      window.leaderboardFetchTop(20).then(rows => {
+      window.leaderboardFetchTop(20, state.leaderboardTab === 'campaign' ? 'campaignScore' : 'wins').then(rows => {
         state.leaderboardEntries = rows;
         state.leaderboardStatus = rows === null ? 'error' : 'ready';
         render();
@@ -9229,6 +9254,23 @@ function attachHandlers(){
       state.leaderboardStatus = 'error';
       render();
     }
+  }
+  const leaderboardOpenBtn = document.getElementById('leaderboard-open-btn');
+  if(leaderboardOpenBtn) leaderboardOpenBtn.addEventListener('click', ()=>{
+    state.showLeaderboard = true;
+    fetchLeaderboardTab();
+  });
+  const leaderboardTabWins = document.getElementById('leaderboard-tab-wins');
+  if(leaderboardTabWins) leaderboardTabWins.addEventListener('click', ()=>{
+    if(state.leaderboardTab === 'wins') return;
+    state.leaderboardTab = 'wins';
+    fetchLeaderboardTab();
+  });
+  const leaderboardTabCampaign = document.getElementById('leaderboard-tab-campaign');
+  if(leaderboardTabCampaign) leaderboardTabCampaign.addEventListener('click', ()=>{
+    if(state.leaderboardTab === 'campaign') return;
+    state.leaderboardTab = 'campaign';
+    fetchLeaderboardTab();
   });
   const leaderboardOverlay = document.getElementById('leaderboard-overlay');
   if(leaderboardOverlay){
@@ -9466,6 +9508,7 @@ function attachHandlers(){
         campaignNgPlus.disabled = true;
         campaignProgress = { stageIndex:0, unlocked:campaignProgress.unlocked, ngPlus:campaignProgress.ngPlus+1, stageVideosShown:campaignProgress.stageVideosShown };
         saveCampaignProgress();
+        syncLeaderboardScore();
         state.selected = CAMPAIGN_STARTERS.slice();
         // Fas 71: an explicit "start a new campaign run" moment -- fires
         // Nyxara's intro directly, independent of checkNewCampaignIntroTrigger's
@@ -9479,6 +9522,7 @@ function attachHandlers(){
         if(!confirm('Reset all campaign progress? This cannot be undone.')) return;
         campaignProgress = { stageIndex:0, unlocked:[], ngPlus:0, stageVideosShown:{} };
         saveCampaignProgress();
+        syncLeaderboardScore();
         state.selected = CAMPAIGN_STARTERS.slice();
         // Fas 71: same explicit "new campaign run" moment as New Game+ above.
         state.showNewCampaignIntroVideo = true;
@@ -11056,6 +11100,14 @@ function escapeHtml(str){
 // upload-and-forget on top of it. Skipped entirely until the player has
 // actually chosen a name (an anonymous row would be useless on a shared
 // leaderboard anyway).
+// Fas 88: every call mirrors the player's FULL current state, not just
+// whatever just changed -- leaderboardSyncScore does a plain setDoc
+// (full overwrite, no merge:true), so a call that only carried match
+// stats would silently erase this player's campaign fields back to
+// nothing, and vice versa. campaignScore is a single sortable number
+// (ngPlus cycles always outrank any amount of stage progress in a lower
+// cycle) so leaderboardFetchTop can order by it with a plain Firestore
+// orderBy, same as it already does for wins.
 function syncLeaderboardScore(){
   if(!playerName || !window.leaderboardSyncScore) return;
   window.leaderboardSyncScore(playerId, {
@@ -11064,6 +11116,9 @@ function syncLeaderboardScore(){
     losses: matchStats.losses,
     draws: matchStats.draws,
     matchesPlayed: matchStats.matches,
+    campaignStageIndex: campaignProgress.stageIndex,
+    campaignNgPlus: campaignProgress.ngPlus,
+    campaignScore: campaignProgress.ngPlus * CAMPAIGN_STAGES.length + campaignProgress.stageIndex,
     updatedAt: Date.now(),
   });
 }
@@ -15943,6 +15998,7 @@ function finishGame(){
       const newStageIndex = campaignProgress.stageIndex + 1;
       campaignProgress = { stageIndex: newStageIndex, unlocked: campaignProgress.unlocked.concat(newly), ngPlus: campaignProgress.ngPlus, stageVideosShown: campaignProgress.stageVideosShown };
       saveCampaignProgress();
+      syncLeaderboardScore();
       state.campaignUnlocked = newly;
       // The big clear bonus. campaignClearedOnce itself still only flips
       // ONCE (it's the permanent gate for the packs/Rivals system) --
@@ -15990,7 +16046,7 @@ function resetGame(){
     phase:'draft', selected:keepSelected, board: Array(9).fill(null),
     playerHand:[], enemyHand:[], turn:'blue', pendingCard:null,
     log:'Choose the five champions who will carry your banner.', winner:null,
-    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showSistersIntroVideo:false, showNewCampaignIntroVideo:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, riskWinChoice:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
+    viewingCard:null, viewingCardList:null, showRulebook:false, rulebookPage:0, showSisterLore:false, showSistersIntroVideo:false, showNewCampaignIntroVideo:false, showGraveyard:false, showLeaderboard:false, leaderboardStatus:'idle', leaderboardEntries:null, leaderboardTab: state.leaderboardTab, showPacks:false, packOpenResult:null, showRivals:false, rivalView:null, rivalPicked:[], riskMatch:null, riskResult:null, riskWinChoice:null, showBag:false, winsPopup:null, chainShake:false, impactPunch:false, ultimateBanner:null, campaignUnlocked:null, newAchievements:[], rules: keepRules, draftMode: keepMode, revealing: false,
     wins: { blue: 0, red: 0 }, specialUsed: {}, specialMode: null, extraTurnPending: null, placedThisTurn: false,
     turnCount: 0, graveyard: { blue: [], red: [] }, destroyGhosts: [], odinSlashes: [], gamblerRolls: [],
     tutorialActive: false, tutorialStep: 0, aiDifficulty: keepAiDifficulty, fastMode: keepFastMode,
@@ -16056,15 +16112,22 @@ document.addEventListener('touchstart', tryStartMusic, { once: true });
     }catch(e){ /* best-effort -- never surfaced to the player */ }
   };
 
-  // Returns the top `count` rows by wins, each with its Firestore document
-  // id attached (so the main script can highlight "this is you"), or null
+  // Returns the top `count` rows ordered by `orderByField` (defaults to
+  // 'wins', the original Fas 26 ranking; Fas 88 passes 'campaignScore' for
+  // the Campaign Progress tab), each with its Firestore document id
+  // attached (so the main script can highlight "this is you"), or null
   // specifically on failure -- distinct from a genuinely empty [], which
   // renderLeaderboardModal treats as "no one has joined yet" rather than
-  // an error.
-  window.leaderboardFetchTop = async function(count){
+  // an error. A single-field orderBy like this needs no composite index,
+  // same as the original 'wins' query. Note a doc missing `orderByField`
+  // entirely (any player who hasn't synced since Fas 88 shipped) is
+  // excluded by Firestore until their next sync backfills it -- every
+  // sync call now always writes both wins and campaign fields together,
+  // so this self-heals on that player's very next match or stage clear.
+  window.leaderboardFetchTop = async function(count, orderByField){
     if(!db) return null;
     try{
-      const q = query(collection(db, 'players'), orderBy('wins', 'desc'), limit(count));
+      const q = query(collection(db, 'players'), orderBy(orderByField || 'wins', 'desc'), limit(count));
       const snap = await getDocs(q);
       const rows = [];
       snap.forEach(d => rows.push({ id: d.id, ...d.data() }));

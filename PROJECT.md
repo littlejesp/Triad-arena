@@ -6906,6 +6906,71 @@ Sarah får sin vanliga permanenta +1. Hela testsviten grön: **214/214**
 (ingen ny `test()`-post, bara en ny assertion i en befintlig — precis
 som Fas 82–85).
 
+**Fas 88. En andra delad leaderboard-rankning: Campaign Progress, sida
+vid sida med Fas 26:s "Most Wins".** Användaren: "Vi borde göra en
+leaderboard hur långt spelare har kommit i campaign."
+
+Fas 26:s leaderboard rankar uttryckligen BARA Random Draft/Choose Your
+Five-vinster — Campaign-matcher hoppas medvetet över i
+`recordMatchResult()` (`if(state.draftMode === 'campaign') return;`,
+orört), eftersom NG+/stage-statboost gör vinst/förlust-statistik
+ojämförbar mellan spelare på olika Campaign-cykler. Snarare än att
+blanda in Campaign i den befintliga rankningen (vilket skulle bryta
+just den designprincipen) delar den nya rankningen samma modal via en
+flik-växlare ("Most Wins" / "Campaign Progress") — två helt separata
+Firestore-queries, samma dokument per spelare.
+
+**Datamodell**: `syncLeaderboardScore()` skrev tidigare bara
+matchStats-fälten. Eftersom `window.leaderboardSyncScore` gör ett rent
+`setDoc` (ingen `{merge:true}`) måste VARJE anrop nu bära ALLA fält —
+annars hade ett Campaign-synk tystat ut spelarens egna win/loss-siffror
+och vice versa. Tre nya fält: `campaignStageIndex`, `campaignNgPlus`,
+och `campaignScore` (`ngPlus * CAMPAIGN_STAGES.length + stageIndex`) —
+ett enda sorterbart tal där en hel NG+-cykel alltid slår vilken mängd
+stage-progress som helst i en lägre cykel, så `leaderboardFetchTop`
+kan göra en vanlig `orderBy('campaignScore','desc')` (samma
+engångsindex-fria mönster som den befintliga `orderBy('wins','desc')`,
+ingen composite-index behövs).
+
+**Synk-punkter**: `syncLeaderboardScore()` anropades tidigare BARA
+från `recordMatchResult()` (alltså aldrig för Campaign). Lade till
+anrop på exakt de tre ställena `campaignProgress` faktiskt ändras:
+stage-clear (i `finishGame()`s Campaign-vinst-gren, direkt efter
+`saveCampaignProgress()`), New Game+-knappen (samma handler Fas 86
+redan fixade), och Reset Campaign-knappen. En spelare som aldrig rör
+Campaign men spelar vanliga matcher får ändå sina Campaign-fält
+(0/0/0) skrivna på nästa vanliga synk — self-healing, inget
+migrationssteg behövs för existerande Firestore-rader.
+
+**UI**: `renderLeaderboardModal()` fick en `.leaderboard-tab-row` med
+två `.leaderboard-tab-btn`-knappar (samma guld-accent-språk som resten
+av modalen). Rad-texten växlar mellan `${wins}W · ${losses}L ·
+${draws}D` och `${stageIndex} of ${CAMPAIGN_STAGES.length} stages ·
+NG+${ngPlus}` (NG+-taggen utelämnas helt vid `ngPlus:0`, ingen
+specialcase för "helt klarat" — `stageIndex === CAMPAIGN_STAGES.length`
+läser redan korrekt som "20 of 20 stages"). Att byta flik sätter
+`state.leaderboardTab` och kör om hela fetchen mot Firestore med rätt
+`orderBy`-fält istället för att sortera om den redan hämtade
+wins-sidan klient-sidan (som ändå inte skulle innehålla de topprankade
+Campaign-raderna). `resetGame()` ersätter hela `state`-objektet
+literalt — glömde nästan bevara `leaderboardTab` över en Campaign-
+retry, fångat av ett eget test innan commit.
+
+Nytt test (Fas 88): payload-formen med riktiga Campaign-värden,
+synk-anrop verifierade på alla tre ställena (stage-clear via
+`finishGame()`, en riktig `.click()` på `campaign-ngplus-btn`, Reset
+Campaign), flik-växling inklusive att `leaderboardFetchTop` faktiskt
+får `'campaignScore'` som andra argument, NG+-tagg visas/döljs
+korrekt, och `resetGame()` bevarar vald flik. Uppdaterade också Fas
+26:s befintliga payload-assertion (den gjorde en exakt `deepEqual` mot
+hela synk-objektet, så de tre nya fälten bröt den tills de lades till
+där också). Hela testsviten grön: **215/215** (214 tidigare + 1 ny).
+Ett separat, ovidkommande miss i samma bakgrundskörning — Twin
+Brothers/Twin Sisters-testet (se dess egen historik i Fas 73/80-
+noteringarna) — var samma redan kända miljö-flakiness som två tidigare
+gånger denna session: grönt varje gång det körs isolerat, rört inget
+med den här ändringen.
+
 **54. Tiamat och Three Head Dragon — andra ombyggnaden av två redan
 "rena" kort, på användarens egen begäran** ("jag hade velat göra om
 tiamat och tree head dragon"), inte från audit-listan (båda var sedan
